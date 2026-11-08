@@ -149,7 +149,7 @@ Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 ```bash
 cd ComfyUI/custom_nodes/comfyui_pcg
 python tests/run_tests.py          # Python suites (numpy, scipy, trimesh)
-npm install && python tests/run_tests.py --js   # + frontend suites (Node 18+, jsdom)
+npm install && python tests/run_tests.py --js   # + frontend suites (Node 22.22+, jsdom)
 ```
 
 ## License

@@ -2,7 +2,7 @@
 Run the test suites, one process per file, and print a summary.
 
     python tests/run_tests.py              Python suites
-    python tests/run_tests.py --js         + frontend suites (needs Node 18+ and `npm install` in the repo root)
+    python tests/run_tests.py --js         + frontend suites (needs Node 22.22+ and `npm install` in the repo root)
     python tests/run_tests.py --quick      skip the heavy production-workflow suite
     python tests/run_tests.py -k cop       only files whose name contains "cop"
 
