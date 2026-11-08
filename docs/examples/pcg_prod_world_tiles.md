@@ -42,9 +42,9 @@ All files go to `output/pcg/world/`.
 
 8. **[COP Write File (PCG)](../reference/cop-utility.md#pcg-copwritefile)** nodes write the tiled height (16-bit, `shared_edge` on, `value_scale` 2048), the full `.r16`, and the six weight layers.
 9. **[COP Light (PCG)](../reference/cop-utility.md#pcg-coplight)** plus a Wrangle that draws the tile borders produce the minimap, written as `Overview.png` and previewed.
-10. **[COP HeightField to Mesh (PCG)](../reference/cop-geometry.md#pcg-copheightfieldtomesh)** (every 2nd sample, about half a million triangles) builds the terrain mesh; cones (**[Tube (PCG)](../reference/generate.md#pcg-tube)**) and spheres (**[Sphere (PCG)](../reference/generate.md#pcg-sphere)**) are copied with **[Copy to Points (PCG)](../reference/scatter.md#pcg-copytopoints)** onto the tree and rock points as proxies; **[Geometry Preview (PCG)](../reference/output.md#pcg-previewimage)** renders the whole world in the *Studio* look at 1600 x 1066.
+10. **[COP HeightField to Mesh (PCG)](../reference/cop-geometry.md#pcg-copheightfieldtomesh)** (every 2nd sample, about half a million triangles) builds the terrain mesh. Proxies stand in for the engine's assets: pines of three stacked cones (**[Tube (PCG)](../reference/generate.md#pcg-tube)**), broadleaf trees with a crown of five lumpy clusters, bushes and angular rocks (**[Sphere (PCG)](../reference/generate.md#pcg-sphere)** plus **[Point Jitter (PCG)](../reference/modify.md#pcg-pointjitter)**), chosen per point by a `kind` attribute and placed with **[Copy to Points (PCG)](../reference/scatter.md#pcg-copytopoints)** (*Piece Attribute*). A **[Camera (PCG)](../reference/render.md#pcg-camera)** over the south-west lowlands looks toward the mountain range, and **[Geometry Preview (PCG)](../reference/output.md#pcg-previewimage)** renders it in the *Outdoor* look (low sun, haze, sky) at 1600 x 900.
 
-![The whole world with tree, bush and rock proxies](images/pcg_prod_world_tiles.png)
+![The world from the lowlands toward the range, with tree, bush and rock proxies](images/pcg_prod_world_tiles.png)
 
 ## Worth tweaking
 

@@ -267,12 +267,15 @@ Shading: **Normal** colours by world-space face normal, **Lambert** is a grey mo
 
 **Studio** look: smooth shading from `N`, a key light with shadows, sky fill and a soft highlight, screen-space ambient occlusion, a ground that only catches shadows and fades into a gradient background, and supersampling for clean edges. It also maps textures, with the same `slot = path` lines as Export Mesh: `basecolor`, `normal` (tangent space, OpenGL +Y) and `orm` (R = AO, G = roughness, B = metallic), or `ao`, `roughness` and `metallic` separately. A roughness or metallic map switches the surface to metal-rough PBR shading: a GGX highlight from the key light, the studio (ceiling, floor, a softbox and a strip light beside the camera) reflected with Schlick Fresnel, F0 = 0.04 for dielectrics and BaseColor for metals, and the AO map multiplied into the occlusion. Without one the shading is the plain diffuse look with a soft highlight, so polished glass or bare metal would show only as dark surfaces. Paths are relative to ComfyUI's output folder, so files written earlier in the graph can be used, and `{material}` is replaced by each face's material name (a string prim attribute, Material Attribute). The normal map uses the same tangent frames Export Mesh writes and COP Bake Textures bakes against, so a baked map looks as it will in an engine. A material whose file does not exist keeps its `Cd` and mesh normal. A value `@layer` takes that layer from the COP image connected to **textures_cop** instead of a file, for example `basecolor = @basecolor` and `normal = @normal_ts` straight from COP Bake Textures, or `orm = @ao roughness metallic` to pack three layers like an ORM file, which avoids depending on files being written first. The camera direction is the same as Basic, but the frame fits the object's projected extent, so a row of objects fills a wide image. Shading is ignored in Studio.
 
+The **Outdoor** look renders an environment shot instead of an object on a studio floor: a perspective camera (the connected Camera node, or an automatic 35 mm camera at Elevation / Azimuth), a sky with a sun, warm sun light with shadows plus blue sky fill and ground bounce, aerial perspective that fades distant surfaces toward the horizon, and an optional ground plane to the horizon. Textures and PBR work as in the studio look; glossy surfaces reflect the sky. Use it for streets, towns and terrain where scale and depth matter; keep Studio for asset turnarounds.
+
 **Inputs**
 
 | Input | Type | Description |
 |---|---|---|
 | `geo` | GEOMETRY | Geometry to render. |
 | `textures_cop` *(optional)* | COPIMAGE | Optional COP image whose layers Textures can name with `@layer` (Studio look). |
+| `camera` *(optional)* | PCGCAM | Optional camera for the Outdoor look (any Camera node; its view is rendered in perspective). Without it an automatic 35 mm camera at Elevation / Azimuth frames the geometry. |
 
 **Outputs**
 
@@ -287,13 +290,24 @@ Shading: **Normal** colours by world-space face normal, **Lambert** is a grey mo
 | Resolution `width` `height` | int [64..4096] | 512, 512 | Image width and height in pixels (Width, Height). |
 | Elevation `elevation` | float [-89..89] | 25 | Camera elevation angle in degrees. 0 looks horizontally, positive looks from above. |
 | Azimuth `azimuth` | float [-360..360] | 35 | Rotation of the camera around the vertical axis in degrees. |
-| Look `look` | menu | Basic | Basic is the plain preview; Studio adds shadows, ambient occlusion, a shadow-catching ground, a gradient background and textures. Options: Basic (`basic`), Studio (shadows, AO, ground, textures) (`studio`). |
-| Shading `shading` | menu | Normal | How the surface is coloured. Normal shows face normals as colour, Lambert is a grey model with simple lighting, Color shows the colour attribute times lighting. Options: Normal (`normal`), Lambert (Gray) (`lambert`), Color (Cd) (`color`). *Hidden when look = studio.* |
-| Color Attribute `color_attrib` | string | `Cd` | Attribute read for the colour. Only used in Color shading. *Hidden when shading ≠ color look ≠ studio.* |
-| Supersampling `supersampling` | int [1..4] | 2 | Studio: renders this many times larger and averages down, for smooth edges (2 is a good default; 3–4 are slower). *Hidden when look ≠ studio.* |
-| Textures `textures` | string | *(empty)* | Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop. *Hidden when look ≠ studio.* |
-| Material Attribute `material_attrib` | string | `material` | Studio: string prim attribute holding each face's material name (used for `{material}` in Textures). *Hidden when look ≠ studio.* |
-| UV Attribute `uv_attrib` | string | `uv` | Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1. *Hidden when look ≠ studio.* |
+| Look `look` | menu | Basic | Basic: fast flat shading. Studio: an object on a studio floor (orthographic, shadows, AO, textures). Outdoor: an environment shot with a perspective camera, sky, sun, haze and an optional ground plane. Options: Basic (`basic`), Studio (shadows, AO, ground, textures) (`studio`), Outdoor (perspective, sky, sun, haze) (`outdoor`). |
+| Shading `shading` | menu | Normal | How the surface is coloured. Normal shows face normals as colour, Lambert is a grey model with simple lighting, Color shows the colour attribute times lighting. Options: Normal (`normal`), Lambert (Gray) (`lambert`), Color (Cd) (`color`). *Hidden when look ≠ basic.* |
+| Color Attribute `color_attrib` | string | `Cd` | Attribute read for the colour. Only used in Color shading. *Hidden when shading ≠ color look = basic.* |
+| Supersampling `supersampling` | int [1..4] | 2 | Studio: renders this many times larger and averages down, for smooth edges (2 is a good default; 3–4 are slower). *Hidden when look = basic.* |
+| Textures `textures` | string | *(empty)* | Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop. *Hidden when look = basic.* |
+| Material Attribute `material_attrib` | string | `material` | Studio: string prim attribute holding each face's material name (used for `{material}` in Textures). *Hidden when look = basic.* |
+| UV Attribute `uv_attrib` | string | `uv` | Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1. *Hidden when look = basic.* |
+
+*Outdoor*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sun Elevation `sun_elevation` | float [1.0..90.0] | 35 | Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light. *Hidden when look ≠ outdoor.* |
+| Sun Azimuth `sun_azimuth` | float [-360.0..360.0] | 135 | Outdoor: the sun's direction in world space (0 = toward +Z, 90 = toward +X), so the light stays put when the camera moves. *Hidden when look ≠ outdoor.* |
+| Haze `haze` | float [0.0..20.0] | 1 | Outdoor: aerial perspective, how fast distant surfaces fade toward the horizon colour; 0 turns it off. *Hidden when look ≠ outdoor.* |
+| Ground Plane `ground_plane` | toggle | on | Outdoor: add a ground plane to the horizon at the bottom of the geometry, so a block of buildings sits in a landscape. *Hidden when look ≠ outdoor.* |
+| Ground Color `ground_color` | string | `0.32 0.31 0.27` | Outdoor: colour of the ground plane, three numbers 0..1. *Hidden when look ≠ outdoor } { ground_plane is off.* |
+| Exposure `exposure` | float [0.05..8.0] | 1 | Outdoor: brightness multiplier before the tone curve. *Hidden when look ≠ outdoor.* |
 
 ---
 

@@ -1,8 +1,8 @@
 # Material library
 
-A set of eight tileable PBR materials, 1024 x 1024 and seamless on all four sides. **One texture covers 1 m x 1 m** (1024 px/m); the [modular city](pcg_prod_modular_city.md) kit also uses 1 UV = 1 m, so bricks, planks and seams come out at their real size. Heights are authored in metres, so the relief is real size too (a 7 mm mortar joint is 7 mm deep).
+A set of fourteen tileable PBR materials, 1024 x 1024 and seamless on all four sides. **One texture covers 1 m x 1 m** (1024 px/m); the [modular city](pcg_prod_modular_city.md) kit also uses 1 UV = 1 m, so bricks, planks and seams come out at their real size. Heights are authored in metres, so the relief is real size too (a 7 mm mortar joint is 7 mm deep).
 
-![The eight materials in the studio preview](images/pcg_prod_material_library.png)
+![The materials in the studio preview](images/pcg_prod_material_library.png)
 
 ## Load it
 
@@ -28,8 +28,13 @@ Each material writes five maps to `output/pcg/materials/`, named `T_<material>_<
 | `M_Glass` | Window glass: dark tint, roughness 0.04 when clean; dirt film, drips and smudges raise the roughness. |
 | `M_Metal` | Powder-coated dark steel for railings and canopies: scratches in six directions to bare steel (metallic), burnished scuffs, rust pinholes. |
 | `M_Sign` | Enamel-painted sign panel: brush marks, sun fading, craquelure in patches, flakes down to grey primer. |
+| `M_BrickBuff` | The same bricks in a yellow-grey stock clay, with a few purple-brown and orange strays and patches of city soot. |
+| `M_Stucco` | Cream lime render over masonry: trowel undulation, hairline cracks in patches, older coats showing through, spalled patches down to the grey render, rain streaks. |
+| `Ground_Asphalt` | Road asphalt: exposed aggregate, sun-bleached patches, oil drips, tar-sealed cracks. |
+| `M_RoofFlat` | Flat-roof bitumen membrane with mineral grit, ponding stains and sealed seams. |
+| `M_FacadeFar`, `M_FacadeFarBrick` | **One whole facade bay per image** (4 m x 3.5 m: wall, window with frame and mullion, sill, floor band) for the city's low-detail context buildings, whose UVs are u = x / 4, v = y / 3.5. These two are the exception to 1 texture = 1 m, and they repeat by bay rather than seamlessly. |
 
-The names are the seven material slots of the modular city kit plus the cobbles. The kit's glb files reference these textures by relative path, so run this workflow first and the kit opens with textures.
+The names are the material slots of the modular city kit (walls in three facade variants, trim, glass, door, metal, roofs, sign), its streets (cobbles, asphalt) and its context buildings. The kit's glb files reference these textures by relative path, so run this workflow first and the kit opens with textures.
 
 ## How the tiling is kept seamless
 

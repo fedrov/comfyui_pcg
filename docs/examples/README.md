@@ -31,7 +31,7 @@ Start with the tutorials: they are small (10 to 14 nodes), need no model files, 
 | [Rock assets pipeline](pcg_prod_rock_assets.md) | Four game-ready rocks: high poly, LOD0-2 with shared UVs, UCX collision, baked textures, one glb each. |
 | [World tiles](pcg_prod_world_tiles.md) | A 2 km terrain as 4 x 4 tiles: shared-edge 16-bit heights, six weight maps, per-tile instance CSVs. |
 | [Modular city](pcg_prod_modular_city.md) | A facade kit exported as glb pieces plus rule-based assembly into an instance table. |
-| [Material library](pcg_prod_material_library.md) | Eight seamless 1 m materials (brick, cobble, wood, metal roof, trim, glass, steel, sign) with real-size relief, GL/DX normals, ORM and height. |
+| [Material library](pcg_prod_material_library.md) | Fourteen PBR materials (three facades, cobble, asphalt, wood, two roofs, trim, glass, steel, sign, facade bays for distant buildings) with real-size relief, GL/DX normals, ORM and height. |
 
 ## With AI models
 

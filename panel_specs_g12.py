@@ -1049,27 +1049,39 @@ SPECS = {
     # ── Preview Image (our own node): resolution / view / shading. color_attrib is only read in the color mode
     "PCG_PreviewImage": {
         "order": ["width", "height", "elevation", "azimuth", "look", "shading",
-                  "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib"],
+                  "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
+                  "sun_elevation", "sun_azimuth", "haze", "ground_plane", "ground_color", "exposure"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
             "elevation": {"label": "Elevation", "sep": True},
             "azimuth": {"label": "Azimuth"},
-            "shading": {"label": "Shading", "hide": "{ look == studio }",
+            "shading": {"label": "Shading", "hide": "{ look != basic }",
                         "menu": {"normal": "Normal", "lambert": "Lambert (Gray)",
                                  "color": "Color (Cd)"}},
             "color_attrib": {"label": "Color Attribute",
-                             "hide": "{ shading != color look != studio }"},
-            # pcg110 studio look
+                             "hide": "{ shading != color look == basic }"},
+            # pcg110 studio look, pcg123 outdoor look
             "look": {"label": "Look", "sep": True,
-                     "menu": {"basic": "Basic", "studio": "Studio (shadows, AO, ground, textures)"}},
-            "supersampling": {"label": "Supersampling", "hide": "{ look != studio }"},
-            "textures": {"label": "Textures", "hide": "{ look != studio }",
+                     "menu": {"basic": "Basic", "studio": "Studio (shadows, AO, ground, textures)",
+                              "outdoor": "Outdoor (perspective, sky, sun, haze)"}},
+            "supersampling": {"label": "Supersampling", "hide": "{ look == basic }"},
+            "textures": {"label": "Textures", "hide": "{ look == basic }",
                          "help": "basecolor / normal / orm (or ao, roughness, metallic) = path, relative to the output folder; "
                                  "{material} = the face's material; @layer reads textures_cop. orm / roughness / "
                                  "metallic switch to PBR shading"},
-            "material_attrib": {"label": "Material Attribute", "hide": "{ look != studio }"},
-            "uv_attrib": {"label": "UV Attribute", "hide": "{ look != studio }"},
+            "material_attrib": {"label": "Material Attribute", "hide": "{ look == basic }"},
+            "uv_attrib": {"label": "UV Attribute", "hide": "{ look == basic }"},
+            "sun_elevation": {"label": "Sun Elevation", "section": "Outdoor", "hide": "{ look != outdoor }"},
+            "sun_azimuth": {"label": "Sun Azimuth", "section": "Outdoor", "hide": "{ look != outdoor }",
+                            "help": "World space: 0 = the sun in +Z, 90 = in +X"},
+            "haze": {"label": "Haze", "section": "Outdoor", "hide": "{ look != outdoor }",
+                     "help": "Aerial perspective: how fast distant surfaces fade toward the horizon colour (0 = none)"},
+            "ground_plane": {"label": "Ground Plane", "section": "Outdoor", "hide": "{ look != outdoor }",
+                             "help": "A ground to the horizon at the bottom of the geometry"},
+            "ground_color": {"label": "Ground Color", "section": "Outdoor",
+                             "hide": "{ look != outdoor } { ground_plane == 0 }"},
+            "exposure": {"label": "Exposure", "section": "Outdoor", "hide": "{ look != outdoor }"},
         },
     },
 

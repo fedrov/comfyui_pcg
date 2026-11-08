@@ -1880,6 +1880,10 @@ class PCG_PreviewImage:
     Shading: normal (normal colours) / lambert (grey model) / color (**Cd × lighting**, Cd is recognised on
     point / vertex / prim / detail). Since pcg56 it uses Render Pass's vectorized
     rasterizer, so even terrain meshes with hundreds of thousands of triangles take seconds.
+
+    pcg123 Outdoor look: a perspective environment shot -- the Camera node's view (or an automatic 35 mm camera at
+    Elevation / Azimuth), a sky with a sun, sun light with shadows plus sky fill and ground bounce, aerial perspective
+    (Haze) and an optional ground plane to the horizon. Textures work as in the studio look; PBR surfaces reflect the sky.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -1891,7 +1895,7 @@ class PCG_PreviewImage:
             "color_attrib": ("STRING", {"default": "Cd"}),
             # pcg110, appended (defaults = old behaviour): the "studio" look -- smooth shading, shadows, AO, a ground that
             # catches shadows, gradient background, BaseColor textures by material
-            "look": (["basic", "studio"],),
+            "look": (["basic", "studio", "outdoor"],),
             "supersampling": _i(2, 1, 4),
             "textures": ("STRING", {"default": "", "multiline": True,
                                     "tooltip": "Studio look: 'basecolor = path', 'normal = path' (OpenGL +Y), "
@@ -1902,17 +1906,39 @@ class PCG_PreviewImage:
             "material_attrib": ("STRING", {"default": "material"}),
             "uv_attrib": ("STRING", {"default": "uv"}),
             "textures_cop": ("COPIMAGE",),
+            # pcg123, appended: the outdoor look (perspective, sky, sun, haze); camera optional for it
+            "camera": (CAM,),
+            "sun_elevation": _f(35.0, 1.0, 90.0, 1.0),
+            "sun_azimuth": _f(135.0, -360.0, 360.0, 1.0),
+            "haze": _f(1.0, 0.0, 20.0, 0.05),
+            "ground_plane": ("BOOLEAN", {"default": True}),
+            "ground_color": ("STRING", {"default": "0.32 0.31 0.27"}),
+            "exposure": _f(1.0, 0.05, 8.0, 0.05),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
 
     def run(self, geo, width, height, elevation, azimuth, shading,
             color_attrib="Cd", look="basic", supersampling=2, textures="",
-            material_attrib="material", uv_attrib="uv", textures_cop=None):
+            material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
+            sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
+            ground_color="0.32 0.31 0.27", exposure=1.0):
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")
-        if look == "studio":
+        if look == "outdoor":
+            from .geo import outdoor as _od
+            try:
+                gc = [float(x) for x in str(ground_color).replace(",", " ").split()]
+            except ValueError:
+                gc = []
+            if len(gc) != 3:
+                raise ValueError(f"Ground Color: three numbers 0..1 (r g b), got {ground_color!r}")
+            img = _od.render_outdoor(geo, width, height, camera, elevation, azimuth, color_attrib,
+                                     supersampling, textures, output_dir(), material_attrib, uv_attrib,
+                                     sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
+                                     tex_cop=textures_cop)
+        elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,
                                     supersampling, textures, output_dir(), material_attrib, uv_attrib,

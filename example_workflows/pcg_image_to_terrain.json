@@ -417,7 +417,7 @@
    ],
    "size": [
     340,
-    373
+    393
    ],
    "flags": {},
    "order": 9,
@@ -431,6 +431,11 @@
     {
      "name": "textures_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
      "link": null
     }
    ],
@@ -458,7 +463,13 @@
     2,
     "",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ]
   },
   {
@@ -494,11 +505,11 @@
    "type": "PCG_ExportMesh",
    "pos": [
     1140,
-    715
+    735
    ],
    "size": [
     340,
-    329
+    363
    ],
    "flags": {},
    "order": 10,
@@ -528,7 +539,8 @@
     "",
     1.0,
     "",
-    "*"
+    "*",
+    true
    ]
   }
  ],

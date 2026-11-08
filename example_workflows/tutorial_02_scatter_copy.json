@@ -612,7 +612,7 @@
    ],
    "size": [
     360,
-    350
+    375
    ],
    "flags": {},
    "order": 10,
@@ -653,7 +653,8 @@
     "*",
     "",
     "",
-    "N v up"
+    "N v up",
+    false
    ]
   },
   {
@@ -728,7 +729,7 @@
    ],
    "size": [
     520,
-    373
+    393
    ],
    "flags": {},
    "order": 12,
@@ -742,6 +743,11 @@
     {
      "name": "textures_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
      "link": null
     }
    ],
@@ -769,7 +775,13 @@
     2,
     "",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ]
   },
   {
@@ -777,7 +789,7 @@
    "type": "PreviewImage",
    "pos": [
     1260,
-    627
+    647
    ],
    "size": [
     520,
@@ -805,7 +817,7 @@
    "type": "PCG_Viewport",
    "pos": [
     1260,
-    1231
+    1251
    ],
    "size": [
     520,

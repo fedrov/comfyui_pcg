@@ -18,7 +18,7 @@ CSV read with the csv module; expected values come from the conventions stated i
          outer normal pointing outwards (the cell in front is not this building, the cell behind is) -- negative control: no wall lands on a grid point
          (before the bug in Extract Centroid's per-face centers was fixed, 24 walls were at the origin and the rest all on corners);
          no duplicate placements; the material library runs first, then the kit's glb are validated and all textures are found
-  materials  8 sets × 5 maps, 1024², real-size relief (brick joints, cobble domes, seam height); seamless on all four edges (the jump across the wrapped column is of the same magnitude as between neighbouring columns --
+  materials  14 sets × 5 maps, 1024², real-size relief (brick joints, cobble domes, seam height); seamless on all four edges (the jump across the wrapped column is of the same magnitude as between neighbouring columns --
          negative control: crop off 30% and it fails); Normal_DX's G = 255 - Normal_GL's G, R and B identical;
          normals unit length; ORM: brick wall metalness all 0, metalness full where the roof is chipped, the door studs have metalness
 
@@ -213,10 +213,13 @@ else:
     api, res, pr, dt = run("pcg_prod_material_library", CWD)
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     MD = os.path.join(OUT, "pcg/materials")
-    mats = ("M_Wall", "Ground_Cobble", "M_Door", "M_Roof", "M_Trim", "M_Glass", "M_Metal", "M_Sign")
+    mats = tuple(m[0] for m in MW.MATERIALS)
+    # the facade-bay images (one whole 4 m × 3.5 m bay for the context buildings) repeat by design at the bay edge,
+    # where the floor band meets the next bay's wall: they are not part of the seam test
+    tileable = tuple(m for m in mats if not m.startswith("M_FacadeFar"))
     maps = ("BaseColor", "Normal_GL", "Normal_DX", "ORM", "Height")
     files = {(m, k): os.path.join(MD, f"T_{m}_{k}.png") for m in mats for k in maps}
-    check("all 8 sets × 5 maps written, 1024²",
+    check(f"all {len(mats)} sets × 5 maps written, 1024²", len(mats) == 14 and
           all(os.path.exists(f) and img(f).shape[:2] == (1024, 1024) for f in files.values()))
     check("  every image has a .json next to it (Height's range is in it)",
           all(os.path.exists(f[:-4] + ".json") for f in files.values())
@@ -231,7 +234,7 @@ else:
         return max(wrap / max(inner, 1e-9), wrap_v / max(inner_v, 1e-9))
 
     rs = {m: max(seam_ratio(img(files[(m, k)])) for k in ("BaseColor", "Height", "ORM"))
-          for m in mats}
+          for m in tileable}
     check("seamless on all four edges: the jump across the wrapped column / row ≤ 2× the jump between neighbouring columns / rows",
           all(r < 2.0 for r in rs.values()), {k: round(v, 2) for k, v in rs.items()})
     bc = img(files[("M_Wall", "BaseColor")])
@@ -251,7 +254,8 @@ else:
     orm = {m: img(files[(m, "ORM")]) for m in mats}
     check("ORM: metalness 0 in brick, cobbles, trim, glass and sign; full (255) where the roof is chipped and on "
           "the steel's scratches",
-          all((orm[m][..., 2] == 0).mean() > 0.99 for m in ("M_Wall", "Ground_Cobble", "M_Trim", "M_Glass", "M_Sign"))
+          all((orm[m][..., 2] == 0).mean() > 0.99 for m in ("M_Wall", "Ground_Cobble", "M_Trim", "M_Glass", "M_Sign",
+                                                            "M_BrickBuff", "M_Stucco", "Ground_Asphalt", "M_RoofFlat"))
           and (orm["M_Roof"][..., 2] >= 250).mean() > 0.02
           and 0.002 < (orm["M_Metal"][..., 2] > 128).mean() < 0.15,
           round(float((orm["M_Metal"][..., 2] > 128).mean()), 4))
@@ -309,9 +313,9 @@ else:
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     KD = os.path.join(OUT, "pcg/assets/kit")
     kit = {os.path.basename(p)[:-4]: p for p in glob.glob(os.path.join(KD, "SM_Kit_*.glb"))}
-    names = ["Wall_Plain", "Wall_Window", "Wall_Door", "Wall_Balcony", "Wall_Shopfront",
-             "Corner_Pillar", "Roof_Cornice", "Roof_Flat"]
-    check("one glb for each of the 8 kit pieces", sorted(kit) == sorted("SM_Kit_" + n for n in names))
+    names = ["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony", "Wall_Shopfront",
+             "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank"]
+    check(f"one glb for each of the {len(names)} kit pieces", sorted(kit) == sorted("SM_Kit_" + n for n in names))
     okp, info = True, {}
     for n in names:
         js, nm = node_meshes(kit["SM_Kit_" + n])
@@ -336,8 +340,10 @@ else:
     check("  every material slot's textures point to the material library (relative paths, files all present)",
           "../../materials/T_M_Door_BaseColor.png" in uris and "../../materials/T_M_Glass_BaseColor.png" in uris
           and all(os.path.exists(os.path.join(KD, u)) for u in uris), uris[:3])
-    check("  glTF validator (with external textures): all 8 with 0 errors 0 warnings", okv)
+    check(f"  glTF validator (with external textures): all {len(names)} with 0 errors 0 warnings", okv)
     want = {"Wall_Window": {"M_Wall", "M_Trim", "M_Glass"}, "Wall_Door": {"M_Wall", "M_Trim", "M_Door", "M_Metal"},
+            "Wall_WindowPair": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Roof_Flat": {"M_RoofFlat"},
+            "Roof_Unit": {"M_Trim", "M_Metal"}, "Roof_Tank": {"M_Roof", "M_Metal"},
             "Wall_Balcony": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"},
             "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign"}}
     got = {n: {m.get("name") for m in node_meshes(kit["SM_Kit_" + n])[0].get("materials", [])} for n in want}
@@ -405,6 +411,18 @@ else:
     check("  one roof piece per cell, elevation = floor count × 3.5",
           len(roofs) == int((B >= 0).sum()) and all(
               abs(float(r["py"]) - 3.5 * floors[int(r["bld"])]) < 1e-3 for r in roofs))
+    plant = [r for r in rows if r["asset"] in ("SM_Kit_Roof_Unit", "SM_Kit_Roof_Tank")]
+    check("  rooftop plant: some, on the roofs (y = floor count × 3.5, inside the building's cells), tanks only on "
+          "buildings of 5+ floors",
+          0 < len(plant) < len(roofs) * 0.3 and all(
+              abs(float(r["py"]) - 3.5 * floors[int(r["bld"])]) < 1e-3 and occ(float(r["px"]), float(r["pz"])) == int(r["bld"])
+              for r in plant) and all(floors[int(r["bld"])] >= 5 for r in plant if r["asset"] == "SM_Kit_Roof_Tank"),
+          len(plant))
+    check("the table's facade column is the building's variant (CITY_FACADE); render facades use paired windows",
+          all(int(r["facade"]) == MW.CITY_FACADE.get(int(r["bld"]), 0) for r in walls + roofs)
+          and all(r["asset"] != "SM_Kit_Wall_Window" for r in walls if int(r["facade"]) == 2)
+          and any(r["asset"] == "SM_Kit_Wall_WindowPair" for r in walls)
+          and all(r["asset"] != "SM_Kit_Wall_WindowPair" for r in walls if int(r["facade"]) != 2))
 
     # ═══════════════════════════════════════════════ 3. Rock assets
     sec("Rock assets")

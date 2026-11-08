@@ -1,6 +1,6 @@
 {
- "last_node_id": 101,
- "last_link_id": 99,
+ "last_node_id": 173,
+ "last_link_id": 171,
  "nodes": [
   {
    "id": 1,
@@ -21,7 +21,7 @@
     "text": ""
    },
    "widgets_values": [
-    "A set of 8 tileable PBR materials (1024², seamless on all four sides, **one image = 1 m × 1 m**, 1024 px/m; the modular building kit's UVs are also 1 UV = 1 m, so bricks and planks come out real size), 5 maps each:\n  BaseColor (sRGB) / Normal_GL (+Y) / Normal_DX (−Y, DirectX convention) / ORM (R = AO, G = roughness, B = metallic) / Height (16-bit, range in the .json)\nWritten to output/pcg/materials/, file names T_material_map.png.\n\n  M_Wall         240 × 67 mm bricks, 10 mm joints struck 7 mm back, chipped arrises, per-brick colour (reds, clinker, buff), fire flash, iron specks, salt bloom\n  Ground_Cobble  ~12 cm domed field stones in sand, four stone types (granite, sandstone, basalt, pink granite) with grain, soil round the feet, moss in the joints\n  M_Door         vertical 12.5 cm planks, V joints, staggered butt joints, growth rings deflected by knots, nails with rust runs\n  M_Roof         25 mm seams every 50 cm, stiffening ribs, oil canning; paint chipping to galvanized steel (metallic), fall-line dirt, rust\n  M_Trim         smooth painted precast / stucco with pores and rain-washed grime -- reads right on bands, sills and cornices\n  M_Glass        dark tinted, roughness 0.04 when clean; dirt film, drips and smudges raise the roughness\n  M_Metal        dark coat, scratches in six directions to bare steel (metallic), burnished scuffs, rust pinholes\n  M_Sign         mustard enamel with brush marks, sun fading, craquelure in patches, flakes down to grey primer\n\nThe names are the modular building kit's material slots (M_Wall / M_Trim / M_Glass / M_Door / M_Metal / M_Roof / M_Sign): the kit's glb files already point to these images by relative path, so run this workflow first and the kit opens textured.\n\n**One pair of wrangles per material.** The first writes @height **in metres** (Height to Normal / AO run at Strength 1, World Size 1 m, so a 7 mm joint is 7 mm), plus masks the second one needs; the second writes basecolor / ao / roughness / metallic. Colours are typed as display (sRGB) values and turned linear with ** 2.2 at the end, because Write File encodes BaseColor to sRGB.\n\n**How seamlessness is guaranteed**: all noise is pnoise() with period = frequency (integer cells per metre), Pattern counts are integers, stripes are periodic functions of u / v, and the scratch directions use integer (a, b) so rotated lines wrap too. noise() is not periodic -- don't use it in a tileable texture.\n\nRight of each pair: a studio preview of the material on a 2 m wall slab and a sphere (the slab shows a 2 × 2 repeat, so any seam would show)."
+    "A set of 14 tileable PBR materials (1024², seamless on all four sides, **one image = 1 m × 1 m**, 1024 px/m; the modular building kit's UVs are also 1 UV = 1 m, so bricks and planks come out real size), 5 maps each:\n  BaseColor (sRGB) / Normal_GL (+Y) / Normal_DX (−Y, DirectX convention) / ORM (R = AO, G = roughness, B = metallic) / Height (16-bit, range in the .json)\nWritten to output/pcg/materials/, file names T_material_map.png.\n\n  M_Wall         240 × 67 mm bricks, 10 mm joints struck 7 mm back, chipped arrises, per-brick colour (reds, clinker, buff), fire flash, iron specks, salt bloom\n  Ground_Cobble  ~12 cm domed field stones in sand, four stone types (granite, sandstone, basalt, pink granite) with grain, soil round the feet, moss in the joints\n  M_Door         vertical 12.5 cm planks, V joints, staggered butt joints, growth rings deflected by knots, nails with rust runs\n  M_Roof         25 mm seams every 50 cm, stiffening ribs, oil canning; paint chipping to galvanized steel (metallic), fall-line dirt, rust\n  M_Trim         smooth painted precast / stucco with pores and rain-washed grime -- reads right on bands, sills and cornices\n  M_Glass        dark tinted, roughness 0.04 when clean; dirt film, drips and smudges raise the roughness\n  M_Metal        dark coat, scratches in six directions to bare steel (metallic), burnished scuffs, rust pinholes\n  M_Sign         mustard enamel with brush marks, sun fading, craquelure in patches, flakes down to grey primer\n  M_BrickBuff    the same bricks in yellow-grey stock clay with purple and orange strays, soot patches\n  M_Stucco       cream lime render: trowel undulation, hairline cracks, old coats showing, spalled patches down to the base, rain streaks\n  Ground_Asphalt dark asphalt with exposed aggregate, sun bleaching, oil drips, tar-sealed cracks\n  M_RoofFlat     flat-roof bitumen membrane with mineral grit, ponding stains and patched seams\n  M_FacadeFar    a whole 4 m × 3.5 m facade bay (window, frame, sill, floor band) for low-detail context buildings\n  M_FacadeFarBrick the same bay in a brick colour\n\nThe names are the modular building kit's material slots (M_Wall / M_Trim / M_Glass / M_Door / M_Metal / M_Roof / M_Sign): the kit's glb files already point to these images by relative path, so run this workflow first and the kit opens textured.\n\n**One pair of wrangles per material.** The first writes @height **in metres** (Height to Normal / AO run at Strength 1, World Size 1 m, so a 7 mm joint is 7 mm), plus masks the second one needs; the second writes basecolor / ao / roughness / metallic. Colours are typed as display (sRGB) values and turned linear with ** 2.2 at the end, because Write File encodes BaseColor to sRGB.\n\n**How seamlessness is guaranteed**: all noise is pnoise() with period = frequency (integer cells per metre), Pattern counts are integers, stripes are periodic functions of u / v, and the scratch directions use integer (a, b) so rotated lines wrap too. noise() is not periodic -- don't use it in a tileable texture.\n\nRight of each pair: a studio preview of the material on a 2 m wall slab and a sphere (the slab shows a 2 × 2 repeat, so any seam would show)."
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -131,7 +131,7 @@
     166
    ],
    "flags": {},
-   "order": 11,
+   "order": 17,
    "mode": 0,
    "inputs": [
     {
@@ -193,7 +193,7 @@
     350
    ],
    "flags": {},
-   "order": 20,
+   "order": 32,
    "mode": 0,
    "inputs": [
     {
@@ -214,7 +214,13 @@
       61,
       73,
       85,
-      97
+      97,
+      109,
+      121,
+      133,
+      145,
+      157,
+      169
      ],
      "slot_index": 0
     }
@@ -357,7 +363,7 @@
     506
    ],
    "flags": {},
-   "order": 12,
+   "order": 18,
    "mode": 0,
    "inputs": [
     {
@@ -399,7 +405,7 @@
     634
    ],
    "flags": {},
-   "order": 21,
+   "order": 33,
    "mode": 0,
    "inputs": [
     {
@@ -443,7 +449,7 @@
     744
    ],
    "flags": {},
-   "order": 29,
+   "order": 47,
    "mode": 0,
    "inputs": [
     {
@@ -490,7 +496,7 @@
     506
    ],
    "flags": {},
-   "order": 37,
+   "order": 61,
    "mode": 0,
    "inputs": [
     {
@@ -537,7 +543,7 @@
     434
    ],
    "flags": {},
-   "order": 45,
+   "order": 75,
    "mode": 0,
    "inputs": [
     {
@@ -594,7 +600,7 @@
     434
    ],
    "flags": {},
-   "order": 46,
+   "order": 76,
    "mode": 0,
    "inputs": [
     {
@@ -651,7 +657,7 @@
     434
    ],
    "flags": {},
-   "order": 47,
+   "order": 77,
    "mode": 0,
    "inputs": [
     {
@@ -708,7 +714,7 @@
     434
    ],
    "flags": {},
-   "order": 48,
+   "order": 78,
    "mode": 0,
    "inputs": [
     {
@@ -765,7 +771,7 @@
     434
    ],
    "flags": {},
-   "order": 49,
+   "order": 79,
    "mode": 0,
    "inputs": [
     {
@@ -819,10 +825,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 50,
+   "order": 80,
    "mode": 0,
    "inputs": [
     {
@@ -834,6 +840,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 14
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -860,7 +871,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Wall: studio preview"
   },
@@ -869,14 +886,14 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    432
+    452
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 93,
+   "order": 159,
    "mode": 0,
    "inputs": [
     {
@@ -990,7 +1007,7 @@
     506
    ],
    "flags": {},
-   "order": 13,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
@@ -1032,7 +1049,7 @@
     634
    ],
    "flags": {},
-   "order": 22,
+   "order": 34,
    "mode": 0,
    "inputs": [
     {
@@ -1076,7 +1093,7 @@
     744
    ],
    "flags": {},
-   "order": 30,
+   "order": 48,
    "mode": 0,
    "inputs": [
     {
@@ -1123,7 +1140,7 @@
     506
    ],
    "flags": {},
-   "order": 38,
+   "order": 62,
    "mode": 0,
    "inputs": [
     {
@@ -1170,7 +1187,7 @@
     434
    ],
    "flags": {},
-   "order": 51,
+   "order": 81,
    "mode": 0,
    "inputs": [
     {
@@ -1227,7 +1244,7 @@
     434
    ],
    "flags": {},
-   "order": 52,
+   "order": 82,
    "mode": 0,
    "inputs": [
     {
@@ -1284,7 +1301,7 @@
     434
    ],
    "flags": {},
-   "order": 53,
+   "order": 83,
    "mode": 0,
    "inputs": [
     {
@@ -1341,7 +1358,7 @@
     434
    ],
    "flags": {},
-   "order": 54,
+   "order": 84,
    "mode": 0,
    "inputs": [
     {
@@ -1398,7 +1415,7 @@
     434
    ],
    "flags": {},
-   "order": 55,
+   "order": 85,
    "mode": 0,
    "inputs": [
     {
@@ -1452,10 +1469,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 56,
+   "order": 86,
    "mode": 0,
    "inputs": [
     {
@@ -1467,6 +1484,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 26
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -1493,7 +1515,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "Ground_Cobble: studio preview"
   },
@@ -1502,14 +1530,14 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    432
+    452
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 94,
+   "order": 160,
    "mode": 0,
    "inputs": [
     {
@@ -1578,7 +1606,7 @@
     506
    ],
    "flags": {},
-   "order": 14,
+   "order": 20,
    "mode": 0,
    "inputs": [
     {
@@ -1620,7 +1648,7 @@
     634
    ],
    "flags": {},
-   "order": 23,
+   "order": 35,
    "mode": 0,
    "inputs": [
     {
@@ -1664,7 +1692,7 @@
     744
    ],
    "flags": {},
-   "order": 31,
+   "order": 49,
    "mode": 0,
    "inputs": [
     {
@@ -1711,7 +1739,7 @@
     506
    ],
    "flags": {},
-   "order": 39,
+   "order": 63,
    "mode": 0,
    "inputs": [
     {
@@ -1758,7 +1786,7 @@
     434
    ],
    "flags": {},
-   "order": 57,
+   "order": 87,
    "mode": 0,
    "inputs": [
     {
@@ -1815,7 +1843,7 @@
     434
    ],
    "flags": {},
-   "order": 58,
+   "order": 88,
    "mode": 0,
    "inputs": [
     {
@@ -1872,7 +1900,7 @@
     434
    ],
    "flags": {},
-   "order": 59,
+   "order": 89,
    "mode": 0,
    "inputs": [
     {
@@ -1929,7 +1957,7 @@
     434
    ],
    "flags": {},
-   "order": 60,
+   "order": 90,
    "mode": 0,
    "inputs": [
     {
@@ -1986,7 +2014,7 @@
     434
    ],
    "flags": {},
-   "order": 61,
+   "order": 91,
    "mode": 0,
    "inputs": [
     {
@@ -2040,10 +2068,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 62,
+   "order": 92,
    "mode": 0,
    "inputs": [
     {
@@ -2055,6 +2083,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 38
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -2081,7 +2114,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Door: studio preview"
   },
@@ -2090,14 +2129,14 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    432
+    452
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 95,
+   "order": 161,
    "mode": 0,
    "inputs": [
     {
@@ -2166,7 +2205,7 @@
     506
    ],
    "flags": {},
-   "order": 15,
+   "order": 21,
    "mode": 0,
    "inputs": [
     {
@@ -2208,7 +2247,7 @@
     634
    ],
    "flags": {},
-   "order": 24,
+   "order": 36,
    "mode": 0,
    "inputs": [
     {
@@ -2252,7 +2291,7 @@
     744
    ],
    "flags": {},
-   "order": 32,
+   "order": 50,
    "mode": 0,
    "inputs": [
     {
@@ -2299,7 +2338,7 @@
     506
    ],
    "flags": {},
-   "order": 40,
+   "order": 64,
    "mode": 0,
    "inputs": [
     {
@@ -2346,7 +2385,7 @@
     434
    ],
    "flags": {},
-   "order": 63,
+   "order": 93,
    "mode": 0,
    "inputs": [
     {
@@ -2403,7 +2442,7 @@
     434
    ],
    "flags": {},
-   "order": 64,
+   "order": 94,
    "mode": 0,
    "inputs": [
     {
@@ -2460,7 +2499,7 @@
     434
    ],
    "flags": {},
-   "order": 65,
+   "order": 95,
    "mode": 0,
    "inputs": [
     {
@@ -2517,7 +2556,7 @@
     434
    ],
    "flags": {},
-   "order": 66,
+   "order": 96,
    "mode": 0,
    "inputs": [
     {
@@ -2574,7 +2613,7 @@
     434
    ],
    "flags": {},
-   "order": 67,
+   "order": 97,
    "mode": 0,
    "inputs": [
     {
@@ -2628,10 +2667,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 68,
+   "order": 98,
    "mode": 0,
    "inputs": [
     {
@@ -2643,6 +2682,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 50
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -2669,7 +2713,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Roof: studio preview"
   },
@@ -2678,14 +2728,14 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    432
+    452
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 96,
+   "order": 162,
    "mode": 0,
    "inputs": [
     {
@@ -2754,7 +2804,7 @@
     506
    ],
    "flags": {},
-   "order": 16,
+   "order": 22,
    "mode": 0,
    "inputs": [
     {
@@ -2796,7 +2846,7 @@
     634
    ],
    "flags": {},
-   "order": 25,
+   "order": 37,
    "mode": 0,
    "inputs": [
     {
@@ -2840,7 +2890,7 @@
     744
    ],
    "flags": {},
-   "order": 33,
+   "order": 51,
    "mode": 0,
    "inputs": [
     {
@@ -2887,7 +2937,7 @@
     506
    ],
    "flags": {},
-   "order": 41,
+   "order": 65,
    "mode": 0,
    "inputs": [
     {
@@ -2934,7 +2984,7 @@
     434
    ],
    "flags": {},
-   "order": 69,
+   "order": 99,
    "mode": 0,
    "inputs": [
     {
@@ -2991,7 +3041,7 @@
     434
    ],
    "flags": {},
-   "order": 70,
+   "order": 100,
    "mode": 0,
    "inputs": [
     {
@@ -3048,7 +3098,7 @@
     434
    ],
    "flags": {},
-   "order": 71,
+   "order": 101,
    "mode": 0,
    "inputs": [
     {
@@ -3105,7 +3155,7 @@
     434
    ],
    "flags": {},
-   "order": 72,
+   "order": 102,
    "mode": 0,
    "inputs": [
     {
@@ -3162,7 +3212,7 @@
     434
    ],
    "flags": {},
-   "order": 73,
+   "order": 103,
    "mode": 0,
    "inputs": [
     {
@@ -3216,10 +3266,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 74,
+   "order": 104,
    "mode": 0,
    "inputs": [
     {
@@ -3231,6 +3281,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 62
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -3257,7 +3312,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Trim: studio preview"
   },
@@ -3266,14 +3327,14 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3492
+    3512
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 97,
+   "order": 163,
    "mode": 0,
    "inputs": [
     {
@@ -3342,7 +3403,7 @@
     506
    ],
    "flags": {},
-   "order": 17,
+   "order": 23,
    "mode": 0,
    "inputs": [
     {
@@ -3384,7 +3445,7 @@
     634
    ],
    "flags": {},
-   "order": 26,
+   "order": 38,
    "mode": 0,
    "inputs": [
     {
@@ -3428,7 +3489,7 @@
     744
    ],
    "flags": {},
-   "order": 34,
+   "order": 52,
    "mode": 0,
    "inputs": [
     {
@@ -3475,7 +3536,7 @@
     506
    ],
    "flags": {},
-   "order": 42,
+   "order": 66,
    "mode": 0,
    "inputs": [
     {
@@ -3522,7 +3583,7 @@
     434
    ],
    "flags": {},
-   "order": 75,
+   "order": 105,
    "mode": 0,
    "inputs": [
     {
@@ -3579,7 +3640,7 @@
     434
    ],
    "flags": {},
-   "order": 76,
+   "order": 106,
    "mode": 0,
    "inputs": [
     {
@@ -3636,7 +3697,7 @@
     434
    ],
    "flags": {},
-   "order": 77,
+   "order": 107,
    "mode": 0,
    "inputs": [
     {
@@ -3693,7 +3754,7 @@
     434
    ],
    "flags": {},
-   "order": 78,
+   "order": 108,
    "mode": 0,
    "inputs": [
     {
@@ -3750,7 +3811,7 @@
     434
    ],
    "flags": {},
-   "order": 79,
+   "order": 109,
    "mode": 0,
    "inputs": [
     {
@@ -3804,10 +3865,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 80,
+   "order": 110,
    "mode": 0,
    "inputs": [
     {
@@ -3819,6 +3880,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 74
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -3845,7 +3911,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Glass: studio preview"
   },
@@ -3854,14 +3926,14 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3492
+    3512
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 98,
+   "order": 164,
    "mode": 0,
    "inputs": [
     {
@@ -3930,7 +4002,7 @@
     506
    ],
    "flags": {},
-   "order": 18,
+   "order": 24,
    "mode": 0,
    "inputs": [
     {
@@ -3972,7 +4044,7 @@
     634
    ],
    "flags": {},
-   "order": 27,
+   "order": 39,
    "mode": 0,
    "inputs": [
     {
@@ -4016,7 +4088,7 @@
     744
    ],
    "flags": {},
-   "order": 35,
+   "order": 53,
    "mode": 0,
    "inputs": [
     {
@@ -4063,7 +4135,7 @@
     506
    ],
    "flags": {},
-   "order": 43,
+   "order": 67,
    "mode": 0,
    "inputs": [
     {
@@ -4110,7 +4182,7 @@
     434
    ],
    "flags": {},
-   "order": 81,
+   "order": 111,
    "mode": 0,
    "inputs": [
     {
@@ -4167,7 +4239,7 @@
     434
    ],
    "flags": {},
-   "order": 82,
+   "order": 112,
    "mode": 0,
    "inputs": [
     {
@@ -4224,7 +4296,7 @@
     434
    ],
    "flags": {},
-   "order": 83,
+   "order": 113,
    "mode": 0,
    "inputs": [
     {
@@ -4281,7 +4353,7 @@
     434
    ],
    "flags": {},
-   "order": 84,
+   "order": 114,
    "mode": 0,
    "inputs": [
     {
@@ -4338,7 +4410,7 @@
     434
    ],
    "flags": {},
-   "order": 85,
+   "order": 115,
    "mode": 0,
    "inputs": [
     {
@@ -4392,10 +4464,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 86,
+   "order": 116,
    "mode": 0,
    "inputs": [
     {
@@ -4407,6 +4479,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 86
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -4433,7 +4510,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Metal: studio preview"
   },
@@ -4442,14 +4525,14 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3492
+    3512
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 99,
+   "order": 165,
    "mode": 0,
    "inputs": [
     {
@@ -4563,7 +4646,7 @@
     506
    ],
    "flags": {},
-   "order": 19,
+   "order": 25,
    "mode": 0,
    "inputs": [
     {
@@ -4605,7 +4688,7 @@
     634
    ],
    "flags": {},
-   "order": 28,
+   "order": 40,
    "mode": 0,
    "inputs": [
     {
@@ -4649,7 +4732,7 @@
     744
    ],
    "flags": {},
-   "order": 36,
+   "order": 54,
    "mode": 0,
    "inputs": [
     {
@@ -4696,7 +4779,7 @@
     506
    ],
    "flags": {},
-   "order": 44,
+   "order": 68,
    "mode": 0,
    "inputs": [
     {
@@ -4743,7 +4826,7 @@
     434
    ],
    "flags": {},
-   "order": 87,
+   "order": 117,
    "mode": 0,
    "inputs": [
     {
@@ -4800,7 +4883,7 @@
     434
    ],
    "flags": {},
-   "order": 88,
+   "order": 118,
    "mode": 0,
    "inputs": [
     {
@@ -4857,7 +4940,7 @@
     434
    ],
    "flags": {},
-   "order": 89,
+   "order": 119,
    "mode": 0,
    "inputs": [
     {
@@ -4914,7 +4997,7 @@
     434
    ],
    "flags": {},
-   "order": 90,
+   "order": 120,
    "mode": 0,
    "inputs": [
     {
@@ -4971,7 +5054,7 @@
     434
    ],
    "flags": {},
-   "order": 91,
+   "order": 121,
    "mode": 0,
    "inputs": [
     {
@@ -5025,10 +5108,10 @@
    ],
    "size": [
     340,
-    388
+    408
    ],
    "flags": {},
-   "order": 92,
+   "order": 122,
    "mode": 0,
    "inputs": [
     {
@@ -5040,6 +5123,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 98
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -5066,7 +5154,13 @@
     2,
     "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "M_Sign: studio preview"
   },
@@ -5075,14 +5169,14 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3492
+    3512
    ],
    "size": [
     340,
     400
    ],
    "flags": {},
-   "order": 100,
+   "order": 166,
    "mode": 0,
    "inputs": [
     {
@@ -5097,6 +5191,3780 @@
    },
    "widgets_values": [],
    "title": "M_Sign"
+  },
+  {
+   "id": 102,
+   "type": "PCG_COPPattern",
+   "pos": [
+    460,
+    6120
+   ],
+   "size": [
+    340,
+    684
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      100
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPPattern"
+   },
+   "widgets_values": [
+    "tile",
+    "4 13",
+    0.5,
+    0.13,
+    0.08,
+    1.0,
+    "plain",
+    0.8,
+    "julia",
+    "-0.8 0.156",
+    "0 0",
+    1.0,
+    100,
+    "3 5",
+    "-",
+    1.5,
+    "",
+    true,
+    9,
+    "pattern",
+    1024,
+    1024,
+    "offset",
+    6,
+    "pixel_lines",
+    1.0,
+    1.0,
+    0.1,
+    0.05,
+    "euclidean",
+    "grid",
+    1.0,
+    0,
+    "hue",
+    "0.85 0.85 0.85",
+    "0.6 0.6 0.6",
+    true,
+    1.0,
+    "0.08 0.08 0.08",
+    "text",
+    "letters",
+    0.32,
+    "uniform",
+    "0.05 0.05 0.05",
+    "1 1 1",
+    false,
+    0.8,
+    ""
+   ],
+   "title": "M_BrickBuff: tile pattern 4 13"
+  },
+  {
+   "id": 103,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    460,
+    6848
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 100
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      101
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# Height in metres (1024 px = 1 m; Height to Normal / AO use Strength 1, World Size 1, so the relief is real size)\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.37)\n# chipped, irregular arrises: the brick outline is eaten back 0.5-3 mm by coarse noise, more on some bricks\nee = e - clamp(0.0006 + 0.0010 * r2 + 0.0008 * fbm(48, 48, 3.1, 3), 0, 0.004)\n@brick = smoothstep(-0.0004, 0.0006, ee)\n# brick face: 3 mm rounded arris (quarter circle), a slight random tilt per brick, undulation, sand-struck pits\nt = clamp(ee / 0.003, 0, 1)\narris = -0.003 * (1 - sqrt(1 - (1 - t) ** 2))\ntilt = 0.0015 * ((@pattern_uv.x - 0.5) * (rand(@pattern_id + 0.11) - 0.5) + (@pattern_uv.y - 0.5) * (rand(@pattern_id + 0.23) - 0.5))\npits = -0.0012 * smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\nface = arris + tilt + 0.0005 * fbm(8, 8, 1.7, 4) + 0.00012 * fbm(256, 256, 2.9, 2) + pits\n@pits = smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\n# joint: struck 7 mm back from the face, sandy\nmortar = -0.007 + 0.0003 * fbm(160, 160, 9.1, 3)\n@height = lerp(mortar, face, @brick)\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_BrickBuff: height (metres) + masks"
+  },
+  {
+   "id": 104,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    460,
+    7398
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 41,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 101
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      102
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 105,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    460,
+    8076
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 55,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 102
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      103
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 106,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    840,
+    6120
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 69,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 103
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      104,
+      105,
+      106,
+      107,
+      108,
+      110
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.37)\nr3 = rand(@pattern_id + 0.71)\n# yellow-grey stock bricks, a few purple-brown and orange ones mixed in\nbody = lerp(set(0.62, 0.53, 0.38), set(0.76, 0.67, 0.50), r)\nbody = where(r2 > 0.965, lerp(set(0.46, 0.36, 0.30), set(0.55, 0.42, 0.33), r3), body)\nbody = where(r2 < 0.03, set(0.72, 0.50, 0.33), body)\nm = fbm(16, 16, 2.3, 4)\nbody = body * (1 + 0.08 * m)\nbody = lerp(body, set(0.20, 0.17, 0.14), 0.6 * smoothstep(2.0, 2.6, fbm(320, 320, 7.7, 2)))\nbody = lerp(body, body * 0.75, @pits)\nmortar = set(0.66, 0.64, 0.60) * (1 + 0.06 * fbm(96, 96, 8.8, 3))\nc = lerp(mortar, body, @brick)\n# city soot: broad dark patches, heavier on some bricks\nsoot = smoothstep(0.4, 2.0, fbm(3, 3, 6.1, 3)) * (0.6 + 0.4 * r3)\nc = lerp(c, c * 0.45, 0.55 * soot)\nc = c * lerp(0.72, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.86 + 0.04 * m, @brick) + 0.08 * @pits, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_BrickBuff: buff brick wall -- colour / ORM"
+  },
+  {
+   "id": 107,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    6670
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 123,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 104
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_BrickBuff_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 108,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    7148
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 124,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 105
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_BrickBuff_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 109,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    7626
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 125,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 106
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_BrickBuff_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 110,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    8104
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 126,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 107
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_BrickBuff_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 111,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    8582
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 127,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 108
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_BrickBuff_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 112,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1220,
+    6120
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 128,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 109
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 110
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      111
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "M_BrickBuff: studio preview"
+  },
+  {
+   "id": 113,
+   "type": "PreviewImage",
+   "pos": [
+    1220,
+    6572
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 167,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 111
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "M_BrickBuff"
+  },
+  {
+   "id": 114,
+   "type": "PCG_COPPattern",
+   "pos": [
+    1640,
+    6120
+   ],
+   "size": [
+    340,
+    734
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      112
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPPattern"
+   },
+   "widgets_values": [
+    "cell",
+    "6 6",
+    0.5,
+    0.0,
+    0.1,
+    1.0,
+    "plain",
+    0.8,
+    "julia",
+    "-0.8 0.156",
+    "0 0",
+    1.0,
+    100,
+    "3 5",
+    "-",
+    1.5,
+    "",
+    true,
+    21,
+    "pattern",
+    1024,
+    1024,
+    "offset",
+    6,
+    "pixel_lines",
+    1.0,
+    1.0,
+    0.1,
+    0.05,
+    "euclidean",
+    "grid",
+    1.0,
+    0,
+    "hue",
+    "0.85 0.85 0.85",
+    "0.6 0.6 0.6",
+    true,
+    1.0,
+    "0.08 0.08 0.08",
+    "text",
+    "letters",
+    0.32,
+    "uniform",
+    "0.05 0.05 0.05",
+    "1 1 1",
+    false,
+    0.8,
+    ""
+   ],
+   "title": "M_Stucco: cell pattern 6 6"
+  },
+  {
+   "id": 115,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    1640,
+    6898
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 112
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      113
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ngate = smoothstep(0.9, 1.8, fbm(3, 3, 5.5, 3))\n@crack = (1 - smoothstep(0.2, 1.2, @pattern_edge)) * gate * smoothstep(-0.4, 0.9, fbm(24, 24, 1.1, 2))\n@spall = smoothstep(2.05, 2.2, fbm(3, 3, 3.3, 5) + 0.35 * fbm(24, 24, 6.2, 2))\ntrowel = 0.0008 * fbm(4, 4, 2.2, 3) + 0.00025 * fbm(32, 32, 7.4, 3) + 0.00006 * fbm(256, 256, 9.9, 2)\n@height = trowel - 0.0004 * @crack - 0.006 * @spall\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_Stucco: height (metres) + masks"
+  },
+  {
+   "id": 116,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    1640,
+    7448
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 42,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 113
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      114
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 117,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    1640,
+    8126
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 56,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 114
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      115
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 118,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2020,
+    6120
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 70,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 115
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      116,
+      117,
+      118,
+      119,
+      120,
+      122
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\npaint = set(0.84, 0.77, 0.63) * (1 + 0.04 * fbm(3, 3, 4.6, 3) + 0.015 * fbm(64, 64, 2.7, 2))\n# old coats of paint showing through where the top coat weathered thin\npaint = lerp(paint, set(0.80, 0.70, 0.62), 0.45 * smoothstep(0.6, 2.0, fbm(6, 6, 8.3, 4)))\nbase = set(0.58, 0.54, 0.47) * (1 + 0.12 * fbm(48, 48, 1.5, 3))   # the grey lime render under the paint\nc = lerp(paint, set(0.60, 0.56, 0.50), 0.12 * @crack)\nc = lerp(c, base, @spall)\nstreak = smoothstep(0.2, 2.0, fbm(16, 1, 6.9, 4)) * smoothstep(-0.6, 1.0, fbm(2, 2, 1.7, 2))\nc = lerp(c, set(0.42, 0.40, 0.36), 0.35 * streak)\nc = c * lerp(0.78, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.88 + 0.06 * fbm(16, 16, 3.1, 2) + 0.06 * @spall, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_Stucco: painted render -- colour / ORM"
+  },
+  {
+   "id": 119,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    6670
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 129,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 116
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_Stucco_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 120,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    7148
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 130,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 117
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_Stucco_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 121,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    7626
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 131,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 118
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_Stucco_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 122,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    8104
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 132,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 119
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_Stucco_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 123,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    8582
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 133,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 120
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_Stucco_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 124,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2400,
+    6120
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 134,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 121
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 122
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      123
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "M_Stucco: studio preview"
+  },
+  {
+   "id": 125,
+   "type": "PreviewImage",
+   "pos": [
+    2400,
+    6572
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 168,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 123
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "M_Stucco"
+  },
+  {
+   "id": 126,
+   "type": "PCG_COPPattern",
+   "pos": [
+    2820,
+    6120
+   ],
+   "size": [
+    340,
+    734
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      124
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPPattern"
+   },
+   "widgets_values": [
+    "cell",
+    "3 3",
+    0.5,
+    0.0,
+    0.1,
+    1.0,
+    "plain",
+    0.8,
+    "julia",
+    "-0.8 0.156",
+    "0 0",
+    1.0,
+    100,
+    "3 5",
+    "-",
+    1.5,
+    "",
+    true,
+    33,
+    "pattern",
+    1024,
+    1024,
+    "offset",
+    6,
+    "pixel_lines",
+    1.0,
+    1.0,
+    0.1,
+    0.05,
+    "euclidean",
+    "grid",
+    1.0,
+    0,
+    "hue",
+    "0.85 0.85 0.85",
+    "0.6 0.6 0.6",
+    true,
+    1.0,
+    "0.08 0.08 0.08",
+    "text",
+    "letters",
+    0.32,
+    "uniform",
+    "0.05 0.05 0.05",
+    "1 1 1",
+    false,
+    0.8,
+    ""
+   ],
+   "title": "Ground_Asphalt: cell pattern 3 3"
+  },
+  {
+   "id": 127,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2820,
+    6898
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 124
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      125
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nagg = fbm(160, 160, 2.1, 2)\n@stone = smoothstep(0.9, 1.8, agg)\n@seal = (1 - smoothstep(0.5, 3.0, @pattern_edge)) * smoothstep(0.3, 1.2, fbm(3, 3, 4.2, 3))\n@height = 0.0015 * @stone + 0.0004 * fbm(48, 48, 6.6, 2) - 0.001 * smoothstep(1.6, 2.2, -agg) + 0.0004 * @seal\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "Ground_Asphalt: height (metres) + masks"
+  },
+  {
+   "id": 128,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    2820,
+    7448
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 43,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 125
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      126
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 129,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    2820,
+    8126
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 57,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 126
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      127
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 130,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    3200,
+    6120
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 71,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 127
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      128,
+      129,
+      130,
+      131,
+      132,
+      134
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.25, 0.25, 0.245) * (1 + 0.08 * fbm(8, 8, 1.4, 3))\n# aggregate: light and dark stones, some worn to their colour on top\nc = lerp(c, set(0.37, 0.36, 0.35), 0.5 * @stone * smoothstep(-0.5, 1.5, fbm(320, 320, 8.8, 2)))\nc = lerp(c, set(0.08, 0.08, 0.08), 0.6 * smoothstep(1.7, 2.3, fbm(220, 220, 3.9, 2)))\n# sun-bleached surface in big soft patches, oil drips, black tar on the sealed cracks\nc = lerp(c, set(0.36, 0.36, 0.35), 0.4 * smoothstep(-0.5, 1.8, fbm(2, 2, 7.2, 3)))\noil = smoothstep(1.6, 2.3, fbm(6, 6, 9.4, 3))\nc = lerp(c, set(0.10, 0.10, 0.11), 0.5 * oil)\nc = lerp(c, set(0.04, 0.04, 0.04), 0.9 * @seal)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.9 - 0.25 * @stone * 0.5 - 0.35 * oil - 0.3 * @seal, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "Ground_Asphalt: asphalt -- colour / ORM"
+  },
+  {
+   "id": 131,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3200,
+    6670
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 135,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 128
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_Ground_Asphalt_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 132,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3200,
+    7148
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 136,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 129
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_Ground_Asphalt_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 133,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3200,
+    7626
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 137,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 130
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_Ground_Asphalt_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 134,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3200,
+    8104
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 138,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 131
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_Ground_Asphalt_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 135,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3200,
+    8582
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 139,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 132
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_Ground_Asphalt_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 136,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    3580,
+    6120
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 140,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 133
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 134
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      135
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "Ground_Asphalt: studio preview"
+  },
+  {
+   "id": 137,
+   "type": "PreviewImage",
+   "pos": [
+    3580,
+    6572
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 169,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 135
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Ground_Asphalt"
+  },
+  {
+   "id": 138,
+   "type": "PCG_COPPattern",
+   "pos": [
+    4000,
+    6120
+   ],
+   "size": [
+    340,
+    734
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      136
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPPattern"
+   },
+   "widgets_values": [
+    "cell",
+    "2 2",
+    0.5,
+    0.0,
+    0.1,
+    1.0,
+    "plain",
+    0.8,
+    "julia",
+    "-0.8 0.156",
+    "0 0",
+    1.0,
+    100,
+    "3 5",
+    "-",
+    1.5,
+    "",
+    true,
+    41,
+    "pattern",
+    1024,
+    1024,
+    "offset",
+    6,
+    "pixel_lines",
+    1.0,
+    1.0,
+    0.1,
+    0.05,
+    "euclidean",
+    "grid",
+    1.0,
+    0,
+    "hue",
+    "0.85 0.85 0.85",
+    "0.6 0.6 0.6",
+    true,
+    1.0,
+    "0.08 0.08 0.08",
+    "text",
+    "letters",
+    0.32,
+    "uniform",
+    "0.05 0.05 0.05",
+    "1 1 1",
+    false,
+    0.8,
+    ""
+   ],
+   "title": "M_RoofFlat: cell pattern 2 2"
+  },
+  {
+   "id": 139,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    4000,
+    6898
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 136
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      137
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nagg = fbm(160, 160, 2.1, 2)\n@stone = smoothstep(0.9, 1.8, agg)\n@seal = (1 - smoothstep(0.5, 3.0, @pattern_edge)) * smoothstep(0.3, 1.2, fbm(3, 3, 4.2, 3))\n@height = 0.0015 * @stone + 0.0004 * fbm(48, 48, 6.6, 2) - 0.001 * smoothstep(1.6, 2.2, -agg) + 0.0004 * @seal\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_RoofFlat: height (metres) + masks"
+  },
+  {
+   "id": 140,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    4000,
+    7448
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 44,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 137
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      138
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 141,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    4000,
+    8126
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 58,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 138
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      139
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 142,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    4380,
+    6120
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 72,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 139
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      140,
+      141,
+      142,
+      143,
+      144,
+      146
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.36, 0.36, 0.35) * (1 + 0.07 * fbm(8, 8, 2.4, 3))\nc = lerp(c, set(0.52, 0.51, 0.49), 0.5 * @stone)\npond = smoothstep(0.6, 2.0, fbm(2, 2, 5.1, 3))\nc = lerp(c, set(0.24, 0.24, 0.23), 0.45 * pond)\nc = lerp(c, set(0.16, 0.16, 0.16), 0.9 * @seal)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.92 - 0.2 * pond, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_RoofFlat: bitumen roofing -- colour / ORM"
+  },
+  {
+   "id": 143,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    4380,
+    6670
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 141,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 140
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_RoofFlat_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 144,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    4380,
+    7148
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 142,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 141
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_RoofFlat_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 145,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    4380,
+    7626
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 143,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 142
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_RoofFlat_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 146,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    4380,
+    8104
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 144,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 143
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_RoofFlat_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 147,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    4380,
+    8582
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 145,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 144
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_RoofFlat_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 148,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    4760,
+    6120
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 146,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 145
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 146
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      147
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "M_RoofFlat: studio preview"
+  },
+  {
+   "id": 149,
+   "type": "PreviewImage",
+   "pos": [
+    4760,
+    6572
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 170,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 147
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "M_RoofFlat"
+  },
+  {
+   "id": 150,
+   "type": "PCG_COPConstant",
+   "pos": [
+    460,
+    9180
+   ],
+   "size": [
+    340,
+    549
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      148
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPConstant"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    0.0,
+    0.0,
+    0.0,
+    false,
+    1.0,
+    "base",
+    "auto"
+   ],
+   "title": "M_FacadeFar: 1024² canvas (1 m)"
+  },
+  {
+   "id": 151,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    460,
+    9773
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 148
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      149
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nx = @u\ny = @v\nwin = smoothstep(0.0, 0.004, min(min(x - 0.31, 0.69 - x), min(y - 0.26, 0.84 - y)))\nframe = smoothstep(0.0, 0.004, min(min(x - 0.29, 0.71 - x), min(y - 0.24, 0.86 - y))) * (1 - win)\nmull = (1 - smoothstep(0.004, 0.008, abs(x - 0.5))) * win\nband = smoothstep(0.0, 0.004, y - 0.955)\nsill = smoothstep(0.0, 0.003, min(min(x - 0.28, 0.72 - x), min(y - 0.215, 0.24 - y)))\n@win = win * (1 - mull)\n@frame = clamp(frame + mull, 0, 1)\n@band = band\n# metres: window glass 15 cm back, frame 10 cm back, sill and band 4 cm proud\n@height = -0.15 * @win - 0.1 * @frame + 0.04 * clamp(band + sill, 0, 1) + 0.0006 * fbm(8, 7, 2.2, 3)\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_FacadeFar: height (metres) + masks"
+  },
+  {
+   "id": 152,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    460,
+    10323
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 45,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 149
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      150
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 153,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    460,
+    11001
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 59,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 150
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      151
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 154,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    840,
+    9180
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 73,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 151
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      152,
+      153,
+      154,
+      155,
+      156,
+      158
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nwall = set(0.66, 0.60, 0.51)\nc = wall * (1 + 0.05 * fbm(8, 7, 4.4, 3))\nc = lerp(c, set(0.82, 0.80, 0.75), @band)\n# glass: dark with a lighter sky reflection toward the top, some windows lit warm or with curtains\nglass = lerp(set(0.07, 0.09, 0.11), set(0.20, 0.24, 0.28), smoothstep(0.3, 0.85, @v))\nc = lerp(c, set(0.86, 0.85, 0.82), @frame)\nc = lerp(c, glass, @win)\nc = c * lerp(0.7, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.85 - 0.75 * @win - 0.2 * @frame, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_FacadeFar: facade bay, render -- colour / ORM"
+  },
+  {
+   "id": 155,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    9730
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 147,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 152
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFar_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 156,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    10208
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 148,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 153
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFar_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 157,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    10686
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 149,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 154
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFar_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 158,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    11164
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 150,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 155
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFar_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 159,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    840,
+    11642
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 151,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 156
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFar_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 160,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1220,
+    9180
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 152,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 157
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 158
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      159
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "M_FacadeFar: studio preview"
+  },
+  {
+   "id": 161,
+   "type": "PreviewImage",
+   "pos": [
+    1220,
+    9632
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 171,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 159
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "M_FacadeFar"
+  },
+  {
+   "id": 162,
+   "type": "PCG_COPConstant",
+   "pos": [
+    1640,
+    9180
+   ],
+   "size": [
+    340,
+    549
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      160
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPConstant"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    0.0,
+    0.0,
+    0.0,
+    false,
+    1.0,
+    "base",
+    "auto"
+   ],
+   "title": "M_FacadeFarBrick: 1024² canvas (1 m)"
+  },
+  {
+   "id": 163,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    1640,
+    9773
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 160
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      161
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nx = @u\ny = @v\nwin = smoothstep(0.0, 0.004, min(min(x - 0.31, 0.69 - x), min(y - 0.26, 0.84 - y)))\nframe = smoothstep(0.0, 0.004, min(min(x - 0.29, 0.71 - x), min(y - 0.24, 0.86 - y))) * (1 - win)\nmull = (1 - smoothstep(0.004, 0.008, abs(x - 0.5))) * win\nband = smoothstep(0.0, 0.004, y - 0.955)\nsill = smoothstep(0.0, 0.003, min(min(x - 0.28, 0.72 - x), min(y - 0.215, 0.24 - y)))\n@win = win * (1 - mull)\n@frame = clamp(frame + mull, 0, 1)\n@band = band\n# metres: window glass 15 cm back, frame 10 cm back, sill and band 4 cm proud\n@height = -0.15 * @win - 0.1 * @frame + 0.04 * clamp(band + sill, 0, 1) + 0.0006 * fbm(8, 7, 2.2, 3)\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_FacadeFarBrick: height (metres) + masks"
+  },
+  {
+   "id": 164,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    1640,
+    10323
+   ],
+   "size": [
+    340,
+    634
+   ],
+   "flags": {},
+   "order": 46,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 161
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      162
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 165,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    1640,
+    11001
+   ],
+   "size": [
+    340,
+    744
+   ],
+   "flags": {},
+   "order": 60,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 162
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      163
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    1.0,
+    1.0,
+    12.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao_h",
+    true
+   ]
+  },
+  {
+   "id": 166,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2020,
+    9180
+   ],
+   "size": [
+    340,
+    506
+   ],
+   "flags": {},
+   "order": 74,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 163
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      164,
+      165,
+      166,
+      167,
+      168,
+      170
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nwall = set(0.52, 0.30, 0.22)\nc = wall * (1 + 0.05 * fbm(8, 7, 4.4, 3))\nc = lerp(c, set(0.82, 0.80, 0.75), @band)\n# glass: dark with a lighter sky reflection toward the top, some windows lit warm or with curtains\nglass = lerp(set(0.07, 0.09, 0.11), set(0.20, 0.24, 0.28), smoothstep(0.3, 0.85, @v))\nc = lerp(c, set(0.86, 0.85, 0.82), @frame)\nc = lerp(c, glass, @win)\nc = c * lerp(0.7, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.85 - 0.75 * @win - 0.2 * @frame, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    256
+   ],
+   "title": "M_FacadeFarBrick: facade bay, brick -- colour / ORM"
+  },
+  {
+   "id": 167,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    9730
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 153,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 164
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFarBrick_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor"
+  },
+  {
+   "id": 168,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    10208
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 154,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 165
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFarBrick_Normal_GL",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_GL"
+  },
+  {
+   "id": 169,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    10686
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 155,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 166
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFarBrick_Normal_DX",
+    "N",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "-y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal_DX"
+  },
+  {
+   "id": 170,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    11164
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 156,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 167
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFarBrick_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM"
+  },
+  {
+   "id": 171,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2020,
+    11642
+   ],
+   "size": [
+    340,
+    434
+   ],
+   "flags": {},
+   "order": 157,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 168
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/materials/T_M_FacadeFarBrick_Height",
+    "height",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height"
+  },
+  {
+   "id": 172,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2400,
+    9180
+   ],
+   "size": [
+    340,
+    408
+   ],
+   "flags": {},
+   "order": 158,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 169
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 170
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      171
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    800,
+    800,
+    18.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @N\norm = @ao roughness metallic",
+    "material",
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
+   ],
+   "title": "M_FacadeFarBrick: studio preview"
+  },
+  {
+   "id": 173,
+   "type": "PreviewImage",
+   "pos": [
+    2400,
+    9632
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 172,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 171
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "M_FacadeFarBrick"
   }
  ],
  "links": [
@@ -5889,6 +9757,582 @@
    100,
    0,
    101,
+   0,
+   "IMAGE"
+  ],
+  [
+   100,
+   102,
+   0,
+   103,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   101,
+   103,
+   0,
+   104,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   102,
+   104,
+   0,
+   105,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   103,
+   105,
+   0,
+   106,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   104,
+   106,
+   0,
+   107,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   105,
+   106,
+   0,
+   108,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   106,
+   106,
+   0,
+   109,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   107,
+   106,
+   0,
+   110,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   108,
+   106,
+   0,
+   111,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   109,
+   5,
+   0,
+   112,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   110,
+   106,
+   0,
+   112,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   111,
+   112,
+   0,
+   113,
+   0,
+   "IMAGE"
+  ],
+  [
+   112,
+   114,
+   0,
+   115,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   113,
+   115,
+   0,
+   116,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   114,
+   116,
+   0,
+   117,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   115,
+   117,
+   0,
+   118,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   116,
+   118,
+   0,
+   119,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   117,
+   118,
+   0,
+   120,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   118,
+   118,
+   0,
+   121,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   119,
+   118,
+   0,
+   122,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   120,
+   118,
+   0,
+   123,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   121,
+   5,
+   0,
+   124,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   122,
+   118,
+   0,
+   124,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   123,
+   124,
+   0,
+   125,
+   0,
+   "IMAGE"
+  ],
+  [
+   124,
+   126,
+   0,
+   127,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   125,
+   127,
+   0,
+   128,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   126,
+   128,
+   0,
+   129,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   127,
+   129,
+   0,
+   130,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   128,
+   130,
+   0,
+   131,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   129,
+   130,
+   0,
+   132,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   130,
+   130,
+   0,
+   133,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   131,
+   130,
+   0,
+   134,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   132,
+   130,
+   0,
+   135,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   133,
+   5,
+   0,
+   136,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   134,
+   130,
+   0,
+   136,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   135,
+   136,
+   0,
+   137,
+   0,
+   "IMAGE"
+  ],
+  [
+   136,
+   138,
+   0,
+   139,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   137,
+   139,
+   0,
+   140,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   138,
+   140,
+   0,
+   141,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   139,
+   141,
+   0,
+   142,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   140,
+   142,
+   0,
+   143,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   141,
+   142,
+   0,
+   144,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   142,
+   142,
+   0,
+   145,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   143,
+   142,
+   0,
+   146,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   144,
+   142,
+   0,
+   147,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   145,
+   5,
+   0,
+   148,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   146,
+   142,
+   0,
+   148,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   147,
+   148,
+   0,
+   149,
+   0,
+   "IMAGE"
+  ],
+  [
+   148,
+   150,
+   0,
+   151,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   149,
+   151,
+   0,
+   152,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   150,
+   152,
+   0,
+   153,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   151,
+   153,
+   0,
+   154,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   152,
+   154,
+   0,
+   155,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   153,
+   154,
+   0,
+   156,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   154,
+   154,
+   0,
+   157,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   155,
+   154,
+   0,
+   158,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   156,
+   154,
+   0,
+   159,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   157,
+   5,
+   0,
+   160,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   158,
+   154,
+   0,
+   160,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   159,
+   160,
+   0,
+   161,
+   0,
+   "IMAGE"
+  ],
+  [
+   160,
+   162,
+   0,
+   163,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   161,
+   163,
+   0,
+   164,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   162,
+   164,
+   0,
+   165,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   163,
+   165,
+   0,
+   166,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   164,
+   166,
+   0,
+   167,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   165,
+   166,
+   0,
+   168,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   166,
+   166,
+   0,
+   169,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   167,
+   166,
+   0,
+   170,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   168,
+   166,
+   0,
+   171,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   169,
+   5,
+   0,
+   172,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   170,
+   166,
+   0,
+   172,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   171,
+   172,
+   0,
+   173,
    0,
    "IMAGE"
   ]

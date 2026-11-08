@@ -175,7 +175,7 @@ def _ssao(P, N, valid, px_world, radius_world, samples=12):
     occ = np.zeros((H, W))
     cnt = 0
     for rad in (radius_world * 0.25, radius_world):
-        rpx = max(1, int(round(rad / max(px_world, 1e-12))))
+        rpx = max(1, min(int(round(rad / max(px_world, 1e-12))), max(1, min(H, W) // 6)))
         for k in range(samples):
             a = 2 * np.pi * (k + 0.5 * (rad == radius_world)) / samples
             frac = 0.35 + 0.65 * ((k * 7) % samples) / samples
@@ -207,9 +207,31 @@ def _shadow(geo, P, N, valid, Ldir, center, radius, res=1536):
     eye = center + Ldir * radius * 3.0
     cam = R.camera(None, "orthographic", eye=eye, target=center, ortho_size=radius * 2.2,
                    xres=res, yres=res)
-    rs = R.rasterize(geo, cam, max_pairs=_PAIRS)
-    depth = np.where(rs["hit"] >= 0, rs["z"], np.inf)
-    del rs
+    # Large maps are rasterized in tiles of at most 2048²: the rasterizer's per-pixel buffers (barycentrics, batch
+    # arrays) for one 4096² map took close to 4 GB (pcg123); tiles give the same depth map at a quarter of the peak
+    nt = max(1, int(np.ceil(res / 2048)))
+    if nt == 1:
+        rs = R.rasterize(geo, cam, max_pairs=_PAIRS)
+        depth = np.where(rs["hit"] >= 0, rs["z"], np.inf)
+        del rs
+    else:
+        depth = np.full((res, res), np.inf)
+        tile = res // nt
+        size = radius * 2.2
+        for ty in range(nt):
+            for tx in range(nt):
+                x0, y0 = tx * tile, ty * tile
+                x1 = res if tx == nt - 1 else x0 + tile
+                y1 = res if ty == nt - 1 else y0 + tile
+                # sub-camera: the same plane, centred on the tile, the tile's share of the ortho size (square texels)
+                cx = ((x0 + x1) / 2 / res - 0.5) * size
+                cy = ((y0 + y1) / 2 / res - 0.5) * size
+                off = cam["right"] * cx + cam["up"] * cy
+                sub = dict(cam, eye=cam["eye"] + off, target=cam["target"] + off,
+                           ortho_size=size * (y1 - y0) / res, xres=x1 - x0, yres=y1 - y0)
+                rs = R.rasterize(geo, sub, max_pairs=_PAIRS)
+                depth[y0:y1, x0:x1] = np.where(rs["hit"] >= 0, rs["z"], np.inf)
+                del rs
     out = np.ones(valid.shape, np.float32)
     idx = np.nonzero(valid)
     if not len(idx[0]):
@@ -443,29 +465,33 @@ def env_brdf(f0, rough, nv):
     return f0 * A[:, None] + B[:, None]
 
 
-def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal):
-    """Metal-rough shading of the surface pixels (flat lists). -> (n, 3) linear."""
+def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal, env=None):
+    """Metal-rough shading of the surface pixels (flat lists). -> (n, 3) linear. env: radiance function of the
+    surroundings (default the studio); V is one direction (orthographic) or one per pixel (perspective)."""
     rough = np.clip(rough, 0.03, 1.0).astype(np.float64)
     metal = np.clip(metal, 0.0, 1.0).astype(np.float64)[:, None]
     f0 = 0.04 * (1 - metal) + alb * metal
     diff = alb * (1 - metal)
-    nv = np.clip(n @ V, 1e-4, 1.0)
+    V = np.asarray(V, np.float64)
+    per = V.ndim == 2
+    dot = (lambda a, b: (a * b).sum(-1)) if per else (lambda a, b: a @ b)
+    nv = np.clip(dot(n, V), 1e-4, 1.0)
     # key light: GGX D, Smith-GGX correlated visibility, Schlick F
-    Hh = Ldir + V
-    Hh = Hh / np.linalg.norm(Hh)
-    nh = np.clip(n @ Hh, 0.0, 1.0)
+    Hh = Ldir[None] + V if per else Ldir + V
+    Hh = Hh / np.linalg.norm(Hh, axis=-1, keepdims=True)
+    nh = np.clip(dot(n, Hh), 0.0, 1.0)
     nl = np.clip(n @ Ldir, 0.0, 1.0)
     a2 = (rough * rough) ** 2
     D = a2 / (np.pi * (nh * nh * (a2 - 1) + 1) ** 2)
     vis = 0.5 / np.maximum(nl * np.sqrt(nv * nv * (1 - a2) + a2) + nv * np.sqrt(nl * nl * (1 - a2) + a2), 1e-6)
-    vh = np.clip(V @ Hh, 0.0, 1.0)
-    F = f0 + (1 - f0) * ((1 - vh) ** 5)
+    vh = np.clip(dot(V, Hh) if per else V @ Hh, 0.0, 1.0)
+    F = f0 + (1 - f0) * ((1 - vh) ** 5)[:, None] if per else f0 + (1 - f0) * ((1 - vh) ** 5)
     spec_key = F * (D * vis * nl)[:, None] * np.pi        # lit already carries n·l and the shadow; π: punctual units
     # environment: reflected studio, dimmed by occlusion (specular occlusion ≈ AO)
-    Rv = 2 * nv[:, None] * n - V[None]
+    Rv = 2 * nv[:, None] * n - (V if per else V[None])
     Rv = Rv / np.linalg.norm(Rv, axis=1, keepdims=True)
-    env = env_radiance(Rv, rough, Ldir, V)
-    spec_env = env_brdf(f0, rough, nv) * env * occ[:, None]
+    envr = env(Rv, rough, Ldir) if env is not None else env_radiance(Rv, rough, Ldir, V)
+    spec_env = env_brdf(f0, rough, nv) * envr * occ[:, None]
     shadowed = np.where(nl > 1e-6, lit / np.maximum(nl, 1e-6), 0.0)
     return (diff * (key * lit[:, None] + amb * occ[:, None])
             + spec_key * key * shadowed[:, None] + spec_env)

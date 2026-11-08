@@ -21,7 +21,7 @@
     "text": ""
    },
    "widgets_values": [
-    "Produces 4 engine-ready rock assets in one go, purely procedural, no source files at all. Each rock:\n  · high-poly (~35k faces, SDF → voxels → surface nets)\n  · LOD0 ~2500 triangles (the same SDF blurred and re-extracted at 12 cm voxels, uniform quads), auto seams + LSCM/ARAP flattening + shape-interlocking packing\n  · LOD1 / LOD2 reduced from LOD0 (Preserve UVs: half-edge collapse, seams locked, **share textures with LOD0**)\n  · convex-decomposition collision (UCX_ prefix, one convex hull per piece, ≤ 32 points / 60 triangles each)\n  · textures: BaseColor (sRGB) / Normal (tangent space, OpenGL +Y) / ORM (AO, roughness, metallic packed) / Height (16-bit, range in the .json next to it)\n\n① For-Each runs 4 times, rand_seed wired to iteration: in the SDF an intersection of 8 random half-spaces (the rock's big faces) + smooth intersection with an ellipsoid + bedding + fissures + three noise layers + flattened bottom, a different rock each pass.\n② The high-poly is coloured by curvature / bedding / upward-facing amount (dirt build-up, moss, weathered edges); this colour is later baked into BaseColor.\n③ The 4 LOD0s each take one cell of a 4096×1024 atlas that is baked in one go (uv_atlas); when writing files it is cut by cell - the same idea as UDIM. The baked tangents and the exported TANGENT are the same set, so if the engine import uses the tangents from the file, the normal map matches pixel for pixel.\n④ Export: one glb per rock (SM_Rock_0N.glb), containing one node each for LOD0 / LOD1 / LOD2 / UCX, all four sharing one material slot Rock_0N; the glb already references BaseColor / Normal / ORM by relative path (T_Rock_0N_*.png, same folder output/pcg/assets/rocks/), so dragged into Blender or an engine it comes in textured. The pivot is at the ground line: the flat bottom is at y = −0.5, so placing it on the ground buries it half a metre, and on slopes no floating bottom shows (this is how the open-world pipeline's instance table places them).\n\nTakes about two to three minutes on a real machine (reduction and baking are the bulk). To make more rocks change iterations, and change three places together: the atlas width (COP Bake's X resolution), the 4 in uv_atlas, and the file writers' Tiles X."
+    "Produces 4 engine-ready rock assets in one go, purely procedural, no source files at all. Each rock:\n  · high-poly (~35k faces, SDF → voxels → surface nets)\n  · LOD0 ~4500 triangles (the same SDF lightly blurred and re-extracted at 9 cm voxels, uniform quads), auto seams + LSCM/ARAP flattening + shape-interlocking packing\n  · LOD1 / LOD2 reduced from LOD0 (Preserve UVs: half-edge collapse, seams locked, **share textures with LOD0**)\n  · convex-decomposition collision (UCX_ prefix, one convex hull per piece, ≤ 32 points / 60 triangles each)\n  · textures: BaseColor (sRGB) / Normal (tangent space, OpenGL +Y) / ORM (AO, roughness, metallic packed) / Height (16-bit, range in the .json next to it)\n\n① For-Each runs 4 times, rand_seed wired to iteration: in the SDF an intersection of 13 random half-spaces (the rock's big faces, crisp 1.5 cm arrises) + a deep split face + edge chips + a soft trim by a sphere + noise + flattened bottom, a different rock each pass.\n② The high-poly is coloured by curvature / bedding / upward-facing amount (dirt build-up, moss, weathered edges); this colour is later baked into BaseColor.\n③ The 4 LOD0s each take one cell of a 4096×1024 atlas that is baked in one go (uv_atlas); when writing files it is cut by cell - the same idea as UDIM. The baked tangents and the exported TANGENT are the same set, so if the engine import uses the tangents from the file, the normal map matches pixel for pixel.\n④ Export: one glb per rock (SM_Rock_0N.glb), containing one node each for LOD0 / LOD1 / LOD2 / UCX, all four sharing one material slot Rock_0N; the glb already references BaseColor / Normal / ORM by relative path (T_Rock_0N_*.png, same folder output/pcg/assets/rocks/), so dragged into Blender or an engine it comes in textured. The pivot is at the ground line: the flat bottom is at y = −0.5, so placing it on the ground buries it half a metre, and on slopes no floating bottom shows (this is how the open-world pipeline's instance table places them).\n\nTakes about two to three minutes on a real machine (reduction and baking are the bulk). To make more rocks change iterations, and change three places together: the atlas width (COP Bake's X resolution), the 4 in uv_atlas, and the file writers' Tiles X."
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -227,7 +227,7 @@
     "Node name for S&R": "PCG_VolumeWrangle"
    },
    "widgets_values": [
-    "# signed distance field of the rock (positive outside, negative inside). seed comes in via rand_seed = which rock\ns = seed * 17.31 + 3.7\n# smooth max (intersection) with blend radius k: hard edges become small rounded bevels, like weathered stone\ndef smax(a, b, k):\n    h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1)\n    return lerp(a, b, h) + k * h * (1 - h)\n# ① proportions per rock: a boulder, a slab, a block, a tall one... (the field is built in this stretched space)\nsc = set(0.9 + 0.2 * rand(s + 1), 0.7 + 0.4 * rand(s + 2), 0.8 + 0.25 * rand(s + 3))\nQ = @P / sc\n# ② the big faces: 11 random half-spaces (more of them sideways and up than down), 3.5 cm bevels\nd = -1e9\nfor k in range(11):\n    n = normalize(set(rand(s + 10 * k) - 0.5, (rand(s + 10 * k + 1) - 0.3) * 1.2, rand(s + 10 * k + 2) - 0.5))\n    d = smax(d, dot(Q, n) - (0.7 + 0.3 * rand(s + 10 * k + 3)), 0.035)\n# ③ fracture chips: 4 planes that only shave off an edge or a corner (offset just inside the faces), sharper bevel\nfor k in range(4):\n    n = normalize(set(rand(s + 7 * k + 200) - 0.5, rand(s + 7 * k + 201) - 0.2, rand(s + 7 * k + 202) - 0.5))\n    d = smax(d, dot(Q, n) - (0.74 + 0.14 * rand(s + 7 * k + 203)), 0.02)\n# ④ keep it compact: a soft intersection with a sphere trims only the far corners (the faces stay flat)\nd = smax(d, length(Q) - 1.2, 0.1)\n# back to metres (the stretch makes distances up to 1/min scale too long; the min keeps it a lower bound)\nd = d * min(min(sc.x, sc.y), sc.z)\n# ⑤ broad undulation and shallow weathering hollows only -- grooves, cracks and grain are added per texel after the\n#    bake (see \"Texture-space detail\"): at 2.2 cm voxels they would come out as stair-stepped dashes\nd = d + 0.035 * (noise(@P * 1.7 + s) - 0.5) + 0.012 * (1 - abs(2 * noise(@P * 5.3 + s + 7) - 1))\n# ⑥ flat bottom (sits on the ground without wobbling), and never touch the sampling volume's walls (an open\n#    surface there frays the mesh)\nd = max(d, -@P.y - 0.5)\nb = abs(@P) - set(1.25, 1.0, 1.15)\nd = max(d, max(max(b.x, b.y), b.z))\n@value = d\n",
+    "# signed distance field of the rock (positive outside, negative inside). seed comes in via rand_seed = which rock\ns = seed * 17.31 + 3.7\n# smooth max (intersection) with blend radius k: hard edges become small rounded bevels, like weathered stone\ndef smax(a, b, k):\n    h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1)\n    return lerp(a, b, h) + k * h * (1 - h)\n# ① proportions per rock: a boulder, a slab, a block, a tall one... (the field is built in this stretched space)\nsc = set(0.85 + 0.4 * rand(s + 1), 0.55 + 0.45 * rand(s + 2), 0.75 + 0.35 * rand(s + 3))\nQ = @P / sc\n# ② the big faces: 13 random half-spaces (more of them sideways and up than down), 1.5 cm bevels -- the\n#    faces meet in crisp arrises, which is what makes it read as broken stone and not as a pebble\nd = -1e9\nfor k in range(13):\n    n = normalize(set(rand(s + 10 * k) - 0.5, (rand(s + 10 * k + 1) - 0.3) * 1.2, rand(s + 10 * k + 2) - 0.5))\n    d = smax(d, dot(Q, n) - (0.62 + 0.3 * rand(s + 10 * k + 3)), 0.015)\n#    one deep split face on most rocks: a whole side sheared off along a joint plane\nn = normalize(set(rand(s + 300) - 0.5, rand(s + 301) * 0.6, rand(s + 302) - 0.5))\nd = smax(d, dot(Q, n) - (0.42 + 0.2 * rand(s + 303)), 0.01)\n# ③ fracture chips: 4 planes that only shave off an edge or a corner (offset just inside the faces), sharper bevel\nfor k in range(4):\n    n = normalize(set(rand(s + 7 * k + 200) - 0.5, rand(s + 7 * k + 201) - 0.2, rand(s + 7 * k + 202) - 0.5))\n    d = smax(d, dot(Q, n) - (0.66 + 0.14 * rand(s + 7 * k + 203)), 0.012)\n# ④ keep it compact: a soft intersection with a sphere trims only the far corners (the faces stay flat)\nd = smax(d, length(Q) - 1.25, 0.06)\n# back to metres (the stretch makes distances up to 1/min scale too long; the min keeps it a lower bound)\nd = d * min(min(sc.x, sc.y), sc.z)\n# ⑤ broad undulation and shallow weathering hollows only -- grooves, cracks and grain are added per texel after the\n#    bake (see \"Texture-space detail\"): at 2.2 cm voxels they would come out as stair-stepped dashes\nd = d + 0.035 * (noise(@P * 1.7 + s) - 0.5) + 0.012 * (1 - abs(2 * noise(@P * 5.3 + s + 7) - 1))\n#    (no bedding steps here: a stepped profile in the field is a jump the surface nets turn into a staircase on\n#    the silhouette; the layers are texel detail, see \"Texture-space detail\")\n# ⑥ flat bottom (sits on the ground without wobbling), and never touch the sampling volume's walls (an open\n#    surface there frays the mesh)\nd = max(d, -@P.y - 0.5)\nb = abs(@P) - set(1.25, 1.0, 1.15)\nd = max(d, max(max(b.x, b.y), b.z))\n@value = d\n",
     "",
     0,
     "{}"
@@ -447,7 +447,7 @@
    },
    "widgets_values": [
     "point",
-    "# curvature (1/m): concave areas collect dirt and darken, convex edges weather and whiten; a bit of bedding colour variation by height; moss on upward-facing areas\ncav = clamp(-@curv / 20, 0, 1)\nedge = clamp(@curv / 25, 0, 1)\nband = 0.5 + 0.5 * sin(@P.y * 38 + 3 * noise(@P * 2.0))\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), band)\nbase = base * (0.85 + 0.3 * noise(@P * 4.0 + 1.7))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.6)\nbase = lerp(base, set(0.14, 0.12, 0.10), cav * 0.7)\nmoss = smoothstep(0.55, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n@Cd = lerp(base, set(0.30, 0.33, 0.16), moss)",
+    "# curvature (1/m): concave areas collect dirt and darken, convex edges weather and whiten; a bit of bedding colour variation by height; moss on upward-facing areas\ncav = clamp(-@curv / 20, 0, 1)\nedge = clamp(@curv / 25, 0, 1)\nband = 0.5 + 0.5 * sin(@P.y * 11 + 4 * noise(@P * 1.3))\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), band)\nbase = base * (0.85 + 0.3 * noise(@P * 4.0 + 1.7))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.6)\nbase = lerp(base, set(0.14, 0.12, 0.10), cav * 0.7)\nmoss = smoothstep(0.55, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n@Cd = lerp(base, set(0.30, 0.33, 0.16), moss)",
     "",
     0,
     "{}"
@@ -555,7 +555,7 @@
     "Node name for S&R": "PCG_VolumeBlur"
    },
    "widgets_values": [
-    0.06,
+    0.04,
     "gaussian",
     1,
     "",
@@ -617,12 +617,12 @@
     32,
     32,
     32,
-    0.12,
+    0.09,
     1.0,
     "trilinear",
     ""
    ],
-   "title": "12 cm voxels"
+   "title": "9 cm voxels"
   },
   {
    "id": 12,
@@ -676,7 +676,7 @@
     0.15,
     0.0
    ],
-   "title": "LOD0 (~2500 triangles, uniform quads)"
+   "title": "LOD0 (~4500 triangles, uniform quads)"
   },
   {
    "id": 13,
@@ -1757,7 +1757,7 @@
     "Node name for S&R": "PCG_COPWrangle"
    },
    "widgets_values": [
-    "# which rock: the atlas cell; the bake had rock N moved by N * 3.5 m in x -- undo it so the detail is the rock's own\nidx = floor(@u * 4)\ns = idx * 17.31 + 3.7\nP = @position - set(3.5, 0, 0) * idx\nT = normalize(@tangent)\nB = normalize(@bitangent)\ntilt = normalize(set(rand(s + 91) - 0.5, 2.0, rand(s + 92) - 0.5))\n\n# Detail height in metres (negative = into the rock). The low-frequency parts (layer warp, where grooves and cracks\n# fade) are evaluated once; only the sharp parts are re-evaluated 3 mm along T and B for the slope.\nwarp = 0.8 * noise(P * 1.1 + s) + 0.25 * noise(P * 3.7 + s + 5)\ngfade = smoothstep(0.35, 0.65, noise(P * 2.2 + s + 17))\ncfade = smoothstep(0.45, 0.7, noise(P * 0.8 + s + 60))\ndef sharp(Q):\n    band = frac(dot(Q, tilt) * 5.5 + warp)\n    groove = smoothstep(0.84, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade\n    crack = (1 - smoothstep(0.0, 0.012, abs(noise(Q * 1.4 + s + 40) - 0.5))) * cfade\n    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n    return -0.005 * groove - 0.009 * crack + 0.003 * grain, groove, crack\n\nh, groove, crack = sharp(P)\ne = 0.003\ndT = (sharp(P + T * e)[0] - h) / e\ndB = (sharp(P + B * e)[0] - h) / e\ndel T, B\nb = @normal_ts\n# tilt the baked high-poly normal by the detail slope (TS x along tangent, y along bitangent)\n@normal_ts = normalize(set(b.x - dT, b.y - dB, b.z)) * @mask + set(0, 0, 1) * (1 - @mask)\ndel b, dT, dB\n@displacement = @displacement + h * @mask\n@crevice = clamp(groove * 0.6 + crack, 0, 1)\n\n# colour per texel: strata on the same warped layers as the grooves (low contrast), mottling, fine speckle, pale\n# worn edges, dark cavities and crevices, olive moss on the flatter tops\ncav = clamp(-@high_curv / 20, 0, 1)\nedge = clamp(@high_curv / 25, 0, 1)\nstrata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832)\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), strata)\nbase = base * (0.82 + 0.25 * noise(P * 4.0 + s + 1.7) + 0.16 * (noise(P * 22 + s + 5) - 0.5))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.55)\nbase = lerp(base, set(0.16, 0.14, 0.12), clamp(cav * 0.6 + @crevice * 0.45, 0, 1))\nNw = normalize(@worldnormal)\nmoss = smoothstep(0.75, 0.95, Nw.y) * smoothstep(0.56, 0.7, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5))\nmc = lerp(set(0.20, 0.23, 0.11), set(0.31, 0.33, 0.17), noise(P * 9 + s + 3))\n# lichen: small pale crusts in loose clusters, on any face that is not overhanging\nlichen = smoothstep(0.68, 0.72, noise(P * 14 + s + 31)) * smoothstep(0.45, 0.7, noise(P * 1.3 + s + 77)) * smoothstep(-0.3, 0.2, Nw.y)\nbase = lerp(base, set(0.56, 0.56, 0.48), 0.45 * lichen)\n@moss = moss * @mask\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(lerp(base, mc, moss), 0, 1) ** 2.2\n",
+    "# which rock: the atlas cell; the bake had rock N moved by N * 3.5 m in x -- undo it so the detail is the rock's own\nidx = floor(@u * 4)\ns = idx * 17.31 + 3.7\nP = @position - set(3.5, 0, 0) * idx\nT = normalize(@tangent)\nB = normalize(@bitangent)\ntilt = normalize(set(rand(s + 91) - 0.5, 2.0, rand(s + 92) - 0.5))\n\n# Detail height in metres (negative = into the rock). The low-frequency parts (layer warp, where grooves and cracks\n# fade) are evaluated once; only the sharp parts are re-evaluated 3 mm along T and B for the slope.\nwarp = 0.8 * noise(P * 1.1 + s) + 0.25 * noise(P * 3.7 + s + 5)\ngfade = smoothstep(0.45, 0.7, noise(P * 2.2 + s + 17))\ncfade = smoothstep(0.45, 0.7, noise(P * 0.8 + s + 60))\ndef sharp(Q):\n    band = frac(dot(Q, tilt) * 5.5 + warp)\n    # only every so often a layer joint opens into a groove (not every band), so they don't read as ruled lines\n    open_ = smoothstep(0.55, 0.75, noise(set(floor(dot(Q, tilt) * 5.5 + warp), s + 0 * band, 3.3 + 0 * band)))\n    groove = smoothstep(0.86, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade * open_\n    crack = (1 - smoothstep(0.0, 0.012, abs(noise(Q * 1.4 + s + 40) - 0.5))) * cfade\n    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n    return -0.003 * groove - 0.009 * crack + 0.003 * grain, groove, crack\n\nh, groove, crack = sharp(P)\ne = 0.003\ndT = (sharp(P + T * e)[0] - h) / e\ndB = (sharp(P + B * e)[0] - h) / e\ndel T, B\nb = @normal_ts\n# tilt the baked high-poly normal by the detail slope (TS x along tangent, y along bitangent)\n@normal_ts = normalize(set(b.x - dT, b.y - dB, b.z)) * @mask + set(0, 0, 1) * (1 - @mask)\ndel b, dT, dB\n@displacement = @displacement + h * @mask\n@crevice = clamp(groove * 0.6 + crack, 0, 1)\n\n# colour per texel: strata on the same warped layers as the grooves (low contrast), mottling, fine speckle, pale\n# worn edges, dark cavities and crevices, olive moss on the flatter tops\ncav = clamp(-@high_curv / 20, 0, 1)\nedge = clamp(@high_curv / 25, 0, 1)\nstrata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832)\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), strata)\nbase = base * (0.82 + 0.25 * noise(P * 4.0 + s + 1.7) + 0.16 * (noise(P * 22 + s + 5) - 0.5))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.55)\nbase = lerp(base, set(0.16, 0.14, 0.12), clamp(cav * 0.6 + @crevice * 0.45, 0, 1))\nNw = normalize(@worldnormal)\nmoss = smoothstep(0.75, 0.95, Nw.y) * smoothstep(0.56, 0.7, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5))\nmc = lerp(set(0.20, 0.23, 0.11), set(0.31, 0.33, 0.17), noise(P * 9 + s + 3))\n# lichen: small pale crusts in loose clusters, on any face that is not overhanging\nlichen = smoothstep(0.68, 0.72, noise(P * 14 + s + 31)) * smoothstep(0.45, 0.7, noise(P * 1.3 + s + 77)) * smoothstep(-0.3, 0.2, Nw.y)\nbase = lerp(base, set(0.56, 0.56, 0.48), 0.45 * lichen)\n@moss = moss * @mask\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(lerp(base, mc, moss), 0, 1) ** 2.2\n",
     0,
     "{}",
     128
@@ -2269,7 +2269,7 @@
    ],
    "size": [
     520,
-    388
+    408
    ],
    "flags": {},
    "order": 43,
@@ -2284,6 +2284,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 55
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -2301,16 +2306,22 @@
    },
    "widgets_values": [
     1600,
-    560,
-    18.0,
-    0.0,
+    420,
+    16.0,
+    12.0,
     "color",
     "Cd",
     "studio",
     2,
     "basecolor = @basecolor\nnormal = @normal_ts\norm = @ao roughness metallic",
     "material",
-    "uv_atlas"
+    "uv_atlas",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "LOD0 + baked textures (studio)"
   },
@@ -2319,7 +2330,7 @@
    "type": "SaveImage",
    "pos": [
     2520,
-    3527
+    3547
    ],
    "size": [
     520,
@@ -2453,7 +2464,7 @@
    ],
    "size": [
     360,
-    344
+    378
    ],
    "flags": {},
    "order": 36,
@@ -2483,7 +2494,8 @@
     "asset",
     1.0,
     "basecolor = T_{material}_BaseColor.png\nnormal = T_{material}_Normal.png\norm = T_{material}_ORM.png",
-    "*"
+    "*",
+    true
    ],
    "title": "Export: one glb per rock (textures attached)"
   },
@@ -2492,11 +2504,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    3811
+    3831
    ],
    "size": [
     520,
-    373
+    393
    ],
    "flags": {},
    "order": 33,
@@ -2510,6 +2522,11 @@
     {
      "name": "textures_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
      "link": null
     }
    ],
@@ -2537,7 +2554,13 @@
     2,
     "",
     "material",
-    "uv"
+    "uv",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "High-poly (with bake colour)"
   },
@@ -2546,7 +2569,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    4228
+    4268
    ],
    "size": [
     520,
@@ -2574,7 +2597,7 @@
    "type": "PCG_Blast",
    "pos": [
     2520,
-    4532
+    4572
    ],
    "size": [
     520,
@@ -2615,7 +2638,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    4712
+    4752
    ],
    "size": [
     520,
@@ -2676,7 +2699,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    5119
+    5159
    ],
    "size": [
     520,
@@ -2737,11 +2760,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    5526
+    5566
    ],
    "size": [
     520,
-    388
+    408
    ],
    "flags": {},
    "order": 44,
@@ -2756,6 +2779,11 @@
      "name": "textures_cop",
      "type": "COPIMAGE",
      "link": 66
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": null
     }
    ],
    "outputs": [
@@ -2782,7 +2810,13 @@
     2,
     "basecolor = @basecolor\nnormal = @normal_ts\norm = @ao roughness metallic",
     "material",
-    "uv_atlas"
+    "uv_atlas",
+    35.0,
+    135.0,
+    1.0,
+    true,
+    "0.32 0.31 0.27",
+    1.0
    ],
    "title": "LOD0 / 1 / 2 with the baked textures"
   },
@@ -2791,7 +2825,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    5958
+    6018
    ],
    "size": [
     520,
@@ -2819,7 +2853,7 @@
    "type": "PCG_Viewport",
    "pos": [
     2520,
-    6422
+    6482
    ],
    "size": [
     520,

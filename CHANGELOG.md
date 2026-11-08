@@ -28,6 +28,16 @@ All notable changes to this project are documented here. The format follows
 - **Import Mesh reads LAS** (point formats 0-3, 6-8, no dependency) and LAZ (optional `laspy`), with LiDAR attributes,
   RGB colour and recentring of survey coordinates (`las_origin`).
 - **VDB Clip to a camera frustum** (Clip To = Camera Frustum, with Padding).
+- **Geometry Preview Outdoor look**: perspective environment shots through a Camera node (or an automatic 35 mm
+  camera), sky with a sun, sun shadows with sky fill and ground bounce, aerial perspective (Haze), an optional ground
+  plane to the horizon; PBR surfaces reflect the sky.
+- **Example workflows, less demo, more production**:
+  - modular city: facade variants per building (red brick, buff brick, painted render with paired windows) via a
+    `facade` column, rooftop plant (condensers, water tanks), asphalt streets with road paint, parked cars, better
+    trees, low-detail context blocks with whole-bay facade textures, two hero cameras in the Outdoor look;
+  - world tiles: pine / broadleaf / bush / rock proxies and a low camera toward the range with haze;
+  - rock assets: crisp, faceted rocks with a split face and irregular layer joints, LOD0 at 9 cm voxels;
+  - material library: six new materials (buff brick, painted render, asphalt, bitumen roofing, two facade bays).
 
 ### Changed
 - Second performance round: PolyBevel ~17x on dense meshes (a per-point scan of every corner was O(points x
