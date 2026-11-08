@@ -1,0 +1,904 @@
+{
+ "PCG_COPAlign": {
+  "topic": "cop-transform",
+  "summary": "Places an image onto the pixel grid of a reference image using stretch, fit, fill or no scaling.",
+  "description": "Resamples `cop` so that it covers the resolution of `reference`. `stretch` fills the whole reference grid and ignores aspect ratio; `fit` keeps the aspect ratio and scales the image until it fits inside the reference (leaving empty bars); `fill` keeps the aspect ratio and scales until the reference is completely covered (cropping the overflow); `none` does not scale and simply centres the image.\n\nThis is a whole-image fit to the reference resolution. For rectangle-based alignment with Justify / Goal rules use COP Align Window, and for pixel-exact snapping use COP Align Pixels.",
+  "inputs": {
+   "cop": "Image to place on the reference grid.",
+   "reference": "Image whose resolution defines the output grid."
+  },
+  "outputs": {
+   "cop": "The input image resampled onto the reference resolution."
+  },
+  "params": {
+   "fit": "How the image is mapped to the reference rectangle: `stretch` ignores aspect ratio, `fit` keeps it and fits inside, `fill` keeps it and covers the whole reference, `none` does no scaling and centres the image.",
+   "border": "What is sampled outside the source image (the empty bars of `fit`, the margins of `none`): `clamp` repeats the edge pixels, `wrap` tiles the image, `black` gives zero."
+  },
+  "houdini_notes": "Does not mirror a single Houdini node; the Houdini Align and Align Pixels nodes are covered by COP Align Window and COP Align Pixels."
+ },
+ "PCG_COPAlignPixels": {
+  "topic": "cop-transform",
+  "summary": "Snaps an image onto the pixel grid of a reference and then shifts it by whole pixels to align its edges.",
+  "description": "Works in two steps. First the point of the source window chosen by Side X / Side Y is converted to pixel coordinates of the reference image and rounded to the nearest pixel corner; the source is then laid out from there at 1:1 pixel size, with no interpolation. Second, the snapped source is translated by whole pixels so that its Justify edge lands on the Goal edge of the target: the reference window, the source's original window, or a single Target Point. The offset is in pixels and is rounded.\n\nThe result lives on the reference grid (`size_ref`, or the source itself when it is not connected). Pixels outside it are discarded and uncovered pixels are zero. Because the image is never resampled, nothing is blurred.",
+  "inputs": {
+   "source": "Image to snap and align.",
+   "size_ref": "Optional reference image whose pixel grid is used for the output. If not connected, the source's own grid is used."
+  },
+  "outputs": {
+   "cop": "The aligned image on the reference pixel grid."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "side_x": "Which point of the source window on X (`min`, `center`, `max`) is snapped to the reference pixel grid in the first step.",
+   "side_y": "Which point of the source window on Y (`min`, `center`, `max`) is snapped to the reference pixel grid in the first step.",
+   "justify_with": "What the source is aligned to: the whole `reference` window, the `original` window the source occupied before snapping, or a single `target_point`.",
+   "units": "Coordinate system of Target Point: `image` (-1..1 across the longer side, origin at the centre), `texture` (0..1), `pixels` (reference pixel coordinates) or `world` (same as `image`).",
+   "target_point": "Position (X Y) to align to when Justify With is `target_point`, in the units chosen by Units. It is a point, not a rectangle, so no resizing happens.",
+   "justify_x": "Which edge of the source rectangle on the X axis is moved onto the goal edge. `none` disables the X translation.",
+   "goal_x": "Edge of the target on X the Justify edge is moved to. `same` uses the same edge as Justify X (min to min, center to center, max to max).",
+   "justify_y": "Which edge of the source rectangle on the Y axis is moved onto the goal edge. `none` disables the Y translation.",
+   "goal_y": "Edge of the target on Y the Justify edge is moved to. `same` uses the same edge as Justify Y.",
+   "offset": "Extra shift (X Y) in pixels, applied after alignment and rounded to whole pixels."
+  },
+  "houdini_notes": "There is no separate data window and display window; they are treated as one window. COP Align does something different (it fits the whole image into the reference resolution) and is kept as its own node."
+ },
+ "PCG_COPAlignWindow": {
+  "topic": "cop-transform",
+  "summary": "Moves and optionally scales an image so that its window lines up with a reference window or a target rectangle.",
+  "description": "The source rectangle is the full image window in image space. The target is either the window of `size_ref` (or the source's own window when it is not connected), or a rectangle you give with Target Point and Target Size. If Scale To Fit is on, the source is first scaled around its own centre to match the target; then it is translated per axis so that its Justify edge meets the target's Goal edge, and finally Offset is added. The result is rasterized onto the grid of `size_ref` (or the source) with the chosen filter; areas not covered are zero.\n\nTarget Point is the centre of the target rectangle and Target Size its width and height.",
+  "inputs": {
+   "source": "Image to align.",
+   "size_ref": "Optional reference image. It supplies the target window and the output pixel grid. If not connected, the source itself is used."
+  },
+  "outputs": {
+   "cop": "The aligned image on the reference grid."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "justify_with": "What the source is aligned to: the `reference` window (the size_ref image, or the source itself if none is connected) or a rectangle given by Target Point and Target Size.",
+   "units": "Coordinate system used to read Target Point (and Target Size): `image` (-1..1 across the longer side, origin at the centre), `texture` (0..1 across each axis), `pixels` (pixel coordinates of the reference image) or `world` (treated the same as `image`).",
+   "target_point": "Centre (X Y) of the target rectangle when Justify With is `target_point`, in the units chosen by Units.",
+   "target_size": "Width and height (X Y) of the target rectangle when Justify With is `target_point`, in the units chosen by Units. Also used as the size to match when Scale To Fit is on.",
+   "justify_x": "Which edge of the source rectangle on the X axis is moved onto the goal edge. `none` disables the X translation.",
+   "goal_x": "Edge of the target on X the Justify edge is moved to. `same` uses the same edge as Justify X.",
+   "justify_y": "Which edge of the source rectangle on the Y axis is moved onto the goal edge. `none` disables the Y translation.",
+   "goal_y": "Edge of the target on Y the Justify edge is moved to. `same` uses the same edge as Justify Y.",
+   "offset": "Extra shift (X Y) in image space, added after the Justify / Goal translation.",
+   "scale_to_fit": "Scales the source around its centre so it matches the target rectangle before it is translated.",
+   "uniform_scale": "With Scale To Fit: use one scale factor for both axes, taken from the axis selected by Scale Axis, so the aspect ratio is preserved. When off, each axis is stretched to the target width and height independently.",
+   "scale_axis": "With Scale To Fit and Uniform Scale: which axis of the target (X = width, Y = height) the single scale factor is matched to.",
+   "filter": "Resampling filter used when the image is moved or scaled onto the output grid. `point` is nearest-neighbour; `bilinear` is the cheap smooth default; `box`, `bartlett`, `catmull_rom`, `mitchell` and `bspline` are the usual higher-order kernels (sharper to smoother)."
+  },
+  "houdini_notes": "There is no separate data window and display window, so Houdini's Data / Display window choices are merged into one. Whether the Houdini Target Point is a centre or a corner is not documented; here it is the centre of the target rectangle."
+ },
+ "PCG_COPBakeTextures": {
+  "topic": "cop-geometry",
+  "summary": "Bakes geometry attributes and, optionally, high-poly detail into textures laid out by the low-poly mesh's UVs.",
+  "description": "The low-poly geometry is rasterized in UV space. Each texel is traced back to its surface point, and the following layers are written: `P` and `N` (world position and normal; the point normal is interpolated, or computed if missing), `mask` (texel is covered by a triangle), `primid` (original primitive number), `tangent` (dP/du, orthogonalised against N), `bitangent` (the third axis of the same frame, with the uv layout's handedness, so detail computed per texel can be written into `normal_ts`'s frame exactly) and every point attribute listed in Attributes, interpolated barycentrically.\n\nWhen a `high` mesh is connected, a ray is cast from each texel along +-N (or from the cage, see Tracing Mode) to find the high-poly surface. This adds `normal_ts` (high-poly normal expressed in the low-poly tangent space, unencoded -1..1), `displacement` (signed distance along N, positive when the high mesh is outside) and the High Attributes interpolated at the hit point. Optional passes are `worldnormal`, `position`, `occlusion`, `height` and `alpha`. All layers except `mask` are dilated outwards from the UV islands by Dilate texels to avoid mip-map bleeding.\n\nThe second output is a JSON report of the bake.",
+  "inputs": {
+   "low": "Low-poly geometry. Its UV attribute defines the texture layout.",
+   "high": "Optional high-poly geometry to bake detail from. Without it only the geometry-derived layers are written.",
+   "cage": "Optional cage mesh for Tracing Mode `cage_mesh`. It must have the same point count and topology as the low-poly mesh."
+  },
+  "outputs": {
+   "cop": "Image with the baked layers.",
+   "report": "JSON text describing the bake."
+  },
+  "params": {
+   "tracing_mode": "How rays are cast to the high mesh: `surface_normal` shoots along +-N from the low-poly surface; `cage_mesh` shoots a one-directional ray from the matching cage point towards the low-poly point (needs `cage` and `high`); `single_mesh` casts no main ray and treats the low-poly mesh as the high mesh, which is only useful for passes such as occlusion (no `normal_ts` or `displacement`).",
+   "resolution_x": "Width and height of the baked image in pixels.",
+   "uv_attrib": "Name of the vertex or point UV attribute on the low-poly mesh.",
+   "face_culling": "Ignore main-ray hits on back faces (`back`) or front faces (`front`) of the high mesh.",
+   "visibility_culling": "Same idea for the secondary occlusion rays: ignore hits on back or front faces. Only affects the occlusion pass.",
+   "max_distance": "Maximum ray distance along the normal. 0 means unlimited. Only used when `high` is connected.",
+   "both_sides": "Cast rays both outwards (+N) and inwards (-N). Only used when `high` is connected.",
+   "ray_bias": "With `surface_normal` tracing, moves the ray origin this far along N. Displacement is still measured from the low-poly surface.",
+   "sample_multiplier": "Multiplies the number of occlusion samples (Samples x Sample Multiplier).",
+   "dilate": "Number of texels the layers are expanded beyond the UV islands. The `mask` layer is not expanded.",
+   "normal_space": "Encoding of `normal_ts`: `signed` keeps -1..1; `offset` stores n*0.5+0.5.",
+   "world_normal": "Also output a `worldnormal` layer: the interpolated high-poly normal at the hit point (the low-poly N where nothing was hit or no high mesh is connected).",
+   "world_normal_space": "Encoding of `worldnormal`: `signed` keeps -1..1; `offset` stores n*0.5+0.5.",
+   "position": "Also output a `position` layer: the world position of the hit point (the low-poly surface point where nothing was hit or no high mesh is connected).",
+   "position_space": "`absolute` stores world positions; `relative` normalizes them by the bounding box of the low-poly mesh.",
+   "bounding_box": "For relative positions: `fit` scales each axis to 0..1 separately; `uniform` uses the longest axis for all axes, centred at 0.5, so proportions are kept.",
+   "occlusion": "Also output an `occlusion` layer: the fraction of cosine-weighted hemisphere rays from the hit point that are not blocked (1 is fully lit). Rays hit the high mesh, or the low mesh when no high mesh is connected or Tracing Mode is `single_mesh`.",
+   "occlusion_samples": "Number of hemisphere rays per texel for the occlusion pass, before Sample Multiplier.",
+   "occlusion_max_distance": "Maximum distance of occlusion rays. 0 means unlimited.",
+   "height": "Also output a `height` layer.",
+   "height_space": "`true_displacement` writes the signed displacement as is; `custom` remaps it so that Inner Distance becomes 0 and Outer Distance becomes 1 (not clamped).",
+   "inner_distance": "Displacement value mapped to 0 when Height Space is `custom`.",
+   "outer_distance": "Displacement value mapped to 1 when Height Space is `custom`.",
+   "alpha": "Also output an `alpha` layer: the low-poly UV coverage (same as `mask`).",
+   "alpha_mask_high": "Alpha is 1 only for texels whose main ray hit the high mesh.",
+   "attribs": "Space-separated point attributes of the low-poly mesh to bake into layers.",
+   "high_attribs": "Space-separated point attributes of the high-poly mesh to bake, interpolated at the hit point. Only used when `high` is connected."
+  },
+  "houdini_notes": "Covers Bake Geometry Textures (2.0) and Bake Pre-Process in one node. Tangent-space normals are written unencoded (-1..1) by default; encode them with COP Convert Normal if a game engine needs it.",
+  "tips": [
+   "Keep Dilate at a few texels or more if the texture will be mip-mapped, otherwise island borders bleed."
+  ]
+ },
+ "PCG_COPBend": {
+  "topic": "cop-transform",
+  "summary": "Bends an image along a curved patch defined by corners, sides or a bend angle.",
+  "description": "All positions are in image space (-1..1 across the longer side). The source image fills the patch with texture coordinates (s, t) in 0..1; for every output pixel the node solves for the source coordinate with a per-pixel Newton iteration. Pixels that fall outside the patch, or where no solution is found, are zero. Where the patch folds over itself only one solution is found.\n\n`corners` builds each edge as a cubic Bezier from the corner points and two tangent handles per corner, blended into a Coons patch. `sides` uses the four corners plus the midpoint of each edge (each edge is a quadratic curve through its midpoint). `angle` bends the part of the image along Capture Direction, within Capture Length of the origin, into a circular arc with a total turn of Bend Angle. The part beyond follows rigidly and the part before stays put.\n\nThe output uses the grid of `size_ref`, or the source's own grid if it is not connected.",
+  "inputs": {
+   "source": "Image to bend.",
+   "size_ref": "Optional reference image that defines the output pixel grid. If not connected, the source's grid is used."
+  },
+  "outputs": {
+   "cop": "The bent image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "mode": "`corners`: four corners with tangent handles. `sides`: four corners with edge midpoints. `angle`: bend along a direction into a circular arc.",
+   "filter": "Resampling filter used when the image is moved or scaled onto the output grid. `point` is nearest-neighbour; `bilinear` is the cheap smooth default; `box`, `bartlett`, `catmull_rom`, `mitchell` and `bspline` are the usual higher-order kernels (sharper to smoother).",
+   "bottom_left": "Corners / Sides modes: image-space position of the patch's bottom-left corner. For an identity result on a non-square image enter (+-W/L, +-H/L), where L is the longer side, because the shorter side does not reach +-1.",
+   "bottom_right": "Corners / Sides modes: image-space position of the bottom-right corner.",
+   "top_left": "Corners / Sides modes: image-space position of the top-left corner.",
+   "top_right": "Corners / Sides modes: image-space position of the top-right corner.",
+   "bl_u": "Corners mode: tangent handle of the bottom-left corner along the bottom edge, as an offset relative to that corner. The default is one third of the edge, which gives straight edges.",
+   "bl_v": "Corners mode: tangent handle of the bottom-left corner along the left edge, as an offset relative to the corner.",
+   "br_u": "Corners mode: tangent handle of the bottom-right corner along the bottom edge, as an offset relative to the corner.",
+   "br_v": "Corners mode: tangent handle of the bottom-right corner along the right edge, as an offset relative to the corner.",
+   "tl_u": "Corners mode: tangent handle of the top-left corner along the top edge, as an offset relative to the corner.",
+   "tl_v": "Corners mode: tangent handle of the top-left corner along the left edge, as an offset relative to the corner.",
+   "tr_u": "Corners mode: tangent handle of the top-right corner along the top edge, as an offset relative to the corner.",
+   "tr_v": "Corners mode: tangent handle of the top-right corner along the right edge, as an offset relative to the corner.",
+   "side_bottom": "Sides mode: image-space midpoint of the bottom edge; the edge curve passes through this point.",
+   "side_top": "Sides mode: image-space midpoint of the top edge.",
+   "side_left": "Sides mode: image-space midpoint of the left edge.",
+   "side_right": "Sides mode: image-space midpoint of the right edge.",
+   "bend_angle": "Angle mode: total turn in degrees over the capture length. The image bends towards the left of the capture direction for positive values.",
+   "capture_origin": "Angle mode: image-space point where the bend starts.",
+   "capture_direction": "Angle mode: direction (X Y) along which the bend is measured. Cannot be zero.",
+   "capture_length": "Angle mode: length of the stretch, measured from the origin along the direction, that is bent into the arc. Must be positive.",
+   "both_directions": "Angle mode: also bend the part behind the origin, in the opposite direction.",
+   "mask_layer": "Name of an extra layer that receives a coverage mask (1 where the output pixel was found inside the patch). Empty means no mask is written."
+  },
+  "houdini_notes": "The Houdini documentation only lists the parameters, so some choices are made here: tangent handles are offsets relative to their corner, and in Angle mode the bend goes to the left of the capture direction. COP Swirl in bend mode is a different effect (a bending twist around the centre) and is kept separate."
+ },
+ "PCG_COPBlur": {
+  "topic": "cop-filter",
+  "summary": "Applies a separable Gaussian blur to the selected layers.",
+  "description": "The blur is separable: a horizontal pass followed by a vertical pass, so the cost grows with the kernel width rather than its square. The kernel radius is `ceil(3*sigma)`, which keeps about 99.7% of the Gaussian energy; the truncated kernel is renormalised. Cutting at 2 sigma would lose about 4.6% and leave a visible hard rim on large soft glows.\n\nA blur should preserve the average brightness, but only with the `wrap` border. `clamp` copies the edge pixels and `black` pads with zero, so both invent data outside the image and the mean shifts; this is the definition of those borders, not an error.\n\nWith Layers empty every layer is blurred. List layer names to blur colour but leave, for example, an SDF layer alone.",
+  "inputs": {
+   "cop": "Image to blur."
+  },
+  "outputs": {
+   "cop": "The blurred image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "sigma_pixels": "Standard deviation of the Gaussian in pixels. The kernel radius is ceil(3 x sigma). 0 leaves the image unchanged.",
+   "border": "How pixels outside the image are treated: `clamp` repeats edge pixels, `wrap` tiles the image (preserves the mean, good for tileable textures), `black` pads with zero."
+  },
+  "tips": [
+   "Use `wrap` when blurring a tileable texture so the seams stay seamless."
+  ]
+ },
+ "PCG_COPBoundingRect": {
+  "topic": "cop-utility",
+  "summary": "Finds the bounding rectangle of a mask, or one rectangle per id, and writes it as a fill layer plus a JSON report.",
+  "description": "Takes the axis-aligned bounding box of all pixels where Layer is above Threshold. With Per ID on, Layer is read as an id image instead and every integer id above 0 gets its own rectangle. The rectangle is expanded by Padding pixels and clipped to the image.\n\nThe output layer Out Layer holds the filled rectangles: 1 inside the box, or the id value in Per ID mode. The `rects` output is a JSON list with one entry per box, containing `id`, `pixels` (x0, y0, x1, y1, inclusive, y pointing up) and `uv` (u0, v0, u1, v1, measured to pixel edges, not centres). Empty masks produce no box.",
+  "inputs": {
+   "cop": "Image containing the mask or id layer."
+  },
+  "outputs": {
+   "cop": "The input image with the rectangle fill layer added.",
+   "rects": "JSON text listing each rectangle in pixel and uv coordinates."
+  },
+  "params": {
+   "layer": "Layer to analyse, a mask or (with Per ID) an id image.",
+   "per_id": "Treat Layer as an id image and create one rectangle for each id above 0, instead of one for the thresholded mask.",
+   "threshold": "Pixels with a value above this belong to the mask. Not used in Per ID mode.",
+   "padding": "Number of pixels the rectangle is grown on every side (clipped to the image).",
+   "out_layer": "Name of the layer that receives the filled rectangle(s)."
+  }
+ },
+ "PCG_COPCellularNoise": {
+  "topic": "cop-generate",
+  "summary": "Generates cellular (Voronoi-border) noise with adjustable gaps and bevels between cells.",
+  "description": "Feature points are scattered on a lattice, each pixel finds its nearest point and the distance to the cell border. The noise value is `Amplitude * shape(border) + Shift`, followed by the Post Processing steps. In `absolute` shape mode Gap and Bevel are image-space distances; in `relative` mode they are fractions from 0 (cell border) to 1 (feature point). The shape is `clamp((border - gap) / bevel, 0, 1)`: Bevel 0 gives hard flat-topped cells, larger values give pointier tops.\n\nBesides `noise` the node also writes `border` (distance to the cell border, positive inside the cell), `center` (position of the nearest feature point) and `id` (hash of the cell), each with the Prefix prepended. If a `cop` is connected, its resolution is used; with a Position Layer of 2 channels you get the 2D version, with 3 channels the 3D version.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used, new layers are added to it, and it can provide a position layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the noise layers (`noise`, `border`, `center`, `id`, each with the Prefix)."
+  },
+  "params": {
+   "amplitude": "Multiplier applied to the shaped cell value.",
+   "shift": "Value added after the amplitude.",
+   "element_size": "Average cell size in image units, where the image width is 1.",
+   "element_scale": "Per-axis scale of the cells (anisotropic stretching), one value per axis.",
+   "jitter": "How far feature points are moved from their lattice positions. 0 gives a regular grid; values above 1 move points beyond the search range and cause artefacts.",
+   "jitter_scale": "Per-axis multiplier of the jitter.",
+   "lattice": "Layout of the feature points: `rectangular` grid or `hexagonal` (2D only, cannot be tiled).",
+   "metric": "Distance function: `euclidean` (round cells), `manhattan` (diamond-like) or `chebyshev` (square-like).",
+   "smooth_edge": "Rounds the cell borders; 0 keeps them sharp.",
+   "offset": "Shifts the pattern (X Y Z).",
+   "tile": "Makes the pattern repeat seamlessly. The cell count is round(Tile Size / Element Size), so Element Size is adjusted slightly. Rectangular lattice only.",
+   "tile_size": "Size of one repeat. For non-square images give it in proportion to the aspect ratio (image width is 1).",
+   "shape_mode": "`absolute`: Gap and Bevel are image-space distances. `relative`: they are ratios between the cell border (0) and the feature point (1).",
+   "gap": "Shrinks the cells so a gap opens between them; large enough values make cells vanish.",
+   "bevel": "Width of the falloff at the cell edge. 0 gives hard flat tops; larger values give pointier tops.",
+   "pos_layer": "Optional layer that supplies the sample positions when a `cop` is connected: 2 channels for 2D, 3 channels for the 3D version (world coordinates). Empty uses the pixel coordinates.",
+   "rand_seed": "Seed of the random feature points.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "prefix": "Text prepended to the output layer names (`noise`, `border`, `center`, `id`).",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Covers Cellular Noise and Cellular Noise 3D. The ramp for Bevel (Bevel Ramp) is not implemented; the bevel is a linear ramp. The Houdini docs do not say whether Amplitude or Shift is applied first; here the value is multiplied first and then shifted. The Post Processing steps run in the order Fold, Complement, Bias, Gain, Gamma, Contrast, Clamp Min, Clamp Max."
+ },
+ "PCG_COPChannelConvert": {
+  "topic": "cop-layers",
+  "summary": "Converts a layer between channel layouts such as mono, RGB, RGBA and UV.",
+  "description": "One menu replaces Houdini's family of conversion nodes: mono to RGB / RGBA, RGB to RGBA, RGBA to RGB, RGB / RGBA to UV, UV to RGB / RGBA, and RGB to mono by luma, average or maximum.\n\nIf the source layer has fewer channels than the conversion needs, the node reports an error instead of silently padding with zeros, so a wrong connection (for example RGB treated as UV) does not travel downstream unnoticed. Extra channels are truncated. Channels that have to be created get Alpha when it is the alpha channel and Fill otherwise.",
+  "inputs": {
+   "cop": "Image containing the layer to convert."
+  },
+  "outputs": {
+   "cop": "Image with the converted layer."
+  },
+  "params": {
+   "layer": "Name of the layer to convert.",
+   "mode": "Conversion to apply. `rgb_to_mono_luma` uses Rec.709 luma, `rgb_to_mono_average` the mean of R, G and B, `rgb_to_mono_max` the largest of the three.",
+   "alpha": "Value written to the alpha channel when a conversion adds one (for example RGB to RGBA).",
+   "fill": "Value written to any other new channel, for example the B channel in UV to RGB.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer."
+  },
+  "houdini_notes": "Covers Mono to RGBA, RGB to RGBA, RGBA to RGB, RGB to UV, RGBA to UV, UV to RGB and UV to RGBA. For luminance from RGB there is also COP Luminance."
+ },
+ "PCG_COPChannelJoin": {
+  "topic": "cop-layers",
+  "summary": "Joins all channels of several layers into one layer of at most four channels.",
+  "description": "Takes the layers listed in Layers in order and concatenates all their channels into a single layer. The usual use is joining three single-channel layers into an RGB layer. The total number of channels must not exceed four.",
+  "inputs": {
+   "cop": "Image containing the layers to join."
+  },
+  "outputs": {
+   "cop": "Image with the joined layer added."
+  },
+  "params": {
+   "layers": "Space-separated layer names, joined in this order. The total channel count may be at most 4.",
+   "out_layer": "Name of the resulting layer."
+  }
+ },
+ "PCG_COPChannelSplit": {
+  "topic": "cop-layers",
+  "summary": "Splits a layer into one single-channel layer per channel.",
+  "description": "Each channel of Layer becomes its own layer named `layer.suffix`, for example `C.r`, `C.g`, `C.b`, `C.a`. Suffixes are taken in order from Suffixes; if there are more channels than suffixes the channel index is used.",
+  "inputs": {
+   "cop": "Image containing the layer to split."
+  },
+  "outputs": {
+   "cop": "Image with the per-channel layers added."
+  },
+  "params": {
+   "layer": "Name of the layer to split.",
+   "suffixes": "Space-separated suffixes for the channels, in channel order. The output layer is named layer.suffix; missing suffixes fall back to the channel number.",
+   "keep_layers": "Keep the original layers in the output. When off, only the new per-channel layers remain."
+  }
+ },
+ "PCG_COPChromaKey": {
+  "topic": "cop-color",
+  "summary": "Keys out a colour (green or blue screen) into a matte, with optional despill.",
+  "description": "Three matte methods are available:\n\n- `distance` (default, specific to this plugin): measures the distance to the key colour in the YCbCr chroma plane, normalised by luma, ignoring brightness, so shadows and highlights on a green screen are keyed out together. Tolerance and Softness control the transition.\n- `chromakey`: Houdini's legacy Chromakey, with a hue, saturation and luminance range and Rolloff values that extend a soft edge beyond each range.\n- `channel_separation`: Houdini's Channel Separation, which subtracts the maximum of the two other channels from the screen's main channel and applies Threshold and Width.\n\nDespill is an extension: the amount by which the key colour's main channel exceeds the average of the other two is reduced. The matte is written to Alpha Layer (1 keeps the pixel, 0 removes it).",
+  "inputs": {
+   "cop": "Image containing the colour layer to key."
+  },
+  "outputs": {
+   "cop": "Image with the despilled colour and the matte layer."
+  },
+  "params": {
+   "layer": "RGB layer to key. It needs at least three channels.",
+   "method": "Algorithm for the matte: `distance` (chroma distance, plugin-specific), `chromakey` (Houdini legacy hue / saturation / luminance ranges) or `channel_separation` (main channel minus the others).",
+   "invert": "Flips the matte.",
+   "key_color": "RGB colour to remove. In `distance` mode it is the key colour; in `channel_separation` it is the screen colour. Despill finds the main channel from its largest component.",
+   "tolerance": "`distance` method: chroma distance below which pixels are fully removed.",
+   "softness": "`distance` method: width of the transition from removed to kept beyond the tolerance.",
+   "hue_min": "`chromakey` method: hue range (min and max) in degrees that is keyed. If min is greater than max the range wraps around 360.",
+   "sat_min": "`chromakey` method: saturation range (min and max) that is keyed.",
+   "lum_min": "`chromakey` method: luminance range (min and max) that is keyed.",
+   "threshold": "`channel_separation` method: matte value (0 = pure screen colour, 1 = no screen colour) at which pixels switch from removed to kept.",
+   "width": "`channel_separation` method: total width of the transition around Threshold (half on each side). 0 gives a hard threshold.",
+   "hue_rolloff": "`chromakey` method: soft edge, in degrees, extending beyond the hue range.",
+   "sat_rolloff": "`chromakey` method: soft edge extending beyond the saturation range.",
+   "lum_rolloff": "`chromakey` method: soft edge extending beyond the luminance range.",
+   "interpolation": "Shape of the soft edges for the `chromakey` and `channel_separation` methods.",
+   "despill": "Strength of the despill. 0 turns it off. The key colour's main channel is reduced by this amount times its excess over the other two channels. Houdini's Chroma Key has no such option.",
+   "show_matte": "Previews the key: the colour is multiplied by the matte and keyed-out areas are filled with Preview Color.",
+   "preview_color": "RGB colour shown in keyed-out areas when Show Matte is on.",
+   "premultiply": "Multiplies the output colour by the matte.",
+   "out_layer": "Layer that receives the despilled colour. Empty overwrites the input layer.",
+   "alpha_layer": "Layer that receives the matte. Empty means no matte is written."
+  },
+  "houdini_notes": "The `distance` method and Despill do not exist in Houdini. Use COP Despill when only the spill removal is wanted.",
+  "tips": [
+   "Raise Softness before Tolerance if the edge looks hard; raise Tolerance if shadows on the screen remain."
+  ]
+ },
+ "PCG_COPChromaticAberration": {
+  "topic": "cop-transform",
+  "summary": "Offsets the colour channels radially so edges show colour fringes.",
+  "description": "The red channel is scaled up around Center by 1 + Amount and the blue channel is scaled down by 1 - Amount, while green stays unchanged. This creates the coloured fringes that grow towards the edges of the image, like a lens with lateral chromatic aberration.",
+  "inputs": {
+   "cop": "Image to process."
+  },
+  "outputs": {
+   "cop": "Image with shifted colour channels."
+  },
+  "params": {
+   "layer": "Colour layer to process.",
+   "amount": "Scale difference of the channels: red is magnified by 1 + Amount and blue by 1 - Amount. Negative values swap the direction.",
+   "center": "Centre (X Y) of the scaling in 0..1 texture coordinates; 0.5 0.5 is the image centre.",
+   "border": "How samples outside the image are handled: `clamp` repeats edge pixels, `wrap` tiles, `black` gives zero."
+  }
+ },
+ "PCG_COPClamp": {
+  "topic": "cop-color",
+  "summary": "Clamps values to a minimum and maximum.",
+  "description": "Limits every channel of the selected layers to the range Min to Max. Values are only changed by this node; most other COP nodes deliberately do not clamp, so this is the place to bring HDR values back into range.",
+  "inputs": {
+   "cop": "Image to clamp."
+  },
+  "outputs": {
+   "cop": "The clamped image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "min": "Lower limit; smaller values are raised to it.",
+   "max": "Upper limit; larger values are lowered to it."
+  }
+ },
+ "PCG_COPColorCorrect": {
+  "topic": "cop-color",
+  "summary": "Adjusts exposure, brightness, contrast, gamma, saturation and hue in one node.",
+  "description": "Applies, in this order: exposure (multiply by 2^EV), brightness (add), contrast (scale around Pivot; 0.18 is mid grey in linear space), gamma (values above 1 brighten, the same direction as Levels), saturation (interpolates towards the Rec.709 luminance, so luminance is kept) and finally an HSV step (hue rotation, saturation multiplier, value multiplier). With a Mask Layer the result is blended back over the original. Alpha is not changed.\n\nSaturation and the HSV step only apply to layers with at least three channels.",
+  "inputs": {
+   "cop": "Image to correct."
+  },
+  "outputs": {
+   "cop": "The corrected image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer of the source.",
+   "exposure": "Exposure in stops; the colour is multiplied by 2^Exposure.",
+   "brightness": "Value added to the colour.",
+   "contrast": "Contrast multiplier around Pivot. 1 does nothing.",
+   "pivot": "Value that stays fixed when contrast changes. 0.18 is mid grey in linear colour.",
+   "gamma": "Gamma correction; values above 1 brighten.",
+   "saturation": "Saturation multiplier relative to luminance. 0 gives grey, 1 does nothing.",
+   "hue_shift": "Hue rotation in degrees (HSV step).",
+   "hsv_saturation": "Saturation multiplier in the HSV step.",
+   "hsv_value": "Value multiplier in the HSV step.",
+   "mask_layer": "Optional layer used as a mask; the correction is blended in where the mask is 1. Empty applies it to the whole image."
+  },
+  "houdini_notes": "Combines Color Correct, HSV Adjust, Bright, Contrast and Gamma into a single node."
+ },
+ "PCG_COPCombineNormals": {
+  "topic": "cop-composite",
+  "summary": "Combines a base normal map and a detail normal map into one normal map.",
+  "description": "Both inputs must be signed normals (-1..1). The base layer is read from `cop`; the detail layer from the `detail` input, or from the same image if `detail` is not connected. Methods:\n\n- `rnm` (default): Reoriented Normal Mapping. Rotates the detail into the base's frame, so detail on steep slopes follows the slope instead of being flattened.\n- `whiteout`: adds xy, multiplies z. Cheap, but detail is weaker on steep slopes.\n- `udn`: adds xy, takes z from the base. Even cheaper.\n- `linear`: adds and renormalizes. Kept for comparison only: even flat detail tilts the base towards +z and weakens slopes.\n\nWith flat detail, `rnm`, `whiteout` and `udn` return the base unchanged (`linear` does not); with a flat base, `rnm` returns the detail unchanged. The result is always unit length. Amount scales the detail (0 means no detail).",
+  "inputs": {
+   "cop": "Image holding the base (large-scale) normal layer.",
+   "detail": "Optional image holding the detail normal layer. If not connected, the detail layer is taken from `cop`."
+  },
+  "outputs": {
+   "cop": "Image with the combined normal layer."
+  },
+  "params": {
+   "base_layer": "Name of the base normal layer in `cop`.",
+   "detail_layer": "Name of the detail normal layer. Taken from the `detail` input if it is connected, otherwise from `cop`.",
+   "method": "Blend method; see the description. `rnm` is the most accurate, `linear` the least.",
+   "amount": "Strength of the detail normal. 0 removes the detail, 1 uses it fully, larger values exaggerate it.",
+   "out_layer": "Name of the output layer.",
+   "keep_layers": "Keep the other layers of the input in the output."
+  }
+ },
+ "PCG_COPCompare": {
+  "topic": "cop-utility",
+  "summary": "Measures the difference between two images with MAE, RMSE, PSNR and SSIM and writes a diff layer and an SSIM map.",
+  "description": "Compares Layer A of `a` with Layer B of `b` and reports MAE, RMSE, PSNR, SSIM and the maximum absolute difference. Typical uses are comparing generated images against a reference, comparing a workflow before and after a parameter change, or producing a score for automatic selection. SSIM looks at local structure and is less sensitive to a global brightness shift; PSNR and RMSE compare raw pixel values.\n\nSSIM uses the standard settings from the original paper: a Gaussian window with sigma 1.5 (11 x 11), K1 = 0.01, K2 = 0.03. Data Range is the width of the value range (1 for 0..1 images). Borders are clamped; many implementations only average over windows fully inside the image, so small differences against other tools are normal.\n\nIf `b` has a different resolution it is resampled to `a` first. The image output gets a per-pixel difference layer and an SSIM map layer.",
+  "inputs": {
+   "a": "First image (the reference grid).",
+   "b": "Second image. Resampled to the resolution of `a` if the sizes differ."
+  },
+  "outputs": {
+   "cop": "Image `a` with the diff and SSIM layers added.",
+   "report": "Text summary with SSIM, PSNR, RMSE, MAE and maximum difference.",
+   "ssim": "SSIM as a float (1 means identical).",
+   "psnr": "PSNR in dB as a float. Identical images give infinity, which is capped at 999 on this output.",
+   "json": "All metrics as JSON; infinite PSNR appears as `inf` here."
+  },
+  "params": {
+   "layer_a": "Layer of `a` to compare.",
+   "layer_b": "Layer of `b` to compare. Empty uses the same name as Layer A.",
+   "data_range": "Width of the value range of the images, used by SSIM and PSNR. 1 for images in 0..1.",
+   "out_diff": "Name of the per-pixel difference layer.",
+   "out_ssim": "Name of the SSIM map layer.",
+   "keep_layers": "Keep the original layers of `a` in the output."
+  },
+  "houdini_notes": "Corresponds loosely to Houdini's Error node, but adds SSIM and PSNR. For a per-pixel comparison mask use COP Compare Mask."
+ },
+ "PCG_COPCompareMask": {
+  "topic": "cop-composite",
+  "summary": "Compares two layers (or a layer and a constant) per pixel and outputs a 0..1 mask.",
+  "description": "Compares A with B per pixel using the True If condition and writes a single-channel 0..1 mask. B is Layer B, or the Comparison Value when Layer B is empty. For multi-channel layers, Components decides whether all channels (minimum) or any channel (maximum) must pass.\n\nTolerance is two-sided for the equality tests (`equal`, `not_equal`) and one-sided for the strict and non-strict inequalities. Pixels that pass the comparison are always 1; Falloff shapes the pixels that fail it but lie within the tolerance: `none` cuts hard at the tolerance edge, `linear` ramps from 1 down to 0, `elendt` uses a smooth S-shaped curve (implemented here as smoothstep, so intermediate values differ slightly from Houdini). `not_equal` is the complement of `equal`.\n\nTo measure how different two images are (SSIM, PSNR) use COP Compare.",
+  "inputs": {
+   "cop": "Image containing the layers to compare."
+  },
+  "outputs": {
+   "cop": "Image with the mask layer added."
+  },
+  "params": {
+   "layer_a": "First layer (A).",
+   "layer_b": "Second layer (B). Empty compares A with Comparison Value instead.",
+   "value": "Constant that A is compared against when Layer B is empty.",
+   "tolerance": "Allowed difference within which the Falloff applies. Used for every comparison, including with Falloff `none` (a hard cut at the tolerance edge).",
+   "tolerance_layer": "Optional single-channel layer providing a per-pixel tolerance. When set it replaces Tolerance.",
+   "true_if": "Condition under which the mask is 1: A equal to, not equal to, greater than, greater or equal to, less than or less or equal to B.",
+   "components": "For multi-channel layers: `all` requires every channel to pass, `any` requires at least one.",
+   "falloff": "Transition for pixels that fail the comparison but are within the tolerance: `none` is a hard cut, `linear` a linear ramp, `elendt` a smooth S curve.",
+   "out_layer": "Name of the mask layer."
+  },
+  "houdini_notes": "Corresponds to Houdini's Compare node."
+ },
+ "PCG_COPComposite": {
+  "topic": "cop-composite",
+  "summary": "Composites the foreground input over the background input with a choice of blend modes.",
+  "description": "`over`, `atop`, `xor` and `under` are Porter-Duff operators and compute a new alpha: `C = (Cf*af + Cb*ab*(1-af)) / a`, `a = af + ab*(1-af)` for `over`. They work on non-premultiplied alpha, like ComfyUI images. All other modes (add, multiply, screen and so on) are component-wise functions of foreground and background; opacity and mask then interpolate between the background and the blended result. Treating `over` as an alpha interpolation would give the wrong alpha when both layers are semi-transparent.\n\nIf resolutions differ, the foreground is resampled to the background. Only single-channel layers are broadcast automatically (for example a mask onto RGB); a 3- versus 4-channel mismatch is not guessed. Values are never clamped, so `add` can give 1.7 and HDR, SDF and normal data survive; clamping only happens at COP Export.\n\nThe `mask` input is multiplied with Opacity when connected.",
+  "inputs": {
+   "background": "Base image. Defines the output resolution.",
+   "foreground": "Image composited on top of the background.",
+   "mask": "Optional mask image. Its Mask Layer is multiplied with Opacity."
+  },
+  "outputs": {
+   "cop": "The composite."
+  },
+  "params": {
+   "mode": "Blend mode. `over`, `atop`, `xor` and `under` are alpha compositing operators; `replace` returns the foreground (Houdini's Blend); `darken` / `lighten` are minimum / maximum; `hypot` combines values as sqrt(a^2 + b^2); the remaining modes are the usual formulas.",
+   "opacity": "Amount of the blended result mixed in. When the mask input is connected, multiplied by the mask.",
+   "swap": "Swaps the values of foreground and background before blending (the resolution still follows the first input).",
+   "compare_lengths": "For `darken` and `lighten`: choose the whole pixel with the smaller / larger vector length instead of comparing channel by channel.",
+   "channel_r": "Process the red channel. A disabled channel keeps the background value.",
+   "channel_g": "Process the green channel. A disabled channel keeps the background value.",
+   "channel_b": "Process the blue channel. A disabled channel keeps the background value.",
+   "channel_a": "Process the alpha channel. A disabled channel keeps the background value.",
+   "layer": "Background layer to composite onto.",
+   "foreground_layer": "Layer of the foreground image to use. Empty uses the same name as Layer.",
+   "mask_layer": "Layer of the mask input to read. Only used when `mask` is connected.",
+   "output_layer": "Name of the result layer. Empty overwrites Layer.",
+   "keep_other_layers": "Copy the other layers of the background to the output. When off, only the result layer is output."
+  },
+  "houdini_notes": "Compared with Houdini's Blend, Under, Hypot, Exclusion, HardLight, Dodge and Burn were added; Houdini's Blend is `replace` here, and Maximum / Minimum are `lighten` / `darken`. The Sharpen mode and the Hue, Saturation, Luminosity and Color modes are not implemented. Space, Border, Filter, Clip by Data Window and Crop to Content are not offered because images have no data window.",
+  "tips": [
+   "Keep HDR data in the chain and clamp only at the end (COP Export or COP Clamp)."
+  ]
+ },
+ "PCG_COPConfigureStamps": {
+  "topic": "cop-geometry",
+  "summary": "Writes sprite attributes (scale, rotation, colour, alpha, stamp index) onto points for use by stamping nodes.",
+  "description": "Does not draw anything. It writes per-point attributes: `spritescale` (2 values), `spriterot` (degrees), `Cd` (colour), `blend` (alpha) and `stamp` (integer index of the stamp), and moves `P` with Jitter. Each property can be driven by a layer from the `layers` input, sampled at the point's position, and multiplied by a Mask amount, and can be randomized with Uniform, Variance or Min / Max modes. Randomness is a per-point hash of the point number and the relevant seed.\n\nPoints are mapped to layer uv using Plane and World Size (image width equals World Size, origin at the centre), the same convention as Layer to Points and Scatter Shapes. If any layer name is set, the `layers` input must be connected. A layer value blends the base value as `base * (1 + (layer - 1) * mask)`.\n\nDetails: Scale `percent_variance` multiplies by `1 + variance * r` and `min_max` by a random value between Min and Max; Stretch works the same per axis. Angle is `Angle + AngleLayer * 360 * mask + atan2(direction.y, direction.x) * direction mask`, then variance or min/max, and finally rounded to a multiple of Round To when that is above 0. Colour variance acts in HSV (hue wraps, saturation and value are clamped). Stamp selection: `cycle` uses point number modulo Stamp Count, `random` picks randomly, `layer_select` rounds layer value * (count - 1) and clamps.",
+  "inputs": {
+   "points": "Points to receive the attributes.",
+   "layers": "Optional image whose layers drive the properties. Required when any layer name field is filled in."
+  },
+  "outputs": {
+   "points": "The points with `spritescale`, `spriterot`, `Cd`, `blend` and `stamp` set and `P` jittered."
+  },
+  "params": {
+   "rand_seed": "Seed for the random jitter, scale, stretch and angle variation.",
+   "plane": "Plane in which the layers are projected onto the points: `xz` (top view), `xy` or `zy`. It also decides which two axes Jitter moves.",
+   "world_size": "World width covered by the image width when sampling layers (origin at the centre).",
+   "jitter": "Random displacement of P in the two plane axes, in world units. Each point gets a random value in -1..1 multiplied by this.",
+   "jitter_scale": "Per-axis multiplier (X Y) of the random jitter.",
+   "jitter_layer": "Optional layer (first two channels) added to the displacement, in world units.",
+   "jitter_mask": "Amount of Jitter Layer that is added.",
+   "scale": "Uniform sprite scale.",
+   "scale_mode": "`uniform`: the same scale for all points. `percent_variance`: scale varies by +-Scale Variance (as a fraction). `min_max`: scale is multiplied by a random value between Scale Min and Scale Max.",
+   "scale_variance": "Variation of scale in `percent_variance` mode; 0.2 means up to +-20%.",
+   "scale_min": "Lower bound of the random multiplier in `min_max` mode.",
+   "scale_max": "Upper bound of the random multiplier in `min_max` mode.",
+   "scale_layer": "Optional layer that modulates the scale at each point.",
+   "scale_mask": "Strength of the layer modulation. 0 ignores the layer, 1 multiplies the full layer value.",
+   "stretch": "Non-uniform scale (X Y) applied on top of Scale.",
+   "stretch_mode": "`uniform`: no randomness. `variance`: each axis varies by +-Stretch Variance. `min_max`: each axis is multiplied by a random value between Stretch Min and Stretch Max.",
+   "stretch_variance": "Variation of each stretch axis in `variance` mode.",
+   "stretch_min": "Lower bound of the random multiplier in `min_max` mode.",
+   "stretch_max": "Upper bound of the random multiplier in `min_max` mode.",
+   "stretch_layer": "Optional layer that modulates the stretch. A single-channel layer is used for both axes.",
+   "stretch_mask": "Strength of the layer modulation.",
+   "angle": "Base rotation in degrees.",
+   "angle_mode": "`uniform`: no randomness. `variance`: adds a random value of up to +-Angle Variance degrees. `min_max`: multiplies the angle by a random value between Angle Min and Angle Max.",
+   "angle_variance": "Range of the random rotation in degrees in `variance` mode.",
+   "angle_min": "Lower bound of the random multiplier in `min_max` mode.",
+   "angle_max": "Upper bound of the random multiplier in `min_max` mode.",
+   "round_to": "Rounds the final angle to a multiple of this value in degrees. 0 means no rounding.",
+   "angle_layer": "Optional layer that adds to the angle: 0 gives 0 degrees, 1 gives 360 degrees.",
+   "angle_mask": "Strength of the angle layer.",
+   "direction_layer": "Optional two-channel vector layer; the angle of the vector (atan2 of y and x) is added to the rotation.",
+   "direction_mask": "Strength of the direction contribution.",
+   "sort_layer": "Layer whose value is added to the coordinate perpendicular to the plane, a small offset that controls draw order. Used when Use Sort Layer is on.",
+   "use_sort_layer": "Enables the Sort Layer offset.",
+   "color": "Base colour written to `Cd`.",
+   "color_mode": "`uniform`: the same colour for all points. `variance`: random variation in hue, saturation and value.",
+   "color_seed": "Seed for the colour and alpha variation.",
+   "hue_variance": "Random hue change (as a fraction of the colour wheel) in `variance` mode.",
+   "saturation_variance": "Random saturation change in `variance` mode.",
+   "value_variance": "Random value (brightness) change in `variance` mode.",
+   "color_layer": "Optional colour layer that multiplies the base colour.",
+   "color_mask": "Strength of the colour layer.",
+   "alpha": "Base opacity written to `blend`.",
+   "alpha_mode": "`uniform`: the same alpha for all points. `variance`: random variation.",
+   "alpha_variance": "Random alpha change in `variance` mode (result is clamped to 0..1).",
+   "alpha_layer": "Optional layer that modulates the alpha.",
+   "alpha_mask": "Strength of the alpha layer.",
+   "stamp_count": "Number of different stamps available for selection.",
+   "select_mode": "How the `stamp` index is chosen: `cycle` (point number modulo count), `random`, or `layer_select` (from a layer value, 0 = first stamp, 1 = last).",
+   "select_seed": "Seed of the random stamp choice.",
+   "select_layer": "Layer used by `layer_select` mode. Required for that mode."
+  },
+  "houdini_notes": "Random-from-ramp options for colour and alpha are not implemented. Scatter Shapes in this plugin is a rasterizing stamp and reads `pscale` and `Cd`, not `spritescale`, so the attributes written here are meant for Stamp Points style nodes."
+ },
+ "PCG_COPConstant": {
+  "topic": "cop-generate",
+  "summary": "Creates an image filled with a single constant colour.",
+  "description": "Generates a flat colour image of the given resolution, typically as a base for compositing or as a mask backdrop. The layer has three channels (red, green, blue); enabling Use Alpha adds a fourth channel with the Alpha value. Values are not clamped, so negative and HDR values are allowed.",
+  "inputs": {},
+  "outputs": {
+   "cop": "The constant image."
+  },
+  "params": {
+   "resolution_x": "Width and height of the image in pixels.",
+   "red": "Colour of the image as red, green and blue values (not clamped, HDR values are allowed).",
+   "alpha": "Alpha value, used only when Use Alpha is on.",
+   "use_alpha": "Outputs four channels (RGBA) instead of three.",
+   "layer": "Name of the layer that receives the colour.",
+   "device": "Compute backend. `auto` uses the GPU (through torch) for larger images when available and the CPU for small ones; `cpu` and `cuda` force torch on the CPU or GPU; `numpy` uses numpy; `exact` uses numpy in float64 for bit-exact results."
+  },
+  "houdini_notes": "Covers Houdini's Constant node and the constant-value use of Layer."
+ },
+ "PCG_COPContactSheet": {
+  "topic": "cop-utility",
+  "summary": "Arranges the frames of a sequence into a grid image, optionally labelled with frame numbers.",
+  "description": "The first frame is placed top left and frames follow row by row. All frames are resampled to the size of the first frame multiplied by Scale. Columns can be chosen automatically so that the grid is close to square. Each tile gets Padding pixels of background around it, and with Labels on the frame number (starting at 0) is drawn in the top left corner of the tile.",
+  "inputs": {
+   "seq": "Sequence of images (frames) to arrange."
+  },
+  "outputs": {
+   "cop": "The contact sheet image."
+  },
+  "params": {
+   "layer": "Layer of each frame to use. The output contains this layer only.",
+   "columns": "Number of columns. 0 chooses automatically so the grid is close to square.",
+   "padding": "Space in pixels between tiles and around the border of the sheet.",
+   "scale": "Size of each tile relative to the first frame. All frames are resized to the first frame's size times Scale.",
+   "background": "Background colour of the sheet.",
+   "labels": "Draws the frame number on each tile.",
+   "font": "Font used for the labels. Empty uses the default font.",
+   "label_size": "Label height in pixels. 0 uses one tenth of the tile height."
+  }
+ },
+ "PCG_COPContour": {
+  "topic": "cop-filter",
+  "summary": "Draws iso-lines of a value (contour lines) at regular intervals.",
+  "description": "A line is drawn wherever the value of Layer crosses a multiple of Interval (shifted by Offset). The distance to the nearest line is measured in value units and divided by the local gradient magnitude, which converts it to a distance in pixels. As a result the line width is the same in pixels on steep and on flat areas; without this step lines on gentle slopes would smear into broad bands. The output is a single-channel layer between 0 and 1.",
+  "inputs": {
+   "cop": "Image containing the height or value layer."
+  },
+  "outputs": {
+   "cop": "Image with the contour line layer added."
+  },
+  "params": {
+   "layer": "Layer whose first channel is contoured (for example a height field).",
+   "interval": "Spacing between contour lines in value units. Must be positive.",
+   "offset": "Shifts the lines: they are drawn at multiples of Interval plus this value.",
+   "width": "Line width in pixels.",
+   "out_layer": "Name of the layer that receives the contour lines."
+  },
+  "houdini_notes": "Corresponds to the contour mode of Houdini's Edge Detect."
+ },
+ "PCG_COPConvertDepth": {
+  "topic": "cop-layers",
+  "summary": "Converts between depth representations: camera z, distance to camera, disparity, normalized depth and camera-space position.",
+  "description": "Renderers usually give z depth along the view axis, ray tracers give the Euclidean distance to the camera, and depth ControlNets or monocular depth estimators use inverse depth (disparity). These differ by a per-pixel factor of `sqrt(1 + x^2 + y^2)`, which is more than 20% at the image edge for a 60 degree field of view. Connecting the wrong kind produces no error: objects near the edges are just pushed too far away.\n\n`z_depth` is the camera-space z, `distance` the distance to the camera, `disparity` is 1/z, `normalized` is `(z - near) / (far - near)` with 0 at the near plane, and `position` (output only) is the camera-space point (x, y, z). The field of view is the vertical one, as in the Render Pass convention. Pixels outside the mask, or with a value of 0 or less when no mask layer is given, are written as 0.",
+  "inputs": {
+   "cop": "Image containing the depth layer."
+  },
+  "outputs": {
+   "cop": "Image with the converted layer."
+  },
+  "params": {
+   "layer": "Name of the depth layer to convert.",
+   "from_kind": "Representation of the input: camera z (`z_depth`), distance to the camera (`distance`), inverse depth (`disparity`) or `normalized` (needs a valid Near < Far).",
+   "to_kind": "Representation of the output. `position` writes the camera-space (x, y, z) point and is available only as output.",
+   "fov": "Vertical field of view of the camera in degrees.",
+   "near": "Near and far depth values used by `normalized`. For From = `normalized` Near must be less than Far. For To = `normalized`, leaving both at 0 uses the minimum and maximum of the masked pixels.",
+   "mask_layer": "Optional layer defining which pixels are valid (above 0.5). Empty uses all pixels that are finite and greater than 0. Pixels outside are written as 0.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer."
+  },
+  "tips": [
+   "Check which kind of depth your source delivers before using it with a depth ControlNet; z depth and distance differ visibly near the image edge."
+  ]
+ },
+ "PCG_COPConvertNormal": {
+  "topic": "cop-layers",
+  "summary": "Converts normal maps between packed/signed encoding and OpenGL/DirectX conventions.",
+  "description": "Steps always run in this fixed order: decode, reconstruct z, flip, normalize, encode.\n\n- `packed` vs `signed`: image files store normals as 0..1 colours, while inside this plugin normals are vectors in -1..1. A normal map read in from ComfyUI must go through packed to signed first.\n- Flip Green switches between OpenGL (+Y up, used by this plugin) and DirectX (+Y down). Getting this wrong inverts bumps along one direction and raises no error.\n- Reconstruct Z rebuilds z as `sqrt(1 - x^2 - y^2)` from the x and y channels only (two-channel BC5-style normal maps).\n\npacked to signed to packed is an identity, and flipping twice restores the input exactly. Conversion between tangent space and world space is not supported because it needs a tangent frame per pixel, which the height-map chain does not have.",
+  "inputs": {
+   "cop": "Image containing the normal layer."
+  },
+  "outputs": {
+   "cop": "Image with the converted normal layer."
+  },
+  "params": {
+   "layer": "Name of the normal layer to convert.",
+   "decode": "Encoding of the input: `packed` (0..1 colours, as stored in files) or `signed` (-1..1 vectors).",
+   "encode": "Encoding of the output: `signed` (-1..1 vectors) or `packed` (0..1 colours).",
+   "reconstruct_z": "Rebuild the z component from x and y (for two-channel normal maps).",
+   "flip_red": "Inverts the red (X) channel of the vector.",
+   "flip_green": "Inverts the green (Y) channel, converting between OpenGL and DirectX conventions.",
+   "normalize": "Renormalizes the vectors to unit length after the other steps.",
+   "out_layer": "Name of the output layer.",
+   "keep_layers": "Keep the other layers of the input in the output."
+  }
+ },
+ "PCG_COPConvolve": {
+  "topic": "cop-filter",
+  "summary": "Convolves layers with a kernel written as numbers, a preset, or another image.",
+  "description": "The kernel is n x n numbers (n odd), written one row per line. The first line written is the top row of the image. Presets: box, gaussian, sharpen, edge, emboss and Sobel X / Y. Kernels larger than 7 x 7 are computed with an FFT.\n\nWhen the `kernel_cop` input is connected, a layer of that image (Kernel Layer) is used as the kernel instead. This is a true convolution: convolving a single-pixel impulse gives the kernel image itself. Preset and Kernel are then ignored. With Centered off, the origin is the bottom-left pixel of the kernel image.\n\nThe image is always padded by the kernel radius, so no wrap-around bleeding occurs with `clamp`, `black` or `mirror`.",
+  "inputs": {
+   "cop": "Image to convolve.",
+   "kernel_cop": "Optional image whose layer is used as the kernel. When connected, Preset and Kernel are not read."
+  },
+  "outputs": {
+   "cop": "The convolved image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "preset": "Predefined kernel. `custom` uses the Kernel text. Ignored when `kernel_cop` is connected.",
+   "kernel": "The kernel as n x n numbers (n odd), rows on separate lines; the first row is the top of the image. Ignored when `kernel_cop` is connected or a preset is chosen.",
+   "normalize": "Scales the kernel so its values sum to 1. A kernel whose sum is 0 (edge filters) is left alone.",
+   "kernel_layer": "Layer of the `kernel_cop` image used as the kernel. Only read when `kernel_cop` is connected.",
+   "centered": "Only with `kernel_cop`: when on, the centre of the kernel image is the origin so the result is not shifted; when off, the origin is the bottom-left pixel.",
+   "border": "How pixels outside the image are treated: `clamp` repeats edge pixels, `wrap` tiles, `black` pads with zero, `mirror` reflects."
+  },
+  "houdini_notes": "Covers Convolve 3x3 and Convolve Filter. Houdini's Padding option is not exposed: the image is always padded by the kernel radius (equivalent to Houdini's Padding on and large enough), so there is no wrap-around bleeding that Houdini shows with Padding off. Border has an extra `mirror` option."
+ },
+ "PCG_COPCopyTransform": {
+  "topic": "cop-transform",
+  "summary": "Makes several transformed copies of the image and stacks them, each copy shifted, rotated and scaled further than the last.",
+  "description": "Copy i (starting at 0) is translated by `i * Translate` in uv units, rotated by `i * Rotate` degrees around Pivot and scaled by `Scale^i` (multiplied per axis by Scale XY). Copies are combined with Op: `over_last` and `under` use Porter-Duff compositing and compute a proper alpha (layers without alpha are treated as fully opaque, so their whole frame covers what is below); `add` adds; `max` takes the larger value; `over` is the older mode in which copy 0 is on top and alpha is interpolated like a normal channel.\n\nFade makes later copies fainter: copy i is multiplied by `(1 - Fade)^i`. For `over_last` and `under` only alpha is faded.",
+  "inputs": {
+   "cop": "Image to copy."
+  },
+  "outputs": {
+   "cop": "The stacked copies."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "copies": "Number of copies, including the untransformed first one.",
+   "translate": "Shift (U V) added per copy, in uv units (1 = image width / height).",
+   "rotate": "Rotation in degrees added per copy around Pivot.",
+   "scale_xy": "Non-uniform scale factor (X Y) applied per copy; multiplied with Scale. The scale of copy i is the factor raised to the power i.",
+   "scale": "Uniform scale factor applied per copy; copy i is scaled by Scale^i.",
+   "pivot": "Pivot (U V) in 0..1 uv coordinates for rotation and scaling; 0.5 0.5 is the image centre.",
+   "op": "How copies are combined. `over_last`: later copies cover earlier ones (Houdini's Over). `under`: later copies go underneath (Houdini's Under). `over`: older mode with the first copy on top and alpha not composited properly. `add`: sum. `max`: maximum.",
+   "fade": "Fraction by which each successive copy becomes fainter: copy i is multiplied by (1 - Fade)^i. 0 means no fading."
+  },
+  "houdini_notes": "Corresponds to Copy and Transform. The `over` mode is kept for compatibility and differs from Houdini's Over; use `over_last` or `under` to match Houdini."
+ },
+ "PCG_COPCornerDetect": {
+  "topic": "cop-filter",
+  "summary": "Detects corners with the Harris detector and marks them in a mask.",
+  "description": "Computes the structure tensor of the first channel of Layer, smoothed with a Gaussian of Sigma, and the Harris response `R = det - k * trace^2`. A pixel is marked 1 when its response is greater than Threshold times the maximum response and it is the local maximum within Radius pixels. The second output is the number of corners found.",
+  "inputs": {
+   "cop": "Image containing the layer to analyse."
+  },
+  "outputs": {
+   "cop": "Image with the corner mask layer added.",
+   "count": "Number of detected corners."
+  },
+  "params": {
+   "layer": "Layer to analyse. Only its first channel is used.",
+   "k": "Harris sensitivity constant. Smaller values detect more corners and also respond to edges more.",
+   "sigma": "Standard deviation in pixels of the Gaussian that smooths the structure tensor.",
+   "threshold": "Minimum response as a fraction of the strongest response.",
+   "radius": "Size in pixels of the neighbourhood within which a pixel must be the local maximum.",
+   "out_layer": "Name of the layer that receives the corner mask (1 at corners).",
+   "response_layer": "Optional layer that receives the raw Harris response. Empty writes nothing."
+  }
+ },
+ "PCG_COPCornerPin": {
+  "topic": "cop-transform",
+  "summary": "Warps an image so its four corners land on given positions, or rotates it like a 3D card seen by a pinhole camera.",
+  "description": "Both modes build a homography (a perspective transform), so straight lines stay straight. In `corners` mode you give the uv positions of the four output corners (bottom left, bottom right, top right, top left). In `rotate_3d` mode the image is treated as a card that is rotated in 3D by the given XYZ Euler angles in degrees and photographed by a pinhole camera with the given field of view; the four corner positions are computed from that and the same homography is used. If the card is rotated behind the camera an error is raised: reduce the angles or increase Distance.",
+  "inputs": {
+   "cop": "Image to warp."
+  },
+  "outputs": {
+   "cop": "The warped image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "mode": "`corners`: place the corners directly. `rotate_3d`: rotate the image as a card in 3D and project it.",
+   "corners": "`corners` mode: eight numbers, the output uv (U V) of the four corners in the order bottom left, bottom right, top right, top left. The default is the unmodified image.",
+   "rotate": "`rotate_3d` mode: rotation of the card around X, Y and Z in degrees.",
+   "fov": "`rotate_3d` mode: field of view of the pinhole camera in degrees.",
+   "distance": "`rotate_3d` mode: distance of the card from the camera. 0 uses the distance at which the unrotated card exactly fills the frame.",
+   "border": "What is shown where the warped image does not cover the frame: `black` gives zero, `clamp` repeats edge pixels, `wrap` tiles."
+  },
+  "houdini_notes": "Covers Corner Pin and the card rotation use of Transform 3D."
+ },
+ "PCG_COPCrop": {
+  "topic": "cop-transform",
+  "summary": "Crops an image to a window, and pads it when the window extends beyond the image.",
+  "description": "The origin is at the bottom left, as everywhere in COP. The window may extend outside the image: the outside is filled according to Border, so a negative X / Y with a larger resolution pads the image outward without another node. Parts that stay inside the image are copied bit for bit.\n\nThe window is given either as integer pixels (X, Y, Resolution) or, for other Units and Methods, through Corner and Extent. With Units `pixels` and Method `lower_left_size` the integer X, Y and Resolution fields are used; otherwise Corner and Extent are used and converted to pixels, rounding each corner to the nearest pixel edge. Pad Left / Right / Top / Bottom then grow the window outward.\n\nTypical uses: cropping a 1024 x 1024 composition to 832 x 1216 before a diffusion pass, or extending a render with a black border to make an outpainting canvas.",
+  "inputs": {
+   "cop": "Image to crop or pad."
+  },
+  "outputs": {
+   "cop": "The cropped or padded image."
+  },
+  "params": {
+   "mode": "`discard_reframe`: the output resolution becomes the window size. `discard`: the resolution stays the same; pixels outside the window are discarded and replaced according to Border, read from the part that remains.",
+   "border": "What fills the parts of the window outside the image (or the discarded parts): `clamp` repeats edge pixels, `wrap` tiles, `black` gives zero, `mirror` reflects at the border.",
+   "units": "Unit of Corner and Extent: `pixels`, `texture` (0..1 across the image), or `image` (-1..1 across the longer side with the origin at the image centre, so a square window stays square).",
+   "method": "`lower_left_size`: Corner is the lower-left point and Extent is the size. `lower_left_upper_right`: Extent is the upper-right corner.",
+   "x": "Lower-left corner (X Y) of the window in pixels, origin at the bottom left. May be negative to pad outward. Used with Units `pixels` and Method `lower_left_size`.",
+   "resolution_x": "Window width and height in pixels. Used with Units `pixels` and Method `lower_left_size`.",
+   "corner": "Lower-left corner (X Y) of the window in the chosen Units. Used when Units or Method are not the default.",
+   "extent": "Size (X Y) of the window, or its upper-right corner when Method is `lower_left_upper_right`, in the chosen Units. Used when Units or Method are not the default.",
+   "pad_left": "Pixels added to the window on the left.",
+   "pad_right": "Pixels added to the window on the right.",
+   "pad_top": "Pixels added to the window at the top.",
+   "pad_bottom": "Pixels added to the window at the bottom."
+  },
+  "houdini_notes": "Houdini's Crop mode Reframe to Crop is not available, because layers here always equal the frame and cannot carry data outside it. Aspect Ratio, Extract Tile, Min / Max Resolution, Reset Pixel Origin and the geometry input are not implemented. Border has an additional `mirror` option.",
+  "tips": [
+   "To pad an image, use a negative X / Y and a larger resolution, or use the Pad fields."
+  ]
+ },
+ "PCG_COPCurvature": {
+  "topic": "cop-terrain",
+  "summary": "Computes surface curvature of a height field, positive on convex areas.",
+  "description": "The height layer (multiplied by Strength) is treated as a surface over a world width of World Size. Curvature is in 1/world units and convex is positive (peaks and ridges above 0, pits and gullies below 0).\n\n- `mean`: mean curvature.\n- `gaussian`: Gaussian curvature (saddles are negative, independent of convexity).\n- `profile`: curvature along the slope direction; negative where the slope steepens, positive where it flattens.\n- `tangential`: curvature across the slope; positive on ridges, negative in gullies.\n- `plan`: curvature of the contour lines; positive where flow diverges, negative where it converges.\n\nTo separate ridges from gullies use `tangential` or `plan` rather than elevation, which gives wrong results for gullies on high ground and ridges in low ground. Scale is a final multiplier: curvature scales with 1/R, so multiplying by a characteristic length gives a dimensionless value that is convenient as a mask. (profile + tangential) / 2 equals mean.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the curvature layer added."
+  },
+  "params": {
+   "layer": "Height layer.",
+   "strength": "Height multiplier: layer value x Strength is the world height.",
+   "world_size": "World width of the whole image. Pixel spacing is World Size divided by the image width.",
+   "kind": "Type of curvature; see the description.",
+   "scale": "Multiplier applied to the result.",
+   "tile": "Treat the image as tileable so derivatives wrap around the edges instead of being extrapolated.",
+   "out_layer": "Name of the output layer.",
+   "keep_layers": "Keep the other layers of the input in the output."
+  },
+  "tips": [
+   "Multiply with Scale by a characteristic length (for example World Size / 20) to get a dimensionless mask."
+  ]
+ },
+ "PCG_COPDefocus": {
+  "topic": "cop-filter",
+  "summary": "Blurs with a bokeh-shaped kernel, optionally driven by a depth layer.",
+  "description": "The image is convolved with an aperture-shaped kernel (disc, polygon or square) of Radius pixels. Without a Depth Layer the whole image uses the same radius.\n\nWith a Depth Layer the radius varies per pixel: pixels where `|depth - Focus| <= Focus Range` stay sharp, and beyond that the circle of confusion grows linearly over the Falloff distance up to Radius. The radius range is quantized into Levels steps; each step is convolved once and neighbouring steps are interpolated per pixel. The depth layer itself is not blurred.\n\nHighlight Gain makes bright areas stand out: values above Highlight Threshold are boosted before blurring and mapped back with the exact inverse afterwards, so bright spots become distinct aperture-shaped discs instead of being averaged into grey.",
+  "inputs": {
+   "cop": "Image to defocus."
+  },
+  "outputs": {
+   "cop": "The defocused image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "radius": "Maximum blur radius in pixels (the full circle of confusion).",
+   "shape": "Aperture shape of the kernel: `disc`, `hexagon` (a regular polygon whose side count is Blades, 6 by default) or `square`.",
+   "blades": "Number of aperture blades (polygon sides) of the `hexagon` shape.",
+   "rotation": "Rotation of the polygonal aperture in degrees. Only the `hexagon` shape is affected.",
+   "depth_layer": "Layer holding depth. Empty uses the same radius everywhere.",
+   "focus": "Depth value that is in focus.",
+   "focus_range": "Half-width of the depth range around Focus that stays perfectly sharp.",
+   "falloff": "Depth distance beyond the focus range over which the blur radius grows from 0 to Radius.",
+   "levels": "Number of discrete blur radii used with a depth layer. More levels are smoother but slower.",
+   "highlight_gain": "Strength with which highlights are boosted before blurring. 0 turns it off.",
+   "highlight_threshold": "Brightness above which Highlight Gain applies.",
+   "border": "How pixels outside the image are treated: `clamp` repeats edge pixels, `wrap` tiles the image, `black` uses zero."
+  },
+  "houdini_notes": "Covers Defocus and Bokeh."
+ },
+ "PCG_COPDenoiseTV": {
+  "topic": "cop-filter",
+  "summary": "Removes noise with total-variation (ROF) denoising while keeping step edges.",
+  "description": "Solves the Rudin-Osher-Fatemi total-variation model with Chambolle's dual projection. Noise is flattened while sharp edges are preserved. Each channel is processed independently. Weight sets the strength: higher is flatter. The mean of the image is preserved exactly and a constant image is returned unchanged.",
+  "inputs": {
+   "cop": "Image to denoise."
+  },
+  "outputs": {
+   "cop": "The denoised image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "weight": "Denoising strength (the TV regularization weight). Higher values give flatter results; 0 returns the image unchanged.",
+   "iterations": "Number of Chambolle iterations. More iterations converge closer to the exact solution.",
+   "compute": "Compute backend: `auto` uses the GPU for large images when available, `cpu` or `cuda` force one."
+  },
+  "houdini_notes": "Corresponds to Denoise TVD."
+ },
+ "PCG_COPDerivative": {
+  "topic": "cop-filter",
+  "summary": "Computes derivatives of a layer with central differences: gradient, Laplacian, divergence or curl.",
+  "description": "Derivatives are central differences in units of per pixel, multiplied by Scale.\n\n- `dx`, `dy`, `gradient` (two channels) and `magnitude` use the first channel.\n- `laplacian` uses a five-point stencil per channel.\n- `divergence` turns a two-channel vector field into a scalar.\n- `curl` on a one-channel layer gives `(df/dy, -df/dx)`, a divergence-free velocity field, which is how curl noise is made from a noise stream function. On a two-channel layer it gives the scalar curl `dv/dx - du/dy`.\n\nIf Out Layer is empty, the result is named layer_mode.",
+  "inputs": {
+   "cop": "Image containing the layer to differentiate."
+  },
+  "outputs": {
+   "cop": "Image with the derivative layer added."
+  },
+  "params": {
+   "layer": "Layer to differentiate.",
+   "mode": "Which derivative to compute; see the description.",
+   "scale": "Multiplier applied to the result (the differences are per pixel).",
+   "border": "How pixels outside the image are treated: `clamp` repeats edge pixels, `wrap` tiles the image, `black` uses zero.",
+   "out_layer": "Name of the output layer. Empty uses layer_mode."
+  },
+  "houdini_notes": "Covers Derivative, Laplacian and Curl."
+ },
+ "PCG_COPDespill": {
+  "topic": "cop-color",
+  "summary": "Removes colour spill (for example green reflected on a subject) without producing an alpha matte.",
+  "description": "The channel in which Spill Color is largest is limited to a ceiling built by mixing the other two channels with Bias; the part removed is the spill. Luminance can add the removed brightness back so the result is as bright as the input. The removed colour is written to a separate Spill Layer. Use COP Chroma Key when a matte is needed.\n\nOn pure colours (where the other two channels are equal) Bias has no visible effect.",
+  "inputs": {
+   "cop": "Image containing the colour layer to despill."
+  },
+  "outputs": {
+   "cop": "Image with the despilled colour and optional spill layer."
+  },
+  "params": {
+   "layer": "RGB layer to despill.",
+   "mask": "Blend amount between the original and despilled colour. 1 uses the despilled value everywhere.",
+   "spill_color": "The spill colour. Its largest channel is the one that is limited.",
+   "bias": "How the ceiling is mixed from the other two channels. When removing green, 0 follows red and 1 follows blue.",
+   "luminance": "How much of the removed brightness is added back. 1 restores the original luminance.",
+   "bias_layer": "Optional single-channel layer multiplied per pixel into Bias. Empty means unused.",
+   "mask_layer": "Optional layer multiplied per pixel into Mask. Empty means unused.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer.",
+   "spill_layer": "Layer that receives the removed colour. Empty writes nothing."
+  },
+  "houdini_notes": "Matches Despill: it only removes spill and does not output alpha."
+ },
+ "PCG_COPDirectionalBlur": {
+  "topic": "cop-filter",
+  "summary": "Blurs along a direction by averaging samples along a line, for motion blur or light streaks.",
+  "description": "Each pixel averages bilinear samples along a line of Length pixels in the direction given by Angle (0 degrees points right, 90 degrees up). In `centered` mode the samples cover half the length on either side (motion blur). In `streak` mode the samples run from the pixel back along the line, so content smears one way, in the direction of Angle (light streaks, speed lines). A negative length reverses the direction. With Samples at 0 the node takes about one sample per pixel of length.",
+  "inputs": {
+   "cop": "Image to blur."
+  },
+  "outputs": {
+   "cop": "The blurred image."
+  },
+  "params": {
+   "layers": "Space-separated layer names to process. Empty processes every layer.",
+   "length": "Length of the blur line in pixels. Negative values reverse the direction.",
+   "angle": "Direction in degrees; 0 is right, 90 is up.",
+   "mode": "`centered`: half the length on each side of the pixel. `streak`: the whole length to one side only.",
+   "samples": "Number of samples along the line. 0 uses one per pixel of length. Fewer samples are faster but can show banding.",
+   "border": "How pixels outside the image are treated: `clamp` repeats edge pixels, `wrap` tiles the image, `black` uses zero.",
+   "compute": "Compute backend: `auto` uses the GPU for large images when available, `cpu` or `cuda` force one."
+  },
+  "houdini_notes": "Corresponds to Streak Blur and can also be used as motion blur."
+ }
+}

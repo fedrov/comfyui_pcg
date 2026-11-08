@@ -1,0 +1,922 @@
+{
+ "PCG_COPHexTile": {
+  "topic": "cop-transform",
+  "summary": "Breaks up visible tiling of a texture by laying it out on a hexagonal grid with a random offset and rotation per cell.",
+  "description": "The plane is divided into a hexagonal grid. Each cell gets its own randomly offset and randomly rotated copy of the source texture, and the three copies that overlap at every pixel are blended with barycentric weights (hex-tiling after Mikkelsen 2022). The result hides the repetition of a tiling texture.\n\nThe weights are sharpened as `w^(1 + 8*contrast)` and renormalized, so a higher Blend Contrast gives narrower, less blurry seams between cells. The source texture should itself be tileable, because it is sampled with wrapping. If the `source` input is not connected, the Source Layer is read from `cop` itself.",
+  "inputs": {
+   "cop": "Image whose resolution is used for the output (unless Resolution is set). Also supplies the Source Layer when `source` is not connected.",
+   "source": "Optional image to take the texture from. When connected, the Source Layer is read from it instead of from `cop`."
+  },
+  "outputs": {
+   "cop": "Image with the tiled result in the output layer. When Resolution differs from the input, the output contains only that layer at the new size."
+  },
+  "params": {
+   "layer": "Layer to tile. Read from `source` when it is connected, otherwise from `cop`.",
+   "tiles": "Number of texture periods across the image width.",
+   "rotation": "Each hex cell is rotated by a random angle within plus or minus this many degrees. 0 disables rotation.",
+   "contrast": "Sharpness of the blend between neighbouring cells. Higher values give narrower seams.",
+   "rand_seed": "Seed for the per-cell random offsets and rotations.",
+   "xres": "Output width and height in pixels. 0 follows the input image.",
+   "out_layer": "Name of the layer that receives the result."
+  },
+  "tips": [
+   "Use a tileable source texture; non-tileable input will show seams where the texture wraps."
+  ]
+ },
+ "PCG_COPHistogram": {
+  "topic": "cop-color",
+  "summary": "Equalizes a layer's histogram or matches it to a reference image.",
+  "description": "Works by rank rather than by binning, so the result is exact and has no bin steps. The mapping preserves order, and ties get their average rank, so flat color regions are not stretched into gradients (the classic histogram-equalization pitfall).\n\n- **Equalize**: the values of each channel are spread evenly over that channel's own original [min, max].\n- **Match Reference**: each channel takes the value found at the same quantile in the reference image. Useful for pulling a batch of AI-generated textures with inconsistent colors onto one reference. Matching an image to itself is the identity.\n\nChannels are processed independently, so matching RGB will also pull hue toward the reference. To match only brightness, convert to luminance first. The node needs the CPU (sorting), so GPU layers are handled through numpy.",
+  "inputs": {
+   "cop": "Image to process.",
+   "reference": "Reference image for Match Reference mode. Required in that mode; ignored by Equalize."
+  },
+  "outputs": {
+   "cop": "Input image with the listed layers remapped."
+  },
+  "params": {
+   "mode": "Equalize flattens the distribution; Match Reference copies the reference's distribution.",
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "ref_layer": "Layer of the reference image to match against. Empty uses the layer of the same name.",
+   "mask_layer": "If set, only pixels inside the mask are changed (the reference always uses all of its pixels).",
+   "amount": "Blend between the original (0) and the fully remapped result (1)."
+  }
+ },
+ "PCG_COPHistogramPlot": {
+  "topic": "cop-utility",
+  "summary": "Draws a layer's histogram as an image and outputs the raw bucket counts.",
+  "description": "Each bucket value is the number of pixels in the bucket divided by the number of counted pixels, multiplied by Scale. A value equal to Maximum goes into the last bucket, NaN is never counted, and the counted-pixel total does not depend on how many values were discarded as outside the range.\n\nPlot modes:\n- **Colored Bars**: a horizontal color ramp whose color at each column is the share of each channel in that bucket.\n- **Separate Bars**: one grayscale band per channel, red at the bottom and alpha (if present) at the top.\n- **Graph**: a bar chart where the share sets the bar height (full image height = 1); the channels are drawn in their own channels, so R, G and B bars overlap.\n\nThe second output `counts` is the raw data: width equals Buckets, height 5, rows from bottom to top are R, G, B, A counts, and the top row holds the number of counted pixels in its first column. To equalize or match histograms use COP Histogram instead.",
+  "inputs": {
+   "cop": "Image whose layer is analysed."
+  },
+  "outputs": {
+   "cop": "Input image with the histogram picture added as a new layer.",
+   "counts": "Raw counts image, Buckets wide and 5 high: rows R, G, B, A from the bottom, and the counted-pixel total in the top row, first column."
+  },
+  "params": {
+   "layer": "Layer to analyse.",
+   "mode": "How the histogram is drawn; see the description.",
+   "buckets": "Number of histogram buckets (width of the `counts` image).",
+   "min": "Value mapped to the first bucket.",
+   "max": "Value mapped to the last bucket. Must be greater than Minimum.",
+   "outside": "What to do with values outside Minimum..Maximum: Discard ignores them, Clamp counts them in the first or last bucket.",
+   "scale": "Multiplier applied to each bucket's share of the total pixels.",
+   "red": "Include the red channel. For a single-channel layer this one switch controls it.",
+   "green": "Include the green channel.",
+   "blue": "Include the blue channel.",
+   "alpha": "Include the alpha channel.",
+   "active_layer": "If set, only pixels where this layer is 0.5 or greater are counted. Empty counts the whole image.",
+   "out_layer": "Name of the layer that receives the histogram picture."
+  }
+ },
+ "PCG_COPHydraulicErosion": {
+  "topic": "cop-terrain",
+  "summary": "Erodes a height layer with simulated water droplets that carry and deposit sediment.",
+  "description": "Droplets run downhill, pick up material where it is steep and fast, and drop it where the slope flattens, the water evaporates and the speed falls. Gullies, alluvial fans and flat basin floors grow this way. In the terrain chain this is the only node that actually transports sediment: the erosion filters only carve, thermal erosion only collapses to the angle of repose, and stream power only cuts.\n\nThe model is the droplet model of Beyer 2015, with parameter names following Sebastian Lague's implementation. A batch of droplets runs at the same time and their changes are scatter-added back. Because hundreds of droplets can join one channel in the same step, each cell is dug at most down to its lowest neighbour and built up at most slightly above its highest neighbour, so no pits or spikes form. Material beyond that limit stays on the droplet, and the books balance per droplet: the change in total terrain volume equals minus the material that left over the map edge (and any discarded sediment), as stated in `report`.\n\nOutput layers: the eroded height (Output Layer), net deposition (Deposit Layer, default `debris`, accumulated onto an existing layer of the same name, so thermal-erosion talus and alluvial deposit end up in one layer), optional net erosion, and wetness (water traffic above the background level, normalized to 0-1, useful as a river or gully mask). Leave a layer name empty to skip that output.\n\nHeight Scale and World Size give the world scale: height value times Height Scale is world height, and World Size is the world width of the whole image. Droplets per Pixel of 1 is roughly Lague's default amount.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the eroded height and the requested deposit, erosion and wetness layers.",
+   "report": "Text summary: droplet count, eroded and deposited volume, sediment lost or dropped at end of life, outflow over the map edge, mass-balance residual and the device used."
+  },
+  "params": {
+   "layer": "Layer holding the terrain height.",
+   "strength": "Height Scale: multiplies the height values to get world heights. Must not be 0. Output is divided back to height units.",
+   "world_size": "World width of the whole image, used to convert pixels into world distances for slopes.",
+   "tile": "Treat the image as tileable: droplets wrap around the edges instead of leaving the map.",
+   "hardness_layer": "Optional layer in 0-1 where 1 is bedrock that cannot be eroded.",
+   "rand_seed": "Seed for the random droplet start positions.",
+   "droplets_per_pixel": "Total number of droplets relative to the pixel count. More droplets give stronger, more developed erosion and a longer run time.",
+   "lifetime": "Maximum number of steps each droplet takes.",
+   "erode_rate": "Fraction of the available capacity deficit that is eroded per step.",
+   "deposit_rate": "Fraction of excess sediment that is deposited per step when the droplet carries more than it can.",
+   "capacity": "Sediment capacity multiplier. Higher values let droplets carry more material before depositing.",
+   "inertia": "How much a droplet keeps its previous direction rather than following the slope. Higher values give smoother, straighter paths.",
+   "min_slope": "Lower bound on the slope used in the capacity calculation, so droplets on flat ground still carry some material.",
+   "evaporate": "Fraction of its water a droplet loses per step. Higher values make droplets deposit sooner.",
+   "gravity": "Acceleration of droplets on slopes. Higher values speed them up faster.",
+   "radius": "Erosion brush radius in pixels; material is removed over this area around the droplet.",
+   "deposit_radius": "Deposition brush radius in pixels. 1 or less deposits bilinearly onto the four surrounding cells.",
+   "end_mode": "What happens to sediment still carried when a droplet's lifetime ends. Spread Sediment piles it up locally with a brush (limited like normal deposition); Discard Sediment throws it away as in the original algorithm.",
+   "out_layer": "Layer that receives the eroded height. Using the input layer's name overwrites it.",
+   "deposit_layer": "Layer for net deposition (height units, 0 or more). Empty disables it.",
+   "accumulate_deposit": "Add the new deposition to an existing layer of the same name instead of replacing it.",
+   "erosion_layer": "Layer for net erosion (height units, 0 or more). Empty disables it.",
+   "wet_layer": "Layer for the wetness mask. Empty disables it.",
+   "keep_layers": "Keep the other input layers in the output.",
+   "batch": "Number of droplets simulated at the same time. Larger is faster but deviates more from a strictly one-droplet-at-a-time algorithm.",
+   "compute": "Backend. Auto uses the GPU when one is available and the image is at least 256x256, otherwise CPU. GPU runs in float32, so results differ from CPU at rounding level and, because droplet paths are sensitive to rounding, may differ visibly in detail. The result is returned on the original backend."
+  },
+  "houdini_notes": "Corresponds to HeightField Erode but implemented as a droplet (particle) model that transports sediment, not Houdini's solver. Parameter names follow the Lague implementation.",
+  "tips": [
+   "Put it after thermal erosion: the `debris` layer then holds both talus and alluvial deposit, which the Splat Map node reads for sediment by default.",
+   "Droplet paths are sensitive to rounding, so expect the same seed to look different on CPU and GPU."
+  ]
+ },
+ "PCG_COPIDConvert": {
+  "topic": "cop-layers",
+  "summary": "Converts an integer ID layer into a mask, a normalized mono value or a signed distance field.",
+  "description": "Reads the first channel of the ID layer, rounded to integers.\n\n- **Mask**: IDs listed in IDs become 1, everything else 0.\n- **Mono**: the ID value itself. With Normalize it is mapped to 0-1 as (id - min) / (max - min).\n- **SDF**: with IDs given, the signed distance (negative inside, positive outside, boundary at plus or minus half a pixel) of the union of the selected IDs; Invert uses the complement. With IDs empty (or `*`), each pixel gets its distance to the nearest pixel with a different ID, so the per-region interior distances are combined in one image. The SDF mode fails if the selection is empty or covers the whole image, because there is then no boundary.",
+  "inputs": {
+   "cop": "Image containing the ID layer."
+  },
+  "outputs": {
+   "cop": "Input image with the converted layer added."
+  },
+  "params": {
+   "layer": "Layer holding the integer IDs.",
+   "mode": "Type of result: binary mask, mono value or signed distance field.",
+   "ids": "IDs to select, as a space-separated list with ranges, e.g. `1 3 5-8`. In SDF mode, empty means distance to the other IDs.",
+   "invert": "Invert the selection (Mask and SDF modes).",
+   "normalize": "Mono mode only: map the ID range to 0-1.",
+   "out_layer": "Name of the result layer. Empty uses `<layer>_<mode>`."
+  },
+  "houdini_notes": "One node covers Houdini's ID to Mask, ID to Mono and ID to SDF, selected with Convert To."
+ },
+ "PCG_COPIllegalPixel": {
+  "topic": "cop-utility",
+  "summary": "Finds NaN, infinite or rule-matching pixels and fixes, highlights or isolates them.",
+  "description": "Replace is the plugin's original behaviour: NaN, +Inf and -Inf are replaced by the values you give, and negative values can optionally be clamped to 0. The other four modes follow Houdini's Illegal Pixels menu: Blend fills bad pixels with the average of the surrounding good pixels, Zero clears them, Highlight paints them with the Highlight Color, and Isolate keeps only bad pixels and clears the rest.\n\nIn those four modes a pixel counts as bad when any channel matches Detect (NaN, Infinite, both, or a Custom rule using Rule and Value). They ignore the replacement values and Clamp Negative.\n\nThe `report` output is a JSON string with counts per layer: NaN, +Inf, -Inf (and negative) component counts in Replace mode, and the number of flagged pixels (not components) in the other modes.",
+  "inputs": {
+   "cop": "Image to check."
+  },
+  "outputs": {
+   "cop": "Image with the offending pixels fixed or marked.",
+   "report": "JSON text with the number of problems found per layer."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "mode": "What to do with bad pixels. Replace (plugin-specific) substitutes fixed values; the others match Houdini's menu.",
+   "highlight_color": "Color used by Highlight mode, as space-separated numbers (for example `1 0 0`).",
+   "detect": "What counts as an illegal pixel in the Houdini-style modes.",
+   "rule": "Comparison used when Detect is Custom.",
+   "value": "Comparison value used when Detect is Custom.",
+   "nan": "Replace mode: value that replaces NaN.",
+   "pos_inf": "Replace mode: value that replaces +Inf.",
+   "neg_inf": "Replace mode: value that replaces -Inf.",
+   "clamp_negative": "Replace mode: also clamp negative values to 0."
+  },
+  "houdini_notes": "The Replace option and its three replacement values are specific to this plugin; Houdini has no equivalent."
+ },
+ "PCG_COPImport": {
+  "topic": "cop-utility",
+  "summary": "Converts a ComfyUI IMAGE into a COP image so it can enter a COP chain.",
+  "description": "Takes the output of a sampler, Load Image or any IMAGE socket and stores one image of the batch as a COP layer.\n\nThis node flips the vertical axis once. ComfyUI and PIL put row 0 at the top, while COP puts row 0 at the bottom (v points up, consistent with UVs and Houdini). Import and Export are the only nodes in the plugin that flip, so you never need to flip an image inside a chain; if a result looks upside down, check that you did not insert an extra flip.",
+  "inputs": {
+   "image": "ComfyUI IMAGE (batch of height x width x channels)."
+  },
+  "outputs": {
+   "cop": "COP image with the chosen batch entry in the output layer."
+  },
+  "params": {
+   "layer": "Name of the layer that receives the image.",
+   "batch_index": "Which image of the batch to import. Values beyond the batch size use the last image.",
+   "device": "Compute backend for the layer. Auto uses the GPU if CUDA is available and the image has at least 256x256 pixels. NumPy is the CPU float32 path; Exact keeps float64 on the CPU, which is slowest but bit-identical to the geometry side."
+  }
+ },
+ "PCG_COPInfo": {
+  "topic": "cop-utility",
+  "summary": "Reports the torch and CUDA environment and, if an image is connected, its resolution, layers and backend.",
+  "description": "Outputs a short text describing the torch version, whether CUDA is available and which GPU it is, the size thresholds Auto uses (pixel count and VRAM budget), and, when `cop` is connected, the image's resolution, layers, the backend they live on and an estimate of memory use. The same text is printed to the ComfyUI console.\n\nIt exists to answer \"is my COP actually running on the GPU?\". Auto silently falls back to CPU when the image is too small, no CUDA build of torch is installed, or the VRAM budget is exceeded; this node makes that visible.",
+  "inputs": {
+   "cop": "Optional image to describe. Without it only the environment is reported."
+  },
+  "outputs": {
+   "info": "Multi-line status text."
+  },
+  "params": {}
+ },
+ "PCG_COPIntegrateVolume": {
+  "topic": "cop-geometry",
+  "summary": "Casts one ray per pixel through a volume primitive and integrates, transmits, or takes the minimum or maximum of its samples.",
+  "description": "For every pixel a view ray marches through the volume and produces one of:\n\n- **Integral**: the line integral of density times step length.\n- **Transmittance**: `exp(-integral)`.\n- **Minimum / Maximum**: the smallest or largest raw sample value along the ray (not mapped through the density settings). A ray that never touches the volume gives +inf (minimum) or -inf (maximum).\n\nBy default the view is orthographic: the pixel centre in image coordinates (long side -1 to 1) gives the x, y of a ray that runs along +Z over the whole line, with no start cut-off. If the `layers` input is connected and View Origin or View Direction layer names are given, each pixel uses its own ray (starting at the origin, `t >= 0`); Min Depth and Max Depth layers restrict the ray to a distance range.\n\nFor Integral and Transmittance the sample is remapped as `(v - Min) / (Max - Min)`, clamped to 0-1 (Clamped Ramp) or wrapped to its fractional part (Periodic Ramp), then multiplied by Density Scale. The ray is clipped to the volume's bounding box and cut into slices of Integration Step Size, one sample per slice; the last slice may be shorter and is weighted by its real length. Several volumes selected at once (such as `vel.*`) become channels, each accumulated separately.",
+  "inputs": {
+   "geo": "Geometry containing the volume primitive(s) to integrate.",
+   "layers": "Optional image supplying per-pixel view origin, direction and depth-range layers. Without it the output uses Resolution and the default orthographic view."
+  },
+  "outputs": {
+   "cop": "Image with the result in the output layer, one channel per integrated volume. It is added to `layers` when connected, otherwise a new image of the given Resolution."
+  },
+  "params": {
+   "density": "Which volume to integrate: a volume name, an index, or a name pattern such as `vel.*` (several volumes make a multichannel result). Empty uses the first volume.",
+   "operation": "Quantity computed along each ray.",
+   "density_scale": "Multiplier applied to the remapped density (Integral and Transmittance only).",
+   "density_min": "Sample value that maps to 0 before scaling.",
+   "density_max": "Sample value that maps to 1 before scaling. Must differ from Min.",
+   "ramp_mode": "How the remapped value is treated outside 0-1: left alone, clamped, or wrapped periodically. Only the clamp and wrap steps are implemented; there is no density ramp curve.",
+   "sample_jitter": "Randomly shifts each sample inside its slice, as a fraction of the step, to hide banding. 0 samples at the slice centre.",
+   "stratification_jitter": "Randomly shifts the start of the whole ray by up to half a step (at 1), decorrelating neighbouring rays.",
+   "rand_seed": "Seed for both jitters.",
+   "step_size": "Length of each ray slice in volume space units. Smaller values are more accurate and slower.",
+   "max_steps": "Maximum number of slices per ray.",
+   "transmittance_cutoff": "Stop marching a ray once its transmittance drops below this value (all channels must). -1 never stops early.",
+   "origin_layer": "Layer in the `layers` input holding the ray origin per pixel. Empty uses the default orthographic view.",
+   "direction_layer": "Layer in the `layers` input holding the ray direction per pixel (normalized by the node). Empty uses +Z.",
+   "mindepth_layer": "Layer in the `layers` input giving the ray distance at which integration starts.",
+   "maxdepth_layer": "Layer in the `layers` input giving the ray distance at which integration ends.",
+   "resolution_x": "Output width and height in pixels. Used only when `layers` is not connected.",
+   "out_layer": "Name of the result layer."
+  },
+  "houdini_notes": "Houdini works on VDB volumes; this node works on the plugin's dense volume primitives. The Density Ramp curve is not implemented (the ramp modes only clamp or wrap)."
+ },
+ "PCG_COPInvert": {
+  "topic": "cop-color",
+  "summary": "Inverts layer values as `Pivot - x`.",
+  "description": "Every value `x` becomes `Pivot - x`. The default pivot of 1 gives the usual photographic negative. The alpha channel (the fourth channel) is left alone unless Invert Alpha is enabled.",
+  "inputs": {
+   "cop": "Image to invert."
+  },
+  "outputs": {
+   "cop": "Image with the listed layers inverted."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "pivot": "The value `x` is subtracted from: `x -> Pivot - x`.",
+   "invert_alpha": "Also invert the alpha (fourth) channel."
+  }
+ },
+ "PCG_COPKuwahara": {
+  "topic": "cop-filter",
+  "summary": "Smooths an image while keeping edges, giving a painterly look.",
+  "description": "The classic Kuwahara filter: around each pixel the neighbourhood is split into four quadrants, and the pixel takes the mean of the quadrant with the lowest variance. Flat areas are smoothed, edges stay sharp, and larger radii give a stronger oil-paint look.",
+  "inputs": {
+   "cop": "Image to filter."
+  },
+  "outputs": {
+   "cop": "Filtered image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "radius": "Quadrant size in pixels. Larger values smooth more and cost more time."
+  }
+ },
+ "PCG_COPLatticeDeform": {
+  "topic": "cop-transform",
+  "summary": "Warps an image with a grid of control points that are offset in uv.",
+  "description": "A lattice of `(nx+1) x (ny+1)` control points is laid over the image, where Divisions sets the number of cells `nx ny`. Each control point has a uv offset, either typed in explicitly (Point Offsets) or generated randomly (Jitter). The offsets are bilinearly interpolated across the image, and the image is resampled by inverse mapping (each output pixel reads the input at minus its offset), which matches a forward warp for small offsets.",
+  "inputs": {
+   "cop": "Image to warp."
+  },
+  "outputs": {
+   "cop": "Warped image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "divisions": "Number of lattice cells as two numbers, columns and rows (for example `4 4`, which gives 5 x 5 control points).",
+   "offsets": "Explicit uv offsets for the control points: two numbers per point, row by row from the bottom row of control points. Missing values are treated as 0.",
+   "jitter": "Amplitude of random uv offsets (uniform in plus or minus Jitter) added to the control points. 0 disables.",
+   "rand_seed": "Seed for the random jitter.",
+   "border": "How samples that fall outside the image are handled: clamp to the edge, wrap around, or use black."
+  }
+ },
+ "PCG_COPLayerCombine": {
+  "topic": "cop-composite",
+  "summary": "Combines the same layer from up to six inputs into one image, pixel by pixel.",
+  "description": "Reads the chosen layer from every connected input and combines them per pixel with Add, Average, Multiply, Min, Max or Over. Resolution follows the first connected input and the others are resampled to it; single-channel layers are broadcast to the channel count of the others.\n\nOver places earlier inputs on top of later ones and only makes sense for RGBA; for non-RGBA layers the last input is copied. Houdini accepts any number of inputs; here there are six sockets, so chain two nodes if you need more.\n\nThis is not COP Layer Merge (PCG), which moves layers from one image into another without doing any pixel math.",
+  "inputs": {
+   "source1": "First image to combine. Defines the output resolution when connected.",
+   "source2": "Second image to combine.",
+   "source3": "Third image to combine.",
+   "source4": "Fourth image to combine.",
+   "source5": "Fifth image to combine.",
+   "source6": "Sixth image to combine."
+  },
+  "outputs": {
+   "cop": "Copy of the first connected input with the combined result written to the output layer."
+  },
+  "params": {
+   "layer": "Layer read from every input.",
+   "operation": "How the inputs are combined. Over layers the inputs front to back in socket order (source1 on top).",
+   "out_layer": "Name of the result layer. Empty overwrites Layer."
+  },
+  "houdini_notes": "Corresponds to Houdini's Layer Merge COP (the one documented as cop/average). Space, Border, Filter, Clip by Data Window and Crop to Content are not implemented because they depend on data windows."
+ },
+ "PCG_COPLayerEdit": {
+  "topic": "cop-layers",
+  "summary": "Renames, copies, deletes or keeps layers of an image.",
+  "description": "Edits the layer set of an image without touching pixel data. Renaming onto an existing name overwrites that layer. Keep Only fails if no layer would remain. Rename and Copy take space-separated `old=new` pairs; Delete and Keep Only take a list of layer names.",
+  "inputs": {
+   "cop": "Image whose layers are edited."
+  },
+  "outputs": {
+   "cop": "Image with the edited layer set."
+  },
+  "params": {
+   "op": "Rename moves layers to new names; Copy duplicates them under new names; Delete removes the listed layers; Keep Only removes all layers except the listed ones.",
+   "spec": "For Rename and Copy: `old=new old2=new2`. For Delete and Keep Only: layer names separated by spaces."
+  },
+  "houdini_notes": "Covers Houdini's Rename COP and adds copy, delete and keep operations in the same node."
+ },
+ "PCG_COPLayerFromAttrib": {
+  "topic": "cop-geometry",
+  "summary": "Writes a geometry attribute into an image, one element per pixel.",
+  "description": "Element k of the chosen attribute is stored in pixel k. The order is set by Data Ordering, or, if the `index` input is connected, every pixel reads the element number found in the Index Layer. The output layer has as many channels as the attribute has components; a detail attribute counts as one element.\n\nWith Resize Layer off, the resolution comes from `size_ref` (or Resolution when it is not connected) and the layer is added to `size_ref`. With Resize Layer on, the resolution is derived from the element count using Resize Shape and the output contains only this layer.\n\nIf there are more pixels than elements the extra pixels are 0; extra elements are dropped. Index values outside the attribute range (including negative) give 0. The `index` image must have the same resolution as the output.",
+  "inputs": {
+   "geo": "Geometry that owns the attribute.",
+   "size_ref": "Optional image that defines the output resolution; the result is added to it.",
+   "index": "Optional image whose Index Layer gives, per pixel, which attribute element to read."
+  },
+  "outputs": {
+   "cop": "Image with the attribute stored in the output layer."
+  },
+  "params": {
+   "attrib_class": "Attribute class to read from.",
+   "attrib": "Name of the attribute.",
+   "data_ordering": "Pixel order when no `index` is connected. Bottom Left fills from the bottom-left, left to right then upwards (the canonical COP order); Top Left starts at the top-left and goes downwards.",
+   "index_layer": "Layer of the `index` input to read element numbers from. Empty uses `C`.",
+   "resize_layer": "Derive the resolution from the number of elements instead of using `size_ref` or Resolution.",
+   "resize_shape": "Shape used with Resize Layer: a power-of-two square, the smallest square that fits, or a single row or column.",
+   "resolution_x": "Output width and height in pixels. Used only when `size_ref` is not connected and Resize Layer is off.",
+   "out_layer": "Name of the layer that receives the data."
+  }
+ },
+ "PCG_COPLayerMerge": {
+  "topic": "cop-layers",
+  "summary": "Copies layers from image B into image A.",
+  "description": "Adds the layers of B to A without doing any pixel math. If the resolutions differ, B is resampled to A's resolution; if the backends differ, B is moved to A's backend. Prefix is added to the incoming layer names, and with Overwrite Existing turned off, layers of A that have the same name are kept.\n\nTo combine the pixels of the same layer from several images, use COP Layer Combine instead.",
+  "inputs": {
+   "a": "Image that receives the layers and defines the output resolution.",
+   "b": "Image providing the layers to add."
+  },
+  "outputs": {
+   "cop": "A with the layers of B added."
+  },
+  "params": {
+   "layers": "Space-separated layers to take from B. Empty takes all.",
+   "prefix": "Text added in front of the names of the layers coming from B.",
+   "overwrite": "Replace layers of A that have the same name as an incoming layer. When off, A's layer is kept."
+  }
+ },
+ "PCG_COPLayerToPoints": {
+  "topic": "cop-geometry",
+  "summary": "Turns pixels of an image layer into points, sampling chosen layers as point attributes.",
+  "description": "Each point also gets a `uv` attribute (its position on the image). Positions use the same plane + world mapping as HeightField to Mesh: the image width equals World Size, and Height Layer, if given, sets the coordinate on the axis perpendicular to the plane (Y for the XZ plane) to value times Height Scale. Layers listed in Layers to Attributes are sampled at each point's pixel and written as point attributes (`C` becomes `Cd`).\n\nMethods:\n- **One Point per Pixel**: a point at every pixel centre, thinned by Stride and filtered by Mask Layer (pixels where the mask is greater than Threshold are kept).\n- **Scatter by Density**: Point Count random points, accepted in proportion to the Density Layer (uniform when empty). Positions are continuous inside the image, not only at pixel centres.\n- **Houdini-style methods** read the Mask Layer as their source layer (empty uses `C`; the first channel is the value, except Non-Zero Pixels, which looks at all channels): *Non-Zero Pixels* gives a point for every non-zero pixel; *Count per Pixel* gives `floor(value)` points per pixel; *Unique Values* gives one point per distinct value, placed on the first pixel (lowest buffer offset) that holds it, optionally ignoring -1; *Count from First Pixel* and *Count from Last Pixel* take the total number of points from the first or last pixel's value. Those points are all at the origin because they have no pixel position, but `uv` and attributes come from the source pixel.\n\nOutput points are ordered by buffer offset `x + y*xres`, with row 0 at the bottom.",
+  "inputs": {
+   "cop": "Image to read pixels from."
+  },
+  "outputs": {
+   "geo": "Point geometry with `uv` and the requested attributes."
+  },
+  "params": {
+   "mode": "How points are chosen; see the description.",
+   "mask_layer": "One Point per Pixel: layer used as a mask (empty keeps all pixels). Houdini-style methods: the source layer (empty uses `C`).",
+   "threshold": "Pixels whose mask value is greater than this are kept (One Point per Pixel).",
+   "stride": "Keep one pixel out of every Stride in each direction (One Point per Pixel).",
+   "jitter": "Randomly displaces points inside their pixel (or stride cell) by up to this fraction. Not applied to Scatter or to the Count from First/Last methods.",
+   "count": "Number of points to scatter (Scatter by Density). A sparse density layer can yield fewer.",
+   "density_layer": "Layer giving the scatter density. Empty scatters uniformly.",
+   "ignore_minus_one": "Unique Values: do not create a point for the value -1.",
+   "rand_seed": "Seed for jitter and scattering.",
+   "set_positions": "When off, all points are placed at the origin (Height Layer is not read), while `uv` and attributes are still written.",
+   "plane": "Plane the image is laid on in 3D.",
+   "world_size": "World width of the whole image.",
+   "height_layer": "Layer used for the coordinate along the axis perpendicular to the plane. Empty leaves it at 0.",
+   "height_scale": "Multiplier applied to Height Layer values.",
+   "attribs": "Space-separated layers to sample into point attributes (`C` becomes `Cd`). Empty writes none.",
+   "layer_attrib": "Name of an integer point attribute that receives the source pixel's value. Empty does not write it.",
+   "index_attrib": "Name of an integer point attribute that receives the source pixel offset `x + y*xres`. Empty does not write it."
+  },
+  "houdini_notes": "The first two methods (One Point per Pixel, Scatter by Density) are specific to this plugin; the other five follow Houdini's Method menu."
+ },
+ "PCG_COPLensDistort": {
+  "topic": "cop-transform",
+  "summary": "Adds or removes radial lens distortion.",
+  "description": "Applies the radial term of the Brown-Conrady model, `r_d = r * (1 + k1*r^2 + k2*r^4)`, where r is measured from the Center and normalized by half the image diagonal. A negative K1 gives barrel distortion, a positive K1 gives pincushion. Distort adds distortion to a clean image and Undistort removes it; the two round-trip. Very large |K1| values make the mapping non-monotonic and the Distort solver can then converge to the wrong root.",
+  "inputs": {
+   "cop": "Image to process."
+  },
+  "outputs": {
+   "cop": "Distorted or undistorted image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "mode": "Distort applies the lens model; Undistort inverts it.",
+   "k1": "First radial coefficient. Below 0 is barrel, above 0 is pincushion.",
+   "k2": "Second radial coefficient (fourth-power term).",
+   "center": "Distortion centre in uv, as two numbers (`0.5 0.5` is the image centre).",
+   "border": "What is shown where the distorted lookup falls outside the image."
+  }
+ },
+ "PCG_COPLevels": {
+  "topic": "cop-color",
+  "summary": "Remaps values with input range, gamma and output range.",
+  "description": "The classic Levels operation:\n\n```\nt   = (x - In Black) / (In White - In Black)\nt   = t ^ (1 / Gamma)\nout = Out Black + t * (Out White - Out Black)\n```\n\nThe default settings are a bit-exact identity. Gamma uses the reciprocal exponent so that raising Gamma brightens the image, the Photoshop / Nuke / Houdini convention (the opposite of `pow(x, gamma)`).\n\nClamp Input is on by default; turn it off for SDFs, normals and HDR data. With clamping off, `t` can be negative, and a plain power of a negative number would give NaN, so the node uses `sign(t) * |t|^g` instead, which is continuous at 0, monotonic and odd-symmetric (for an SDF it compresses or stretches inside and outside symmetrically).\n\nSetting Out Black to 1 and Out White to 0 inverts the values. For SDFs, Out Black 0 and Out White -1 negates them (swaps inside and outside).",
+  "inputs": {
+   "cop": "Image to adjust."
+  },
+  "outputs": {
+   "cop": "Image with the listed layers remapped."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "in_black": "Input range: the value mapped to 0 (first number) and to 1 (second number) before gamma.",
+   "clamp_input": "Clamp the normalized input to 0-1 before applying gamma. Turn off for SDF, normal and HDR data.",
+   "gamma": "Gamma value. Above 1 brightens, below 1 darkens (the exponent is 1/Gamma).",
+   "out_black": "Output range: the values that 0 and 1 are mapped to (first and second number). Swapping them inverts.",
+   "clamp_output": "Clamp the result to the output range."
+  }
+ },
+ "PCG_COPLight": {
+  "topic": "cop-utility",
+  "summary": "Lights an image using tangent-space normals with a directional or point light.",
+  "description": "Shades the image from a tangent-space normal layer (Z up, as produced by a height-to-normal conversion). The result is `Albedo * (Ambient + diffuse * color * intensity * lit) + specular * color * intensity * lit`, using Lambert diffuse and a Blinn-Phong highlight with the viewer looking straight down.\n\nA **Directional** light is defined by Azimuth (the direction the light comes from: 0 degrees from +u, 90 degrees from +v) and Elevation, the same convention as Height to Shadow. A **Point** light sits above Light Position (uv) at Light Height (as a fraction of the image width), so the direction differs per pixel; no inverse-square falloff is applied.\n\nWith Shadows on and a Height Layer given, directional lights use Height to Shadow; point lights march from every pixel toward the light and are shadowed when terrain rises above the line of sight.",
+  "inputs": {
+   "cop": "Image containing the normal layer (and optionally albedo and height layers)."
+  },
+  "outputs": {
+   "cop": "Image with the lit result in the output layer."
+  },
+  "params": {
+   "normal_layer": "Layer with tangent-space normals.",
+   "albedo_layer": "Layer used as surface color. Empty uses white.",
+   "light_type": "Directional (parallel rays) or Point (light at a position).",
+   "azimuth": "Directional: horizontal direction the light comes from, in degrees.",
+   "elevation": "Directional: angle of the light above the horizon in degrees. 90 is straight down.",
+   "position": "Point: light position in uv, as two numbers.",
+   "light_height": "Point: height of the light above the image plane, in units of image width.",
+   "color": "Light color as three space-separated numbers.",
+   "intensity": "Multiplier on the light color.",
+   "ambient": "Constant ambient term multiplied by the albedo.",
+   "specular": "Strength of the Blinn-Phong highlight. 0 disables it.",
+   "shininess": "Phong exponent; higher values give a tighter highlight.",
+   "shadows": "Cast shadows. Requires a Height Layer. Directional lights use Height to Shadow; point lights march per pixel toward the light.",
+   "height_layer": "Height layer used for shadows.",
+   "strength": "Height Scale: multiplies height values to get world heights (shadows only).",
+   "world_size": "World width of the image (shadows only).",
+   "out_layer": "Name of the layer that receives the lit image."
+  }
+ },
+ "PCG_COPLogic": {
+  "topic": "cop-composite",
+  "summary": "Compares layers or combines them with boolean operations, producing a 0/1 mask.",
+  "description": "Input A is a layer name; Input B is either a layer name or a constant number. Comparison operations (A > B, A >= B, A < B, A <= B, A = B, A != B) give 1 where true. Boolean operations (AND, OR, XOR, NOT A) treat any value above 0.5 as true. Equality uses Tolerance, since exact float equality almost never holds. For multichannel layers the result is 1 only where all channels satisfy the test. The output is a single channel.",
+  "inputs": {
+   "cop": "Image containing the layers to compare."
+  },
+  "outputs": {
+   "cop": "Image with the 0/1 mask added."
+  },
+  "params": {
+   "a": "Name of the layer used as operand A.",
+   "op": "Comparison or boolean operation.",
+   "b": "Operand B: a layer name or a constant number. Ignored by NOT A.",
+   "tolerance": "Allowed difference for equality tests (and the margin for >= and <=).",
+   "out_layer": "Name of the mask layer."
+  }
+ },
+ "PCG_COPLuminance": {
+  "topic": "cop-layers",
+  "summary": "Converts a layer to a single channel (luminance, average, HSV component, one channel, or custom weights).",
+  "description": "Reduces a layer to one channel stored as a new layer. The default HDTV operation is Rec.709 luminance (0.2126, 0.7152, 0.0722). COP data is linear, so weighting directly is correct; applying the same weights to sRGB-encoded values is a common mistake (decode first).\n\nOther operations: SGI and NTSC use their own weights; Average, Maximum Channel and Minimum Channel use all existing channels (alpha included); Magnitude is the vector length (absolute value for one channel); Hue, Saturation and Value convert to HSV (hue in 0-1, not degrees); Red/Green/Blue/Alpha pick one channel, with missing channels filled by the usual expansion rules; Custom computes the weighted sum of the channels, optionally normalizing the weights in use to sum to 1.\n\nLayers with fewer than three channels use their first channel instead of raising an error, so masks and SDFs can be passed through.",
+  "inputs": {
+   "cop": "Image to convert."
+  },
+  "outputs": {
+   "cop": "Image with the single-channel result added."
+  },
+  "params": {
+   "layer": "Layer to convert.",
+   "operation": "How the channels are reduced to one.",
+   "weights": "Custom only: four space-separated weights for R, G, B, A. Only as many weights as the layer has channels are used.",
+   "normalize_weights": "Custom only: scale the weights in use so they sum to 1.",
+   "out_layer": "Name of the result layer."
+  },
+  "houdini_notes": "Corresponds to Houdini's Mono COP and its Operation menu; also covers HeightField to Mono."
+ },
+ "PCG_COPMaskByFeature": {
+  "topic": "cop-terrain",
+  "summary": "Builds a mask from terrain features: slope, direction, height, curvature and occlusion.",
+  "description": "Each enabled criterion gives a 0-1 mask, and the enabled criteria are combined with Blend Mode (multiply by default, so all must hold). If no criterion is enabled the mask is all 1. Soft edges use smoothstep; a falloff of 0 gives a hard edge. Smooth Radius blurs the height first (world units) and all features are measured on the blurred height. Scale parameters (Height Scale, World Size) follow the same convention as the other height-layer nodes.\n\nTypical uses: rock on slopes of 35 degrees or more, gravel in gullies, snow on north-facing slopes (a Goal Angle of 90 degrees means downhill points toward +v).\n\n- **Slope**: angle in degrees between the surface and the horizontal.\n- **Direction**: downhill direction within Angle Spread of the Goal Angle (0 degrees is +u, 90 degrees is +v). Flat ground has no direction and scores 0.\n- **Height**: range in raw height values (Height Scale is not applied).\n- **Curvature**: tangential curvature separates ridges from gullies without using elevation, which flips on high gullies and low ridges. The height is blurred by Blur Radius pixels first (pixel-level curvature is noise), then divided by a reference value: Reference Curvature if greater than 0 (per world unit; required for tiled generation), otherwise the 90th percentile of |curvature| of this image. Threshold 0 then splits ridges from gullies; higher values select only sharper features.\n- **Occlusion**: 1 minus the height-to-AO result, so 0 is open and 1 is fully blocked.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the mask in the output layer."
+  },
+  "params": {
+   "layer": "Layer holding the terrain height.",
+   "strength": "Height Scale: multiplies height values to get world heights, used for slope, curvature and occlusion.",
+   "world_size": "World width of the whole image.",
+   "tile": "Treat the image as tileable (wrap at the edges).",
+   "smooth_radius": "Radius in world units used to blur the height before any feature is measured. 0 disables.",
+   "blend_mode": "How multiple enabled criteria are combined. Add is not clamped, so the mask can exceed 1.",
+   "use_slope": "Enable the slope criterion.",
+   "slope_min": "Slope range in degrees: the mask is 1 between the two values.",
+   "slope_falloff": "Width of the soft edge of the slope range, in degrees.",
+   "use_aspect": "Enable the direction criterion.",
+   "aspect_dir": "Goal downhill direction in degrees (0 is +u, 90 is +v).",
+   "aspect_spread": "Allowed angular deviation from the goal direction, in degrees.",
+   "aspect_falloff": "Width of the soft edge of the direction range, in degrees.",
+   "use_height": "Enable the height criterion.",
+   "height_min": "Height range in raw height values: the mask is 1 between the two values.",
+   "height_falloff": "Width of the soft edge of the height range, in height units.",
+   "curvature": "Select ridges (convex) or gullies (concave), or turn the curvature criterion off.",
+   "curv_threshold": "Threshold on the normalized curvature. 0 splits ridges from gullies; positive values keep only sharper features.",
+   "curv_falloff": "Width of the soft edge around the threshold, in normalized curvature.",
+   "curv_blur": "Blur radius in pixels applied to the height before curvature is computed.",
+   "curv_reference": "Curvature used for normalization, per world unit. 0 uses the 90th percentile of this image; set it explicitly when generating in tiles.",
+   "use_occlusion": "Enable the occlusion criterion.",
+   "occ_min": "Occlusion range (0 open, 1 fully blocked): the mask is 1 between the two values.",
+   "occ_falloff": "Width of the soft edge of the occlusion range.",
+   "occ_height_scale": "Extra multiplier on height for the occlusion calculation, to exaggerate occlusion.",
+   "occ_radius": "How far to look for occluders, in world units.",
+   "occ_step_scale": "Number of pixels per marching step (at most 64 steps are taken).",
+   "occ_samples": "Number of directions sampled for occlusion.",
+   "invert": "Invert the final mask.",
+   "out_layer": "Name of the mask layer.",
+   "keep_layers": "Keep the other layers of the input in the output."
+  }
+ },
+ "PCG_COPMaskCombine": {
+  "topic": "cop-composite",
+  "summary": "Combines several masks into one, using a simple operation or a Houdini-style stack of blend modes.",
+  "description": "Only the first channel of each layer is used. Simple operations on the listed Mask Layers: Union is the maximum, Intersect the minimum, Add sums, Multiply multiplies, Subtract takes the first minus all others, Difference accumulates `|a - b|`, Screen is the soft union `1 - prod(1 - m)`, and Average takes the mean.\n\n**Per-Layer Blend Modes (Houdini)** works like Houdini's node: the result starts at Starting Value and the rows of the Mask Layers stack are applied from top to bottom, each as `result = lerp(result, blend(result, layer), amount)`. Each row has the form `layer[.channel] mode amount`; the channel is `r g b a` or `x y z w` (default first channel), mode defaults to `blend` and amount to 1, and a row starting with `#` is disabled. Rows may also be separated with `;`. This mode ignores the simple Mask Layers list.\n\nPost-processing is applied in this order: Fold (absolute value), Complement (`1 - x`), Clamp Minimum, Clamp Maximum, then Clamp 0-1.",
+  "inputs": {
+   "cop": "Image containing the mask layers."
+  },
+  "outputs": {
+   "cop": "Image with the combined mask in the output layer."
+  },
+  "params": {
+   "op": "How the masks are combined.",
+   "layers": "Space-separated mask layers for the simple operations (first channel only). Not used by the stack mode.",
+   "starting_value": "Per-Layer Blend Modes only: value the result starts from before the first row.",
+   "stack": "Per-Layer Blend Modes only: one row per layer, applied top to bottom as `layer[.channel] mode amount`. Modes: blend, add, subtract, multiply, divide, screen, hypot, difference, exclusion, maximum, minimum, overlay, softlight, hardlight, dodge, burn. A leading `#` disables the row.",
+   "fold": "Take the absolute value of the result.",
+   "complement": "Replace the result with `1 - x`.",
+   "clamp_min": "Lower limit used when Use Clamp Min is on.",
+   "use_clamp_min": "Apply Clamp Minimum.",
+   "clamp_max": "Upper limit used when Use Clamp Max is on.",
+   "use_clamp_max": "Apply Clamp Maximum.",
+   "clamp": "Clamp the final result to 0-1.",
+   "out_layer": "Name of the result layer."
+  },
+  "houdini_notes": "The Per-Layer Blend Modes option follows Houdini's multiparm; here it is written as multi-line text. Per-layer Channel Mix, Light Direction, Blur and Layer Remap, and the post-process Remap, Amplitude, Center, Contrast, Bias, Gain and Gamma are not implemented; add separate COP nodes before or after if needed."
+ },
+ "PCG_COPMedian": {
+  "topic": "cop-filter",
+  "summary": "Applies a median filter that removes speckle while preserving edges.",
+  "description": "Each pixel takes the median of its neighbourhood. This removes salt-and-pepper noise and small blotches on AI-generated masks without blurring edges. A constant image is unchanged, and every output value is one of the values present in the window.\n\nThe filter needs sorting, so it runs on the CPU (a GPU image makes a round trip) and costs roughly `O(N*k^2*log k)`: radius 2 is already visibly slower than a blur and radius 4 much slower. Do not use it as a blur; the radius is limited to 8.",
+  "inputs": {
+   "cop": "Image to filter."
+  },
+  "outputs": {
+   "cop": "Filtered image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "radius": "Window radius in pixels (at most 8). 0 leaves the image unchanged.",
+   "shape": "Shape of the neighbourhood window.",
+   "border": "How pixels outside the image are treated."
+  }
+ },
+ "PCG_COPMirror": {
+  "topic": "cop-transform",
+  "summary": "Mirrors one half of an image onto the other, or reflects it across arbitrary mirror planes.",
+  "description": "The four directional modes copy one side onto the other around Mirror Position: Left to Right copies the left half over the right half, and so on. Quad mirrors the bottom-left quarter onto the whole image. Position is a uv coordinate.\n\nNumber and Offset and Custom Mirror Planes are Houdini's two arbitrary-plane modes. A mirror plane is a line in image space (origin at the image centre, -1 to 1 spanning the longer side, square pixels). With Angle 0 and Offset 0 it is the vertical centre line and the left half is mirrored onto the right. A positive Offset moves the plane to the right, and Reverse swaps which side is the source. In Number and Offset, plane k has the angle `k * Angle` and all planes share Offset. In Custom, each line of Mirrors defines one plane as `angle offset [reverse]`. Planes are applied in sequence, each acting on the result of the previous ones, but the lookup is composed so the image is resampled only once. Those two modes ignore Mirror Position.",
+  "inputs": {
+   "cop": "Image to mirror."
+  },
+  "outputs": {
+   "cop": "Mirrored image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "mode": "Mirroring method; see the description.",
+   "position": "Position of the mirror line in uv for the directional and quad modes.",
+   "planes": "Number and Offset: how many mirror planes to apply.",
+   "angle": "Number and Offset: angle in degrees between consecutive planes; plane k uses `k * Angle`. 0 is the vertical centre line.",
+   "offset": "Number and Offset: shift of the planes in image space (-1 to 1 across the long side). Positive moves the plane to the right.",
+   "reverse": "Number and Offset: swap the source and target sides of the planes.",
+   "plane_list": "Custom Mirror Planes: one plane per line, applied in order, as `angle offset [reverse 0/1]`."
+  }
+ },
+ "PCG_COPMonoToHeightField": {
+  "topic": "cop-terrain",
+  "summary": "Converts a single-channel layer into a height layer by scaling and offsetting its values.",
+  "description": "The height is `value * Height Scale + Height Offset` (scale first, then offset, so Offset is in final height units). Only the first channel of the layer is used. Layers have no type metadata in this plugin, so the result is recognised as a height field by its layer name; the default output name is `height`.",
+  "inputs": {
+   "cop": "Image containing the mono layer."
+  },
+  "outputs": {
+   "cop": "Image with the height layer added."
+  },
+  "params": {
+   "layer": "Layer to convert. For multichannel layers the first channel is used.",
+   "height_scale": "Multiplier applied to the values.",
+   "height_offset": "Value added after scaling.",
+   "out_layer": "Name of the height layer."
+  },
+  "houdini_notes": "Houdini also flags the layer's Type Info as height. Layers here carry no such flag; height layers are identified by naming convention."
+ },
+ "PCG_COPMonoToRGB": {
+  "topic": "cop-color",
+  "summary": "Maps a single-channel layer through a color ramp to produce an RGB false-color layer.",
+  "description": "The value is normalized as `t = (v - Input Min) / (Input Max - Input Min)` (or the layer's own min and max with Compute Range), the ramp is evaluated at `t`, and the color is scaled into the Output Min..Output Max intensity range. With Scale by Value, the color is additionally multiplied by the unclamped `t`, so values beyond the range keep getting brighter. If Input Max equals Input Min, `t` is 0.\n\nOutside Range decides what happens to `t` outside 0-1: Clamp at End holds the end colors; Repeat takes the fractional part (a value exactly at the top of the range still gets the last ramp color).\n\nThe ramp is written as `position:r,g,b` entries, for example `0:0,0,0  1:1,1,1`. If a Ramp Layer is given, colors are instead read along the horizontal middle row of that layer, with `t = 0` at the leftmost and `t = 1` at the rightmost pixel. To simply copy one channel into three, use COP Channel Convert.",
+  "inputs": {
+   "cop": "Image containing the mono layer."
+  },
+  "outputs": {
+   "cop": "Image with the RGB result in the output layer."
+  },
+  "params": {
+   "layer": "Layer to map. For multichannel layers the first channel is used.",
+   "compute_range": "Use the layer's actual minimum and maximum as Input Min and Max.",
+   "in_min": "Value that maps to the start of the ramp.",
+   "in_max": "Value that maps to the end of the ramp.",
+   "out_min": "Intensity that the ramp's 0 is scaled to.",
+   "out_max": "Intensity that the ramp's 1 is scaled to.",
+   "scale_by_value": "Multiply the color by the normalized value (not clamped).",
+   "outside": "Behaviour for values outside the input range: clamp at the end colors, or repeat the ramp.",
+   "ramp": "Color ramp as `position:r,g,b` entries separated by spaces, with positions from 0 to 1.",
+   "ramp_mode": "Interpolation between ramp entries: linear, smooth, or constant (stepped).",
+   "ramp_layer": "If set, colors are taken from the middle row of this layer instead of the Ramp text.",
+   "out_layer": "Name of the result layer. Empty overwrites the input layer."
+  }
+ },
+ "PCG_COPMorph": {
+  "topic": "cop-filter",
+  "summary": "Applies morphological operations (erode, dilate, open, close, gradient) with a square or round window.",
+  "description": "Erode takes the local minimum and dilate the local maximum over the window, in pixels. On masks this shrinks or grows shapes; on height fields it flattens peaks or fills valleys. Open (erode then dilate) removes small specks, Close (dilate then erode) fills small holes, and Gradient (`dilate - erode`) gives an outline about twice the radius thick on binary masks.\n\nThe square window is separable (two 1D passes, cost proportional to the radius), the round one is not and costs one full-image minimum per offset in the window (197 at radius 8, 1257 at radius 20). For large radii use an SDF instead: COP SDF from Mask followed by subtracting the radius gives a dilation of any size at a cost that does not depend on the radius, and is identical to a disc dilation of a binary mask. Use this node for small fixes (radius up to about 8).\n\nBorder matters: Clamp copies the edge, so the image border does not take part in erosion; Constant (Black) treats the outside as 0, so erosion eats inward from all four edges.",
+  "inputs": {
+   "cop": "Image to process."
+  },
+  "outputs": {
+   "cop": "Processed image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "op": "Operation to apply; see the description.",
+   "radius": "Window radius in pixels. For large radii prefer an SDF-based approach.",
+   "shape": "Window shape: square (fast, separable) or circle (slower).",
+   "border": "How pixels outside the image are treated."
+  },
+  "houdini_notes": "Corresponds to Houdini's Dilate Erode, extended with Open, Close and Gradient."
+ },
+ "PCG_COPNoise": {
+  "topic": "cop-generate",
+  "summary": "Generates a fractal noise image with optional tiling, animation and post-processing.",
+  "description": "Each pixel is given a 3D coordinate (uv times Frequency, placed on the plane z = Offset z, plus Offset x and y), and the value comes from the same `fractal_noise` function used by the geometry-side Attribute Noise. The same world position therefore gets a bit-identical value in an image and on geometry, as long as the parameters match, which lets you bake a displacement map and displace geometry consistently.\n\nChannels above 1 each use their own seed (`seed + k*7919`), which gives RGB noise or a 2D flow field in one node (Houdini's Per Component).\n\n**Tiling**: Tile U wraps the u direction onto a circle, so the result tiles horizontally. Tile U and Tile V together give a seamless 2D tile (a flat torus in four dimensions, as does the Torus noise type, which is simplex noise with both tilings). Lacunarity does not need to be an integer for tiling.\n\n**Animation**: Time Scale above 0 switches to 4D noise with the fourth coordinate `Time * Time Scale`. Loop Length (Frames) above 0 moves time around a circle in the (z, w) plane so that frame 0 and the loop length are identical, with a flow speed matching the non-looping case. Looping needs Time Scale above 0 and cannot be combined with Tile U or Tile V, and two-way tiling cannot be combined with Time Scale either (these would need a fifth dimension; the node raises an error instead of silently disabling one).\n\n**Post processing** runs after Amplitude and Center in this order: Fold, Complement, Bias, Gain, Gamma, Contrast, Clamp Minimum, Clamp Maximum. Bias, Gain and Gamma act on negative values by odd extension (`sign(x) * |x|^p`) so no NaN appears.",
+  "outputs": {
+   "cop": "New image with the noise in the output layer."
+  },
+  "params": {
+   "resolution_x": "Output width and height in pixels.",
+   "channels": "Number of channels (1-4). Each channel is an independent noise with its own seed.",
+   "layer": "Name of the output layer.",
+   "amplitude": "Multiplier applied to the noise.",
+   "bias": "Center: constant added after the amplitude.",
+   "noise_type": "Basis noise. Worley F1 is cellular distance to the nearest point, F2-F1 the difference of the two nearest distances. White is uncorrelated per-pixel random. Torus is simplex noise that tiles in both directions.",
+   "metric": "Distance metric for the Worley types. Worley F2-F1 with Manhattan searches two rings of neighbouring cells (125 instead of 27), because the second-nearest point can lie further out with that metric; it is about 4.6 times slower than the other combinations.",
+   "jitter": "Worley types: how far feature points move inside their cells. 0 is a regular grid; above 1 the points leave the search range and artefacts appear (Houdini warns the same).",
+   "frequency": "Number of noise features across the image: uv is multiplied by this. It is the reciprocal of Houdini's Element Size.",
+   "offset_x": "Offset of the noise space (x, y, z). The z value selects the slice of the 3D noise.",
+   "tile_u": "Make the noise seamless in the horizontal direction. Cannot be combined with Loop Length.",
+   "tile_v": "Make the noise seamless in the vertical direction. With Tile U, gives a fully seamless 2D tile.",
+   "rand_seed": "Seed of the noise.",
+   "time_scale": "Speed of the animation along the fourth dimension. 0 gives static 3D noise and ignores Time and Loop Length.",
+   "time": "Current time (frame) used for animation, multiplied by Time Scale.",
+   "loop_frames": "If above 0, the animation loops seamlessly after this many frames. Requires Time Scale above 0.",
+   "fractal": "Fractal combination of octaves. None uses a single octave (Max Octaves, Lacunarity and Roughness have no effect). Terrain and Hybrid Terrain give the multifractal variants used for terrain.",
+   "octaves": "Maximum number of octaves summed.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude multiplier from one octave to the next.",
+   "fold": "Post processing: take the absolute value.",
+   "complement": "Post processing: replace x with `1 - x`.",
+   "pp_bias": "Post processing: Perlin bias. 0.5 leaves the values unchanged; below 0.5 pulls toward 0, above 0.5 toward 1.",
+   "gain": "Post processing: Perlin gain. 0.5 leaves the values unchanged; above 0.5 steepens the middle, below 0.5 flattens it.",
+   "gamma": "Post processing: `x^gamma`. Above 1 darkens, following Houdini's noise documentation.",
+   "contrast": "Post processing: scales values around 0.5.",
+   "clamp_min": "Lower limit used when Use Clamp Min is on.",
+   "use_clamp_min": "Apply the lower clamp.",
+   "clamp_max": "Upper limit used when Use Clamp Max is on.",
+   "use_clamp_max": "Apply the upper clamp.",
+   "device": "Compute backend. Auto uses the GPU when CUDA is available and the image has at least 256x256 pixels. GPU results are float32 and differ from the CPU float64 path by rounding (about 1e-6); Exact keeps float64 on the CPU for bit-identical agreement with the geometry side."
+  },
+  "houdini_notes": "Covers Houdini's Fractal Noise and Fractal Noise 3D. Tile U / Tile V and Torus are implemented by wrapping the noise coordinates onto circles in a higher dimension, so the Lacunarity does not have to be rounded to an integer as in Houdini."
+ },
+ "PCG_COPNoiseExtra": {
+  "topic": "cop-generate",
+  "summary": "Generates Bubble, Crystal, Phasor, Curl, Curl 3D and Cloud noise.",
+  "description": "A collection of additional noise types. Coordinates are normalized by the image width and keep the aspect ratio, so bubbles stay round. The 3D types slice the volume at the third Offset value (z); moving it animates the noise. If `cop` is connected, layers are added to it and its resolution is used; otherwise a new image is created with Resolution.\n\nThe main layer is the Output Layer; auxiliary layers are named `<Output Layer>_xxx`:\n- **Bubble**: one sphere per cell with probability Density and radius Radius times 0.5-1 cell; the value is the cross-section height of the sphere at the slice. Overlaps take the maximum. Auxiliary: `_id`.\n- **Crystal**: 3D Voronoi where every cell has a random tilted plane, producing facets with creases between cells. Auxiliary: `_id`, `_edge` (F2-F1, zero at creases).\n- **Phasor**: Gabor-like noise with the phase of the complex sum of kernels only, so stripe contrast is uniform. Auxiliary: `_phase`, `_amplitude`.\n- **Curl**: a divergence-free 2-channel velocity field derived from a simplex fractal potential (unit is per noise unit; multiply by Frequency / image width for per-pixel). Auxiliary: `_potential`.\n- **Curl 3D**: 3-channel curl of three potentials, evaluated on the z slice. Note that (vx, vy) on a single slice are not divergence-free.\n- **Cloud 3D**: simplex fractal turned into a 0-1 density by Coverage and Softness. Auxiliary: `_raw`.\n\nAmplitude, Center and the post-processing block only affect the main layer, not the auxiliary ones.",
+  "inputs": {
+   "cop": "Optional image to add the noise to. Its resolution is used. Not connected: a new image of the given Resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the noise in the output layer and the auxiliary layers listed above."
+  },
+  "params": {
+   "kind": "Noise type to generate.",
+   "amplitude": "Multiplier applied to the main layer.",
+   "center": "Constant added to the main layer after the amplitude.",
+   "frequency": "Number of noise features across the image width. Reciprocal of Houdini's Element Size.",
+   "offset": "Offset of the noise space as three numbers. The third is the z slice for 3D types.",
+   "octaves": "Number of octaves for Curl, Curl 3D and Cloud 3D.",
+   "rand_seed": "Seed of the noise.",
+   "radius": "Bubble: maximum sphere radius in cells (0-1).",
+   "density": "Bubble: probability that a cell contains a sphere.",
+   "sharpness": "Crystal: slope of the facet planes. Higher values give stronger facets.",
+   "metric": "Crystal: distance metric used to pick the cell.",
+   "jitter": "Crystal: how far feature points move inside their cells.",
+   "phasor_type": "Phasor: what is shown in the main layer. Phasor Wave is a periodic function of the phase; Gabor Noise is the real part of the kernel sum; Intensity Field is the magnitude behind both.",
+   "periodic_function": "Phasor Wave only: wave shape of the periodic function.",
+   "stripe_freq": "Phasor: number of stripes per cell.",
+   "angle": "Phasor: stripe direction in degrees.",
+   "spread": "Phasor: random deviation from the stripe direction, in degrees (plus or minus half of it).",
+   "kernels": "Phasor: number of kernels per cell. More kernels give a more uniform pattern and cost more time.",
+   "direction_layer": "Phasor: optional 2-channel vector layer of the connected image; stripes follow it instead of Angle.",
+   "coverage": "Cloud: fraction of space filled with cloud (0 empty, 1 full).",
+   "softness": "Cloud: width of the transition between empty and full density.",
+   "billow": "Cloud: use the absolute value of the noise for puffier clumps.",
+   "fold": "Post processing: take the absolute value.",
+   "complement": "Post processing: replace x with `1 - x`.",
+   "pp_bias": "Post processing: Perlin bias. 0.5 leaves the values unchanged; below 0.5 pulls toward 0, above 0.5 toward 1.",
+   "gain": "Post processing: Perlin gain. 0.5 leaves the values unchanged.",
+   "gamma": "Post processing: `x^gamma`. Above 1 darkens.",
+   "contrast": "Post processing: scales values around 0.5.",
+   "clamp_min": "Lower limit used when Use Clamp Min is on.",
+   "use_clamp_min": "Apply the lower clamp.",
+   "clamp_max": "Upper limit used when Use Clamp Max is on.",
+   "use_clamp_max": "Apply the upper clamp.",
+   "out_layer": "Name of the main output layer.",
+   "resolution_x": "Output width and height. Used only when `cop` is not connected.",
+   "compute": "Backend. Auto uses the GPU when available and the image is large enough."
+  },
+  "houdini_notes": "Covers Houdini's Bubble, Crystal (and 3D), Phasor, Curl (and 3D) and Cloud 3D noise COPs in one node. The core algorithms of Bubble, Cloud and Crystal are the plugin's own, because Houdini does not document their formulas; Crystal's Secondary metric group and Phasor's Wave Bias are not implemented."
+ },
+ "PCG_COPNormalToHeight": {
+  "topic": "cop-terrain",
+  "summary": "Reconstructs a height layer from a normal map; the inverse of Height to Normal.",
+  "description": "The output has zero mean. With the same Height Scale and World Size used for the forward conversion, the recovered height differs from the original only by a constant. Typical use: you only have a normal map (scan, bake, AI-generated) and need a height for displacement, parallax or terrain.\n\nTwo integrators, with a real trade-off:\n- **Spectral (Frankot-Chellappa)**: robust for inconsistent normal maps (AI or hand-painted maps that do not correspond to any real surface), but it attenuates fine detail: undulations with a 16-pixel period come back at 97.5%, a 4-pixel period at 64%.\n- **Exact**: a pixel-exact inverse of Height to Normal (central differences, tiled), but inconsistent input produces checkerboard patterns at high frequency. Use it when you convert back and forth inside your own chain.\n\nWith Tileable off, the edges are extended by mirroring (zero slope at the border), so the few pixels near the edge are approximate, and Exact is then worse than Spectral (the mirror seams are inconsistent and the exact method amplifies them). Use Exact with tiling and Spectral without.\n\nNormals with z at or below 0.01 are clamped to avoid exploding slopes; `report` states how many were clamped.",
+  "inputs": {
+   "cop": "Image containing the normal layer."
+  },
+  "outputs": {
+   "cop": "Image with the height layer added.",
+   "report": "Text summary, including how many pixels had their normal clamped."
+  },
+  "params": {
+   "layer": "Layer holding the tangent-space normals.",
+   "strength": "Height Scale: the scale used when the normals were created from a height (height times this is world height). The output is in height units.",
+   "world_size": "World width of the whole image, used to convert normals to slopes.",
+   "method": "Integration method; see the description. Use Exact with Tileable on and Spectral with it off.",
+   "tile": "Treat the image as tileable (wrap) instead of mirroring at the edges.",
+   "out_layer": "Name of the height layer.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPOcean": {
+  "topic": "cop-sim",
+  "summary": "Evaluates an FFT ocean surface (Tessendorf) into height, displacement, normal and foam layers.",
+  "description": "Combines Houdini's Ocean Spectrum and Ocean Evaluate. A wave spectrum (Phillips or TMA) generates random complex amplitudes, which are advanced in time with the dispersion relation (deep water, or finite depth when Depth is above 0) and transformed with an inverse FFT. The result tiles seamlessly because the FFT is periodic. With the same seed, changing Time animates the surface; changing Amplitude only scales it (height proportional to the square root of the amplitude). With the default Amplitude the significant wave height is about `0.21*V^2/g` for a fully developed sea; Grid Size should be at least an order of magnitude larger than `V^2/g`, or the longest waves are cut off and the sea looks low.\n\nOutput layers, in metres, named after Output Layer:\n- `<name>`: height.\n- `<name>_disp`: 3-channel displacement (du, height, dv): horizontal choppy displacement along the image u and v directions plus vertical displacement, to push a mesh.\n- `<name>_N`: tangent-space normal (u, v, up).\n- `<name>_foam`: foam, where the displacement Jacobian drops below `1 - Foam Threshold`, mapped linearly to 0-1.\n\nIf `cop` is connected, layers are added to it and its resolution is used; otherwise Resolution applies. `report` lists the maximum wave height and the imaginary residual of the inverse FFT (should be 0).",
+  "inputs": {
+   "cop": "Optional image to add the ocean layers to. Its resolution is used. Without it a new image of the given Resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the ocean layers.",
+   "report": "Text summary with the maximum wave height and the FFT imaginary residual."
+  },
+  "params": {
+   "size": "Width of the whole image in metres (height follows the aspect ratio).",
+   "depth": "Water depth in metres. 0 means deep water.",
+   "gravity": "Gravitational acceleration used by the dispersion relation and spectrum.",
+   "resolution_x": "Output width and height in pixels. Used only when `cop` is not connected.",
+   "time": "Time in seconds at which the surface is evaluated.",
+   "loop_period": "Period in seconds after which the animation repeats exactly (wave frequencies are quantized to multiples of 2*pi/period). 0 disables looping.",
+   "rand_seed": "Seed for the random wave amplitudes and phases.",
+   "spectrum_type": "Wave spectrum. Phillips is the classic Tessendorf spectrum; TMA is a depth-aware spectrum with a Hasselmann directional distribution (it ignores Amplitude and Wind Direction Bias).",
+   "wind_speed": "Wind speed in metres per second. Sets the dominant wavelength (`V^2/g`).",
+   "wind_direction": "Direction the wind blows, in degrees.",
+   "swell": "TMA only: negative values reduce directionality and add waves against the wind, positive values concentrate energy.",
+   "fetch_km": "TMA only: distance in kilometres over which the wind has blown, which sets how developed the sea is.",
+   "align": "Phillips only: how strongly waves align with the wind. Higher values give more wind-aligned waves.",
+   "directional_movement": "Phillips only: reduces waves travelling against the wind by a factor of `1 - value`.",
+   "distribution": "Random distribution of the wave amplitudes (phases are always uniformly random). All four options have the same mean energy; they differ in distribution shape.",
+   "amplitude": "Phillips only: overall spectrum constant. Wave height scales with its square root.",
+   "small_cut": "Waves shorter than this length in metres are suppressed.",
+   "choppiness": "Strength of the horizontal displacement that sharpens crests.",
+   "foam_threshold": "Foam appears where the displacement Jacobian falls below `1 - threshold`; it is also the width over which foam ramps to 1.",
+   "out_layer": "Base name of the output layers (`<name>`, `<name>_disp`, `<name>_N`, `<name>_foam`)."
+  },
+  "houdini_notes": "One node replaces Houdini's Ocean Spectrum and Ocean Evaluate pair. The TMA directional spread is Hasselmann with Horvath's swell term; the sign handling of Swell (negative adds against-wind waves) is chosen by the plugin because the documentation is not specific."
+ },
+ "PCG_COPPattern": {
+  "topic": "cop-generate",
+  "summary": "Generates procedural patterns: checkerboard, tiles, cells, UV grid, Julia/Mandelbrot, Chladni, knit and weave.",
+  "description": "One node for eight pattern types. The main layer is the Output Layer; helper layers are named `<Output Layer>_xxx` and are what you use for per-element coloring and bevelled normals. If `cop` is connected, layers are added to it and its resolution is used; otherwise a new image of the given Resolution is created. When the counts are whole numbers the patterns tile seamlessly.\n\nPattern types and their layers:\n- **Checkerboard**: analytically antialiased 0/1; `_id`.\n- **Tile Pattern**: bricks or tiles with a Gap and Bevel given as fractions of a tile's short side. Layers: main mask (gaps are 0), `_id`, `_height` (bevel), `_edge` (pixel distance to the gap), `_rand` (per tile), `_uv` (0-1 within the tile). Bond sets the brick layout; seamless tiling needs an even row count (American: a common multiple of Header Interval and 2) and a column count that is a whole multiple of the bond's row period.\n- **Cell Pattern**: periodic Voronoi cells. Layers: main mask, `_id`, `_edge` (true pixel distance to the cell border, measured in pixel space), `_dist` (distance to the feature point, normalized by the short cell side), `_rand`.\n- **UV Grid**: a UV checking image; cells are named from A1 at the bottom-left of UV space (v up), so a glance at the textured model shows mirroring or rotation. Layers: RGB main, `_id`, `_uv`.\n- **Julia Fractal**: Julia or Mandelbrot with smooth iteration count; view width is 3/Zoom complex units. Layers: main (smooth iterations divided by Max Iterations), `_inside`, `_trap` (orbit trap).\n- **Chladni Cymatics**: the standing-wave pattern of a square plate, `f = A*[cos(n*pi*x)cos(m*pi*y) +/- k*cos(m*pi*x)cos(n*pi*y)]`, where A is Amplitude and k is Amplitude Ratio. Sand collects on the nodal lines (f = 0). Layers: main, `_value` (signed shape).\n- **Knit**: stockinette V-shaped loops. Layers: height, `_mask`, `_id`, `_leg` (0 left, 1 right), `_rand`.\n- **Weave**: warp (vertical) and weft (horizontal) threads with half-round cross-section that undulate over and under at crossings. Layers: height, `_mask`, `_warp` (where the warp is on top), `_id`, `_rand`.",
+  "inputs": {
+   "cop": "Optional image to add the pattern layers to. Its resolution is used. Needed as well for the Weave Custom pattern layer."
+  },
+  "outputs": {
+   "cop": "Image with the pattern in the output layer and the helper layers described above."
+  },
+  "params": {
+   "kind": "Pattern type.",
+   "counts": "Number of columns and rows as two numbers (Checkerboard, Tile, Cell, UV Grid, Knit, Weave). Use whole numbers for seamless tiling.",
+   "gap": "Tile and Cell: gap between elements as a fraction of the short side of a tile or cell.",
+   "rand_seed": "Seed for random values (tile and cell random values, knit, weave).",
+   "bond": "Tile: brick layout. Row Offset shifts each row by the Row Offset value; the others are named brick bonds (header bricks show their short end and are half a stretcher long).",
+   "header_interval": "American bond: one header row for every this many rows.",
+   "offset": "Tile with Row Offset bond: how far each row is shifted, in tiles (0.5 is a running bond).",
+   "bevel": "Tile: bevel width as a fraction of the tile's short side, producing the `_height` layer.",
+   "jitter": "Cell: how far feature points move inside their cells. 0 is a regular grid.",
+   "lattice": "Cell: Grid places points in a square lattice; Hexagonal shifts every odd row by half a cell, giving hexagons (regular at a cell aspect of 2:sqrt(3)). Seamless tiling needs an even row count.",
+   "cell_metric": "Cell: distance metric. For Manhattan and Chebyshev the edge distance is approximated by (F2-F1)/2.",
+   "density": "Cell: fraction of cells kept. Cells whose random value is at or above it are removed from the main mask only.",
+   "density_seed": "Cell: seed for the density test, independent of Seed.",
+   "weave": "Weave: thread over-under pattern. Custom reads the up/down table from Pattern Layer.",
+   "weave_layer": "Weave Custom: layer of the input image sampled at each crossing centre; a value above 0.5 means the warp (vertical) thread is on top.",
+   "thread_width": "Weave: thread width as a fraction of the pitch; 1 minus the width is the gap. With Separate Row / Column Widths on, this controls only the warp threads (vertical).",
+   "separate_widths": "Weave: set the weft (horizontal) thread width separately.",
+   "weft_width": "Weave: weft thread width, used when Separate Row / Column Widths is on.",
+   "fractal": "Julia Fractal: render the Julia set or the Mandelbrot set.",
+   "c": "Julia: the complex constant as two numbers (real, imaginary).",
+   "center": "Julia: centre of the view in the complex plane, as two numbers.",
+   "zoom": "Julia: zoom factor. The view is 3/Zoom wide.",
+   "iterations": "Julia: maximum number of iterations.",
+   "modes": "Chladni: the mode numbers n and m as two numbers. Higher values give finer patterns.",
+   "sign": "Chladni: sign of the second term, which changes the symmetry of the pattern.",
+   "chladni_output": "Chladni: Nodal Lines (Pixel Width) draws lines of constant pixel width; Nodal Lines (Threshold) is white below the threshold and black above, with a soft edge; Absolute Value and Signed Value output the wave function itself.",
+   "line_width": "Chladni with Nodal Lines (Pixel Width): line width in pixels.",
+   "threshold": "Chladni with Nodal Lines (Threshold): value of |f| above which the output is black.",
+   "smoothing_width": "Chladni with Nodal Lines (Threshold): width of the soft transition below the threshold. 0 gives a hard edge.",
+   "amplitude": "Chladni: scales the first wave and therefore the whole output.",
+   "amplitude_ratio": "Chladni: weight of the second wave relative to the first. 1 is the plain formula.",
+   "tile_coloring": "UV Grid: how tile backgrounds are colored. Hue colors columns by hue with a value checker; Gradient runs from Tile Color 1 to 2 in cell order.",
+   "tile_color1": "UV Grid: first tile color (RGB, three numbers).",
+   "tile_color2": "UV Grid: second tile color (RGB, three numbers).",
+   "outlines": "UV Grid: draw outlines between tiles.",
+   "outline_width": "UV Grid: outline width in pixels.",
+   "outline_color": "UV Grid: outline color (RGB, three numbers).",
+   "labels": "UV Grid: draw markers in the tiles.",
+   "marker_type": "UV Grid: Text writes the cell name, Cross draws a cross, Arrow draws an arrow pointing to +v (shows rotation of the UVs).",
+   "text_mode": "UV Grid Text markers: Letters & Numbers gives A1, B1 and so on; Coordinates gives `i,j` starting at 0,0 in the bottom-left.",
+   "font": "UV Grid text: font name or path. Empty uses the default font of Pillow.",
+   "marker_size": "UV Grid: marker size relative to the short side of a tile.",
+   "marker_coloring": "UV Grid: how marker colors are chosen (uniform, checker, or gradient in cell order).",
+   "marker_color": "UV Grid: first marker color (RGB, three numbers).",
+   "marker_color2": "UV Grid: second marker color (RGB, three numbers).",
+   "out_layer": "Name of the main output layer; helper layers use it as a prefix.",
+   "resolution_x": "Output width and height in pixels. Used only when `cop` is not connected."
+  },
+  "houdini_notes": "Covers Houdini's Checkerboard, Tile Pattern, Cell Pattern, Labs UV Grid Texture, Julia Fractal, Chladni Cymatic Patterns, Knit and Weave. Knit's geometry is the plugin's own construction."
+ },
+ "PCG_COPPixelate": {
+  "topic": "cop-filter",
+  "summary": "Pixelates an image into square blocks.",
+  "description": "Divides the image into Size x Size pixel blocks and fills each block with its average color or with the value at the block centre.",
+  "inputs": {
+   "cop": "Image to pixelate."
+  },
+  "outputs": {
+   "cop": "Pixelated image."
+  },
+  "params": {
+   "layers": "Space-separated layers to process. Empty processes all layers.",
+   "size": "Block size in pixels.",
+   "mode": "Average fills each block with the mean of its pixels; Sample Center uses the single pixel at the block centre."
+  }
+ },
+ "PCG_COPPlanarInflate": {
+  "topic": "cop-geometry",
+  "summary": "Inflates a mask into a height layer, like a pillow or soap bubble.",
+  "description": "Pixels of the mask above 0.5 are inflated, and the result is normalized so the highest point equals Height. It is a good starting point for relief, bevelled text and normal maps. An empty mask gives an error.\n\n- **Round**: a circular-arc profile `h = sqrt(2Rd - d^2) / R`, where d is the distance to the boundary and R the largest inner distance. Edges are vertical and the middle is a flat top, like a pillow.\n- **Poisson (Soap Bubble)**: solves `laplacian(h) = -1` with h = 0 on the boundary, using a coarse-to-fine Jacobi solver.",
+  "inputs": {
+   "cop": "Image containing the mask layer."
+  },
+  "outputs": {
+   "cop": "Image with the height layer added."
+  },
+  "params": {
+   "layer": "Mask layer. Pixels above 0.5 are inflated.",
+   "mode": "Shape of the profile; see the description.",
+   "height": "Height of the highest point.",
+   "iterations": "Poisson mode: Jacobi iterations per resolution level. More gives a more converged result. Round mode ignores it.",
+   "out_layer": "Name of the height layer."
+  }
+ },
+ "PCG_COPPointGenerate": {
+  "topic": "cop-geometry",
+  "summary": "Adds new points to a point cloud, with the count taken from parameters or from a count attribute.",
+  "description": "The number of new points comes from one of three sources:\n- **Parameters**: `Number of Points + Points per Second * Time Step`. Any fractional part is rounded up or down at random according to Seed. The two terms are added, which is this plugin's reading of Houdini's behaviour.\n- **Point Attribute**: each source point is copied `floor(count)` times (negative counts give none). Point attributes matching Copy Attributes are copied from the source point; all other attributes of the new points are 0.\n- **Detail Attribute**: an integer detail attribute gives the count (floored; the fractional part is not randomized).\n\nThe source is `ref` when connected, otherwise `points`. New points sit at the origin unless `P` is copied. If `points` has an `id` attribute, new points continue the numbering from the detail attribute `nextid` (updated afterwards) when present, otherwise from `max(id) + 1`, with a step of the detail attribute `idstep` or 1. With Append Points on, the output is the input points (primitives are discarded) plus the new points.",
+  "inputs": {
+   "points": "Point cloud the new points are added to. Optional.",
+   "ref": "Optional geometry that supplies the count attribute and the attributes to copy. When not connected, `points` is used."
+  },
+  "outputs": {
+   "points": "Points, with the new points appended (or only the new points when Append Points is off)."
+  },
+  "params": {
+   "method": "Where the point count comes from.",
+   "number_of_points": "Parameters method: number of points to add.",
+   "points_per_second": "Parameters method: rate multiplied by Time Step and added to Number of Points.",
+   "time_step": "Parameters method: time in seconds used with Points per Second. Houdini uses the simulation time step; there is no simulation here, so it is a parameter (default 1/24).",
+   "rand_seed": "Seed for the random rounding of a fractional count.",
+   "count_attrib": "Name of the point or detail attribute that holds the count (Point Attribute and Detail Attribute methods).",
+   "copy_attribs": "Point Attribute method: pattern of point attributes copied from the source points to their new copies.",
+   "append_points": "Keep the input points and append the new points. When off, only the new points are output (with the input's attribute definitions)."
+  },
+  "houdini_notes": "Time Step is an explicit parameter because the plugin has no simulation time. Houdini's Layer to Points is a different node (see COP Layer To Points)."
+ }
+}

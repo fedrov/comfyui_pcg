@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Runtime output / caches written by the nodes
+output/
+pcg_cache/
+
+# Written by examples/demo.py
+examples/demo_mesh.obj
+examples/demo_preview.png
+
+# Frontend test dependencies (npm install)
+node_modules
+package-lock.json
+
+# Local leftovers from before the repo layout (safe to delete)
+Claude outputs/
+/comfyui_pcg_design.html
+
+# Internal development notes (kept locally, not published)
+docs/dev/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

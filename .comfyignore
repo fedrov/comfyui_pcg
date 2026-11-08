@@ -1,0 +1,9 @@
+# Kept in the GitHub repo, left out of the Comfy Registry package
+tests/
+tools/
+docs/dev/
+docs/pcg100/
+.github/
+package.json
+docs/html/
+docs/images/nodes/

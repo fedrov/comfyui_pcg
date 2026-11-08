@@ -1,0 +1,16 @@
+name: Feature request
+description: A missing node, parameter or workflow feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like
+      description: The node or behaviour you are missing. For Houdini nodes, name the SOP/COP and the parameters that matter to you.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Use case
+      description: What you are trying to build. This helps prioritise.

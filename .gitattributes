@@ -1,0 +1,20 @@
+# Keep LF line endings in the repository and in working copies on every OS (the files are written with LF;
+# without this, Git on Windows with core.autocrlf=true converts them to CRLF on checkout).
+* text=auto eol=lf
+
+# Binary files: never touch line endings, no text diffs
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.glb binary
+*.bin binary
+*.npy binary
+*.npz binary
+*.exr binary
+*.hdr binary
+*.ttf binary
+*.otf binary
+*.r16 binary
+*.raw binary

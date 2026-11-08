@@ -1,0 +1,785 @@
+{
+ "last_node_id": 12,
+ "last_link_id": 14,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    440
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "For-Each variations (read me)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "One chain, six different results: a For-Each loop in Count mode.\n\nFor-Each Begin (Iterate over: Count, 6 iterations, Fetch Input) hands the same sphere to the loop body six times. Its 'iteration' output (0 to 5) is wired into the Seed of Point Jitter and Attribute Noise, so every pass gets different random numbers and a different stone.\n\nThe Wrangle also gets the iteration on its Seed input; inside the code it is the variable 'seed'. It moves each stone along X and picks a colour. For-Each End (Gather: Merge) collects all six.\n\nTweak: Iterations on For-Each Begin, the jitter Scale, the noise Amplitude, or what the Wrangle does with 'seed'."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_Sphere",
+   "pos": [
+    0,
+    484
+   ],
+   "size": [
+    360,
+    270
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Sphere"
+   },
+   "widgets_values": [
+    1.0,
+    10,
+    7,
+    "polygon_mesh",
+    2,
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "y"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "PCG_ForEachBegin",
+   "pos": [
+    0,
+    798
+   ],
+   "size": [
+    360,
+    315
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 1
+    },
+    {
+     "name": "_state",
+     "type": "PCG_LOOP",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      2
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "input",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "iteration",
+     "type": "INT",
+     "links": [
+      3,
+      7,
+      9
+     ],
+     "slot_index": 3
+    },
+    {
+     "name": "numiterations",
+     "type": "INT",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "value",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    },
+    {
+     "name": "ivalue",
+     "type": "INT",
+     "links": [],
+     "slot_index": 6
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachBegin"
+   },
+   "widgets_values": [
+    "fetch_input",
+    "count",
+    "primitives",
+    "name",
+    6,
+    "",
+    false,
+    0,
+    1000
+   ],
+   "title": "Each stone (count x 6)"
+  },
+  {
+   "id": 4,
+   "type": "PCG_PointJitter",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    295
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 2
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 3,
+     "widget": {
+      "name": "rand_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PointJitter"
+   },
+   "widgets_values": [
+    "",
+    1.0,
+    "no_scaling",
+    "",
+    "",
+    0.5,
+    1.0,
+    1.0,
+    1.0,
+    1,
+    false,
+    true
+   ]
+  },
+  {
+   "id": 5,
+   "type": "PCG_Subdivide",
+   "pos": [
+    420,
+    339
+   ],
+   "size": [
+    360,
+    305
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Subdivide"
+   },
+   "widgets_values": [
+    "",
+    "catmull_clark",
+    3,
+    "edge_corner",
+    "",
+    -1.0,
+    "",
+    "creaseweight"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "PCG_Normal",
+   "pos": [
+    420,
+    688
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    180.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "id": 7,
+   "type": "PCG_AttribNoise",
+   "pos": [
+    420,
+    1036
+   ],
+   "size": [
+    360,
+    1098
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 6
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 7,
+     "widget": {
+      "name": "rand_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribNoise"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "P",
+    true,
+    true,
+    true,
+    true,
+    "N",
+    1.0,
+    "add",
+    "zero_centered",
+    0.12,
+    false,
+    0.5,
+    0.5,
+    false,
+    "0:0  0.5:0.25  1:1",
+    "linear",
+    false,
+    0.0,
+    false,
+    1.0,
+    "worley_f2f1",
+    "P",
+    0.4,
+    0.4,
+    0.4,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    false,
+    "set(0, @P.y * 0.1, 0)",
+    false,
+    0.0,
+    1.0,
+    "standard",
+    2,
+    2.0,
+    0.5,
+    0.7,
+    0.0,
+    1.0,
+    1,
+    false,
+    false,
+    false,
+    0.0,
+    1.0,
+    "",
+    "auto",
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false
+   ],
+   "title": "Pits along the normal"
+  },
+  {
+   "id": 8,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 8
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 9,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "# 'seed' is the value wired into the Seed input: the loop iteration\n@P.x += (seed - 2.5) * 2.3\n@Cd = lerp(set(0.42, 0.40, 0.37), set(0.66, 0.60, 0.52), rand(seed + 0.5))",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Place and colour (seed = iteration)"
+  },
+  {
+   "id": 9,
+   "type": "PCG_ForEachEnd",
+   "pos": [
+    840,
+    291
+   ],
+   "size": [
+    360,
+    126
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 10
+    },
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "link": 11
+    },
+    {
+     "name": "_accum",
+     "type": "PCG_LOOPACC",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      12,
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachEnd"
+   },
+   "widgets_values": [
+    "merge"
+   ]
+  },
+  {
+   "id": 10,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    520,
+    373
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 12
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1600,
+    800,
+    20.0,
+    0.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "PreviewImage",
+   "pos": [
+    1260,
+    417
+   ],
+   "size": [
+    520,
+    320
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Six stones"
+  },
+  {
+   "id": 12,
+   "type": "PCG_Viewport",
+   "pos": [
+    1260,
+    781
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 14
+    },
+    {
+     "name": "template",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Viewport"
+   },
+   "widgets_values": []
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   2,
+   3,
+   1,
+   4,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   3,
+   3,
+   3,
+   4,
+   1,
+   "INT"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   5,
+   5,
+   0,
+   6,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   6,
+   6,
+   0,
+   7,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   7,
+   3,
+   3,
+   7,
+   1,
+   "INT"
+  ],
+  [
+   8,
+   7,
+   0,
+   8,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   9,
+   3,
+   3,
+   8,
+   1,
+   "INT"
+  ],
+  [
+   10,
+   8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   11,
+   3,
+   0,
+   9,
+   1,
+   "PCG_LOOP"
+  ],
+  [
+   12,
+   9,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   13,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   9,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

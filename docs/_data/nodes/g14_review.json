@@ -1,0 +1,188 @@
+{
+ "PCG_DistanceFromGeometry": {
+  "summary": "Writes each point's distance to a reference geometry: to its surface, its edges, or its nearest point.",
+  "description": "For every selected point the node finds the closest location on the reference geometry (second input) and writes the straight-line distance to a point attribute (`dist` by default).\n\n*Surface* measures to the reference's polygons, *Edges* to its polygon edges and polylines (use it for curve networks), *Points* to its nearest point. With *Max Distance* on, farther points get the max value and the search stops there, which makes large inputs much faster.\n\nThe optional mask converts distance into a 0..1 falloff through a ramp, ready to drive colour, displacement or scattering density.",
+  "inputs": {
+   "geo": "Points that receive the distance.",
+   "reference": "Geometry the distance is measured to."
+  },
+  "outputs": {
+   "geo": "The input with the distance (and mask) attribute.",
+   "report": "Point count, metric and the distance range."
+  },
+  "params": {
+   "group": "Only these points get a distance; the others keep 0 (or their existing value).",
+   "reference_group": "Primitives (Surface, Edges) or points (Points) of the reference to measure to. Empty means all.",
+   "metric": "What on the reference counts: Surface (closest point on polygons), Edges (closest point on edges / curves) or Points (nearest point).",
+   "distance_attribute": "Point attribute the distance is written to.",
+   "use_max_distance": "Clamp distances at Max Distance.",
+   "max_distance": "Largest distance written; farther points get this value. Also limits the search radius.",
+   "output_mask": "Also write a 0..1 mask: distance divided by Mask Radius, looked up in Mask Ramp.",
+   "mask_attribute": "Point attribute the mask is written to.",
+   "mask_radius": "Distance at which the ramp reaches its right end; farther points get the ramp's last value.",
+   "mask_ramp": "Ramp as position:value pairs over distance / Mask Radius. The default fades from 1 at the reference to 0 at Mask Radius.",
+   "ramp_mode": "Interpolation between ramp keys."
+  }
+ },
+ "PCG_DistanceAlongGeometry": {
+  "summary": "Distance from start points measured along the surface (geodesic or along edges).",
+  "description": "Measures how far every point is from the start points when travelling **on** the geometry, not through space: the distance around a sphere, along a winding road mesh, across a character's skin.\n\n*Geodesic* uses the heat method: it diffuses heat from the start points for a short time, normalises the heat gradient and solves for a distance with that gradient. The result follows the surface smoothly. *Edges* finds the shortest path along edges; it is exact along edges but overestimates diagonals across faces (up to 41% across a quad grid).\n\nPoints not connected to any start point get -1.",
+  "inputs": {
+   "geo": "Polygonal geometry (curves work with Edges)."
+  },
+  "outputs": {
+   "geo": "The input with the distance (and mask) attribute.",
+   "report": "Sources, method, unreachable points and the largest distance."
+  },
+  "params": {
+   "start_points": "Point group or numbers the distance is measured from.",
+   "method": "Geodesic (heat method: smooth, follows the surface) or Edges (shortest path along edges).",
+   "heat_time": "Diffusion time of the heat method, in mean edge lengths squared. Larger values are smoother but less exact.",
+   "distance_attribute": "Point attribute the distance is written to.",
+   "use_max_distance": "Clamp distances at Max Distance.",
+   "max_distance": "Largest distance written; farther points get this value.",
+   "output_mask": "Also write a 0..1 mask: distance divided by Mask Radius, looked up in Mask Ramp.",
+   "mask_attribute": "Point attribute the mask is written to.",
+   "mask_radius": "Distance at which the ramp reaches its right end; farther points get the ramp's last value.",
+   "mask_ramp": "Ramp as position:value pairs over distance / Mask Radius. The default fades from 1 at the reference to 0 at Mask Radius.",
+   "ramp_mode": "Interpolation between ramp keys."
+  }
+ },
+ "PCG_PathDeform": {
+  "summary": "Bends geometry along a curve.",
+  "description": "Lays one axis of the input (Deform Axis, +Z by default) along the curve in the second input: the coordinate on that axis becomes a distance along the curve, the other two coordinates become offsets in the curve's frame there. Frames are rotation-minimising, so long shapes don't twist unless Roll or Twist ask for it.\n\nWith *Stretch to Curve* the input's length along the axis is fitted to the curve; without it the axis coordinate is used as arc length directly (times Scale). Offset slides the shape along the curve. Past the curve's ends the shape continues straight along the end tangent.\n\nA coarse curve gives a faceted bend; resample it for smooth results.",
+  "inputs": {
+   "geo": "Geometry to deform.",
+   "curve": "Curve to follow (the first curve primitive)."
+  },
+  "outputs": {
+   "geo": "The deformed geometry.",
+   "report": "Point count, curve length and points beyond the curve's ends."
+  },
+  "params": {
+   "group": "Only these points are deformed.",
+   "curve_group": "Which curve primitive of the second input to follow; the first one in the group is used.",
+   "deform_axis": "Axis of the input that is laid along the curve.",
+   "stretch_to_curve": "Fit the input's extent along the deform axis to the whole curve.",
+   "offset": "Slide along the curve, in world units (or a fraction of the curve length).",
+   "offset_as_fraction": "Read Offset as a fraction of the curve length.",
+   "scale": "Scale along the curve.",
+   "cross_scale": "Scale of the two cross-section axes.",
+   "roll": "Rotate the shape about the curve, in degrees.",
+   "twist": "Extra rotation that grows to this many degrees at the curve's end.",
+   "up_mode": "Minimal Rotation (the frame is carried along without twisting) or Constant (each frame faces the Up vector).",
+   "up_x": "Up vector: the start of the frame (Minimal Rotation) or the direction every frame faces (Constant)."
+  }
+ },
+ "PCG_PolyWire": {
+  "summary": "Builds tubes along every edge of a curve network, with closed joints at branches.",
+  "description": "Puts a tube on every edge of the input's polylines and polygons. Unlike Sweep, which works one curve at a time, PolyWire treats the edges as a network: shared points are joined, so branching structures (trees, L-systems, wire frames, road graphs) come out as one connected set of tubes.\n\nThe network is cut into chains at ends and junctions; each chain gets a tube with rotation-minimising frames. Junctions and sharp bends get a sphere of the wire radius so branches have no gaps, and open ends get round or flat caps. The radius can come from point attributes (`width` as a diameter, `pscale` as a radius).",
+  "inputs": {
+   "geo": "Curves and / or polygons whose edges get wires."
+  },
+  "outputs": {
+   "geo": "The tubes.",
+   "report": "Chains, joints and the size of the result."
+  },
+  "params": {
+   "group": "Primitives whose edges get wires.",
+   "radius": "Tube radius when Radius From is Wire Radius.",
+   "radius_from": "Constant Wire Radius, or per point from `width` (diameter) or `pscale` (radius).",
+   "divisions": "Number of sides around each tube.",
+   "end_caps": "How open ends are closed: Round (half sphere), Flat (a polygon) or not at all.",
+   "joints": "Add spheres at junctions and sharp bends so the tubes meet without gaps.",
+   "joint_angle": "Bends sharper than this (in degrees) inside a chain also get a sphere.",
+   "carry_attributes": "Copy the curve's point attributes (such as Cd) to the tube points made from each curve point."
+  }
+ },
+ "PCG_Thicken": {
+  "summary": "Gives open surfaces a thickness with a second skin and side walls.",
+  "description": "Turns a single-sided surface (a leaf, a cloth panel, a terrain patch) into a solid: a second skin is made Thickness away along the point normals and the borders are closed with side walls.\n\n*Side* chooses where the thickness goes: *Outward* keeps the input as the inner skin, *Inward* as the outer skin, *Both* makes the input the mid-surface. Front, back and side faces are put into groups. Closed meshes become hollow shells. Thickness is measured along point normals, so sharp convex corners come out a little thinner, as with any normal offset.",
+  "inputs": {
+   "geo": "Polygons to thicken."
+  },
+  "outputs": {
+   "geo": "The solid.",
+   "report": "Primitive count, thickness and side."
+  },
+  "params": {
+   "group": "Primitives to thicken.",
+   "thickness": "Distance between the two skins.",
+   "side": "Where the thickness goes: both sides (centered), outward or inward.",
+   "divisions": "Number of edge loops across the side walls.",
+   "front_group": "Primitive group for the faces moved along the normals.",
+   "back_group": "Primitive group for the faces on the other side.",
+   "side_group": "Primitive group for the side walls."
+  }
+ },
+ "PCG_CurveFillet": {
+  "summary": "Rounds polyline corners with circular arcs.",
+  "description": "Replaces the selected corners of polylines with circular arcs of the given radius, tangent to both neighbouring segments. With *Limit Radius* the arc shrinks where a segment is too short to fit it, so neighbouring fillets never overlap.\n\nClosed polylines and polygons have every point treated as a corner; open curves keep their end points. Nearly straight corners are left alone. The arc points copy the corner's point attributes.",
+  "inputs": {
+   "geo": "Curves (and closed polygons) to fillet."
+  },
+  "outputs": {
+   "geo": "The rounded curves.",
+   "report": "Number of corners rounded and the new point count."
+  },
+  "params": {
+   "group": "Curves (primitives) to fillet.",
+   "points": "Corner points to round. Empty means all corners.",
+   "radius": "Radius of the arcs.",
+   "divisions": "Number of segments per arc.",
+   "limit_radius": "Shrink the arc where the neighbouring segments are shorter than the arc needs.",
+   "include_closed": "Also round closed polylines and polygons."
+  }
+ },
+ "PCG_Pack": {
+  "summary": "Packs pieces of geometry into packed primitives: one point per piece.",
+  "description": "Turns every piece of the input into a packed primitive: a single point that carries the whole piece. Pieces are defined by a piece attribute (such as `name`), by connectivity, or the whole input is one piece. The piece's pivot (centroid, bounding box center, bottom center or origin) becomes the packed point.\n\nPacked geometry is cheap to transform, merge and copy, and the viewport draws it as GPU instances. Nodes that need real polygons unpack it automatically, so a packed input never gives a wrong result.",
+  "inputs": {
+   "geo": "Geometry to pack."
+  },
+  "outputs": {
+   "geo": "One packed primitive per piece.",
+   "report": "Number of packed primitives."
+  },
+  "params": {
+   "group": "Primitives to pack.",
+   "pack_by": "How pieces are found: by Piece Attribute, by Connectivity, or Everything as one piece.",
+   "piece_attribute": "Primitives sharing a value of this attribute form one piece.",
+   "pivot": "Where the packed point of each piece goes: centroid, bounding box center, origin or bottom center."
+  }
+ },
+ "PCG_Unpack": {
+  "summary": "Expands packed primitives back into real geometry.",
+  "description": "Replaces packed primitives with the geometry they carry, transformed to where they are; other primitives pass through. Copies made by Copy to Points with *Pack and Instance* unpack to exactly what Copy to Points gives without packing, attributes included.\n\n*Transfer Attributes* copies attributes of the packed points and primitives (such as a colour set after packing) onto the unpacked pieces.",
+  "inputs": {
+   "geo": "Geometry with packed primitives."
+  },
+  "outputs": {
+   "geo": "The unpacked geometry.",
+   "report": "Packed primitives unpacked and distinct pieces."
+  },
+  "params": {
+   "group": "Packed primitives to unpack.",
+   "transfer_attributes": "Attributes of the packed points / primitives copied onto the unpacked points / primitives (patterns allowed)."
+  }
+ },
+ "PCG_Assemble": {
+  "summary": "Names the connected pieces of a mesh piece0, piece1 ... and optionally packs each piece.",
+  "description": "Finds the connected pieces among the group's primitives (primitives sharing points belong together) and writes Output Prefix plus the piece number into a string primitive attribute, numbered in order of each piece's first primitive. This is the usual step after a fracture or a Boolean that leaves loose parts.\n\nWith **Create Packed Geometry** every piece becomes a packed primitive placed at its pivot, ready to be moved per piece, instanced in the viewport or exported with GPU instancing. Primitives outside the group pass through unchanged.",
+  "inputs": {
+   "geo": "Geometry with loose pieces."
+  },
+  "outputs": {
+   "geo": "The named (or packed) pieces.",
+   "report": "Number of pieces and of packed primitives."
+  },
+  "params": {
+   "group": "Primitives to assemble; the rest pass through.",
+   "name_attribute": "String primitive attribute that receives the piece names.",
+   "name_prefix": "Text before the piece number.",
+   "create_packed": "Turn every piece into a packed primitive.",
+   "pivot": "Where each packed piece's point goes: centroid, bounding box center, origin or bottom center."
+  },
+  "houdini_notes": "Counterpart of the Assemble SOP. Connectivity is by shared points; there is no separate Connectivity Attribute, and the packed fragments carry no path attribute."
+ }
+}

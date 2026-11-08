@@ -1,0 +1,34 @@
+name: Bug report
+description: Something does not work or gives a wrong result
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Screenshots of the graph help.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Minimal workflow
+      description: Attach (drag in) the smallest workflow .json that reproduces it, or paste it here.
+  - type: input
+    id: houdini
+    attributes:
+      label: Houdini comparison (optional)
+      description: If the result differs from Houdini, which node and parameters you compared against.
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: ComfyUI version, OS, install method (Manager / git / portable), comfyui_pcg version.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Console output
+      description: The error from the ComfyUI console or the browser console, if any.
+      render: text

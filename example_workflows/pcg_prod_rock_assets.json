@@ -1,0 +1,3415 @@
+{
+ "last_node_id": 54,
+ "last_link_id": 68,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    760
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "Rock asset pipeline (read me first)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "Produces 4 engine-ready rock assets in one go, purely procedural, no source files at all. Each rock:\n  · high-poly (~35k faces, SDF → voxels → surface nets)\n  · LOD0 ~2500 triangles (the same SDF blurred and re-extracted at 12 cm voxels, uniform quads), auto seams + LSCM/ARAP flattening + shape-interlocking packing\n  · LOD1 / LOD2 reduced from LOD0 (Preserve UVs: half-edge collapse, seams locked, **share textures with LOD0**)\n  · convex-decomposition collision (UCX_ prefix, one convex hull per piece, ≤ 32 points / 60 triangles each)\n  · textures: BaseColor (sRGB) / Normal (tangent space, OpenGL +Y) / ORM (AO, roughness, metallic packed) / Height (16-bit, range in the .json next to it)\n\n① For-Each runs 4 times, rand_seed wired to iteration: in the SDF an intersection of 8 random half-spaces (the rock's big faces) + smooth intersection with an ellipsoid + bedding + fissures + three noise layers + flattened bottom, a different rock each pass.\n② The high-poly is coloured by curvature / bedding / upward-facing amount (dirt build-up, moss, weathered edges); this colour is later baked into BaseColor.\n③ The 4 LOD0s each take one cell of a 4096×1024 atlas that is baked in one go (uv_atlas); when writing files it is cut by cell - the same idea as UDIM. The baked tangents and the exported TANGENT are the same set, so if the engine import uses the tangents from the file, the normal map matches pixel for pixel.\n④ Export: one glb per rock (SM_Rock_0N.glb), containing one node each for LOD0 / LOD1 / LOD2 / UCX, all four sharing one material slot Rock_0N; the glb already references BaseColor / Normal / ORM by relative path (T_Rock_0N_*.png, same folder output/pcg/assets/rocks/), so dragged into Blender or an engine it comes in textured. The pivot is at the ground line: the flat bottom is at y = −0.5, so placing it on the ground buries it half a metre, and on slopes no floating bottom shows (this is how the open-world pipeline's instance table places them).\n\nTakes about two to three minutes on a real machine (reduction and baking are the bulk). To make more rocks change iterations, and change three places together: the atlas width (COP Bake's X resolution), the 4 in uv_atlas, and the file writers' Tiles X."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_Volume",
+   "pos": [
+    0,
+    804
+   ],
+   "size": [
+    360,
+    279
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "bound",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Volume"
+   },
+   "widgets_values": [
+    128,
+    104,
+    120,
+    2.8,
+    2.3,
+    2.6,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    false,
+    "",
+    0.0,
+    0.0
+   ],
+   "title": "Sampling volume (2.8 × 2.3 × 2.6 m)"
+  },
+  {
+   "id": 3,
+   "type": "PCG_ForEachBegin",
+   "pos": [
+    0,
+    1127
+   ],
+   "size": [
+    360,
+    315
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 1
+    },
+    {
+     "name": "_state",
+     "type": "PCG_LOOP",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "links": [
+      38
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      2
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "input",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "iteration",
+     "type": "INT",
+     "links": [
+      3,
+      9,
+      18,
+      20,
+      23,
+      26,
+      29,
+      36
+     ],
+     "slot_index": 3
+    },
+    {
+     "name": "numiterations",
+     "type": "INT",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "value",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    },
+    {
+     "name": "ivalue",
+     "type": "INT",
+     "links": [],
+     "slot_index": 6
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachBegin"
+   },
+   "widgets_values": [
+    "fetch_input",
+    "count",
+    "primitives",
+    "name",
+    4,
+    "",
+    false,
+    0,
+    1000
+   ],
+   "title": "Each rock (count × 4)"
+  },
+  {
+   "id": 4,
+   "type": "PCG_VolumeWrangle",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    178
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 2
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 3,
+     "widget": {
+      "name": "rand_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      4,
+      10
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_VolumeWrangle"
+   },
+   "widgets_values": [
+    "# signed distance field of the rock (positive outside, negative inside). seed comes in via rand_seed = which rock\ns = seed * 17.31 + 3.7\n# smooth max (intersection) with blend radius k: hard edges become small rounded bevels, like weathered stone\ndef smax(a, b, k):\n    h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1)\n    return lerp(a, b, h) + k * h * (1 - h)\n# ① proportions per rock: a boulder, a slab, a block, a tall one... (the field is built in this stretched space)\nsc = set(0.9 + 0.2 * rand(s + 1), 0.7 + 0.4 * rand(s + 2), 0.8 + 0.25 * rand(s + 3))\nQ = @P / sc\n# ② the big faces: 11 random half-spaces (more of them sideways and up than down), 3.5 cm bevels\nd = -1e9\nfor k in range(11):\n    n = normalize(set(rand(s + 10 * k) - 0.5, (rand(s + 10 * k + 1) - 0.3) * 1.2, rand(s + 10 * k + 2) - 0.5))\n    d = smax(d, dot(Q, n) - (0.7 + 0.3 * rand(s + 10 * k + 3)), 0.035)\n# ③ fracture chips: 4 planes that only shave off an edge or a corner (offset just inside the faces), sharper bevel\nfor k in range(4):\n    n = normalize(set(rand(s + 7 * k + 200) - 0.5, rand(s + 7 * k + 201) - 0.2, rand(s + 7 * k + 202) - 0.5))\n    d = smax(d, dot(Q, n) - (0.74 + 0.14 * rand(s + 7 * k + 203)), 0.02)\n# ④ keep it compact: a soft intersection with a sphere trims only the far corners (the faces stay flat)\nd = smax(d, length(Q) - 1.2, 0.1)\n# back to metres (the stretch makes distances up to 1/min scale too long; the min keeps it a lower bound)\nd = d * min(min(sc.x, sc.y), sc.z)\n# ⑤ broad undulation and shallow weathering hollows only -- grooves, cracks and grain are added per texel after the\n#    bake (see \"Texture-space detail\"): at 2.2 cm voxels they would come out as stair-stepped dashes\nd = d + 0.035 * (noise(@P * 1.7 + s) - 0.5) + 0.012 * (1 - abs(2 * noise(@P * 5.3 + s + 7) - 1))\n# ⑥ flat bottom (sits on the ground without wobbling), and never touch the sampling volume's walls (an open\n#    surface there frays the mesh)\nd = max(d, -@P.y - 0.5)\nb = abs(@P) - set(1.25, 1.0, 1.15)\nd = max(d, max(max(b.x, b.y), b.z))\n@value = d\n",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Rock SDF (seed = which rock)"
+  },
+  {
+   "id": 5,
+   "type": "PCG_Convert",
+   "pos": [
+    420,
+    222
+   ],
+   "size": [
+    360,
+    205
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Convert"
+   },
+   "widgets_values": [
+    "polygons",
+    "",
+    true,
+    4,
+    4,
+    false,
+    true,
+    16,
+    16,
+    true,
+    48,
+    48,
+    48,
+    0.0,
+    0.15,
+    0.0
+   ],
+   "title": "Voxels → high-poly"
+  },
+  {
+   "id": 6,
+   "type": "PCG_Normal",
+   "pos": [
+    420,
+    471
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    180.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "id": 7,
+   "type": "PCG_Measure",
+   "pos": [
+    420,
+    819
+   ],
+   "size": [
+    360,
+    221
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Measure"
+   },
+   "widgets_values": [
+    "",
+    "points",
+    "curvature",
+    "per_element",
+    "P",
+    false,
+    -1.0,
+    false,
+    1.0,
+    true,
+    6.0,
+    "mad",
+    "median",
+    "blue_white_red",
+    "0:0,0,0.5  0.5:0.9,0.9,0.9  1:0.8,0,0",
+    "linear",
+    "",
+    "curv",
+    "",
+    "",
+    false,
+    0.0,
+    1.0
+   ],
+   "title": "Curvature (concave < 0 < convex)"
+  },
+  {
+   "id": 8,
+   "type": "PCG_Wrangle",
+   "pos": [
+    420,
+    1084
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 7
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "# curvature (1/m): concave areas collect dirt and darken, convex edges weather and whiten; a bit of bedding colour variation by height; moss on upward-facing areas\ncav = clamp(-@curv / 20, 0, 1)\nedge = clamp(@curv / 25, 0, 1)\nband = 0.5 + 0.5 * sin(@P.y * 38 + 3 * noise(@P * 2.0))\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), band)\nbase = base * (0.85 + 0.3 * noise(@P * 4.0 + 1.7))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.6)\nbase = lerp(base, set(0.14, 0.12, 0.10), cav * 0.7)\nmoss = smoothstep(0.55, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n@Cd = lerp(base, set(0.30, 0.33, 0.16), moss)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Colour the high-poly (baked into BaseColor)"
+  },
+  {
+   "id": 9,
+   "type": "PCG_Wrangle",
+   "pos": [
+    420,
+    1375
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 8
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 9,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      30
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@part = \"high\"\ns@asset = \"SM_Rock_%02d\" % seed\ns@name = @asset",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "High-poly: tag"
+  },
+  {
+   "id": 10,
+   "type": "PCG_VolumeBlur",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_VolumeBlur"
+   },
+   "widgets_values": [
+    0.06,
+    "gaussian",
+    1,
+    "",
+    "filter",
+    false,
+    1,
+    1,
+    1,
+    "use_volume",
+    0.0,
+    false,
+    0.0,
+    1.0
+   ],
+   "title": "Remove high frequencies from SDF"
+  },
+  {
+   "id": 11,
+   "type": "PCG_VolumeResample",
+   "pos": [
+    840,
+    348
+   ],
+   "size": [
+    360,
+    190
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_VolumeResample"
+   },
+   "widgets_values": [
+    "voxel_size",
+    32,
+    32,
+    32,
+    0.12,
+    1.0,
+    "trilinear",
+    ""
+   ],
+   "title": "12 cm voxels"
+  },
+  {
+   "id": 12,
+   "type": "PCG_Convert",
+   "pos": [
+    840,
+    582
+   ],
+   "size": [
+    360,
+    205
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Convert"
+   },
+   "widgets_values": [
+    "polygons",
+    "",
+    true,
+    4,
+    4,
+    false,
+    true,
+    16,
+    16,
+    true,
+    48,
+    48,
+    48,
+    0.0,
+    0.15,
+    0.0
+   ],
+   "title": "LOD0 (~2500 triangles, uniform quads)"
+  },
+  {
+   "id": 13,
+   "type": "PCG_Normal",
+   "pos": [
+    840,
+    831
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    60.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ],
+   "title": "Smooth normals (detail left to the normal map)"
+  },
+  {
+   "id": 14,
+   "type": "PCG_UVAutoSeams",
+   "pos": [
+    840,
+    1179
+   ],
+   "size": [
+    360,
+    313
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_UVAutoSeams"
+   },
+   "widgets_values": [
+    "",
+    "seams",
+    "charts",
+    45.0,
+    150.0,
+    true,
+    "",
+    "",
+    "",
+    "",
+    "uv",
+    1e-06
+   ],
+   "title": "Auto seams"
+  },
+  {
+   "id": 15,
+   "type": "PCG_UVFlatten",
+   "pos": [
+    840,
+    1536
+   ],
+   "size": [
+    360,
+    485
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 15
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      16
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_UVFlatten"
+   },
+   "widgets_values": [
+    "seams",
+    "uv",
+    true,
+    false,
+    0.01,
+    "",
+    2000,
+    1e-08,
+    "",
+    10,
+    "lscm",
+    "",
+    false,
+    "",
+    "",
+    ""
+   ],
+   "title": "LSCM + ARAP flatten (uniform texel density)"
+  },
+  {
+   "id": 16,
+   "type": "PCG_UVLayout",
+   "pos": [
+    840,
+    2065
+   ],
+   "size": [
+    360,
+    221
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 16
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_UVLayout"
+   },
+   "widgets_values": [
+    "",
+    "vertex",
+    "uv",
+    "uniform",
+    0.006,
+    true,
+    "raster",
+    256,
+    "auto",
+    90.0,
+    4,
+    1.0,
+    false,
+    "unit_square",
+    1001,
+    10,
+    1,
+    "",
+    "",
+    ""
+   ],
+   "title": "Shape-interlocking packing"
+  },
+  {
+   "id": 17,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    2330
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 17
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 18,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      19,
+      21,
+      24
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "vertex",
+    "# the 4 rocks are packed into one 4096×1024 atlas and baked together; uv itself stays (used for export)\n@uv_atlas = set((@uv.x + seed) / 4.0, @uv.y)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "uv_atlas: rock N moves to cell N"
+  },
+  {
+   "id": 18,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    2621
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 19
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 20,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      31
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@part = \"LOD0\"\ns@asset = \"SM_Rock_%02d\" % seed\n# material slot: the LODs / collision of one rock share one, textures are looked up by its name (T_Rock_00_*)\ns@material = \"Rock_%02d\" % seed\ns@name = @asset + \"_LOD0\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "LOD0: tag"
+  },
+  {
+   "id": 19,
+   "type": "PCG_PolyReduce",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    360,
+    551
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 21
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      22
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PolyReduce"
+   },
+   "widgets_values": [
+    "",
+    "percentage",
+    50.0,
+    1000,
+    "optimal",
+    4.0,
+    "",
+    4.0,
+    false,
+    "",
+    90.0,
+    true,
+    "",
+    "",
+    1.0
+   ],
+   "title": "LOD1 (50%, shared UVs)"
+  },
+  {
+   "id": 20,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    595
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 22
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 23,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      32
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@part = \"LOD1\"\ns@asset = \"SM_Rock_%02d\" % seed\n# material slot: the LODs / collision of one rock share one, textures are looked up by its name (T_Rock_00_*)\ns@material = \"Rock_%02d\" % seed\ns@name = @asset + \"_LOD1\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "LOD1: tag"
+  },
+  {
+   "id": 21,
+   "type": "PCG_PolyReduce",
+   "pos": [
+    1260,
+    886
+   ],
+   "size": [
+    360,
+    551
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 24
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      25,
+      27
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PolyReduce"
+   },
+   "widgets_values": [
+    "",
+    "percentage",
+    20.0,
+    1000,
+    "optimal",
+    4.0,
+    "",
+    4.0,
+    false,
+    "",
+    90.0,
+    true,
+    "",
+    "",
+    1.0
+   ],
+   "title": "LOD2 (20%, shared UVs)"
+  },
+  {
+   "id": 22,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    1481
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 25
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 26,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      33
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@part = \"LOD2\"\ns@asset = \"SM_Rock_%02d\" % seed\n# material slot: the LODs / collision of one rock share one, textures are looked up by its name (T_Rock_00_*)\ns@material = \"Rock_%02d\" % seed\ns@name = @asset + \"_LOD2\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "LOD2: tag"
+  },
+  {
+   "id": 23,
+   "type": "PCG_ConvexDecompose",
+   "pos": [
+    1260,
+    1772
+   ],
+   "size": [
+    360,
+    405
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 27
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      28
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ConvexDecompose"
+   },
+   "widgets_values": [
+    "hull",
+    0.05,
+    4,
+    8,
+    "oriented",
+    0.02,
+    "ngon",
+    1e-05,
+    "piece",
+    "",
+    "convex",
+    32
+   ],
+   "title": "Collision: ≤ 4 convex pieces, ≤ 32 points each"
+  },
+  {
+   "id": 24,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    2221
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 28
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 29,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      34
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@part = \"UCX\"\ns@asset = \"SM_Rock_%02d\" % seed\ns@material = \"Rock_%02d\" % seed\n# one name per convex piece: UCX_assetname_00, _01 ... (the common engine collision naming convention)\ns@name = sprintf(\"UCX_%s_%02d\", @asset, @piece)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Collision: UCX_ naming"
+  },
+  {
+   "id": 25,
+   "type": "PCG_Merge",
+   "pos": [
+    1680,
+    0
+   ],
+   "size": [
+    360,
+    166
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 30
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 31
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 32
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 33
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": 34
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      35
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Everything for this rock"
+  },
+  {
+   "id": 26,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1680,
+    210
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 35
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 36,
+     "widget": {
+      "name": "rand_seed"
+     }
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      37
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "i@variant = seed\n@P.x += seed * 3.5",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Spread out (so bake rays don't hit other rocks)"
+  },
+  {
+   "id": 27,
+   "type": "PCG_ForEachEnd",
+   "pos": [
+    1680,
+    501
+   ],
+   "size": [
+    360,
+    126
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 37
+    },
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "link": 38
+    },
+    {
+     "name": "_accum",
+     "type": "PCG_LOOPACC",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      39,
+      40,
+      57,
+      62
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachEnd"
+   },
+   "widgets_values": [
+    "merge"
+   ]
+  },
+  {
+   "id": 28,
+   "type": "PCG_Blast",
+   "pos": [
+    1680,
+    671
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 39
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      42,
+      60
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Blast"
+   },
+   "widgets_values": [
+    "@part == \"high\"",
+    "prim",
+    true
+   ],
+   "title": "High-poly"
+  },
+  {
+   "id": 29,
+   "type": "PCG_Blast",
+   "pos": [
+    1680,
+    851
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 40
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      41,
+      54
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Blast"
+   },
+   "widgets_values": [
+    "@part == \"LOD0\"",
+    "prim",
+    true
+   ],
+   "title": "LOD0 (for baking)"
+  },
+  {
+   "id": 30,
+   "type": "PCG_COPBakeTextures",
+   "pos": [
+    2100,
+    0
+   ],
+   "size": [
+    360,
+    778
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "low",
+     "type": "GEOMETRY",
+     "link": 41
+    },
+    {
+     "name": "high",
+     "type": "GEOMETRY",
+     "link": 42
+    },
+    {
+     "name": "cage",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      43
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPBakeTextures"
+   },
+   "widgets_values": [
+    4096,
+    1024,
+    "uv_atlas",
+    "",
+    "curv",
+    0.25,
+    true,
+    8,
+    "surface_normal",
+    "none",
+    "none",
+    0.0,
+    1.0,
+    "signed",
+    true,
+    "signed",
+    true,
+    "absolute",
+    "fit",
+    false,
+    16,
+    0.0,
+    false,
+    "true_displacement",
+    -0.1,
+    0.1,
+    false,
+    false
+   ],
+   "title": "Bake atlas 4096×1024"
+  },
+  {
+   "id": 31,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2100,
+    822
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 35,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 43
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      44
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# which rock: the atlas cell; the bake had rock N moved by N * 3.5 m in x -- undo it so the detail is the rock's own\nidx = floor(@u * 4)\ns = idx * 17.31 + 3.7\nP = @position - set(3.5, 0, 0) * idx\nT = normalize(@tangent)\nB = normalize(@bitangent)\ntilt = normalize(set(rand(s + 91) - 0.5, 2.0, rand(s + 92) - 0.5))\n\n# Detail height in metres (negative = into the rock). The low-frequency parts (layer warp, where grooves and cracks\n# fade) are evaluated once; only the sharp parts are re-evaluated 3 mm along T and B for the slope.\nwarp = 0.8 * noise(P * 1.1 + s) + 0.25 * noise(P * 3.7 + s + 5)\ngfade = smoothstep(0.35, 0.65, noise(P * 2.2 + s + 17))\ncfade = smoothstep(0.45, 0.7, noise(P * 0.8 + s + 60))\ndef sharp(Q):\n    band = frac(dot(Q, tilt) * 5.5 + warp)\n    groove = smoothstep(0.84, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade\n    crack = (1 - smoothstep(0.0, 0.012, abs(noise(Q * 1.4 + s + 40) - 0.5))) * cfade\n    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n    return -0.005 * groove - 0.009 * crack + 0.003 * grain, groove, crack\n\nh, groove, crack = sharp(P)\ne = 0.003\ndT = (sharp(P + T * e)[0] - h) / e\ndB = (sharp(P + B * e)[0] - h) / e\ndel T, B\nb = @normal_ts\n# tilt the baked high-poly normal by the detail slope (TS x along tangent, y along bitangent)\n@normal_ts = normalize(set(b.x - dT, b.y - dB, b.z)) * @mask + set(0, 0, 1) * (1 - @mask)\ndel b, dT, dB\n@displacement = @displacement + h * @mask\n@crevice = clamp(groove * 0.6 + crack, 0, 1)\n\n# colour per texel: strata on the same warped layers as the grooves (low contrast), mottling, fine speckle, pale\n# worn edges, dark cavities and crevices, olive moss on the flatter tops\ncav = clamp(-@high_curv / 20, 0, 1)\nedge = clamp(@high_curv / 25, 0, 1)\nstrata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832)\nbase = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), strata)\nbase = base * (0.82 + 0.25 * noise(P * 4.0 + s + 1.7) + 0.16 * (noise(P * 22 + s + 5) - 0.5))\nbase = lerp(base, set(0.66, 0.64, 0.60), edge * 0.55)\nbase = lerp(base, set(0.16, 0.14, 0.12), clamp(cav * 0.6 + @crevice * 0.45, 0, 1))\nNw = normalize(@worldnormal)\nmoss = smoothstep(0.75, 0.95, Nw.y) * smoothstep(0.56, 0.7, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5))\nmc = lerp(set(0.20, 0.23, 0.11), set(0.31, 0.33, 0.17), noise(P * 9 + s + 3))\n# lichen: small pale crusts in loose clusters, on any face that is not overhanging\nlichen = smoothstep(0.68, 0.72, noise(P * 14 + s + 31)) * smoothstep(0.45, 0.7, noise(P * 1.3 + s + 77)) * smoothstep(-0.3, 0.2, Nw.y)\nbase = lerp(base, set(0.56, 0.56, 0.48), 0.45 * lichen)\n@moss = moss * @mask\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(lerp(base, mc, moss), 0, 1) ** 2.2\n",
+    0,
+    "{}",
+    128
+   ],
+   "title": "Texture-space detail: grooves, cracks, grain, colour"
+  },
+  {
+   "id": 32,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    2100,
+    1392
+   ],
+   "size": [
+    360,
+    764
+   ],
+   "flags": {},
+   "order": 40,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 44
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      45
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "displacement",
+    1.0,
+    7.2,
+    10.0,
+    8,
+    8,
+    1.0,
+    false,
+    "ao_disp",
+    true
+   ],
+   "title": "AO (height difference along normal)"
+  },
+  {
+   "id": 33,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2100,
+    2200
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 41,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 45
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      46,
+      55,
+      66
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "# curvature cavities, grooves and cracks also count as occlusion; take the min with the height-difference AO\ncav = clamp(-@high_curv / 20, 0, 1)\n@ao = min(@ao_disp, 1 - 0.55 * cav) * (1 - 0.4 * @crevice) * @mask + (1 - @mask)\n@basecolor = @basecolor * lerp(0.7, 1.0, @ao)\nlum = dot(@basecolor, set(0.3, 0.59, 0.11))\n# worn convex edges are smoother, moss and crevices rougher\n@roughness = clamp(0.88 - 0.3 * clamp(@high_curv / 30, 0, 1) - 0.1 * lum + 0.08 * @moss + 0.06 * @crevice, 0.4, 1)\n@metallic = 0",
+    0,
+    "{}",
+    0
+   ],
+   "title": "BaseColor / ORM"
+  },
+  {
+   "id": 34,
+   "type": "PCG_COPLight",
+   "pos": [
+    2100,
+    2770
+   ],
+   "size": [
+    360,
+    818
+   ],
+   "flags": {},
+   "order": 42,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 46
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      47,
+      48,
+      49,
+      50,
+      51
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPLight"
+   },
+   "widgets_values": [
+    "normal_ts",
+    "basecolor",
+    "",
+    "directional",
+    135.0,
+    40.0,
+    "0.5 0.5",
+    0.5,
+    "1 1 1",
+    1.0,
+    0.3,
+    0.0,
+    32.0,
+    false,
+    1.0,
+    1.0,
+    "lit"
+   ],
+   "title": "Light to check the normal map"
+  },
+  {
+   "id": 35,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2520,
+    0
+   ],
+   "size": [
+    520,
+    434
+   ],
+   "flags": {},
+   "order": 45,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 47
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/T_Rock_{tx:02}_BaseColor",
+    "basecolor",
+    "png",
+    "8",
+    "srgb",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    4,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write BaseColor (cut into 4 by cell)"
+  },
+  {
+   "id": 36,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2520,
+    478
+   ],
+   "size": [
+    520,
+    434
+   ],
+   "flags": {},
+   "order": 46,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 48
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/T_Rock_{tx:02}_Normal",
+    "normal_ts",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    4,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Normal (cut into 4 by cell)"
+  },
+  {
+   "id": 37,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2520,
+    956
+   ],
+   "size": [
+    520,
+    434
+   ],
+   "flags": {},
+   "order": 47,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 49
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/T_Rock_{tx:02}_ORM",
+    "ao roughness metallic",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    4,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write ORM (cut into 4 by cell)"
+  },
+  {
+   "id": 38,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    2520,
+    1434
+   ],
+   "size": [
+    520,
+    434
+   ],
+   "flags": {},
+   "order": 48,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 50
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/T_Rock_{tx:02}_Height",
+    "displacement",
+    "png",
+    "16",
+    "linear",
+    "normalize",
+    0.0,
+    1.0,
+    "+y",
+    4,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Write Height (cut into 4 by cell)"
+  },
+  {
+   "id": 39,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    2520,
+    1912
+   ],
+   "size": [
+    520,
+    686
+   ],
+   "flags": {},
+   "order": 49,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 51
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      52
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "@lit = clamp(@lit, 0, 1) ** (1 / 2.2)",
+    0,
+    "{}",
+    0
+   ],
+   "title": "Lit preview to sRGB"
+  },
+  {
+   "id": 40,
+   "type": "PCG_COPExport",
+   "pos": [
+    2520,
+    2642
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 52,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 52
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      53
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "lit",
+    "clamp",
+    "mask"
+   ],
+   "title": "Atlas preview (lit)"
+  },
+  {
+   "id": 41,
+   "type": "PreviewImage",
+   "pos": [
+    2520,
+    2851
+   ],
+   "size": [
+    520,
+    200
+   ],
+   "flags": {},
+   "order": 53,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 53
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Textures of the 4 rocks (lit)"
+  },
+  {
+   "id": 42,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2520,
+    3095
+   ],
+   "size": [
+    520,
+    388
+   ],
+   "flags": {},
+   "order": 43,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 54
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 55
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      56
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1600,
+    560,
+    18.0,
+    0.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @normal_ts\norm = @ao roughness metallic",
+    "material",
+    "uv_atlas"
+   ],
+   "title": "LOD0 + baked textures (studio)"
+  },
+  {
+   "id": 43,
+   "type": "SaveImage",
+   "pos": [
+    2520,
+    3527
+   ],
+   "size": [
+    520,
+    240
+   ],
+   "flags": {},
+   "order": 50,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 56
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/preview"
+   ],
+   "title": "LOD0 + baked textures"
+  },
+  {
+   "id": 44,
+   "type": "PCG_Blast",
+   "pos": [
+    2100,
+    3632
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 57
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      58
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Blast"
+   },
+   "widgets_values": [
+    "@part == \"high\"",
+    "prim",
+    false
+   ],
+   "title": "Remove high-poly"
+  },
+  {
+   "id": 45,
+   "type": "PCG_Wrangle",
+   "pos": [
+    2100,
+    3812
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 32,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 58
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      59,
+      68
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "@P.x -= @variant * 3.5",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Move back to origin"
+  },
+  {
+   "id": 46,
+   "type": "PCG_ExportMesh",
+   "pos": [
+    2100,
+    4103
+   ],
+   "size": [
+    360,
+    344
+   ],
+   "flags": {},
+   "order": 36,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 59
+    }
+   ],
+   "outputs": [
+    {
+     "name": "path",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ExportMesh"
+   },
+   "widgets_values": [
+    "pcg/assets/rocks/{name}",
+    "glb",
+    "name",
+    "asset",
+    1.0,
+    "basecolor = T_{material}_BaseColor.png\nnormal = T_{material}_Normal.png\norm = T_{material}_ORM.png",
+    "*"
+   ],
+   "title": "Export: one glb per rock (textures attached)"
+  },
+  {
+   "id": 47,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2520,
+    3811
+   ],
+   "size": [
+    520,
+    373
+   ],
+   "flags": {},
+   "order": 33,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 60
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      61
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1024,
+    384,
+    20.0,
+    0.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ],
+   "title": "High-poly (with bake colour)"
+  },
+  {
+   "id": 48,
+   "type": "PreviewImage",
+   "pos": [
+    2520,
+    4228
+   ],
+   "size": [
+    520,
+    260
+   ],
+   "flags": {},
+   "order": 37,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 61
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "High-poly"
+  },
+  {
+   "id": 49,
+   "type": "PCG_Blast",
+   "pos": [
+    2520,
+    4532
+   ],
+   "size": [
+    520,
+    136
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 62
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      63
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Blast"
+   },
+   "widgets_values": [
+    "@part == \"LOD0\" | @part == \"LOD1\" | @part == \"LOD2\"",
+    "prim",
+    true
+   ],
+   "title": "LODs only"
+  },
+  {
+   "id": 50,
+   "type": "PCG_Transform",
+   "pos": [
+    2520,
+    4712
+   ],
+   "size": [
+    520,
+    363
+   ],
+   "flags": {},
+   "order": 34,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 63
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      64
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Transform"
+   },
+   "widgets_values": [
+    0.0,
+    0.0,
+    3.2,
+    0,
+    0,
+    0,
+    1.0,
+    1.0,
+    1.0,
+    "@part == \"LOD1\"",
+    "xyz",
+    "srt",
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    false
+   ],
+   "title": "Move LOD1 back one row"
+  },
+  {
+   "id": 51,
+   "type": "PCG_Transform",
+   "pos": [
+    2520,
+    5119
+   ],
+   "size": [
+    520,
+    363
+   ],
+   "flags": {},
+   "order": 38,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 64
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      65
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Transform"
+   },
+   "widgets_values": [
+    0.0,
+    0.0,
+    6.4,
+    0,
+    0,
+    0,
+    1.0,
+    1.0,
+    1.0,
+    "@part == \"LOD2\"",
+    "xyz",
+    "srt",
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    false
+   ],
+   "title": "Move LOD2 back another row"
+  },
+  {
+   "id": 52,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2520,
+    5526
+   ],
+   "size": [
+    520,
+    388
+   ],
+   "flags": {},
+   "order": 44,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 65
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 66
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      67
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1024,
+    768,
+    35.0,
+    0.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "basecolor = @basecolor\nnormal = @normal_ts\norm = @ao roughness metallic",
+    "material",
+    "uv_atlas"
+   ],
+   "title": "LOD0 / 1 / 2 with the baked textures"
+  },
+  {
+   "id": 53,
+   "type": "PreviewImage",
+   "pos": [
+    2520,
+    5958
+   ],
+   "size": [
+    520,
+    420
+   ],
+   "flags": {},
+   "order": 51,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 67
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "LOD"
+  },
+  {
+   "id": 54,
+   "type": "PCG_Viewport",
+   "pos": [
+    2520,
+    6422
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 39,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 68
+    },
+    {
+     "name": "template",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Viewport"
+   },
+   "widgets_values": []
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   2,
+   3,
+   1,
+   4,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   3,
+   3,
+   3,
+   4,
+   1,
+   "INT"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   5,
+   5,
+   0,
+   6,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   6,
+   6,
+   0,
+   7,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   7,
+   7,
+   0,
+   8,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   8,
+   8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   9,
+   3,
+   3,
+   9,
+   1,
+   "INT"
+  ],
+  [
+   10,
+   4,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   12,
+   11,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   13,
+   12,
+   0,
+   13,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   14,
+   13,
+   0,
+   14,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   15,
+   14,
+   0,
+   15,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   16,
+   15,
+   0,
+   16,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   17,
+   16,
+   0,
+   17,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   18,
+   3,
+   3,
+   17,
+   1,
+   "INT"
+  ],
+  [
+   19,
+   17,
+   0,
+   18,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   20,
+   3,
+   3,
+   18,
+   1,
+   "INT"
+  ],
+  [
+   21,
+   17,
+   0,
+   19,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   22,
+   19,
+   0,
+   20,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   23,
+   3,
+   3,
+   20,
+   1,
+   "INT"
+  ],
+  [
+   24,
+   17,
+   0,
+   21,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   25,
+   21,
+   0,
+   22,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   26,
+   3,
+   3,
+   22,
+   1,
+   "INT"
+  ],
+  [
+   27,
+   21,
+   0,
+   23,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   28,
+   23,
+   0,
+   24,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   29,
+   3,
+   3,
+   24,
+   1,
+   "INT"
+  ],
+  [
+   30,
+   9,
+   0,
+   25,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   31,
+   18,
+   0,
+   25,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   32,
+   20,
+   0,
+   25,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   33,
+   22,
+   0,
+   25,
+   3,
+   "GEOMETRY"
+  ],
+  [
+   34,
+   24,
+   0,
+   25,
+   4,
+   "GEOMETRY"
+  ],
+  [
+   35,
+   25,
+   0,
+   26,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   36,
+   3,
+   3,
+   26,
+   1,
+   "INT"
+  ],
+  [
+   37,
+   26,
+   0,
+   27,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   38,
+   3,
+   0,
+   27,
+   1,
+   "PCG_LOOP"
+  ],
+  [
+   39,
+   27,
+   0,
+   28,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   40,
+   27,
+   0,
+   29,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   41,
+   29,
+   0,
+   30,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   42,
+   28,
+   0,
+   30,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   43,
+   30,
+   0,
+   31,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   44,
+   31,
+   0,
+   32,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   45,
+   32,
+   0,
+   33,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   46,
+   33,
+   0,
+   34,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   47,
+   34,
+   0,
+   35,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   48,
+   34,
+   0,
+   36,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   49,
+   34,
+   0,
+   37,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   50,
+   34,
+   0,
+   38,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   51,
+   34,
+   0,
+   39,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   52,
+   39,
+   0,
+   40,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   53,
+   40,
+   0,
+   41,
+   0,
+   "IMAGE"
+  ],
+  [
+   54,
+   29,
+   0,
+   42,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   55,
+   33,
+   0,
+   42,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   56,
+   42,
+   0,
+   43,
+   0,
+   "IMAGE"
+  ],
+  [
+   57,
+   27,
+   0,
+   44,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   58,
+   44,
+   0,
+   45,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   59,
+   45,
+   0,
+   46,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   60,
+   28,
+   0,
+   47,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   61,
+   47,
+   0,
+   48,
+   0,
+   "IMAGE"
+  ],
+  [
+   62,
+   27,
+   0,
+   49,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   63,
+   49,
+   0,
+   50,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   64,
+   50,
+   0,
+   51,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   65,
+   51,
+   0,
+   52,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   66,
+   33,
+   0,
+   52,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   67,
+   52,
+   0,
+   53,
+   0,
+   "IMAGE"
+  ],
+  [
+   68,
+   45,
+   0,
+   54,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

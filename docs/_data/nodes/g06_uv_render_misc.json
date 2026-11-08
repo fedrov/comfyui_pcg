@@ -1,0 +1,676 @@
+{
+ "PCG_Camera": {
+  "summary": "Builds a single camera that Render Sequence, Texture Render, Motion Vectors and UV Backproject can all share.",
+  "description": "The camera is a standalone node so that the view used to render an image and the view used to project it back into UV space are literally the same wire. Entering the same parameters twice in two nodes invites a mismatch, and the result is a smoothly misaligned texture that looks like the diffusion model drew it crooked and is very hard to trace back to the camera.\n\nThree placement modes: `frame` places the camera on an orbit around the bounding sphere of the connected geometry and picks the distance (perspective) or the orthographic size automatically; `orbit` uses the same elevation / azimuth / distance parametrisation around an explicit target; `look_at` uses an explicit eye position, target and up vector. For multiple views use several Camera nodes, or one Camera with different `azim` values, each feeding its own render branch.",
+  "inputs": {
+   "geo": "Geometry to frame. Required for the Frame Geometry mode; in the other modes it is optional and only supplies the bounding-sphere radius stored on the camera."
+  },
+  "outputs": {
+   "cam": "The camera, to be wired to render, projection and motion nodes.",
+   "info": "One-line summary: projection, resolution, eye, target, distance and bounding radius."
+  },
+  "params": {
+   "projection": "Perspective or orthographic projection.",
+   "resolution_x": "Image width and height in pixels of whatever is rendered through this camera. Back-projection nodes must use the same resolution as the image they are given.",
+   "fov": "Vertical field of view in degrees (perspective only). The horizontal angle follows from the aspect ratio.",
+   "ortho_size": "World-space height of the view (orthographic only); the width follows from the aspect ratio. Ignored in Frame Geometry mode, where it is derived from the bounding sphere.",
+   "near": "Near clipping distance.",
+   "far": "Far clipping distance. 0 disables far clipping.",
+   "mode": "Frame Geometry orbits the bounding-sphere center of the input geometry at an automatically computed distance. Orbit uses Target, Elevation, Azimuth and Distance as given. Look At uses Eye, Target and Up and ignores the orbit angles.",
+   "target_x": "Point the camera looks at. In Frame Geometry mode with geometry connected, the bounding-sphere center replaces it.",
+   "elev": "Elevation angle above the horizontal plane, in degrees (orbit and frame modes).",
+   "azim": "Azimuth angle around the vertical axis, in degrees (orbit and frame modes).",
+   "distance": "Distance from the target to the eye (orbit mode). Frame Geometry computes its own distance and ignores this value.",
+   "margin": "Frame Geometry only. Multiplier on the fitting distance (or orthographic size); values above 1 leave empty border around the object.",
+   "eye_x": "Camera position in world space (Look At mode).",
+   "up_x": "Up direction used to roll the camera (Look At mode). If it is parallel to the view direction a substitute up vector is chosen instead of producing NaNs."
+  },
+  "tips": [
+   "Use one Camera node per view and wire the same node to both the render and the back-projection of that view."
+  ]
+ },
+ "PCG_CameraFromPoints": {
+  "summary": "Turns points, taken in point-number order, into a sequence of cameras.",
+  "description": "The curve-driven counterpart of Camera Path. Each point (or, with `frames` > 0, each sample along the polyline through the points) becomes one camera.\n\nOrientation modes: `auto` tries the `orient` attribute, then `N`, then a `target` attribute, then the path tangent, in that order; `orient` uses the orient quaternion; `normal` looks along `N` with the Up vector; `target` looks at the `target` point attribute or the Target parameter; `path` follows the path tangent. With Look Ahead above 0 the path mode looks at the point that far ahead along the path, which steadies the shot.\n\nWith Frames = 0 there is one camera per point. With Frames > 0 the path is sampled at equal arc-length steps: `orient` is interpolated with slerp, other quantities linearly. Loop joins the end back to the start without repeating the first frame at the end. With Use Point Attributes on, the point attributes `fov`, `ortho_size`, `near`, `far`, `radius`, `resx`, `resy`, `projection` and `distance` override the matching parameters, so Camera To Points followed by Camera from Points round-trips exactly.",
+  "inputs": {
+   "geo": "Points that define the camera positions (and optionally orientations and settings)."
+  },
+  "outputs": {
+   "cams": "Camera sequence, one camera per frame.",
+   "frames": "Number of cameras produced.",
+   "report": "Text report of what was built."
+  },
+  "params": {
+   "group": "Point group pattern; only these points are used.",
+   "frames": "0 creates one camera per point. A value above 0 samples that many cameras evenly by arc length along the path.",
+   "loop": "Closes the path from the last point back to the first; the final frame does not repeat the first.",
+   "orientation": "How each camera is aimed. Automatic tries orient, then N, then a target attribute, then the path tangent.",
+   "look_ahead": "Along Path only. Distance ahead on the path to look at; 0 looks along the local tangent.",
+   "target_x": "World position to look at in Look at Target mode. A `target` point attribute takes precedence when present.",
+   "up_x": "Up direction used to roll the cameras in the N + up, target and path modes.",
+   "focus_distance": "Distance from the eye to the look-at point that is stored on the camera in the orient, N + up and path-tangent modes, where no explicit target exists. Overridden by a `distance` point attribute when Use Point Attributes is on.",
+   "projection": "Perspective or orthographic projection.",
+   "resolution_x": "Image width and height in pixels.",
+   "fov": "Vertical field of view in degrees (perspective).",
+   "ortho_size": "World-space height of the view (orthographic).",
+   "near": "Near clipping distance.",
+   "far": "Far clipping distance. 0 disables far clipping.",
+   "use_point_attributes": "Lets point attributes (`fov`, `ortho_size`, `near`, `far`, `radius`, `resx`, `resy`, `projection`, `distance`) override the parameters on this node."
+  },
+  "houdini_notes": "Matches Houdini's Camera from Points in intent; the camera sequence is a ComfyUI-side list rather than camera objects."
+ },
+ "PCG_CameraPath": {
+  "summary": "Generates a sequence of cameras along an orbit or an interpolated fly-through.",
+  "description": "The entry point of the video side of the plugin. Orbit mode sweeps elevation, azimuth and distance from their start to their end values around a target. Interpolate mode moves the eye linearly from Eye to End Eye while looking at a fixed Target. The output is a camera list to be wired to Render Sequence; wire it to Camera Pick to use a single frame.\n\nWith Loop on, the last frame does not repeat the first: sweeping azimuth 0 to 360 over 24 frames ends at 345 degrees, not 360, so a looping playback has no duplicated frame (a one-frame stutter that is easy to see and hard to diagnose). Turn Loop off for a one-shot move where the last frame should land exactly on the end value.",
+  "inputs": {
+   "geo": "Geometry to frame. Optional; without it Frame Geometry treats the scene as a unit sphere."
+  },
+  "outputs": {
+   "cams": "Camera sequence.",
+   "frames": "Number of cameras.",
+   "info": "One-line summary: frame count, mode, resolution and loop behaviour."
+  },
+  "params": {
+   "frames": "Number of cameras to generate.",
+   "loop": "On: the last frame stops one step short of the end value so a looping animation has no repeated frame. Off: closed interval, the last frame lands exactly on the end value.",
+   "mode": "Orbit sweeps the Orbit parameters around a target. Interpolate (Look At) moves the eye from Eye to End Eye while looking at a fixed Target.",
+   "projection": "Perspective or orthographic projection.",
+   "resolution_x": "Image width and height in pixels.",
+   "fov": "Vertical field of view in degrees.",
+   "ortho_size": "World-space height of the view (orthographic); the width follows from the aspect ratio.",
+   "target_x": "Orbit mode: center of the orbit (replaced by the bounding-box center when Frame Geometry is on and geometry is connected). Interpolate mode: the point being looked at.",
+   "frame_geometry": "Orbit mode. Chooses the distance (perspective) or orthographic size automatically from the bounding sphere of the geometry; without geometry a unit sphere is assumed.",
+   "margin": "Orbit mode with Frame Geometry. Multiplier on the fitting distance; values above 1 leave a border around the object.",
+   "elev": "Start and end elevation in degrees (orbit).",
+   "azim": "Start and end azimuth in degrees (orbit). The default 0 to 360 is a full turn.",
+   "distance": "Start and end distance from the target (orbit). Ignored when Frame Geometry is on.",
+   "eye_x": "Start position of the eye (Interpolate mode).",
+   "eye_end_x": "End position of the eye (Interpolate mode).",
+   "near": "Near clipping distance.",
+   "far": "Far clipping distance. 0 disables far clipping."
+  },
+  "tips": [
+   "For a seamless turntable keep Loop on and azimuth 0 to 360."
+  ]
+ },
+ "PCG_CameraPick": {
+  "summary": "Picks one camera out of a camera sequence.",
+  "description": "The index wraps around the number of cameras instead of raising an error, so dragging the index while previewing never breaks the chain.",
+  "inputs": {
+   "cams": "Camera sequence."
+  },
+  "outputs": {
+   "cam": "The selected camera.",
+   "frames": "Number of cameras in the input sequence."
+  },
+  "params": {
+   "index": "Zero-based index of the camera. Out-of-range values wrap around by the number of cameras."
+  }
+ },
+ "PCG_CameraToPoints": {
+  "summary": "Converts cameras into points (one per camera) plus optional path and frustum wireframes.",
+  "description": "Each camera in the sequence, and/or the single camera input, becomes one point whose point number equals the frame number. Point attributes: `P`, `orient` (+Z is the view direction and +Y is up, the same convention as N, Orient Along Curve and Copy to Points), `N`, `up`, `target`, `distance`, `fov`, `ortho_size`, `near`, `far`, `radius`, `resx`, `resy`, `projection` and `frame`.\n\nThe `frustums` output is a line wireframe of each view frustum; its far rectangle matches the image corners exactly. Moving or rotating the points and feeding them to Camera from Points is a way to place cameras directly in the viewport.",
+  "inputs": {
+   "cams": "Camera sequence. Optional if `cam` is connected.",
+   "cam": "A single camera, appended after the sequence. At least one of `cams` and `cam` is required."
+  },
+  "outputs": {
+   "geo": "One point per camera, plus a connecting polyline when Path is on.",
+   "frustums": "Frustum wireframes, one per camera.",
+   "report": "Text report."
+  },
+  "params": {
+   "path": "Also outputs a polyline that connects the camera points in frame order.",
+   "frustum_depth": "Depth of the frustum wireframes in world units. 0 produces no frustums."
+  }
+ },
+ "PCG_ConvertLine": {
+  "summary": "Converts polygon edges into line primitives.",
+  "description": "Every edge of the selected primitives becomes a two-point polyline. Shared edges are emitted once, deduplicated by point pair; emitting per face corner would double every interior edge, which looks identical as a wireframe but gives a cloth or spring solver two overlapping springs with doubled stiffness. Primitive attributes are taken from the first primitive that uses the edge; vertex attributes come from the corresponding half-edge.\n\nWith Connect Path on, edges are chained into the longest polylines possible instead of two-point segments: a walk continues through points of degree 2 and stops at points of any other degree. This is what makes Resample, Carve and Sweep treat the result as curves. Chains start at endpoints first and closed loops are handled afterwards, so an open chain is never split in the middle. When Compute Length is on the edge length is written to a primitive attribute.",
+  "inputs": {
+   "geo": "Geometry whose primitives are converted."
+  },
+  "outputs": {
+   "geo": "Line geometry."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives are converted.",
+   "keep_group_order": "On: output edges follow the order in which they first appear in the geometry. Off: the output is sorted by point number.",
+   "connect_path": "Joins edges into long polylines, breaking at points whose degree is not 2.",
+   "make_isolated_loops_closed": "Marks chains that form an isolated loop as closed polygons. Only has an effect with Connect Path on.",
+   "remove_unused_points": "Deletes points that no longer belong to any output primitive.",
+   "length_attribute": "Name of the primitive attribute that receives the edge length.",
+   "compute_length": "Writes the length of each output line to the attribute named by Length Attribute."
+  }
+ },
+ "PCG_FileMerge": {
+  "summary": "Reads a numbered series of mesh files and merges them into one geometry.",
+  "description": "The `$SLICE` token in the file name (or the variable named by Merge Variable, also accepted as `${SLICE}`) is replaced in turn by each number of the Merge Range (start, end inclusive, increment; a negative increment counts down). The files are read in order and merged. `.npz` files are read as this plugin's geometry cache; other files go through the same format sniffing as Import Mesh with its default settings.\n\nWith Delete Points from Other Files, points whose `slice` point attribute differs from the current number are removed, which is useful for distributed simulations where each file also holds particles of other slices. Files without that attribute are left untouched. With Missing File set to No Geometry, absent files are skipped and listed in the report.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The merged geometry.",
+   "report": "List of files read and files skipped."
+  },
+  "params": {
+   "file": "File name pattern. It must contain `$SLICE` (or the variable named by Merge Variable). `.npz` is read as a geometry cache.",
+   "reload": "Change the number to force the files to be re-read.",
+   "merge_start": "Merge Range: first number, last number (inclusive) and increment substituted for the variable.",
+   "merge_variable": "Name of the variable to substitute in the file name, without the `$`.",
+   "delete_other": "Deletes points whose `slice` point attribute is different from the current file number.",
+   "missing_file": "Report Error stops with an error when a file is absent. No Geometry skips the file and records it in the report."
+  },
+  "houdini_notes": "Houdini's Load and Cache Length parameters are not present; ComfyUI caches by node inputs."
+ },
+ "PCG_FromJSON": {
+  "summary": "Builds points, boxes or curves, with attributes and groups, from a JSON text.",
+  "description": "The entry point for LLM / VLM driven layouts: the model emits structure (positions, bounding boxes, labels, categories) and this node turns it into geometry that downstream nodes (Copy to Points, PolyExtrude, Blast, Switch) can use.\n\nParsing is tolerant, because models rarely return clean JSON. Four stages are tried in order: parse directly, strip a markdown code fence, extract the first balanced `[...]` / `{...}` block, remove trailing commas. The stage that succeeded is reported in `info`, so a silent repair never goes unnoticed.\n\nModes: `points` makes one point per record (`pos`, `P` or `position`); `boxes` makes one rectangle (4 numbers) or box (6 numbers) per record, e.g. detection boxes or room layouts (box, then PolyExtrude gives walls); `curves` makes one polyline per record (`points` or `path`). Record keys are mapped to canonical names: `pos` / `position` / `translate` become `P`, `color` / `Cd` become `Cd` (hex strings such as `\"#ff8800\"` are understood when Hex Colors is on) and `label` / `type` / `tag` become `name`. Other keys are kept as they are: numbers become float attributes, fixed-length arrays become vectors, strings become string attributes. Attributes land on points in points mode and on primitives in the other modes.\n\nGroup By turns every distinct value of an attribute (usually `name`) into a group, so a classification from the model becomes usable groups.\n\nCoordinates follow one rule for all modes. Two-component coordinates with Normalized on map 0..1 onto a Size sized area on the chosen plane (default xz ground plane); with Normalized off they are world units on that plane. Both are then offset by Center. Three-component coordinates are world coordinates plus Center. Flip V is for image space, where y points down.",
+  "inputs": {},
+  "outputs": {
+   "geo": "Generated points, boxes or curves.",
+   "records": "Number of records parsed.",
+   "info": "Summary: record, point and primitive counts, which parse stage was needed, attributes found, groups made and number of missing values that were filled."
+  },
+  "params": {
+   "json_text": "The JSON text. A top-level array, or an object that contains one (see Path).",
+   "path": "When the top level is an object, the key that holds the record list, e.g. `items`. `auto` searches for it.",
+   "mode": "What each record becomes: a point, a rectangle / box from its bounding box, or a polyline.",
+   "group_by": "Attribute whose distinct values each become a group. Empty creates no groups.",
+   "color_hex": "Interprets color strings such as `#ff8800` as `Cd`.",
+   "plane": "Plane that 2D coordinates are placed on; xz is the ground plane.",
+   "normalized": "On: 2D coordinates in 0..1 are mapped onto an area of Size on the plane. Off: they are world units on the plane. Three-dimensional coordinates are always world coordinates.",
+   "size_u": "Width and height of the area that normalized 2D coordinates map onto.",
+   "center_x": "Offset added to all positions.",
+   "flip_v": "Flips the second 2D coordinate (v becomes 1 - v when normalized, -v otherwise). Turn on for image space where y points down.",
+   "height": "Boxes mode, rectangles from 2D boxes only. Offset of the rectangle along the normal of the chosen plane."
+  },
+  "houdini_notes": "There is no single Houdini equivalent; the closest is building points and curves with Add / Curve from external data."
+ },
+ "PCG_GeoToJSON": {
+  "summary": "Exports attributes of points, primitives or the detail as a JSON text.",
+  "description": "Meant to show a language model the current layout so that it can propose a matching next step. It uses the same key conventions as From JSON, so geometry to JSON, edit by the model, and back through From JSON is a closed loop.\n\nOnly attributes are exported, never topology: thousands of vertex indices would only use up the model's context. Use Export Mesh or File Cache for full geometry. Vector attributes become arrays, scalars become numbers and strings stay strings.\n\nWhen Limit truncates the output, the result becomes an object with `items`, `truncated: true` and `total`, so the model knows it does not see everything.",
+  "inputs": {
+   "geo": "Geometry to export."
+  },
+  "outputs": {
+   "json": "The JSON text.",
+   "count": "Number of elements of the chosen class in the geometry (before truncation)."
+  },
+  "params": {
+   "class": "Attribute class to export, one record per point, per primitive, or a single record for the detail.",
+   "attribs": "Attributes to export, separated by spaces or commas. Empty exports all attributes of the class. A name that does not exist is an error.",
+   "limit": "Maximum number of records. 0 exports all of them.",
+   "precision": "Decimal places that numeric values are rounded to.",
+   "indent": "Indentation width for pretty printing. 0 produces compact single-line JSON."
+  }
+ },
+ "PCG_HeightfieldFromImage": {
+  "summary": "Builds a displaced grid whose height comes from the brightness of an image.",
+  "description": "Bridges image generation and geometry: the height map can come from any ComfyUI sampler. The image is sampled bilinearly at `resolution` x `resolution` grid points, brightness is the average of the RGB channels, and the point's Y is that brightness times Height. The grid lies in the XZ plane. Point normals are computed, and the raw brightness is stored in the point attribute `height`. Only the first image of a batch is used.",
+  "inputs": {
+   "image": "Height map; brightness is the mean of RGB."
+  },
+  "outputs": {
+   "geo": "Displaced grid with normals and a `height` point attribute."
+  },
+  "params": {
+   "size_x": "Size of the grid along X and Z in world units.",
+   "height": "Multiplier applied to the brightness (0..1) to get the displacement along Y. Negative values invert.",
+   "resolution": "Number of points along each side of the grid."
+  }
+ },
+ "PCG_ImportMesh": {
+  "summary": "Reads a mesh or point cloud file (OBJ, PLY, STL, GLB / glTF, LAS / LAZ) in pure Python.",
+  "description": "Intended for the output of image-to-3D models, which usually have the right shape but poor topology: triangle soup, duplicate points, no UVs, uncontrolled face counts. A typical repair chain is Import Mesh, Fuse, Facet (recompute normals), PolyReduce, UV AutoSeams, UV Flatten, UV Layout, Export Mesh.\n\nNothing is triangulated on import: OBJ n-gons are preserved, which PolyReduce's quad preservation and Dissolve's coplanar merging need.\n\nSeveral parameters fail silently when wrong. **Weld**: STL stores every triangle with its own three points, so without welding the point count triples and nothing is connected; Subdivide, PolyReduce, Connectivity and Normal cusp then quietly do nothing. `auto` welds STL only. **Up Axis** is never guessed: glTF is Y-up, OBJ / PLY / STL have no convention and Blender often exports Z-up, so you choose. **Format** `auto` looks at the file's magic bytes, not its extension; binary STL is recognised from its length (84 + 50 x triangle count) because its header often begins with \"solid\".\n\nUVs are written to vertices, not points: OBJ `vt` indices are per corner (the same point can have different UVs on different faces, which is what a seam is), and glTF per-point UVs are expanded to vertices as well, matching the default class of all UV nodes in this plugin. A PLY without faces is read as a point cloud with every property kept as a point attribute, so 3D Gaussian Splatting files load directly (`opacity`, `scale_*`, `rot_*`, `f_dc_*`). With Splat Color on, the zero-order spherical harmonic coefficients become `Cd` using `C = 0.282095 * f_dc + 0.5`.\n\nThe `mesh` input accepts an in-memory mesh from another 3D plugin by duck typing: objects with `.vertices` / `.faces`, a dict with `vertices` and `faces`, or lists of those; torch tensors are converted. When it is connected, Filename is ignored, and Weld `on` welds while `auto` and `off` do not.\n\n**LAS / LAZ** LiDAR point clouds: uncompressed `.las` (point formats 0-3 and 6-8) is read without any dependency; compressed `.laz` needs the optional `laspy` package (`pip install \"laspy[lazrs]\"`). Points get `intensity`, `classification`, `return_number`, `number_of_returns`, `scan_angle`, `user_data`, `point_source_id`, `gps_time` where present (Keep Extra Attributes), and `Cd` from RGB. Survey coordinates (hundreds of kilometres) do not fit float32 positions, so a cloud with any coordinate above 10 000 is moved to the rounded centre of its bounds and the offset is kept in the detail attribute `las_origin` (world = P + las_origin). LAS is Z-up: set Up Axis to Z-Up to Y-Up.",
+  "inputs": {
+   "mesh": "In-memory mesh from another plugin (MESH type). Takes precedence over Filename."
+  },
+  "outputs": {
+   "geo": "The imported geometry.",
+   "points": "Number of points.",
+   "prims": "Number of primitives.",
+   "info": "Detected format, counts, welded point count, and which of UV / N / Cd were found."
+  },
+  "params": {
+   "filename": "Path of the file to read. Ignored when the mesh input is connected. The node re-reads the file when its modification time or size changes.",
+   "format": "File format; Automatic detects it from the content (LAS by its LASF signature).",
+   "up_axis": "As Is keeps the file's coordinates. The other two options rotate positions and normals from Z-up to Y-up or from Y-up to Z-up.",
+   "scale": "Uniform scale applied to positions after the up-axis rotation.",
+   "flip_winding": "Reverses the vertex order of all primitives, flipping their normals.",
+   "weld": "Merges coincident points. Auto welds STL files only; On welds always; Off never.",
+   "weld_rel": "Weld tolerance relative to the bounding box size.",
+   "merge_parts": "glTF only. On merges all primitives of the file into one geometry. Off reads only the first primitive. Parts are tagged with a `name` primitive attribute either way.",
+   "splat_color": "3D Gaussian Splatting PLY: converts the `f_dc_*` coefficients into `Cd`.",
+   "keep_extra_attribs": "PLY: keeps all additional properties of the file as point attributes."
+  },
+  "houdini_notes": "Combines the roles of Houdini's File SOP (formats, up axis, scale) and parts of Lidar Import (point cloud PLY); only OBJ, PLY, STL and GLB are supported."
+ },
+ "PCG_MotionVectors": {
+  "summary": "Computes exact screen-space motion vectors between two frames from geometry and cameras.",
+  "description": "Optical flow has to estimate where a pixel was in the previous frame, and neural flow fails on weak texture, large motion, reflections and transparency without warning. Here the position is known: the same triangle and the same barycentric weights are projected once with the frame-t vertices and once with the frame-(t+1) vertices, and the two screen positions are subtracted. There is no search and no smoothing.\n\nForward and backward vectors live on different meshes and are rasterized separately. `motion` is defined on the frame-t image (\"where do I go next\"); `motion_bwd` on the frame-(t+1) image (\"where did I come from\"). Warping needs the backward one, and negating the forward map is only correct when nothing moves.\n\nOutput layers: `motion`, `motion_bwd`, `mask` (coverage at t), `mask_next` (coverage at t+1) and `disocclusion`, the area of frame t+1 that was not visible in frame t and must be repainted. Disocclusion is decided by triangle id, with a depth test (Depth Bias) and a silhouette guard as safety layers.\n\nIf only the camera moves, connect only `cam_next`; if only the object moves, connect only `geo_next`. The two frames must have identical topology so that barycentric weights correspond, and both cameras must have the same resolution.",
+  "inputs": {
+   "geo": "Geometry at frame t.",
+   "cam": "Camera at frame t.",
+   "geo_next": "Geometry at frame t+1. Must have the same topology as `geo`. Omit if the geometry is static.",
+   "cam_next": "Camera at frame t+1. Omit if the camera is static."
+  },
+  "outputs": {
+   "cop": "Image with the layers `motion`, `motion_bwd`, `mask`, `mask_next` and `disocclusion`."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives are rendered.",
+   "units": "Unit of the vectors. Pixels: screen pixels. Normalized: the whole image width / height equals 2 (as NDC). UV: the whole image equals 1.",
+   "depth_bias": "Depth tolerance of the disocclusion test, as a fraction of the bounding-sphere radius (not world units).",
+   "silhouette_guard": "Number of pixels the silhouette is eroded by; pixels on the edge count as needing repaint.",
+   "device": "Backend that holds the output image. Auto uses CUDA when available and the image is large enough (at least 256x256 pixels); Exact is float64 numpy, bit-identical to the geometry side but slowest."
+  }
+ },
+ "PCG_RenderSequence": {
+  "summary": "Renders a geometry through every camera of a camera sequence into a sequence of images.",
+  "description": "The B dimension of an IMAGE is the video; this node fills it. Each camera produces one image with the selected passes (layers `mask`, `depth`, `N`, `P`, `uv`, `id`, `facing`, and `C` for shade). Frames are rendered serially, since geometry is a Python object and cannot be batched as a tensor. If no pass is ticked, only Mask is rendered.\n\nWith Motion on, every frame also gets `motion`, `motion_bwd` and `disocclusion` layers describing the step from this frame to the next one. This only captures camera motion, because the geometry is a single static object; use Sequence Motion for moving geometry. The last frame has no successor: with Loop on it is connected back to frame 0, otherwise it gets zero motion and a fully set disocclusion, so that undefined motion is visible downstream instead of being faked by repeating the previous frame.",
+  "inputs": {
+   "geo": "Geometry to render. The same geometry is used for every frame.",
+   "cams": "Camera sequence, one image per camera."
+  },
+  "outputs": {
+   "seq": "Sequence of images.",
+   "frames": "Number of frames."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives are rendered.",
+   "pass_depth": "Depth along the view axis in camera space (layer `depth`), unclamped.",
+   "pass_mask": "Coverage mask (layer `mask`).",
+   "pass_normal": "Normals (layer `N`), in the space given by Normal Space.",
+   "pass_shade": "Simple gray shading from a light near the camera, for a quick look at the shape (layer `C`). Not a final render.",
+   "pass_position": "World position (layer `P`).",
+   "pass_uv": "Interpolated UV (layer `uv`), read from the attribute named in UV Attribute.",
+   "pass_id": "Integer primitive id (layer `id`, -1 where empty) from the attribute in ID Attribute; string attributes are numbered in order of appearance.",
+   "pass_facing": "Absolute cosine between the normal and the view direction (layer `facing`), useful for rim lights and silhouette masks.",
+   "motion": "Adds `motion`, `motion_bwd` and `disocclusion` layers from each frame to the next (camera motion only).",
+   "motion_units": "Unit of the motion vectors: pixels, normalized (whole image = 2) or UV (whole image = 1).",
+   "loop": "Connects the motion of the last frame back to frame 0. Off: the last frame gets zero motion and full disocclusion.",
+   "normal_space": "Camera: +Z points toward the viewer, so a face looking at the camera is (0,0,1), the usual normal map convention. World: world-space normals.",
+   "normal_source": "Point `N` or face normals. Auto uses point normals if the geometry has them and face normals otherwise; Point computes point normals if missing; Face always uses face normals.",
+   "id_attribute": "Primitive attribute used by the id pass (needs to exist, e.g. from Voronoi Fracture, Convex Decompose or Connectivity).",
+   "uv_attribute": "UV attribute (vertex or point) used by the uv pass.",
+   "cull": "Back-face culling: drop back-facing or front-facing triangles.",
+   "device": "Backend that holds the output image. Auto uses CUDA when available and the image is large enough (at least 256x256 pixels); Exact is float64 numpy, bit-identical to the geometry side but slowest."
+  }
+ },
+ "PCG_SequenceMotion": {
+  "summary": "Computes a sequence of exact motion vector images from a geometry sequence and cameras.",
+  "description": "The moving-geometry counterpart of the motion option in Render Sequence, which can only express camera motion. It takes the geometry sequence produced by For-Each Frame End, so deformation, growth and fracture all get exact vectors. For every frame, motion between that frame and the next is computed as in Motion Vectors (layers `motion`, `motion_bwd`, `mask`, `mask_next`, `disocclusion`).\n\nThere must be as many cameras as geometries, or exactly one camera for a fixed viewpoint. A mismatch by one frame shifts the vectors by a whole frame and produces ghosting when warping, so it raises an error. The last frame has no successor: with Loop on it is connected to frame 0, otherwise it gets zero motion and a fully set disocclusion. Consecutive frames must share one topology.",
+  "inputs": {
+   "geoseq": "Geometry sequence, one geometry per frame.",
+   "cams": "Camera sequence with the same length as the geometry sequence, or a single camera."
+  },
+  "outputs": {
+   "seq": "Sequence of motion images.",
+   "frames": "Number of frames."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives are rendered.",
+   "units": "Unit of the vectors: pixels, normalized (whole image = 2) or UV (whole image = 1).",
+   "loop": "Connects the last frame to frame 0. Off: the last frame gets zero motion and full disocclusion.",
+   "depth_bias": "Depth tolerance of the disocclusion test, as a fraction of the bounding-sphere radius.",
+   "silhouette_guard": "Number of pixels the silhouette is eroded by; pixels on the edge count as needing repaint.",
+   "device": "Backend that holds the output image. Auto uses CUDA when available and the image is large enough (at least 256x256 pixels); Exact is float64 numpy, bit-identical to the geometry side but slowest."
+  }
+ },
+ "PCG_TextureRender": {
+  "summary": "Renders a UV texture onto the geometry through a camera.",
+  "description": "The forward half of the texture projection loop. It lets you check a back-projected texture without leaving ComfyUI, and it is the honest test of back-projection: a known texture rendered and back-projected should come back unchanged. The two directions use different code paths (screen rasterization plus UV sampling here, UV rasterization plus screen sampling there), so a round trip checks real behaviour rather than one bug cancelling itself.\n\nThe output has the color in layer `C` and a coverage `mask`.",
+  "inputs": {
+   "geo": "Geometry with a vertex or point UV attribute.",
+   "cam": "Camera to render through.",
+   "texture": "Image holding the texture in UV space."
+  },
+  "outputs": {
+   "cop": "Rendered image with layers `C` and `mask`."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives are rendered.",
+   "layer": "Layer of the texture image to sample.",
+   "uv_attrib": "Name of the UV attribute on the geometry.",
+   "filter": "Texture sampling filter: bilinear interpolation or nearest texel.",
+   "border": "Behaviour outside 0..1: clamp to the edge, wrap (repeat), or black.",
+   "background": "Value written to pixels that are not covered by geometry.",
+   "device": "Backend that holds the output image. Auto uses CUDA when available and the image is large enough (at least 256x256 pixels); Exact is float64 numpy, bit-identical to the geometry side but slowest."
+  },
+  "houdini_notes": "Corresponds to UV Quick Shade."
+ },
+ "PCG_Trace": {
+  "summary": "Traces the iso-contours of an image into polyline curves.",
+  "description": "The one step on the image to geometry path that brings back topology: Attribute from Map only gives values, while Trace produces curves that can be extruded, swept or used as cutters. Line art, silhouettes and masks from image models become editable geometry.\n\nThe algorithm is Marching Squares with two points handled carefully. Saddle cells are ambiguous (the two segments could be connected or separate), and a wrong choice changes the topology, so the average of the four corners decides, which is exact for a bilinear field. Orientation is consistent: the side above the threshold is on the left, so outer contours are counter-clockwise (positive signed area) and holes are clockwise (negative), which PolyFill and PolyExtrude rely on.\n\nSimplify is measured in image pixels, not world units, because it means how far the curve may deviate from the image and should not change with output size. Closed loops start the simplification from the farthest pair of points so a circle does not keep a spike at the start.\n\nOutput primitive attributes are `perimeter` and `area` (signed, in world units; open curves get 0 area) and the point attribute `uv`, which records where on the image each point came from and can be used with Attribute from Map to fetch colors.",
+  "inputs": {
+   "cop": "Image to trace."
+  },
+  "outputs": {
+   "curves": "Traced polylines (closed where the contour closes).",
+   "count": "Number of curves."
+  },
+  "params": {
+   "layer": "Layer of the image to trace.",
+   "channel_mode": "How the scalar field is taken from the image. Index uses the channel number below; Mono uses Rec.709 luminance (the first channel if there are fewer than three); Red / Green / Blue / Alpha pick a channel (alpha counts as 1 if missing).",
+   "channel": "Channel index used when Channel is Index.",
+   "threshold": "Iso-value. The contour separates pixels above it from pixels below it.",
+   "invert": "Traces the complement: the side below the threshold becomes the inside.",
+   "boundary": "Value assumed outside the image. With a value set, a border of that value is added so shapes touching the image edge become closed. None leaves them open. Same as (0,0) takes the value of the bottom-left pixel.",
+   "boundary_value": "Value outside the image when Boundary Color is Custom.",
+   "simplify": "Tolerance of Ramer-Douglas-Peucker simplification, in image pixels. 0 disables simplification.",
+   "min_points": "Curves with fewer points than this after simplification are discarded.",
+   "min_length": "Curves shorter than this (perimeter in world units) are discarded. 0 keeps everything.",
+   "close_open": "Marks all curves as closed, including open ones.",
+   "step_size": "Spacing in world units of the resampled points when Resample is on.",
+   "resample": "Resamples every curve to equal-length steps of Step Size. `perimeter` and `area` keep the values of the original contour.",
+   "plane": "Plane the curves are placed on. XY and XZ map the image up to Y and -Z respectively; ZX maps it to Z and Y.",
+   "size": "World size of the image's longer side (or both sides if Keep Aspect is off).",
+   "keep_aspect": "Keeps the image aspect ratio; off stretches the image to Size x Size.",
+   "height": "Offset of the curves along the normal of the plane.",
+   "center_x": "World position of the image center.",
+   "rotate_x": "Rotation in degrees, around the Center, applied after scaling.",
+   "scale_x": "Scale per axis around the Center, applied before rotation. Negative values mirror and flip the sign of the area.",
+   "uv_attrib": "Name of the point attribute that stores the image coordinate of each traced point.",
+   "add_uv": "Writes the image coordinates of each point to the attribute named in UV Attribute."
+  },
+  "houdini_notes": "Resample Shapes, Boundary Color and the Transform page follow Houdini's Trace parameters. Houdini's Trace produces faces; here the output is closed or open polylines, and use PolyFill to get faces."
+ },
+ "PCG_UVBackproject": {
+  "summary": "Projects a screen-space image back into UV space, weighted by visibility and facing, into an accumulator.",
+  "description": "Until this step the chain is one-way: geometry, render pass, control image, diffusion model. The generated image is laid out in screen pixels, but an asset needs a texture laid out in UV. This node does that conversion.\n\n**Accumulator.** The output is an accumulator (layers `Csum`, `Wsum` and `views`), not a texture. Connect it to the `accum` input of the next view's Backproject so each view adds its contribution on top of the previous ones, and finish with UV Resolve to get a texture. A single node that outputs textures directly could not know how much weight earlier views had at each texel and would have to overwrite in overlaps, producing a visible seam.\n\n**Visibility.** UV rasterization knows which triangle each texel belongs to, and the screen rasterization knows which triangle is visible at each pixel; when they match the texel is visible without any depth comparison. Pure depth bias is a bad trade: too small gives self-occlusion speckles (the same disease as shadow acne), too large leaks through occluders. The default `triangle+depth` accepts a texel if its triangle matches or its depth is within the bias; triangle only is too strict.\n\n**Silhouette guard.** Pixels on the silhouette are partially covered and blend in the background, and generated images are least reliable at object edges, so pixels within a number of pixels of the silhouette are discarded.\n\n**Linear blending.** Averaging encoded values gives different results than averaging linear values, and the error shows up only in overlaps as a seam. So the image is decoded to linear before accumulation by default.\n\nTexel weight is the facing term (N dot view direction) raised to Facing Power, zero at or below Facing Min, times a fade over the outer Border Fade fraction of the image, times 1 or 0 for visibility.",
+  "inputs": {
+   "geo": "Geometry with UVs and normals.",
+   "cam": "The camera that rendered `cop`. It must be exactly the same camera (use one Camera node for both).",
+   "cop": "The screen-space image to project, e.g. the diffusion output.",
+   "accum": "Accumulator from a previous view, to add this view's contribution to. Optional for the first view."
+  },
+  "outputs": {
+   "accum": "Accumulator with the layers `Csum`, `Wsum` and `views`.",
+   "coverage": "Fraction of texels that have been seen by at least one view so far.",
+   "info": "Coverage, maximum number of views per texel and texture resolution."
+  },
+  "params": {
+   "group": "Primitive group pattern; only these primitives take part.",
+   "layer": "Layer of the input image to project.",
+   "resolution_x": "Width and height of the UV-space accumulator in texels. Every node on one back-projection chain must use the same values.",
+   "decode": "Conversion applied to the image before accumulating. Images from diffusion models are sRGB encoded, so use sRGB to Linear to blend linearly; None accumulates the values unchanged.",
+   "facing_power": "Exponent of the facing weight. Larger values favour views that look straight at the surface.",
+   "facing_min": "Texels whose N dot view value is at or below this get weight 0.",
+   "border_fade": "Fraction of the image width at the outer border over which the weight fades linearly to 0. Edges are where diffusion output is least reliable.",
+   "visibility": "How occlusion is decided: triangle id or depth within bias, triangle id only, depth only, or no occlusion test.",
+   "depth_bias": "Depth tolerance of the visibility test, as a fraction of the bounding-sphere radius (not world units).",
+   "silhouette_guard": "Number of pixels the silhouette is eroded by. Higher values trade single-view coverage for fewer edge artifacts; with several views the cost is small.",
+   "weight_scale": "Multiplier on this view's weights relative to other views in the accumulator.",
+   "conservative": "Number of pixels triangles are expanded by during UV rasterization, so texels whose center lies just outside a triangle are still filled.",
+   "filter": "Sampling filter for the screen image: bilinear or closest.",
+   "uv_attrib": "Name of the UV attribute on the geometry.",
+   "normal_attrib": "Name of the point normal attribute used for the facing weight."
+  }
+ },
+ "PCG_UVResolve": {
+  "summary": "Turns a back-projection accumulator into a finished texture: divide by weight, dilate, fill holes.",
+  "description": "Divides the summed color by the summed weight, writes a gutter around UV islands, and fills regions that no view saw.\n\nDilation and hole filling are different things. Dilation writes a few extra texels outside the UV islands; without it, bilinear sampling at island edges picks up background, especially in low mips. Hole filling covers texels that were never seen by any view (back sides, fully occluded areas, large gaps between islands) with push-pull: the weighted image is downsampled into a pyramid and upsampled again, keeping original values where weight exists and filling elsewhere from coarser levels. It costs O(n), fills arbitrarily large holes in one pass and is smooth, unlike iterative dilation, which needs as many rounds as the hole radius and leaves concentric rings.\n\nOutput layers: the texture in the chosen layer, `mask` (texels actually seen by a view; dilated and filled texels are not counted, so it shows where another view is needed) and `views` (number of views per texel, to find areas held up by a single view).",
+  "inputs": {
+   "accum": "Accumulator from UV Backproject."
+  },
+  "outputs": {
+   "texture": "The finished texture with layers `C`, `mask` and `views`.",
+   "coverage": "Fraction of texels seen by at least one view."
+  },
+  "params": {
+   "layer": "Name of the output color layer.",
+   "encode": "Color conversion on output. Accumulation is linear, so choose sRGB when the result goes back to ComfyUI as an image. Linear applies the opposite (sRGB to linear) conversion.",
+   "dilate": "Number of texel rings written outside the UV islands (gutter). 0 disables it.",
+   "fill_holes": "Fills texels that no view saw with push-pull.",
+   "background": "Value used for unseen texels before dilation; also what remains there when Fill Holes is off.",
+   "device": "Backend that holds the output image. Auto uses CUDA when available and the image is large enough (at least 256x256 pixels); Exact is float64 numpy, bit-identical to the geometry side but slowest."
+  }
+ },
+ "PCG_VolumeRasterizeAttribs": {
+  "summary": "Splats points into volumes: a density fog plus a kernel-weighted average of chosen point attributes.",
+  "description": "Each point is a sphere of radius `pscale` x Radius Scale (or Radius when `pscale` is off or missing) with kernel weight `(1 - d/r)^2`. The output holds a fog volume named `density` (the sum of kernel weights times the point's density attribute, or 1 if the point has none) and one volume per requested attribute holding the kernel-weighted average, not the sum: two overlapping red points stay red. Texels with zero total weight are 0. Vector attributes are split into scalar volumes named `name.x`, `.y`, `.z` (`.w`).\n\nVoxels are cubes aligned to world-space multiples of Voxel Size; the extent is the point bounding box grown by the largest radius. An error is raised if the grid would exceed 300^3 voxels, or if no point has a positive radius.",
+  "inputs": {
+   "geo": "Points to rasterize."
+  },
+  "outputs": {
+   "geo": "The volumes (density plus one per attribute component).",
+   "report": "Resolution, volume count, point count and largest radius."
+  },
+  "params": {
+   "group": "Point group pattern; only these points are splatted.",
+   "attributes": "Point attributes to rasterize, separated by spaces. Must be numeric.",
+   "voxel_size": "Edge length of a voxel in world units.",
+   "use_pscale": "Takes each point's radius from `pscale` when present.",
+   "radius": "Radius used when Use pscale is off or the points have no `pscale`.",
+   "radius_scale": "Multiplier on the radius.",
+   "density_attribute": "Point attribute that weights each point's contribution to the density volume (1 if the attribute does not exist). The output volume is always called `density`."
+  }
+ },
+ "PCG_UVAutoSeams": {
+  "summary": "Finds UV seams automatically and writes them as an edge group for UV Flatten.",
+  "description": "Seams must satisfy two unrelated requirements: they should look good (cut along creases and separate high curvature so distortion is low) and they must make every piece a topological disk, otherwise LSCM has no solution. So candidate seams are chosen heuristically first and then completed with a topological algorithm.\n\nWith Make Disks on, each chart is guaranteed to be a disk, checked by the Euler characteristic V - E + F == 1 (V counts wedges, seam edges count twice). The completion uses a tree-cotree construction: cutting every edge outside a spanning tree of the dual graph always gives a disk, then dangling branches are pruned to return most edges. On a sphere this prunes to nothing, which is correct since a sphere needs one cut: the longest path found in the leftovers is protected from pruning, so one meridian-like cut remains.\n\nModes: `angle` cuts creases only; `charts` splits by normal cones (like Smart UV Project); `both` does both; `existing_islands` starts from edges where the existing vertex UVs are already discontinuous. Smaller Cone Angle gives more charts and lower distortion.\n\nInclude Edges and Island Attribute enforce cuts, Exclude Edges avoids them (Make Disks also routes around them; if they form a closed ring, one is still cut). Group limits cutting to edges touching the selected primitives.",
+  "inputs": {
+   "geo": "Geometry to find seams on."
+  },
+  "outputs": {
+   "geo": "The input geometry with the seams as an edge group."
+  },
+  "params": {
+   "group": "Primitive group pattern; seams are only created on edges that touch these primitives.",
+   "include_edges": "Edge group pattern; these edges are always seams.",
+   "island_attribute": "Integer primitive attribute; adjacent faces with different values are cut apart.",
+   "exclude_edges": "Edge group pattern; these edges are not used as seams, and Make Disks avoids them when completing seams.",
+   "mode": "Angle cuts only creases. Charts cuts chart borders from normal-cone clustering. Both uses both. Existing Islands uses edges where the vertex UV is already split.",
+   "min_angle": "Crease angle in degrees; edges whose adjacent faces meet at a sharper angle become seams (angle and both modes).",
+   "cone_angle": "Maximum cone angle in degrees of the normals within one chart (charts and both modes). Smaller values give more charts and lower distortion.",
+   "uv_attribute": "Vertex UV attribute read by Existing Islands.",
+   "connectivity_tolerance": "Existing Islands: UV distance below which two vertices of an edge count as the same UV (not a seam).",
+   "make_disks": "Guarantees every piece is a disk, so that LSCM can flatten it.",
+   "output_group": "Name of the edge group that receives the seams.",
+   "output_chart_attribute": "Name of an integer primitive attribute that receives the chart number of each face. Empty does not write it."
+  },
+  "houdini_notes": "Corresponds to UV Autoseam. Houdini's default Curvature Based splitting (granular regions that are then merged) is a different algorithm and is not reproduced; Enforce / Avoid cuts correspond to Include / Exclude Edges and Island Attribute."
+ },
+ "PCG_UVFlatten": {
+  "summary": "Flattens surface pieces into UV space with a conformal (LSCM), spectral (SCP) or ABF solver.",
+  "description": "Projection only works for roughly planar, cylindrical or spherical shapes. For arbitrary shapes this node finds (u,v) so each triangle maps from 3D to 2D as a rotation and uniform scale with as little shear as possible. The conformal condition (Cauchy-Riemann) is linear, so the solution is one sparse least-squares problem rather than an iterative optimisation. The solver is a Jacobi-preconditioned CGNR written in numpy, started from the projection onto the best-fit plane, which is already near the answer for developable surfaces.\n\nSeams do not cut the geometry. The unknowns are wedges: two corners belong to the same wedge when they share a point and the edge between them is not a seam. Each side of a seam is a separate wedge with its own (u,v). This is why UVs must be a vertex attribute here. Without a Seam Group the geometry's own boundary is used.\n\n**Closed pieces cannot be flattened** (a sphere has no isometric flattening, Gauss's Theorema Egregium). The node raises an error telling you to select a ring of edges as seams, rather than producing overlapping UVs; UV AutoSeams can do this.\n\nMethods: `lscm` is the original solver that pins two points; `scp` is spectral conformal, which pins nothing so the boundary is not pulled by pins; `abf` solves angles first and reconstructs (lowest area distortion, slowest).\n\nWith Normalize on all islands share one scale so the largest fills 0..1 and the others keep their relative size. Islands with two or more pins are not rescaled. The optional distortion attribute stores the UV area over 3D area per primitive divided by the global median; 1 means typical texel density. A conformal map preserves angles, not area, so it will not be 1 everywhere; use it to find parts that are stretched too much.",
+  "inputs": {
+   "geo": "Geometry to unwrap. Needs polygons."
+  },
+  "outputs": {
+   "geo": "Geometry with the UV vertex attribute."
+  },
+  "params": {
+   "flatten_group": "Primitive group pattern; only these faces are flattened. The border of the selection is treated as a seam and other faces keep their UVs.",
+   "attribute_name": "Name of the vertex UV attribute to write.",
+   "method": "LSCM is this plugin's original algorithm (not in Houdini 3.0). SCP is spectral conformal and does not pin points. ABF solves angles first: smallest area distortion, slowest.",
+   "preserve_seams": "Also treats edges where the existing UVs are discontinuous as seams.",
+   "seam_group": "Edge group pattern that cuts the surface into discs.",
+   "pin_group": "Point group pattern. Corners at these points are pinned to their existing UVs. Islands with two or more pins are not rescaled or normalized.",
+   "normalize": "Scales all islands by one common factor so the largest one fits 0..1.",
+   "iterations": "Maximum number of solver iterations.",
+   "tolerance": "Solver convergence tolerance.",
+   "arap_iterations": "Rounds of ARAP refinement after the initial flattening, which tends to make texel density more uniform. 0 disables it. Skipped for islands with two or more pins.",
+   "pack": "Packs the islands into 0..1 after flattening, like a basic UV Layout.",
+   "padding": "Gap between islands as a fraction of the unit square, when packing.",
+   "group": "Primitive group pattern that limits packing only. The faces to flatten come from Flatten Group.",
+   "distortion_attribute": "Name of a primitive attribute that receives the relative area distortion. Empty does not write it.",
+   "output_seams": "Name of an edge group that receives the seams actually used (Seam Group plus preserved seams). Empty does not write it.",
+   "output_constrained": "Name of a primitive group that receives the faces of islands with pins. Empty does not write it."
+  },
+  "houdini_notes": "Corresponds to UV Flatten. Houdini 3.0 offers only SCP and ABF; LSCM is kept as the plugin's original behaviour and default. Pins stay at their existing UVs; per-pin coordinate entry is not available (use UV Transform first)."
+ },
+ "PCG_UVFuse": {
+  "summary": "Welds vertices that are close together in UV space by averaging their UVs.",
+  "description": "Vertices whose UVs are within Distance of each other are merged to their average. Shared Points only welds vertices that sit on the same geometric point, which cleans up small gaps left by a projection. Distance ignores whether the vertices share a point, so it can stitch the touching edges of two islands together.",
+  "inputs": {
+   "geo": "Geometry with a vertex UV attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with fused UVs.",
+   "report": "Text report of what was fused."
+  },
+  "params": {
+   "group": "Primitive group pattern limiting the faces that are fused.",
+   "uv_attribute": "Name of the vertex UV attribute.",
+   "mode": "Shared Points welds only vertices on the same point. Distance welds any vertices within the distance.",
+   "distance": "Maximum UV distance for two vertices to be fused."
+  }
+ },
+ "PCG_UVLayout": {
+  "summary": "Finds UV islands and packs them into the 0..1 square (or UDIM tiles).",
+  "description": "Islands are found from UV connectivity, not geometric connectivity: two faces sharing an edge are not connected in UV when the UVs on the two sides of that edge differ, which is the definition of a seam. Splitting by geometry is a common mistake and shows up as a six-way box projection that still looks like a single blob after packing.\n\nPacking: `shelf` fills shelves, wrapped in a binary search for the largest scale that fits (the fit test is cheap, so the search lands on the maximum texel density). `raster` rasterizes islands into masks and interlocks them by shape, trying several rotations, so triangular and L-shaped islands do not each reserve a bounding box; it typically raises coverage on reduced rocks from about 40% to over 60%. Pack Resolution is the occupancy grid size: larger is tighter and slower.\n\nRotate to Fit uses rotating calipers to find the minimum-area bounding rectangle orientation (testing only the convex hull edges is enough); a 35 degree strip dropped from 0.76 to 0.47 occupancy. Scale Mode `uniform` uses one scale for all islands (consistent texel density, what baking wants); `individual` normalizes each island by its longer side first (sizes evened out); `fixed` applies Fixed Scale as is and does not search for the maximum, islands that do not fit are placed outside the target and added to the Nonpacked group. Pack Into UDIM Tiles packs across several tiles starting at Starting UDIM with Columns per row (with Fixed, tiles open as needed).",
+  "inputs": {
+   "geo": "Geometry with a UV attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with the packed UVs."
+  },
+  "params": {
+   "attribute_name": "Name of the UV attribute.",
+   "group": "Primitive group pattern; only islands containing these faces are laid out.",
+   "attribute_class": "Whether the UVs are stored on vertices or points. Vertex is needed for seams.",
+   "match_surface_area": "Before packing, scales each island so its UV area is proportional to its 3D area.",
+   "rotate_to_fit": "Rotates each island to the orientation of its minimum-area bounding box first (where Houdini has Axis Alignment; the algorithm differs).",
+   "method": "Shelf packs by bounding boxes. Raster packs by island shape and is tighter.",
+   "scale_mode": "Uniform: one scale for all islands. Individual: each island is normalized separately. Fixed: Fixed Scale, no fitting.",
+   "fixed_scale": "Scale applied to all islands in Fixed mode.",
+   "island_rotation": "Which orientations are tried per island. Auto keeps the original behaviour (Raster tries the four 90 degree orientations, Shelf does not rotate); None never rotates; Step tries every Rotation Step degrees; Custom divides 360 degrees into Rotation Divisions parts.",
+   "rotation_step": "Angle increment in degrees for the Step option.",
+   "rotation_divisions": "Number of equally spaced orientations for the Custom option.",
+   "padding": "Gap between islands and around the border, as a fraction of the unit square.",
+   "pack_resolution": "Raster method only: edge length of the occupancy grid. Larger packs tighter and runs slower.",
+   "pack_into": "Unit Square packs into 0..1. UDIM Tiles spreads the islands over several tiles.",
+   "udim_start": "UDIM number of the first tile (1001 is the 0..1 tile).",
+   "udim_columns": "Number of tiles per row of the UDIM grid.",
+   "udim_count": "Number of tiles to use.",
+   "nonpacked_group": "Name of a primitive group for faces whose islands did not fit (Fixed scale mode). Empty does not write it.",
+   "island_attribute": "Name of an integer primitive attribute that receives the island number. Empty does not write it.",
+   "target_attribute": "Name of an integer primitive attribute that receives the UDIM number of the tile (0 for the unit square, -1 if not packed). Empty does not write it."
+  },
+  "houdini_notes": "Corresponds to UV Layout. Pack Into supports the unit square and UDIM tiles only; packing into rectangles and islands from a second input are not implemented."
+ },
+ "PCG_UVPelt": {
+  "summary": "Unwraps one chart by pinning its longest boundary loop to a frame and relaxing the interior with springs.",
+  "description": "Unlike UV Flatten, which solves a conformal energy with a free boundary, Pelt works like stretching an animal skin. The surface is cut along the seams into a topological disk, the longest boundary loop of the chart containing the Hint Primitive is attached by arc length to a frame (a circle by default; if a closed face is connected to the second input, its P.x and P.y are used as U and V), and the interior is pulled flat by springs.\n\nThe Pelting Method sets spring weights: `spring_relaxation` uses adjacent triangle area over squared edge length; `tutte_barycentric` uses unit weights, which cannot flip faces with a convex frame; `discrete_harmonic` uses cotangent weights. The boundary is not hard pinned: each boundary point is attached to its frame position by a spring of strength Boundary Springs, and the resulting linear system is solved with conjugate gradients. Unknowns are wedges, so seams do not cut the geometry.\n\nOnly the chart that contains the hint primitive is unwrapped; the UVs of all other faces are left as they are (0 if there were none).",
+  "inputs": {
+   "geo": "Geometry to unwrap.",
+   "frame": "Optional closed face used as the boundary shape instead of a circle (U = P.x, V = P.y)."
+  },
+  "outputs": {
+   "geo": "Geometry with the UVs of the hint chart written."
+  },
+  "params": {
+   "attribute_name": "Name of the vertex UV attribute.",
+   "seam_group": "Edge group pattern that cuts the surface into a disk.",
+   "method": "Spring weighting: area over squared length, unit weights (no flips with a convex frame), or cotangent weights (least angle distortion).",
+   "output_group": "Name of a primitive group for the faces of the unwrapped chart. Empty does not write it.",
+   "iterations": "Maximum number of conjugate-gradient steps of the solver. Too few steps leave the result unconverged.",
+   "boundary_springs": "Stiffness of the springs holding the boundary to the frame. Larger values keep the boundary closer to the frame and make the chart bigger.",
+   "stiffness_attribute": "Optional point attribute that scales the spring weights (the average of the two end points is used per edge).",
+   "hint_prim": "Index of a primitive; only the chart containing it is unwrapped.",
+   "use_range": "Rescales the result so its bounding box matches the U and V ranges below.",
+   "u_range_min": "Target U range (min, max) when Use Range is on.",
+   "v_range_min": "Target V range (min, max) when Use Range is on.",
+   "orientation": "Position on the frame (0 to 1, as arc-length parameter) where the boundary point nearest to the hint primitive is attached; rotates the result."
+  },
+  "houdini_notes": "Corresponds to UV Pelt 2.0. The exact spring weight formulas are not documented by Houdini; the area / length^2 form here is this plugin's choice."
+ },
+ "PCG_UVProject": {
+  "summary": "Generates UVs by projection: planar, cylindrical, spherical, box, per-face, rows and columns, toroidal or plastic wrap.",
+  "description": "UVs are written as a vertex attribute by default, not point. A point can have several UV positions (either side of a seam, island borders), which a point attribute cannot store. Cylindrical and spherical projection always create a seam; as point UVs, the faces along it would interpolate u from 0.98 back to 0.02 and smear the texture.\n\nFix Seams checks each face's u range and, if it spans more than half a period, adds 1 to the smaller half, so a seam face gets u of (0.98, 0.99, 1.01, 1.02) which is continuous. Values outside 0..1 are fine because textures repeat. This is only possible with vertex attributes.\n\nModes: `planar`, `cylindrical`, `spherical` project along Axis. `box` is six-sided and picks the axis by face normal (point normals would tear faces apart in UV space), giving six islands for UV Layout. `face` gives each face its own 0..1 square (for brick or card per-piece textures). `rows_columns` assigns row and column UVs to a structured quad grid by BFS on the dual graph, independent of primitive order. `toroidal` wraps u around the main axis and v around the tube (for tori); `plastic_wrap` wraps from the positive axis end down, pinching only at the back and with no seam.\n\nBy default the projection is centered on the bounding box and fitted to 0..1, then rotated about (0.5, 0.5), scaled and translated. With Projector Transform on, Houdini semantics apply: a unit-size projector (square, cylinder, sphere or torus) is placed in the scene with the given transform, UVs come from the parameters on that projector and are remapped by U / V Range, without centering or fitting. Box, Face and Rows and Columns are not affected by the projector.",
+  "inputs": {
+   "geo": "Geometry to project UVs onto."
+  },
+  "outputs": {
+   "geo": "Geometry with the new UV attribute."
+  },
+  "params": {
+   "attribute_name": "Name of the UV attribute to write.",
+   "group": "Primitive group pattern; only these faces get new UVs and other faces keep their values.",
+   "attribute_class": "Vertex or point. Box and Face can only write Vertex.",
+   "mode": "Projection type. Toroidal: u goes around the main axis and v around the tube. Plastic Wrap: wrapped from the positive axis end, pinched only at the back, no seam.",
+   "axis": "Projection axis for the planar, cylindrical, spherical, toroidal and plastic wrap modes.",
+   "fit_to_01": "Fits the result into 0..1. Ignored by modes that use the projector when Projector Transform is on; it then only affects Box, Face and Rows and Columns.",
+   "keep_aspect": "Fit uses one common scale for u and v instead of stretching each to fill 0..1.",
+   "translate_u": "Offset applied to the UVs after rotation and scale.",
+   "rotate": "Rotation of the UVs in degrees about (0.5, 0.5).",
+   "scale_u": "Scale of the UVs (applied before translation).",
+   "fix_seams": "Makes UVs continuous across the seam of cylindrical, spherical and toroidal projections (vertex UVs only).",
+   "use_projector": "Turns on the Projector settings: a unit-size projector shape placed by the transform below, with no centering or fitting. Box, Face and Rows and Columns are unaffected.",
+   "xform_order": "Order in which scale, rotate and translate are applied (left to right).",
+   "rotate_order": "Order of the rotation axes.",
+   "proj_translate_x": "Translation of the projector.",
+   "proj_rotate_x": "Rotation of the projector in degrees.",
+   "proj_scale_x": "Scale of the projector.",
+   "proj_pivot_x": "Pivot point of the projector transform.",
+   "u_range_min": "Range of the projector's U parameter mapped to the texture: min is the left edge, max is the right edge.",
+   "v_range_min": "Range of the projector's V parameter mapped to the texture.",
+   "inner_radius": "Toroidal only, with the projector: inner radius of the projector torus. Its outer radius is fixed at 0.5."
+  },
+  "houdini_notes": "Combines UV Texture and UV Project. The Projector section follows UV Project's Transformation page. Plastic Wrap uses an azimuthal equidistant mapping built from Houdini's description, as its exact formula is not published."
+ },
+ "PCG_UVSmooth": {
+  "summary": "Relaxes UVs within UV space to smooth out distortion.",
+  "description": "Corners at the same point with the same UV form one wedge, so the two sides of a seam move independently and are not welded together. Edge weights are `cotangent` (computed on the 3D triangles, with linear precision: planar regions with linear UVs stay unchanged and only distortion that disagrees with the 3D shape is removed) or `uniform`.\n\n`relax` runs a number of iterations, each moving every free wedge toward the weighted average of its neighbours by Strength. `harmonic` solves directly to convergence, equivalent to infinitely many relax steps; it needs fixed wedges (Pin Boundary or a group), otherwise an island would collapse to a point. Pin Boundary fixes the boundary of each UV island including seams; points outside the group are also fixed.",
+  "inputs": {
+   "geo": "Geometry with a UV attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with smoothed UVs.",
+   "report": "Wedge and pinned counts."
+  },
+  "params": {
+   "group": "Point group pattern; points outside it are held fixed.",
+   "uv_attribute": "Name of the UV attribute (vertex, or point if there is no vertex attribute of that name).",
+   "solve": "Relax: fixed number of iterations. Harmonic: solved to convergence (requires pinned wedges).",
+   "weights": "Cotangent weights follow the 3D shape; Uniform weights every edge equally and can pull UVs toward even point spacing.",
+   "iterations": "Number of relax steps. Not used by Harmonic.",
+   "strength": "Fraction of the way to the neighbour average that each wedge moves per step. Not used by Harmonic.",
+   "pin_boundary": "Holds the boundary of each UV island (including seams) fixed."
+  },
+  "houdini_notes": "Corresponds to UV Smooth."
+ },
+ "PCG_UVTransform": {
+  "summary": "Translates, rotates and scales UVs in UV space.",
+  "description": "Each UV is scaled and rotated about the pivot and then translated. With Per Island on, every island is transformed about its own center instead of the Pivot. This is what you want to rotate scattered islands by 90 degrees each, rather than orbiting them around the center of the atlas.",
+  "inputs": {
+   "geo": "Geometry with a UV attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with transformed UVs."
+  },
+  "params": {
+   "group": "Point or vertex group pattern (matching Attribute Class); only these elements are transformed.",
+   "attribute_name": "Name of the UV attribute.",
+   "attribute_class": "Whether the UVs are stored on vertices or points.",
+   "per_island": "Transforms each island about its own center and ignores Pivot.",
+   "translate_u": "Offset in UV space, added last.",
+   "rotate": "Rotation in degrees about the pivot.",
+   "scale_u": "Scale about the pivot, applied before rotation.",
+   "pivot_u": "Pivot of rotation and scale in UV space. The center of the unit square by default."
+  },
+  "houdini_notes": "Corresponds to UV Transform."
+ },
+ "PCG_UVUnwrap": {
+  "summary": "Unwraps by assigning each face to its best projection plane, grouping connected faces into regions and laying the regions out.",
+  "description": "Not the same as UV Flatten: nothing is solved. Each face picks the plane with the smallest projection distortion, i.e. the largest absolute dot product between face normal and plane normal. By default the planes are the three axis planes, rotated together by Rotate; if polygons are connected to the second input, they are used as planes instead. Connected faces projected onto the same plane form one region, and regions are placed side by side: `strip` in a row, `square` filled into a square from largest to smallest. Scale then sizes the result.\n\nFaces on the back of a plane form their own region with u negated, so that the UV handedness matches the face winding (not mirrored). Faces outside Group keep their UVs.",
+  "inputs": {
+   "geo": "Geometry to unwrap.",
+   "planes": "Optional polygons used as the projection planes."
+  },
+  "outputs": {
+   "geo": "Geometry with the new UV attribute."
+  },
+  "params": {
+   "attribute_name": "Name of the UV attribute to write.",
+   "group": "Primitive group pattern; only these faces are unwrapped, the rest keep their UVs.",
+   "plane_group": "Primitive group pattern: which polygons of the second input are used as planes.",
+   "rotate_order": "Rotation order for the default coordinate planes. Not used when the second input is connected.",
+   "rotate_x": "Rotation of the default three coordinate planes in degrees. Not used when the second input is connected.",
+   "layout": "Strip: regions in a row. Square: regions packed into a square, largest first.",
+   "scale": "None keeps world size. Uniform scales proportionally to fit 0..1. Stretch fills 0..1 in both directions.",
+   "spacing": "Gap between regions in percent of the layout space (the side of a square with the summed bounding box areas of the regions)."
+  },
+  "houdini_notes": "Corresponds to UV Unwrap. Houdini's menu for default plane orientations is not reproduced; only the axis coordinate planes are available."
+ }
+}

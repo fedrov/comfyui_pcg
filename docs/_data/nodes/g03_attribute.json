@@ -1,0 +1,1330 @@
+{
+ "PCG_AttribAdjust": {
+  "summary": "Builds or edits one numeric attribute through a fixed pipeline of initialize, adjustment stack, remap and post-process.",
+  "description": "A single-node alternative to Houdini's Attribute Adjust Float, Integer and Vector. Values are always handled as an array with one to four components, so one node covers all three; the component count is taken from the existing attribute, or from `size` when the attribute is created.\n\nThe four stages always run in the same order: **Initialize**, then the **Adjustments** stack, then **Remap**, then **Post-Process**. The order matters: Remap needs to see the final distribution to pick its automatic input range, and rounding must come last (rounding before a multiply by 2 would give even numbers). Only elements in `group` are processed, and the automatic remap range looks only at the elements in the group, so outliers outside the group cannot squash the contrast. Elements outside the group keep their original value.\n\nThe Adjustments parameter is a text stack with one step per line, because ComfyUI widgets cannot grow like a Houdini multiparm. Each line is `<operation> <source> [mask=<source>]`; text after `#` is a comment:\n\n```\nmul   2.0\nadd   @curvature\nmul   rand(0.8, 1.2)\nadd   noise(perlin, 2.0, 0.3)\nmix   1.0 mask=@occlusion\nset   (@P.y * 0.1)\n```\n\nOperations are `set add sub mul div min max pow mix`. A source is a number, a comma-separated vector, `@attribute`, `rand(min, max)`, `noise(type, size, amplitude)`, or a wrangle expression in parentheses. A single value is spread over all components. `mask=` is per step and controls how much of that step is applied (0..1); for `mix` the mask is the interpolation factor itself (0.5 if omitted). `div` raises an error naming the line if any divisor is zero, and `pow` errors on negative bases with non-integer exponents instead of producing NaN.",
+  "inputs": {
+   "geo": "Geometry containing (or receiving) the attribute."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the attribute written. Existing attribute types are kept (integer attributes are rounded)."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "attribute_name": "Name of the attribute to edit or create. String attributes are rejected.",
+   "create_if_missing": "Create the attribute when it does not exist. When off, a missing attribute is an error. A missing attribute also needs Initialize to be something other than Off, since there is no original value to keep.",
+   "size": "Number of components of a newly created attribute (1 to 4). Ignored when the attribute already exists.",
+   "to_int": "Create a new attribute as 32-bit integer instead of float. Has no effect on an existing attribute, which keeps its type.",
+   "initialize": "Where the starting values come from. Off keeps the current values; Constant, Random, Noise and Expression generate new values; Attribute copies another attribute.",
+   "constant_x": "Constant used by Initialize = Constant. Only as many components as the attribute has are used.",
+   "source_attribute": "Attribute copied by Initialize = Attribute. A single-component source is spread over all components.",
+   "distribution": "Distribution for Initialize = Random. Uniform fills Rand Min..Rand Max; Gaussian uses mean and standard deviation; Power raises the uniform value to the exponent before scaling to Rand Min..Rand Max.",
+   "rand_min": "Lower end of the random range (Uniform and Power distributions).",
+   "rand_max": "Upper end of the random range (Uniform and Power distributions).",
+   "gaussian_mean": "Mean of the Gaussian distribution.",
+   "gaussian_stddev": "Standard deviation of the Gaussian distribution.",
+   "power_exponent": "Exponent for the Power distribution. Values above 1 bias results toward Rand Min.",
+   "noise_type": "Noise basis for Initialize = Noise.",
+   "noise_size": "Feature size of the noise in world units; the point position is divided by this value.",
+   "noise_amplitude": "Multiplier applied to the noise value.",
+   "expression": "Wrangle-style expression evaluated per element for Initialize = Expression, for example `@P.y`. A scalar result is spread over all components.",
+   "rand_seed": "Seed for the random and noise sources, including `rand()` and `noise()` in the Adjustments stack.",
+   "id_attribute": "Optional numeric attribute whose first component replaces the element number as the random key for Initialize = Random, so the random values follow an id instead of the element order.",
+   "adjustments": "Adjustment stack, one step per line: `<operation> <source> [mask=<source>]`. See the node description for the syntax.",
+   "use_remap": "Enable the Remap stage.",
+   "remap_ramp": "Ramp applied after the value is normalized to 0..1. Written as `position:value` pairs separated by spaces.",
+   "ramp_mode": "Interpolation between ramp points.",
+   "input_range": "Auto uses the minimum and maximum of the processed elements; Manual uses In Min and In Max.",
+   "in_min": "Input value that maps to 0 in Manual input range. Values outside the range are clamped.",
+   "in_max": "Input value that maps to 1 in Manual input range.",
+   "out_min": "Output value that ramp value 0 maps to.",
+   "out_max": "Output value that ramp value 1 maps to.",
+   "range_per_component": "In Auto mode, find the range separately for each component. When off, all components share one range, which keeps a grey color grey when remapping `Cd`.",
+   "clamp_min": "Lower limit applied per component when Use Clamp Min is on.",
+   "use_clamp_min": "Enable the lower clamp.",
+   "clamp_max": "Upper limit applied per component when Use Clamp Max is on.",
+   "use_clamp_max": "Enable the upper clamp.",
+   "normalize": "Unit Length scales each vector to length 1 (zero vectors stay zero); Sum To One divides by the component sum.",
+   "round_mode": "Rounding applied last to every component."
+  },
+  "houdini_notes": "Combines Attribute Adjust Float, Integer and Vector in one node and uses its own Initialize / Adjustments / Remap / Post-Process model instead of Houdini's Operation and Pattern Type. For the Houdini-style behaviour use the dedicated Attribute Adjust Float, Integer, Vector and Color nodes.",
+  "tips": [
+   "Because a missing attribute with Initialize = Off is an error, set Initialize to Constant when you only want to create an attribute.",
+   "Use `mask=` on a step to apply an operation only where an attribute (for example occlusion) is high."
+  ]
+ },
+ "PCG_AttribAdjustColor": {
+  "summary": "Generates or modifies a color attribute with constant, random, noise, attribute-driven or bounding-box patterns, then color-corrects and blends it.",
+  "description": "Follows the Houdini Attribute Adjust Color workflow. Stages in order: optional overwrite of the initial color, the **adjustment color** (from the pattern type) combined with the existing color by the operation, **color correction** (hue, saturation, value, brightness, gain, contrast, gamma, in that order), **post-process** (minimum, maximum, complement) and finally **blend** with the original input. Blend is last, so a blend of 0 really means no change, including the correction and post-process stages.\n\nRandom and Noise patterns use a separate random or noise value per RGB channel when interpolating between a min and max color. With a color ramp, a single value indexes the ramp. With Specific Colors, a single value picks one color from the list or scheme, weighted by `w=`. Noise values are not equalized, so they cluster around the middle of the range.\n\nElements outside `group` keep their original color. The attribute is created as a float color if it does not exist.",
+  "inputs": {
+   "geo": "Geometry whose color attribute is edited."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the color attribute written."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "blend_mode": "Whether the blend amount is a constant or read from an attribute.",
+   "blend": "Blend amount between the original value (0) and the adjusted result (1).",
+   "blend_attribute": "Numeric attribute (clamped to 0..1) giving the blend amount per element.",
+   "attribute_name": "Name of the color attribute, which must have three numeric components. It is created if missing.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "delete_other_colors": "Remove attributes of the same name on the other classes. A point color would otherwise override a primitive color, so this makes the class you write to the one that shows.",
+   "overwrite_initial": "Replace the starting color before the operation with the color chosen in Initial Color From.",
+   "initial_from": "Source of the starting color: a constant, a 3-component color attribute, or a float attribute spread over RGB.",
+   "initial_color_r": "Starting color for Initial Color From = Constant.",
+   "initial_attribute": "Attribute read for the starting color when Initial Color From is an attribute.",
+   "adjust_value": "Turns the adjustment off when disabled, so only the later stages (blend, clamp, and so on) are applied.",
+   "operation": "How the adjustment color is combined with the existing color, per channel. Overlay branches on the existing color (below 0.5 multiplies, above screens); Screen is 1-(1-a)(1-b); Hard Mix gives 1 where the sum reaches 1 and 0 elsewhere; Difference is adjustment minus original, without absolute value. If the attribute does not exist yet, every operation writes the adjustment color.",
+   "pattern_type": "How the adjustment color is generated. Constant uses one color; Random and Noise pick colors from the range settings; Color Attribute reads a color attribute; Remap Attribute maps a float attribute through the color ramp; Bounding Box maps position along a direction through the color ramp.",
+   "color_r": "Adjustment color for Pattern Type = Constant.",
+   "range_values": "Where Random and Noise colors come from: between a min and max color, along a color ramp, or from a specific list or color scheme.",
+   "color_space": "Color space in which Min/Max interpolate. In HSV the three components are hue (0..1 is a full turn), saturation and value, and the result is converted back to RGB.",
+   "min_color_r": "Color at the low end of Min/Max. Components are interpreted according to Color Space.",
+   "max_color_r": "Color at the high end of Min/Max. Components are interpreted according to Color Space.",
+   "color_ramp": "Color ramp as `position:r,g,b` entries separated by spaces. Used by Random/Noise with Color Ramp, and by Remap Attribute and Bounding Box.",
+   "color_scheme": "Specific Colors source. Custom uses the color list; the other schemes derive colors from a base color in HSV: Constant (the base), Complementary (+180 degrees), Analogous 2 and 4 (neighbours spaced by Distance), Triadic (+-120 degrees), Tetradic, 5 Shades (value scaled by 1, .8, .6, .4, .2) and 5 Tints (saturation scaled the same way).",
+   "scheme_color_r": "Base color the color scheme is derived from.",
+   "scheme_distance": "Hue spacing in degrees for the Analogous and Tetradic schemes. Shades and Tints use a fixed step.",
+   "color_list": "Colors for Specific Colors with the Custom scheme, one `r g b` per line. Append `w=weight` to set the probability of that color. Lines starting with `#` are comments.",
+   "adjustment_attribute": "Color attribute (three components) read when Pattern Type = Color Attribute.",
+   "source_attribute": "Float attribute (first component) mapped through the color ramp when Pattern Type = Remap Attribute.",
+   "bbox_direction_x": "Direction along which position is projected for Pattern Type = Bounding Box. The vector is normalized, then the projected values are normalized to 0..1 and looked up in the color ramp.",
+   "compute_range": "Take the minimum and maximum of the selected elements as the source range. When off, Source Min and Source Max are used.",
+   "source_min": "Source range used when Compute Range is off (first value = minimum, second = maximum). Values outside it are clamped to the ends of the ramp.",
+   "randomization_by": "Where the random seed key comes from: the element number, or the values of a custom attribute so the result follows the element rather than its index.",
+   "custom_attribute": "Numeric attribute whose first component is used as the random key when Randomization By is Custom Attribute.",
+   "rand_seed": "Seed for the Random and Noise patterns.",
+   "noise_type": "Noise basis used when the pattern type is Noise. The `*_f2f1` variants return the difference between the second and first nearest feature distance.",
+   "location_attribute": "Attribute that supplies the sample position for the noise. It is read from the target attribute class if it exists there as a 3-component attribute, otherwise it is taken from the point attribute of that name (vertices use their point, primitives their center, detail the mean position).",
+   "element_size": "Feature size of the noise in world units. The sample position is divided by `element_size` multiplied by `element_scale`.",
+   "element_scale_x": "Per-axis scale applied on top of `element_size`, so the noise can be stretched along one axis.",
+   "noise_offset_x": "Offset added to the sample position before it is divided by the element size. Moves the noise pattern through space.",
+   "fractal_type": "How octaves are combined. None gives a single octave; Standard sums octaves with falling weights; Terrain multiplies octaves so low areas flatten out; Hybrid Terrain is a multifractal with clamped weights.",
+   "max_octaves": "Number of noise layers stacked when the fractal type is not None.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude falloff from one octave to the next. Lower values give smoother results.",
+   "hue_shift": "Rotates hue, in degrees.",
+   "saturation": "Multiplier for HSV saturation (result clamped to 0..1).",
+   "value": "Multiplier for HSV value.",
+   "brightness": "Amount added to HSV value after the Value multiplier.",
+   "contrast": "Scales colors around 0.5.",
+   "gain": "Multiplier applied to RGB after the HSV step.",
+   "gamma": "Gamma correction `c^(1/gamma)`; values above 1 brighten.",
+   "minimum": "Lower clamp, applied when Use Minimum is on.",
+   "use_minimum": "Enables the lower clamp.",
+   "maximum": "Upper clamp, applied when Use Maximum is on.",
+   "use_maximum": "Enables the upper clamp.",
+   "complement": "Invert the final color to `1 - color`."
+  },
+  "houdini_notes": "The Color Map pattern (texture sampling) and the viewport-handle Line / Radial gradients are not implemented, and the color-correction parameters have no per-attribute variant. Color Correction order, the Overlay and Screen formulas and the 5 Shades / 5 Tints steps are fixed choices of this plugin. The Color SOP equivalent is the separate Color node.",
+  "tips": [
+   "Use Remap Attribute with a float attribute such as curvature to color geometry through a ramp.",
+   "Set Delete Other Colors when a point color is hiding the primitive color you just wrote."
+  ]
+ },
+ "PCG_AttribAdjustFloat": {
+  "summary": "Sets, offsets or scales a float attribute using constant, random, noise or attribute-driven values.",
+  "description": "Follows the Houdini Attribute Adjust Float model. An **adjustment value** is generated by the Pattern Type (Constant, Random, Noise, Attribute) and merged into the existing value by the Operation. The result is blended with the original (constant or per-element amount) and optionally clamped with Minimum / Maximum. Elements outside `group` keep their value.\n\nRandom and Noise first produce a value `u` in 0..1 which Range Values maps to the final range. Random is uniform and keyed on the element number (or a custom attribute). Noise is the fractal noise mapped from -1..1 to 0..1; it is not equalized, so noise-driven values cluster in the middle of the range and rarely reach the ends. With Specific Values the same `u` selects from a weighted value list, so in Noise mode the discrete values appear in coherent patches.\n\nIf the attribute does not exist it is created as a float, and every operation (including Set Initial) just writes the adjustment value. A component suffix such as `v.x` edits one component; a vector attribute named without suffix gets its length adjusted.",
+  "inputs": {
+   "geo": "Geometry whose attribute is adjusted."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the attribute written."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "attribute_name": "Attribute to edit. A component suffix such as `v.x` or `v[1]` edits only that component; a vector attribute without a suffix has its length adjusted (direction kept, zero vectors stay zero). The attribute is created if missing.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "adjust_value": "Turns the adjustment off when disabled, so only the later stages (blend, clamp, and so on) are applied.",
+   "operation": "How the adjustment is combined with the existing value. Set Always overwrites; Set Initial only writes when the attribute did not exist; the others combine per element. If the attribute does not exist yet, every operation simply writes the adjustment value.",
+   "pattern_type": "How the adjustment value is generated: a constant, a random value, a noise value or another attribute.",
+   "constant_value": "Adjustment value for Pattern Type = Constant.",
+   "adjustment_attribute": "Attribute read when the pattern type is Attribute.",
+   "attribute_adjustment": "How the adjustment attribute is modified before use: scaled, offset, or both.",
+   "attribute_scale": "Multiplier applied to the adjustment attribute.",
+   "attribute_offset": "Value added to the adjustment attribute.",
+   "randomization_by": "Where the random seed key comes from: the element number, or the values of a custom attribute so the result follows the element rather than its index.",
+   "custom_attribute": "Numeric attribute whose first component is used as the random key when Randomization By is Custom Attribute.",
+   "rand_seed": "Seed for the Random and Noise patterns.",
+   "minimum": "Lower clamp, applied when Use Minimum is on.",
+   "use_minimum": "Enables the lower clamp.",
+   "maximum": "Upper clamp, applied when Use Maximum is on.",
+   "use_maximum": "Enables the upper clamp.",
+   "range_values": "How the random or noise value in 0..1 is mapped to a value. Min/Max interpolates between the two bounds; Min + Range Length goes from Min up by the length; Middle +- Range Length is centred on Middle with a total width equal to the length (half-width = length / 2); Specific Values picks from the value list.",
+   "min_value": "Lower bound of the range (Min/Max and Min + Range Length modes).",
+   "max_value": "Upper bound of the range (Min/Max mode).",
+   "middle_value": "Centre of the range (Middle +- Range Length mode).",
+   "range_length": "Length of the range. In Middle +- Range Length mode the half-width is half of this value.",
+   "value_list": "Values to pick from when Range Values is Specific Values. One group per line: numbers separated by spaces, commas or semicolons, where `min-max:step` expands to a series. Append `w=weight` to a line to set the probability of that group; the values inside a group are chosen evenly. Lines starting with `#` are comments.",
+   "value_distribution": "Shape of the distribution. Uniform maps the value directly; Uniform Remap passes it through the remap ramp first; Uniform with Outliers sends a percentage of elements outside the range.",
+   "remap_ramp": "Ramp used by Uniform Remap. The horizontal axis is the random value (left = Min, right = Max), the vertical axis is the position inside the range.",
+   "outlier_percent": "Percentage of elements that become outliers (Uniform with Outliers).",
+   "outlier_range": "How far outliers extend beyond the range. In Additive mode it is an absolute distance; in Multiplicative mode the extension is (value - 1) times the range length.",
+   "outlier_range_mode": "Additive extends the range by a fixed distance; Multiplicative extends it by a multiple of the range length.",
+   "outlier_extent": "Which side outliers fall on: above the maximum, below the minimum, or either side at random.",
+   "outlier_seed": "Seed for choosing which elements are outliers and how far they go.",
+   "outlier_attribute": "Optional name of an integer attribute (same class) that receives 1 for outlier elements and 0 otherwise. Empty means no attribute is written.",
+   "use_stepping": "Snap generated values to a grid of `step_size`, counted from the minimum of the range.",
+   "step_size": "Grid spacing used when stepping is on.",
+   "noise_type": "Noise basis used when the pattern type is Noise. The `*_f2f1` variants return the difference between the second and first nearest feature distance.",
+   "location_attribute": "Attribute that supplies the sample position for the noise. It is read from the target attribute class if it exists there as a 3-component attribute, otherwise it is taken from the point attribute of that name (vertices use their point, primitives their center, detail the mean position).",
+   "element_size": "Feature size of the noise in world units. The sample position is divided by `element_size` multiplied by `element_scale`.",
+   "element_scale_x": "Per-axis scale applied on top of `element_size`, so the noise can be stretched along one axis.",
+   "noise_offset_x": "Offset added to the sample position before it is divided by the element size. Moves the noise pattern through space.",
+   "fractal_type": "How octaves are combined. None gives a single octave; Standard sums octaves with falling weights; Terrain multiplies octaves so low areas flatten out; Hybrid Terrain is a multifractal with clamped weights.",
+   "max_octaves": "Number of noise layers stacked when the fractal type is not None.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude falloff from one octave to the next. Lower values give smoother results.",
+   "blend_mode": "Whether the blend amount is a constant or read from an attribute.",
+   "blend": "Blend amount between the original value (0) and the adjusted result (1).",
+   "blend_attribute": "Numeric attribute (clamped to 0..1) giving the blend amount per element."
+  },
+  "houdini_notes": "Unit Settings, VEXpression, Animate Noise, Warping and Default Value are not implemented. Middle +- Range Length uses half the length on each side (as Attribute Adjust does; Attribute Noise defines the same mode with the full width). Houdini does not document whether noise is equalized; here it is not. The Specific Values list is written one group per line with the group's weight as the selection probability. Outlier extension in Multiplicative mode is measured in range lengths so that a range starting at 0 can still extend.",
+  "tips": [
+   "Set Outlier Attribute to get a mask of the elements that were sent outside the range."
+  ]
+ },
+ "PCG_AttribAdjustInteger": {
+  "summary": "Sets, offsets or scales an integer attribute using constant, random, noise or attribute-driven values.",
+  "description": "Same structure as Attribute Adjust Float (Pattern Type, Range Values, Operation, outliers, stepping), with integer behaviour: random integers are drawn uniformly from Min..Max **including both ends**, Stepping counts from Min (range 1..9 with step 2 gives 1 3 5 7 9), outliers are integers at least 1 outside the range, and the final result is rounded. A new attribute is created as `int32`. There is no Blend. Elements outside `group` keep their value.\n\nIn Middle +- Range Length mode the half-width is half the length, and bounds that fall between integers are pulled inwards (center 0, length 3 gives -1..1).",
+  "inputs": {
+   "geo": "Geometry whose attribute is adjusted."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the attribute written."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "attribute_name": "Attribute to edit. A component suffix such as `v.x` or `v[1]` edits only that component; a vector attribute without a suffix has its length adjusted (direction kept, zero vectors stay zero). The attribute is created if missing.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "adjust_value": "Turns the adjustment off when disabled, so only the later stages (blend, clamp, and so on) are applied.",
+   "operation": "How the adjustment is combined with the existing value. Set Always overwrites; Set Initial only writes when the attribute did not exist; the others combine per element. If the attribute does not exist yet, every operation simply writes the adjustment value.",
+   "pattern_type": "How the adjustment value is generated: a constant, a random value, a noise value or another attribute.",
+   "constant_value": "Adjustment value for Pattern Type = Constant.",
+   "adjustment_attribute": "Attribute read when the pattern type is Attribute.",
+   "attribute_adjustment": "How the adjustment attribute is modified before use: scaled, offset, or both.",
+   "attribute_scale": "Multiplier applied to the adjustment attribute.",
+   "attribute_offset": "Value added to the adjustment attribute.",
+   "randomization_by": "Where the random seed key comes from: the element number, or the values of a custom attribute so the result follows the element rather than its index.",
+   "custom_attribute": "Numeric attribute whose first component is used as the random key when Randomization By is Custom Attribute.",
+   "rand_seed": "Seed for the Random and Noise patterns.",
+   "minimum": "Lower clamp, applied when Use Minimum is on.",
+   "use_minimum": "Enables the lower clamp.",
+   "maximum": "Upper clamp, applied when Use Maximum is on.",
+   "use_maximum": "Enables the upper clamp.",
+   "range_values": "How the random or noise value in 0..1 is mapped to a value. Min/Max interpolates between the two bounds; Min + Range Length goes from Min up by the length; Middle +- Range Length is centred on Middle with a total width equal to the length (half-width = length / 2); Specific Values picks from the value list.",
+   "min_value": "Lower bound of the range (Min/Max and Min + Range Length modes).",
+   "max_value": "Upper bound of the range (Min/Max mode).",
+   "middle_value": "Centre of the range (Middle +- Range Length mode).",
+   "range_length": "Length of the range. In Middle +- Range Length mode the half-width is half of this value.",
+   "value_list": "Values to pick from when Range Values is Specific Values. One group per line: numbers separated by spaces, commas or semicolons, where `min-max:step` expands to a series. Append `w=weight` to a line to set the probability of that group; the values inside a group are chosen evenly. Lines starting with `#` are comments.",
+   "value_distribution": "Shape of the distribution. Uniform maps the value directly; Uniform Remap passes it through the remap ramp first; Uniform with Outliers sends a percentage of elements outside the range.",
+   "remap_ramp": "Ramp used by Uniform Remap. The horizontal axis is the random value (left = Min, right = Max), the vertical axis is the position inside the range.",
+   "outlier_percent": "Percentage of elements that become outliers (Uniform with Outliers).",
+   "outlier_range": "How far outliers extend beyond the range, in whole numbers. In Additive mode it is an absolute distance; in Multiplicative mode the extension is (value - 1) times the range length. Outliers always land at least 1 outside the range.",
+   "outlier_range_mode": "Additive extends the range by a fixed distance; Multiplicative extends it by a multiple of the range length.",
+   "outlier_extent": "Which side outliers fall on: above the maximum, below the minimum, or either side at random.",
+   "outlier_seed": "Seed for choosing which elements are outliers and how far they go.",
+   "outlier_attribute": "Optional name of an integer attribute (same class) that receives 1 for outlier elements and 0 otherwise. Empty means no attribute is written.",
+   "use_stepping": "Snap generated values to a grid of `step_size`, counted from the minimum of the range.",
+   "step_size": "Grid spacing used when stepping is on.",
+   "noise_type": "Noise basis used when the pattern type is Noise. The `*_f2f1` variants return the difference between the second and first nearest feature distance.",
+   "location_attribute": "Attribute that supplies the sample position for the noise. It is read from the target attribute class if it exists there as a 3-component attribute, otherwise it is taken from the point attribute of that name (vertices use their point, primitives their center, detail the mean position).",
+   "element_size": "Feature size of the noise in world units. The sample position is divided by `element_size` multiplied by `element_scale`.",
+   "element_scale_x": "Per-axis scale applied on top of `element_size`, so the noise can be stretched along one axis.",
+   "noise_offset_x": "Offset added to the sample position before it is divided by the element size. Moves the noise pattern through space.",
+   "fractal_type": "How octaves are combined. None gives a single octave; Standard sums octaves with falling weights; Terrain multiplies octaves so low areas flatten out; Hybrid Terrain is a multifractal with clamped weights.",
+   "max_octaves": "Number of noise layers stacked when the fractal type is not None.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude falloff from one octave to the next. Lower values give smoother results."
+  },
+  "houdini_notes": "Same unimplemented options as the Float node (Unit Settings, VEXpression, Animate Noise, Warping, Default Value). Noise values are not equalized, so noise-driven integers cluster around the middle of the range."
+ },
+ "PCG_AttribAdjustVector": {
+  "summary": "Adjusts a vector attribute by direction and length, with constant, random, noise or attribute-driven values.",
+  "description": "Follows the Houdini Attribute Adjust Vector workflow: **Pre-Process** (optionally overwrite the starting vector, reverse it, normalize it, scale its length), the **adjustment** (per Adjustment For and Operation), then **Post-Process** (blend with the original, length scale, minimum and maximum length, unit length and an optional length attribute). Elements outside `group` keep their vector.\n\nIn Direction & Length mode the adjustment is a vector, produced by Adjust With: a constant, an attribute, or random / noise values drawn per component with independent random streams (so vectors are not confined to the diagonal). Direction Only and Length Only use a scalar adjustment (length, angle or bias) taken from the Float-style Range Values settings. Direction Only operations keep the original length; zero vectors stay zero for Direction Only and Length Only.\n\nThe outlier attribute, if named, is written as an integer 0/1 mask.",
+  "inputs": {
+   "geo": "Geometry whose vector attribute is adjusted."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the vector attribute written."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "attribute_name": "Name of a 3-component numeric attribute. Created as a float vector if missing.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "enable_preprocess": "Enables the Pre-Process options (overwrite initial value, reverse, unit length, length scale).",
+   "overwrite_initial": "Replace the starting vector with the one chosen in Initial Value From before the adjustment.",
+   "initial_from": "Source of the starting vector: a constant, the computed normal of the chosen class, or another attribute.",
+   "initial_vector_x": "Starting vector for Initial Value From = Constant.",
+   "initial_attribute": "Attribute read for the starting vector. A single-component attribute is spread over all three components.",
+   "reverse_direction": "Negate the starting vector.",
+   "pre_unit_length": "Normalize the starting vector to length 1 (zero vectors stay zero).",
+   "pre_length_scale": "Factor the starting vector is multiplied by when Use Pre Length Scale is on.",
+   "use_pre_length_scale": "Enable the pre-process length scale.",
+   "adjust_value": "Turns the adjustment off when disabled, so only the later stages (blend, clamp, and so on) are applied.",
+   "adjustment_for": "What the adjustment changes. Direction & Length edits the whole vector with a vector adjustment value; Direction Only changes the direction and keeps the length; Length Only changes the length and keeps the direction (scalar adjustment value).",
+   "operation": "How the adjustment is combined. Allowed operations depend on Adjustment For, and an invalid combination is an error: Direction & Length allows Set Always, Set Initial, Set, Add, Subtract, Multiply, Minimum, Maximum; Direction Only allows Add, Subtract (the result is renormalized to the original length), Rotate (about the axis by an angle), Spread (onto a cone around the original direction, random azimuth) and Interpolate (spherically toward the goal); Length Only allows Add, Subtract, Multiply, Minimum, Maximum.",
+   "adjust_with": "How the adjustment value is generated: constant, random, noise, or from an attribute.",
+   "constant_vector_x": "Adjustment vector for Adjust With = Constant when the adjustment is a vector.",
+   "scalar_value": "Adjustment value for Adjust With = Constant when the adjustment is a scalar: the length change for Length Only, the angle in degrees for Rotate and Spread, and the Bias (0..1) for Interpolate.",
+   "vector_range": "Range used for random and noise vectors. Positive spans 0..Amplitude; Zero Centered spans -0.5..0.5 times Amplitude (so amplitude 1 gives +-0.5); Min/Max interpolates between two vectors; Specific Values picks from the vector list.",
+   "amplitude": "Overall size of Positive and Zero Centered vector ranges.",
+   "amplitude_scale_x": "Per-axis multiplier on Amplitude.",
+   "min_vector_x": "Lower corner of the Min/Max vector range.",
+   "max_vector_x": "Upper corner of the Min/Max vector range.",
+   "vector_list": "Vectors for Specific Values, one `x y z` per line. Append `w=weight` to set the probability of that vector. Lines starting with `#` are comments.",
+   "range_values": "Range mapping used for scalar random and noise adjustments (length change, angle, bias). See the Float node: Min/Max, Min + Range Length, Middle +- Range Length (half-width = length / 2) or Specific Values.",
+   "min_value": "Lower bound of the range (Min/Max and Min + Range Length modes).",
+   "max_value": "Upper bound of the range (Min/Max mode).",
+   "middle_value": "Centre of the range (Middle +- Range Length mode).",
+   "range_length": "Length of the range. In Middle +- Range Length mode the half-width is half of this value.",
+   "value_list": "Values for scalar adjustments when Range Values is Specific Values. One group per line: numbers separated by spaces, commas or semicolons, where `min-max:step` expands to a series; append `w=weight` for the group's probability. Not to be confused with the vector list.",
+   "value_distribution": "Shape of the distribution. Uniform maps the value directly; Uniform Remap passes it through the remap ramp first; Uniform with Outliers sends a percentage of elements outside the range.",
+   "remap_ramp": "Ramp used by Uniform Remap. The horizontal axis is the random value (left = Min, right = Max), the vertical axis is the position inside the range.",
+   "outlier_percent": "Percentage of elements that become outliers (Uniform with Outliers).",
+   "outlier_range": "How far outliers extend beyond the range. In Additive mode it is an absolute distance; in Multiplicative mode the extension is (value - 1) times the range length.",
+   "outlier_range_mode": "Additive extends the range by a fixed distance; Multiplicative extends it by a multiple of the range length.",
+   "outlier_extent": "Which side outliers fall on: above the maximum, below the minimum, or either side at random.",
+   "outlier_seed": "Seed for choosing which elements are outliers and how far they go.",
+   "outlier_attribute": "Optional name of an integer attribute (same class) that receives 1 for outlier elements and 0 otherwise. Empty means no attribute is written.",
+   "use_stepping": "Snap generated values to a grid of `step_size`, counted from the minimum of the range.",
+   "step_size": "Grid spacing used when stepping is on.",
+   "axis_from": "Whether the Rotate axis is a constant or read from an attribute.",
+   "axis_x": "Rotation axis for Rotate (normalized internally).",
+   "axis_attribute": "Vector attribute giving the rotation axis per element.",
+   "goal_from": "Whether the Interpolate goal direction is a constant or read from an attribute.",
+   "goal_x": "Goal direction for Interpolate (normalized internally).",
+   "goal_attribute": "Vector attribute giving the goal direction per element.",
+   "adjustment_attribute": "Attribute read when Adjust With = Attribute. For vector adjustments it needs three components (or one, spread over all three); for scalar adjustments the first component is used.",
+   "randomization_by": "Where the random seed key comes from: the element number, or the values of a custom attribute so the result follows the element rather than its index.",
+   "custom_attribute": "Numeric attribute whose first component is used as the random key when Randomization By is Custom Attribute.",
+   "rand_seed": "Seed for Random and Noise adjustments. It also determines the azimuth used by Spread.",
+   "blend_mode": "Whether the blend amount is a constant or read from an attribute.",
+   "blend": "Blend amount between the original value (0) and the adjusted result (1).",
+   "blend_attribute": "Numeric attribute (clamped to 0..1) giving the blend amount per element.",
+   "blend_type": "Linear blends the vectors component by component. Spherical interpolates the direction on the sphere and the length linearly.",
+   "post_length_scale": "Factor the result is multiplied by when Use Post Length Scale is on.",
+   "use_post_length_scale": "Enable the post-process length scale.",
+   "min_length": "Smallest allowed vector length when Use Min Length is on. Zero vectors have no direction and stay zero.",
+   "use_min_length": "Enable the minimum length.",
+   "max_length": "Largest allowed vector length when Use Max Length is on.",
+   "use_max_length": "Enable the maximum length.",
+   "post_unit_length": "Normalize the final vector to length 1 (zero vectors stay zero).",
+   "length_attribute": "Optional name of a float attribute (same class) that receives the length of the final vector. Empty means nothing is written.",
+   "noise_type": "Noise basis used when the pattern type is Noise. The `*_f2f1` variants return the difference between the second and first nearest feature distance.",
+   "location_attribute": "Attribute that supplies the sample position for the noise. It is read from the target attribute class if it exists there as a 3-component attribute, otherwise it is taken from the point attribute of that name (vertices use their point, primitives their center, detail the mean position).",
+   "element_size": "Feature size of the noise in world units. The sample position is divided by `element_size` multiplied by `element_scale`.",
+   "element_scale_x": "Per-axis scale applied on top of `element_size`, so the noise can be stretched along one axis.",
+   "noise_offset_x": "Offset added to the sample position before it is divided by the element size. Moves the noise pattern through space.",
+   "fractal_type": "How octaves are combined. None gives a single octave; Standard sums octaves with falling weights; Terrain multiplies octaves so low areas flatten out; Hybrid Terrain is a multifractal with clamped weights.",
+   "max_octaves": "Number of noise layers stacked when the fractal type is not None.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude falloff from one octave to the next. Lower values give smoother results."
+  },
+  "houdini_notes": "Zero Centered vectors follow the Houdini documentation: values are shifted to -0.5..0.5 and then multiplied by Amplitude. The azimuth for Spread, and the formulas of Spherical blend, are this plugin's choices where Houdini does not specify them. Selecting an operation that does not match Adjustment For is an error rather than a silent substitution."
+ },
+ "PCG_AttribBlur": {
+  "summary": "Smooths point or primitive attributes by diffusing them along mesh connectivity.",
+  "description": "Not a spatial blur: values spread along edges (points) or across shared edges (primitives), so two pieces of geometry that are not connected never influence each other, however close they are. Typical uses are feathering scatter density maps, softening masks and turning hard `Connectivity` blocks into gradients.\n\nEach iteration does `v += step * mask * (neighbour_average - v)`, an explicit heat diffusion. `step` is clamped to 0..1 because larger values oscillate and diverge; for a wider blur add iterations rather than increasing the step. There is deliberately no radius parameter: on a mesh with uneven edge lengths the same radius would be one step in sparse areas and ten in dense ones. The spread is roughly proportional to the square root of `iterations * step` edge lengths.\n\nElements outside `group`, or with a zero mask, are frozen (not written) but still contribute to their neighbours' averages, so the border of a blurred region is not held back by its own value. String attributes are skipped.",
+  "inputs": {
+   "geo": "Geometry with connectivity and the attributes to blur."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the blurred attributes written back with their original types (integer attributes are rounded)."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are modified. Others stay unchanged but still feed the averages.",
+   "attribute_class": "Point diffuses along edges; Primitive diffuses between faces that share an edge. Vertex and detail attributes have no neighbourhood and are not supported.",
+   "attributes": "Attribute names to blur, space separated, wildcards allowed (for example `uv*` or `* ^P`). Only numeric attributes are blurred. It is an error if nothing matches.",
+   "mode": "Uniform averages the neighbours equally. Edge Length weights each neighbour by the inverse of its distance (points only), so closer neighbours count more.",
+   "iterations": "Number of diffusion passes. More iterations spread values further.",
+   "step": "Fraction of the way each element moves toward its neighbour average per pass. Clamped to 0..1.",
+   "mask_attribute": "Optional numeric attribute (clamped to 0..1) that scales the step per element. 0 leaves the element fixed, though its value still influences neighbours.",
+   "invert_mask": "Use `1 - mask` instead of the mask."
+  },
+  "tips": [
+   "Add iterations, not step, for a softer result.",
+   "Blur a mask attribute before using it as a scatter density to avoid hard edges."
+  ]
+ },
+ "PCG_AttribCast": {
+  "summary": "Changes the storage type of attributes between 32/64-bit float, 32/64-bit integer and string.",
+  "description": "Converts the data type of every attribute matching the name pattern in the chosen class. float64 gives more precision at twice the memory, int32 halves it, and string attributes are handy for tagging. Float to integer **rounds to the nearest integer** rather than truncating (2.9 becomes 3), because truncation tends to look like an upstream error.\n\nConverting to string writes the components of each element as a space-separated text. Converting a string attribute to a number parses the text and errors out on values that cannot be read as numbers. Strings are left alone when the target is also string.",
+  "inputs": {
+   "geo": "Geometry with the attributes to convert."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the converted attributes."
+  },
+  "params": {
+   "attribute_class": "Attribute class to look in.",
+   "attributes": "Attribute names to convert, space separated, wildcards allowed (`*` means all). It is an error if nothing matches.",
+   "to_type": "Target storage type. Integer targets round to the nearest value."
+  }
+ },
+ "PCG_AttribComposite": {
+  "summary": "Composites a foreground attribute over a background attribute with a blend mode and alpha.",
+  "description": "Blends attribute B (foreground) into attribute A (background) like image layers. The result is `A + alpha * (blend(A, B) - A)`, where `alpha` is the Alpha value multiplied by an optional per-element alpha attribute read from the foreground. The background comes from `geo`; the foreground comes from the `fg` input, or from `geo` itself when `fg` is not connected.\n\nForeground elements are paired with background elements by element number, or by the value of a match attribute (typically `id`; the first foreground element with that value is used). Background elements without a partner are left unchanged. Blend modes: over (take B), add, subtract, multiply, divide (A is kept where B is 0), screen, overlay (decided by A: below 0.5 multiplies, above screens), min, max, difference (absolute), average.\n\nA single-component attribute is spread over the components of the other side. String attributes only support Over, in which case the foreground value is taken where alpha exceeds 0.5. The `report` output lists how many elements matched.",
+  "inputs": {
+   "geo": "Geometry that provides the background attribute and receives the result.",
+   "fg": "Optional geometry that provides the foreground attribute. If not connected, the foreground is read from `geo` itself."
+  },
+  "outputs": {
+   "geo": "Copy of `geo` with the composited attribute written.",
+   "report": "Text summary with the numbers of matched and unmatched elements."
+  },
+  "params": {
+   "attribute_class": "Attribute class of the background, foreground and result.",
+   "bg_attribute": "Background attribute in `geo`. If it does not exist it is treated as zero.",
+   "fg_attribute": "Foreground attribute, read from `fg` (or from `geo` when `fg` is not connected). It must exist.",
+   "mode": "Blend function applied between background and foreground, per component.",
+   "alpha": "Global opacity of the foreground, 0 to 1.",
+   "alpha_attribute": "Optional numeric attribute on the foreground that multiplies Alpha per element. Unmatched elements get alpha 0.",
+   "match": "How foreground elements are paired with background elements: by element number or by a matching attribute.",
+   "match_attribute": "Attribute present on both sides whose values are compared when Match is By Attribute.",
+   "output": "Name of the attribute to write. Empty writes back into the background attribute."
+  },
+  "houdini_notes": "Foreground and background are attributes of geometry rather than image layers; the blend formulas are the common layer-blend equations."
+ },
+ "PCG_AttribCopy": {
+  "summary": "Copies attributes and groups from a source geometry to a destination, element by element.",
+  "description": "Moves attributes from `source` onto `dest` by **element number**, one to one. It is meant for the case where both sides were originally the same geometry (two branches that each computed something and are merged back). If topology has changed so numbers no longer line up, either match by an id attribute or use Attribute Transfer to look up by distance.\n\nElements whose number is beyond the source range keep their current value instead of being zero-filled; zero-filling would make an element-count mismatch look like a region of genuine zeros. With a match attribute, destination elements take the value from the first source element with the same value; those without a match are left alone. Groups listed in `groups` are copied with the same pairing.",
+  "inputs": {
+   "dest": "Geometry that receives the attributes.",
+   "source": "Geometry the attributes are read from."
+  },
+  "outputs": {
+   "geo": "Copy of `dest` with the copied attributes and groups."
+  },
+  "params": {
+   "group": "Group pattern on `dest` limiting which elements are written.",
+   "attribute_class": "Attribute class to copy within.",
+   "attributes": "Names of source attributes to copy, space separated, wildcards allowed. It is an error if neither attributes nor groups match.",
+   "groups": "Names of source groups of this class to copy, wildcards allowed. They are paired the same way as the attributes.",
+   "match_attribute": "Attribute present on both geometries whose values pair the elements (typically `id`). Used only when Use Match Attribute is on.",
+   "use_match_attribute": "Pair elements by Match Attribute instead of by element number."
+  },
+  "houdini_notes": "Covers Attribute Copy and Group Copy together (the `groups` field)."
+ },
+ "PCG_AttribCreate": {
+  "summary": "Creates attributes and writes a constant or expression value, optionally only on a group.",
+  "description": "Creates one or more attributes (names separated by spaces) of the chosen class and type and fills them with a value. If `group` is set, only the selected elements are written and the rest keep their existing value, or zero for a new attribute. This is the usual way to tag a subset of elements.\n\nWith Use Expression on, the value comes from a one-line wrangle expression evaluated per element (for example `@P.y` or `@ptnum % 3`) instead of the constant. The node exists to make the graph self-documenting: a named node reads better than another anonymous wrangle.\n\nTypes: Float and Integer use `size` components; Vector has 3 and Vector4 has 4; String writes `string_value`. Integer values are rounded. An existing attribute of a different component count is replaced.",
+  "inputs": {
+   "geo": "Geometry to add the attributes to."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the new or updated attributes."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are written.",
+   "name": "Attribute name(s) to create, separated by spaces. Each one gets the same value.",
+   "attribute_class": "Class that the attribute is created on.",
+   "attribute_type": "Data type. Vector is three components, Vector4 four; Float and Integer use Size.",
+   "size": "Number of components for Float and Integer attributes.",
+   "value_x": "Constant value. Only the first Size components (3 for Vector, 4 for Vector4) are used.",
+   "string_value": "Text written when the type is String.",
+   "expression": "Wrangle-style expression evaluated per element when Use Expression is on.",
+   "use_expression": "Use the expression instead of the constant value.",
+   "only_if_missing": "Skip names that already exist on the geometry instead of overwriting them."
+  }
+ },
+ "PCG_AttribDelete": {
+  "summary": "Deletes attributes by name pattern on each attribute class, or keeps only the matching ones.",
+  "description": "Each class has its own name pattern field. Patterns accept wildcards (`uv*` matches everything starting with `uv`) and exclusions (`* ^P ^N` means all but `P` and `N`). An **empty field leaves that class untouched**, which matters especially with Delete Non Selected: an empty field is not interpreted as select-all. The point position `P` is never deleted, since geometry without positions is invalid.",
+  "inputs": {
+   "geo": "Geometry to remove attributes from."
+  },
+  "outputs": {
+   "geo": "Copy of the input without the deleted attributes."
+  },
+  "params": {
+   "point": "Point attribute names to delete, space separated, wildcards allowed. Empty leaves point attributes alone.",
+   "vertex": "Vertex attribute names to delete. Empty leaves vertex attributes alone.",
+   "prim": "Primitive attribute names to delete. Empty leaves primitive attributes alone.",
+   "detail": "Detail attribute names to delete. Empty leaves detail attributes alone.",
+   "delete_non_selected": "Delete everything that does not match instead. Classes with an empty field are still left alone."
+  }
+ },
+ "PCG_AttribFade": {
+  "summary": "Writes a spatial falloff attribute that is full inside a group and fades out with distance from it.",
+  "description": "Starting from `group`, each element receives a value based on how far it is from the group. Elements inside the group get Inside Value; elements farther than `radius` get Outside Value; in between, the distance `d` is converted to `1 - d / radius`, shaped by the falloff ramp, and interpolated between Outside and Inside Value. Distance is measured either in edge steps or in world units along the surface, depending on Metric.\n\nThe usual use is a mask for Transform, Attribute Adjust or Noise (\"lift only this area, with a smooth edge\"). The ramp defaults to Smooth rather than Linear because a linear ramp has a slope discontinuity at the group border that shows up as a visible ridge when displaced.\n\nWith From Boundary on, the falloff runs on the inside of the group instead: the ring of elements touching the boundary is 0 and values rise toward 1 in the interior (full value beyond `radius` from the boundary); everything outside the group is 0. That produces a soft selection that is only full in the centre.\n\nThe group must select at least one element, otherwise the node errors (an empty group is treated as the empty set, not as all elements).",
+  "inputs": {
+   "geo": "Geometry to write the fade attribute on."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the fade attribute written."
+  },
+  "params": {
+   "group": "Group pattern the fade starts from. It must select at least one element.",
+   "cls": "Attribute class that the fade is computed and stored on (points or primitives). Distance on primitives is measured across shared edges.",
+   "attribute_name": "Name of the output attribute. If it already exists as a single-component attribute it keeps its type and is combined according to Combine.",
+   "metric": "Steps counts edge hops from the group; Distance measures world-space distance along the mesh.",
+   "radius": "Fade length: number of steps or world distance (according to Metric) over which the value falls from inside to outside.",
+   "from_boundary": "Fade toward the boundary from within the group instead of outward from it, giving a soft selection that is full only in the middle.",
+   "falloff_ramp": "Ramp that shapes the falloff. The horizontal axis is `1 - d / radius` (0 at the far edge, 1 at the group), the vertical axis is the result before Inside / Outside scaling. Written as `position:value` pairs.",
+   "ramp_mode": "Interpolation between ramp points. Smooth avoids the visible crease that Linear leaves at the group border.",
+   "inside_value": "Value at the full end of the ramp (inside the group).",
+   "outside_value": "Value at the far end of the ramp (beyond the radius).",
+   "invert": "Invert the ramp result (`1 - v`) before applying Inside and Outside Value.",
+   "combine": "How the new fade merges with an existing attribute of the same name: Set replaces it; Add, Multiply, Max and Min combine per element. A missing attribute counts as 0 (1 for Multiply)."
+  },
+  "tips": [
+   "Plug the fade attribute into a mask-aware node such as Attribute Adjust or Transform to get smooth localized edits."
+  ]
+ },
+ "PCG_AttribFadeTime": {
+  "summary": "Fades a point attribute in, holds it, and fades it out over time using per-point start frames.",
+  "description": "Time-based fade, following the Houdini Attribute Fade SOP. For each point the local time is `t = Frame - start`, where `start = start_attribute * start_retime + frame_offset` (0 if the start attribute is missing). Then:\n\n- `0 <= t < fade_in`: fading in, evaluated through the Fade In Ramp at `t / fade_in`.\n- `fade_in <= t < fade_in + hold`: fully on (1), where `hold = fade_hold * holdscale` (scale is 1 if the attribute is missing).\n- Next `fade_out` frames: fading out through the Fade Out Ramp.\n- Before the start or after the end: 0.\n\nThe result is `original * fade`; if the attribute does not exist it is created from 1, so it holds the fade itself. Only points in `group` are changed; others keep their value (or 1 for a newly created attribute). Phases with zero length are skipped.\n\nThe second and third inputs can supply the start frame and the hold scale instead of reading them from `geo`; they are matched by point number, so the point counts must be equal. The `report` output counts points at zero, fully on and mid-fade.",
+  "inputs": {
+   "geo": "Points whose attribute is faded.",
+   "start_geo": "Optional geometry to read the start frame attribute from (matched by point number, same point count as `geo`).",
+   "hold_geo": "Optional geometry to read the hold scale attribute from (matched by point number, same point count as `geo`)."
+  },
+  "outputs": {
+   "geo": "Copy of `geo` with the faded attribute.",
+   "report": "Text summary of how many points are at zero, fully on and fading."
+  },
+  "params": {
+   "visualize": "Also write the fade value into `Cd` of the points in the group, for a quick look at the result.",
+   "group": "Point group pattern limiting which points are faded.",
+   "fade_attribute": "Point attribute that is multiplied by the fade. If it does not exist, it is created with the fade value itself.",
+   "start_attribute": "Point attribute holding each point's start frame (from `start_geo` if connected). A missing attribute means start 0.",
+   "start_retime": "Multiplier from the start attribute value to frames. Use the frame rate if the attribute stores seconds.",
+   "hold_scale_attribute": "Point attribute that multiplies the hold duration per point (from `hold_geo` if connected). A missing attribute means 1.",
+   "frame": "Current frame. ComfyUI has no global timeline, so drive this from a playbar or value node.",
+   "frame_offset": "Frames added to every start frame.",
+   "fade_in": "Duration of the fade-in, in frames.",
+   "fade_hold": "Duration of the fully-on phase, in frames, before being scaled by the hold scale attribute.",
+   "fade_out": "Duration of the fade-out, in frames.",
+   "fade_in_ramp": "Curve for the fade-in. Horizontal axis is progress through the fade-in, vertical axis is the fade value. Written as `position:value` pairs.",
+   "fade_in_ramp_mode": "Interpolation between fade-in ramp points.",
+   "fade_out_ramp": "Curve for the fade-out. Horizontal axis is progress through the fade-out, vertical axis is the fade value (the default goes from 1 down to 0).",
+   "fade_out_ramp_mode": "Interpolation between fade-out ramp points."
+  },
+  "houdini_notes": "The current frame is an explicit parameter instead of the global time. Both ramps hold the actual fade value (fade-out is not reversed internally). Start Frame Retime is a single multiplier rather than a from/to pair. Spatial falloff from a group is the separate Attribute Fade node."
+ },
+ "PCG_AttribFill": {
+  "summary": "Fills a point attribute from known points to the remaining points along mesh connectivity.",
+  "description": "The attribute is meaningful only on the *known* points (the `known_group`; if empty, the points whose attribute is not all zero). Values are propagated to the other points through the mesh edges, so disconnected pieces never exchange values. Points not connected to any known point keep their value (Poisson writes 0 there, Eikonal writes Unreachable Time).\n\nMethods:\n\n- **Harmonic** solves a Laplace equation with the known values as boundary conditions (conjugate gradient). The result is smooth and has no overshoot; extremes occur only on known points.\n- **Nearest** copies the value of the closest known point measured along edges.\n- **Diffuse** runs `iterations` of weighted averaging with the known points pinned. Few iterations give a soft transition near the known points; many converge to Harmonic.\n- **Eikonal** writes the travel time along edges from the Boundary Group (`edge length / speed at the departing point`). It does not read the input values and requires a group. It follows edges, it is not a fast-marching solver.\n- **Poisson** is a harmonic fill with edge weights `1 / edge length`, optionally guided by the gradient of Attribute to Match.\n- **Diffusion** performs one implicit diffusion step from the current values; known points act as fixed sources. Without a group nothing is fixed. Repeat the node for more steps.\n- **Extrapolate** copies values outward from the known points along shortest paths, either as plain scalars or, for vectors, by parallel transport of the tangential part.\n\nThe `report` output lists how many points were known, filled and unreachable.",
+  "inputs": {
+   "geo": "Geometry with a point attribute to fill."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the filled point attribute.",
+   "report": "Text summary with the numbers of known, filled and unreachable points."
+  },
+  "params": {
+   "method": "Fill algorithm; see the node description. Harmonic, Nearest and Diffuse use Weights and Iterations as applicable; the last four options correspond to Houdini's modes and use the parameters below.",
+   "attribute": "Point attribute to fill. It must exist and be numeric, except for Eikonal which creates it.",
+   "speed_attribute": "Optional point attribute giving the propagation speed for Eikonal and Diffusion. Values are limited below by Minimum Speed.",
+   "match_attribute": "Optional attribute for Poisson whose differences between neighbours guide the fill (Attribute to Match).",
+   "weight_attribute": "Optional point attribute (0..1) that controls how strongly Attribute to Match guides the Poisson fill.",
+   "known_group": "Point group of known points (Boundary Group for the Houdini-style methods). Empty uses the points where the attribute is not all zero; Eikonal requires a group, Diffusion treats empty as no fixed sources.",
+   "weights": "Edge weighting for Harmonic and Diffuse: Uniform gives every edge weight 1, Inverse Length gives shorter edges more weight.",
+   "iterations": "Number of averaging passes for Diffuse.",
+   "min_edge_length": "Lower limit on edge length used in the Poisson and Diffusion weights, to avoid division by tiny lengths.",
+   "min_speed": "Lower limit on speed for Eikonal and Diffusion.",
+   "diffusion_time": "Time step of the implicit Diffusion step. Larger values spread further.",
+   "unreachable_time": "Value written by Eikonal on points that cannot be reached from the group.",
+   "extrapolation": "Extrapolate behaviour. Scalar copies the value from the source point; Parallel Transport carries the tangent part of a vector attribute along the surface (needs 3 components, uses `N` or computed normals).",
+   "tangential_only": "For Parallel Transport, write only the tangential part; when off, the normal component is copied from the source as in Scalar mode.",
+   "global_rotation": "Extra rotation in degrees about the normal, applied to the transported tangent vectors."
+  },
+  "houdini_notes": "Harmonic, Nearest and Diffuse are this plugin's methods; Eikonal, Poisson, Diffusion and Extrapolate correspond to Houdini's modes. Eikonal travels along mesh edges, so the result is edge-path distance rather than a surface-accurate fast-marching time. Where Houdini does not specify the guide strength on edges for Poisson, the average of the two endpoint weights is used."
+ },
+ "PCG_AttribFromMap": {
+  "summary": "Samples an image layer at the UVs of each element and writes the result as an attribute.",
+  "description": "The main way to bring an image (for example a mask or color map generated by a diffusion model) back onto geometry. The image comes from a COP network, the UVs from a `uv` attribute on the geometry.\n\nUVs live on vertices, so writing to points is ambiguous at UV seams, where one point has several UVs. The class decides what happens: **Vertex** uses the vertex UV directly (recommended, no ambiguity); **Point** uses the UV of the first incident vertex (not an average, since averaging u=0 and u=1 at a seam would sample the middle of the image); **Primitive** averages the UVs of all its vertices. The `info` output reports how many points lie on seams.\n\nBilinear sampling reconstructs the image exactly in the interior; the half-pixel at the borders is governed by the border mode. Remember to use sRGB to Linear when treating the image as numeric data.",
+  "inputs": {
+   "geo": "Geometry with UVs that receives the attribute.",
+   "cop": "Image to sample (COP image)."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the sampled attribute.",
+   "info": "Text summary: element count, component count, and the number of points on UV seams."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are written. Others keep their current value (zero for a new attribute).",
+   "layer": "Name of the image layer to sample, such as `C` for color.",
+   "name": "Name of the attribute written. New attributes are created as floats.",
+   "channels": "Channels to keep: empty for all, or a comma-separated list of channel indices such as `0` or `0,2`.",
+   "decode": "Color transform applied to the sampled values. Use sRGB to Linear when the image is used as a number (displacement, density, `pscale`), since an encoded 0.5 is only about 0.214 in linear terms.",
+   "filter": "Bilinear interpolates between pixels; Closest takes the nearest pixel.",
+   "border": "Behaviour outside the image: Clamp repeats the edge pixels, Wrap tiles the image, Black returns zero.",
+   "scale": "Multiplier applied to the sampled values (after decode).",
+   "offset": "Value added after the scale.",
+   "blend": "Mix between the existing attribute value (0) and the sampled value (1). A missing attribute counts as 0, and component counts are broadcast to match.",
+   "class": "Attribute class that is written, which also selects how UVs are fetched. Vertex is the safest because UVs are stored on vertices.",
+   "uv_attrib": "Name of the UV attribute.",
+   "uv_from": "Where to read the UV attribute: Auto prefers the vertex attribute and falls back to the point attribute.",
+   "uv_scale_u": "Multiplier on u and v before sampling, for tiling the image. The second value scales v.",
+   "uv_offset_u": "Offset added to u and v after scaling. The second value offsets v."
+  },
+  "houdini_notes": "Also covers sampling an image layer in a COP network (Attribute from Layer, Geometry Attribute from Layer) since the image is taken from a COP input. UV scale and offset are built in so a texture can be tiled without a separate UV Transform."
+ },
+ "PCG_AttribFromCamera": {
+  "summary": "Projects an image onto geometry through a camera, with visibility testing, and writes an attribute plus visible and mask groups.",
+  "description": "Samples an image layer at the screen position of each element as seen by the camera. It does not need UVs, which makes it suitable for freshly imported meshes. A typical use is turning an AI-generated mask into a group: render a pass, feed it to a diffusion model, project the result back, and use `mask_group` to drive Blast, Fracture, PolyExtrude or Scatter, so the AI only decides *where* and the rest of the graph stays deterministic.\n\nPlain camera projection ignores occlusion, so the back of a sphere would get the same color as the front. This node has four visibility levels: **All** (no test), **Frustum** (inside the image and in front of the camera), **Front** (adds a facing test against `normal_attrib`), and **Full** (adds occlusion, the default). Occlusion rasterizes the *whole* geometry from the camera, so objects outside `group` still hide others; `group` only limits what is written. Occlusion passes when the triangle visible at the element's pixel (searched in a 3x3 pixel neighbourhood) contains the element, or when its depth is within the bias of the visible depth.\n\nTwo groups are the point of the node: `visible_group` holds the elements the camera can see (for coverage checks across several cameras), `mask_group` holds visible elements whose written value reaches `threshold`. The test uses the value after scale and offset.\n\nElements that are not visible are handled by Missing: keep the old value (what multi-camera accumulation needs), write zero, or write a fixed value. The three extra outputs report the visible count, the coverage fraction and a text summary of the elements rejected (outside the frame, back-facing, occluded).",
+  "inputs": {
+   "geo": "Geometry to project onto and write attributes on.",
+   "cam": "Camera used for the projection and for the visibility test.",
+   "cop": "Image to sample (COP image)."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the sampled attribute and the optional groups and UV attribute.",
+   "visible": "Number of elements the camera sees (and that are in `group`).",
+   "coverage": "Visible elements as a fraction of all elements of the class.",
+   "info": "Text summary: visible/total, and counts of elements outside the frame, back-facing and occluded."
+  },
+  "params": {
+   "layer": "Name of the image layer to sample, such as `C` for color.",
+   "name": "Name of the attribute written. New attributes are created as floats.",
+   "channels": "Channels to keep: empty for all, or a comma-separated list of channel indices such as `0` or `0,2`.",
+   "decode": "Color transform applied to the sampled values. Use sRGB to Linear when the image is used as a number (displacement, density, `pscale`), since an encoded 0.5 is only about 0.214 in linear terms.",
+   "filter": "Bilinear interpolates between pixels; Closest takes the nearest pixel.",
+   "border": "Behaviour outside the image: Clamp repeats the edge pixels, Wrap tiles the image, Black returns zero.",
+   "scale": "Multiplier applied to the sampled values (after decode).",
+   "offset": "Value added after the scale.",
+   "blend": "Mix between the existing attribute value (0) and the sampled value (1). A missing attribute counts as 0, and component counts are broadcast to match.",
+   "group": "Group pattern limiting which elements are written. Occlusion still uses all geometry. Unselected elements count as not written for the groups.",
+   "class": "Attribute class that is projected onto. Points and vertices use the point position; primitives use their center, so a large face can switch visibility as a whole at occlusion edges.",
+   "visibility": "How strict the visibility test is: All (no test), Frustum (in frame and in front of the camera), Front (plus facing), Full (plus occlusion).",
+   "occlusion": "Criterion for Full visibility. Element + Depth accepts an element if its own triangle is visible at its pixel or its depth matches; Element uses only the triangle test; Depth uses only the depth comparison, which misjudges grazing angles.",
+   "facing_min": "Minimum cosine between the normal and the direction to the camera for Front and Full. The default 0.1 rejects grazing angles, where sampling is unreliable anyway. Elements without a normal are not tested.",
+   "depth_bias": "Depth tolerance for the occlusion test, as a fraction of the bounding-sphere radius of the geometry, so it behaves the same for any model scale.",
+   "silhouette_guard": "Number of pixels to erode the rasterized silhouette by before testing occlusion. Removes unreliable elements at the very edge of the shape. 0 disables the guard.",
+   "border_margin": "Fraction of the image width and height at the border that counts as outside the frame.",
+   "normal_attrib": "Normal attribute used for the facing test; computed on the fly when missing.",
+   "missing": "What to write on elements that are not visible: Keep Original leaves the previous value (zero for a new attribute), Zero writes 0, Value writes the Missing Value.",
+   "missing_value": "Value written on invisible elements when Missing is Value.",
+   "visible_group": "Name of a group to create with the visible elements. Empty means no group.",
+   "mask_group": "Name of a group to create with the visible elements whose attribute value is at least `threshold`. Empty means no group.",
+   "threshold": "Threshold on the written value for `mask_group` (after scale, offset and blend).",
+   "threshold_channel": "Component of the written attribute that is tested against the threshold. It must exist.",
+   "uv_name": "If not empty, also write the projected screen UV (0..1) of every element into an attribute of this name."
+  },
+  "houdini_notes": "Corresponds to a Position Sample in a COP network combined with a camera projection, with visibility, occlusion and group creation built in.",
+  "tips": [
+   "Use visibility Full with Missing = Keep Original to accumulate paint from several cameras without the second pass erasing the first.",
+   "The depth bias is relative to model size, so imported meshes of any scale work with the default."
+  ]
+ },
+ "PCG_AttribFromPieces": {
+  "summary": "Assigns each element or piece a variant from a weighted library and writes it as an attribute.",
+  "description": "Chooses a **variant** for every element (or for every piece, when a piece attribute is given) and writes it to `output`. Connected to Copy to Points as its piece attribute, it gives \"several rocks scattered by weight\".\n\nVariants come from the `library` input: each distinct value of `library_attribute` is one variant (in order of first appearance), weighted by `weight_attribute`. Without a library, the variants are the integers 0 to Count-1 and the weights are typed into Weights. Random choices use a hash keyed on the element's `id` (if present) or its number, or on the piece key, so they are stable when upstream elements are added or removed.\n\nModes:\n\n- **Random**: weighted random.\n- **Cycle**: variants in turn (element k gets variant k mod N); with Use ID Attribute the id value replaces k.\n- **By Attribute** (Map Attribute): the variant is looked up from `input_attribute` according to Map Pieces From.\n- **Patches**: points in the same Worley noise cell share a variant, chosen by weight.\n- **Noise**: the noise value, mapped to 0..1, is quantized through the cumulative weights, so variants form coherent clusters.\n- **VEXpression**: each line of Rules is `piece names : expression`; the first line whose expression is non-zero decides.\n\nOrder is affected by Piece Filter, Shuffle and Offset, which matters for Cycle, Automatic ranges and the index output. Elements that match no rule get Unmatched Piece. Copy Attributes aggregates library attributes per piece (with the promotion method) and writes them onto the elements that picked that piece. The `report` output lists how many elements each variant received.",
+  "inputs": {
+   "geo": "Geometry whose elements receive variants.",
+   "library": "Optional geometry that defines the variants (and their weights). Without it the variants are the integers 0 to Count-1."
+  },
+  "outputs": {
+   "geo": "Copy of `geo` with the variant attribute (and optional index and copied attributes).",
+   "report": "Text summary with the number of elements per variant, and the unmatched count in rule-based modes."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements get a variant. Others keep their value.",
+   "attribute_class": "Class on which the variant attribute is written.",
+   "piece_attribute": "If set, elements sharing the same value of this attribute get the same variant (the piece is the unit that is assigned). Empty assigns per element.",
+   "mode": "How variants are chosen; see the node description.",
+   "count": "Number of variants (0 to Count-1) when no library is connected.",
+   "library_attribute": "Attribute on the library (primitives, or points if there are no primitives) whose distinct values are the variants. Used only with a library.",
+   "piece_filter": "Space-separated variant names to keep; empty keeps all. It is an error if nothing matches.",
+   "copy_attributes": "Library attributes to copy onto elements, per piece (wildcards allowed). Requires a library. Piece values are combined with the Promotion Method; primitive attributes are read first, then point attributes of the piece's points.",
+   "allow_p": "Allow `P` to be matched by Copy Attributes.",
+   "promotion": "How the values of a piece are combined for Copy Attributes. String attributes support only max, min, mode, median, first and last.",
+   "output": "Name of the variant attribute. A string attribute if the library values are strings, otherwise an integer.",
+   "index_output": "Optional name of an integer attribute that receives the variant's index in the (filtered and ordered) list. Empty writes nothing.",
+   "shuffle": "Randomly reorder the variants using the seed.",
+   "rand_seed": "Seed for random choices, shuffle, Patches and Noise.",
+   "offset": "Rotate the variant order by this many places.",
+   "id_attribute": "Numeric attribute used instead of the element number by Cycle when Use ID Attribute is on.",
+   "use_id_attribute": "Make Cycle use `id_attribute` values instead of the element number.",
+   "location_attribute": "Position attribute sampled for Patches and Noise. For pieces, the piece's mean position is used.",
+   "element_size": "Cell or noise feature size for Patches and Noise.",
+   "element_scale_x": "Per-axis scale multiplied with the element size.",
+   "noise_offset_x": "Offset subtracted from the position before dividing by the size.",
+   "noise_type": "Noise basis for Noise mode.",
+   "max_octaves": "Octaves for Noise mode. Above 1 uses standard fractal summation with lacunarity 2.",
+   "roughness": "Amplitude falloff per octave for Noise mode.",
+   "weight_method": "Where weights come from. Auto reads the library's weight attribute (first occurrence of each variant) or, without a library, the Weights text. Uniform gives equal weights. Piece Weights uses the Weights text. Weight Attribute averages the weight attribute over all primitives of each variant (library required).",
+   "weights": "Weights typed as numbers in variant order (`3 1 1 1`), or as `name:weight` pairs for Piece Weights, where unlisted pieces get weight 0.",
+   "weight_attribute": "Attribute on the library giving weights. Used with a library.",
+   "input_attribute": "Attribute read by By Attribute mode: a 0..1 scalar for Weighted Unit, any numeric scalar for Automatic and Explicit, a string attribute for String. Pieces average their element values.",
+   "map_from": "How By Attribute maps values to variants. Weighted Unit looks up the 0..1 value in the cumulative weights; Automatic splits the value range into equal parts, one per variant, ignoring weights; Explicit and String use Rules.",
+   "rules": "Rules for Explicit, String and VEXpression, one per line as `piece [piece ...] : condition`. The condition is `min max` for Explicit, a wildcard pattern list for String and a wrangle expression for VEXpression. With several piece names on a line, one is picked at random. Earlier lines win. Lines starting with `#` are ignored.",
+   "unmatched_piece": "Variant assigned to elements that match no rule. Empty leaves them unassigned (empty string, or -1 for integers).",
+   "unmatched_group": "Optional group that receives the elements that matched no rule."
+  },
+  "tips": [
+   "Feed a noise attribute to By Attribute with Weighted Unit to get clustered variants.",
+   "Use Piece Attribute to give a whole connected chunk the same variant."
+  ]
+ },
+ "PCG_AttribFromVolume": {
+  "summary": "Samples a dense volume at point positions or primitive centers and writes the value as an attribute.",
+  "description": "Looks up the volume at each point position (or primitive center) and stores the result. Modes: **Trilinear** interpolates between voxels, **Nearest** takes the closest voxel, **Gradient** writes a 3-component gradient vector (on an SDF this points along the surface normal direction). Outside the volume bounds, Clamp uses the value at the nearest edge, Constant writes Outside Value, and Keep does not write the element.\n\nThe volume must be a dense volume primitive (use Convert to make `volume_sdf` or `volume_fog`). A newly created attribute has one component, or three for Gradient. The `report` output gives the volume resolution and how many elements were sampled or outside.",
+  "inputs": {
+   "geo": "Geometry whose points or primitives sample the volume.",
+   "volume": "Geometry containing the dense volume primitive(s)."
+  },
+  "outputs": {
+   "geo": "Copy of `geo` with the sampled attribute.",
+   "report": "Text summary: which volume, its resolution, number of sampled and outside elements."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are sampled. Others keep their value.",
+   "attribute_class": "Sample at point positions, or at primitive centers.",
+   "volume_select": "Which volume to use: empty for the first, a number for the nth, or a name matched against the primitive `name` attribute.",
+   "attribute": "Name of the attribute written. If it exists with a different component count it is replaced.",
+   "mode": "Trilinear interpolates, Nearest takes the closest voxel, Gradient samples the central-difference gradient (vector).",
+   "outside": "Behaviour for positions outside the volume: Clamp to the border value, write a constant, or keep the existing value (do not write).",
+   "outside_value": "Value written for positions outside the volume when Outside is Constant."
+  },
+  "houdini_notes": "Covers Attribute from Volume and Volume Sample."
+ },
+ "PCG_AttribInterpolate": {
+  "summary": "Interpolates source geometry attributes onto points using the source primitive each point lies on.",
+  "description": "Typically placed after Scatter or Ray: each point has `sourceprim` recording which primitive of `source` it belongs to. The node computes where the point lies in that primitive and interpolates the source attributes there.\n\nBy default the barycentric coordinates are **recovered from the point's position** within the primitive's triangles, which is exact for any polygon. A `(u, v)` pair is ambiguous for quads (the same pair is valid in both triangles of a quad), and scatter on quad meshes is the most common case; on such meshes a linear attribute interpolated via UV was off by up to 0.97 in tests while the position-based path was exact to about 1e-6. Turn on Use UV Attribute for Houdini's behaviour, where the UV attribute holds the coordinates and its third component selects the triangle inside the primitive.\n\nPoints whose `sourceprim` is out of range, or outside `group`, are unchanged.",
+  "inputs": {
+   "geo": "Geometry (points) that receives the interpolated attributes.",
+   "source": "Geometry providing the attributes and the primitives."
+  },
+  "outputs": {
+   "geo": "Copy of `geo` with the interpolated attributes."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are written.",
+   "attribute_class": "Class on `geo` that is written (points or vertices).",
+   "attributes": "Names of attributes to interpolate, space separated, wildcards allowed (`*` for all).",
+   "prim_attribute": "Integer attribute on `geo` giving the source primitive number for each element. It must exist.",
+   "uv_attribute": "Attribute holding the primitive UV when Use UV Attribute is on. When off, coordinates come from the point position.",
+   "use_uv_attribute": "Use the stored primitive UV (Houdini's method) instead of recovering barycentric coordinates from the position."
+  }
+ },
+ "PCG_AttribMirror": {
+  "summary": "Copies point attributes from one side of a plane to the mirrored points on the other side.",
+  "description": "Defines a mirror plane by origin and normal direction. Points on the Source Side keep their values (points exactly on the plane are not modified). For every point on the other side, the position is mirrored across the plane and the attribute value is fetched there: **Closest Point** takes the value of the nearest source-side point; **Surface** interpolates on the source-side triangles with barycentric weights (requires triangles with all corners on the source side).\n\nVector attributes listed in Vectors are reflected through the plane; quaternion attributes listed in Quaternions are mirrored as H*R*H, which stays a proper rotation. String attributes are copied from the nearest point. Only point attributes are handled. `P` is never copied. The `report` output lists the attributes, the number of mirrored points and the number rejected by Max Distance.",
+  "inputs": {
+   "geo": "Geometry whose point attributes are mirrored."
+  },
+  "outputs": {
+   "geo": "Copy of the input with mirrored attribute values on the destination side.",
+   "report": "Text summary: attributes mirrored, number of mirrored points and number too far."
+  },
+  "params": {
+   "group": "Point group pattern limiting which destination (other side) points are written.",
+   "attributes": "Point attributes to mirror, space separated, wildcards allowed.",
+   "origin_x": "A point on the mirror plane.",
+   "direction_x": "Normal of the mirror plane. Normalized internally; must not be zero.",
+   "source_side": "Which side of the plane supplies the values. Positive is the side the direction points to.",
+   "lookup": "How the value at the mirrored position is found: nearest source point, or interpolation on the source surface.",
+   "tolerance": "Distance from the plane within which a point counts as on the plane and is used as a source.",
+   "max_distance": "Mirrored points whose lookup distance exceeds this are left unchanged. 0 means unlimited.",
+   "vectors": "Attributes (patterns) treated as vectors and reflected through the plane, for example `N v up`.",
+   "quaternions": "Attributes (patterns) treated as orientation quaternions and mirrored as H*R*H."
+  }
+ },
+ "PCG_AttribNoise": {
+  "summary": "Adds noise to attributes such as position, color or any numeric attribute.",
+  "description": "Noise is a pure function of position: lattice values come from a hash of integer cell coordinates, so the same world position always gives the same value regardless of point order or upstream edits, and two meshes meet seamlessly. Several noise bases and fractal modes are provided, with optional domain warping and a time axis for animation.\n\nProcessing order: sample position `(position + Offset + VEXpression) / Element Size`, optional warp, fractal noise in -1..1, Bias/Gain, Gamma, Contrast, remap ramp (all in 0..1 space so they stay valid when the amplitude changes), absolute and invert, mapping to the range, optional normalize to a target range over the selected elements, then the operation, clamping, unit length and blend. Elements outside `group` are unchanged.\n\nWith Noise Along Vector on, a single scalar noise is pushed along a direction attribute, typically `N`; a grid becomes a mountain. Fractal modes differ in where detail is added: Standard is evenly rough, while Terrain and Hybrid Terrain multiply octaves so high areas become rougher and valleys flatter.",
+  "inputs": {
+   "geo": "Geometry whose attributes receive noise."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the noisy attributes."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "blend": "Blend between the original (0) and the noisy result (1). Ignored when Blend Attribute is set.",
+   "blend_attribute": "Optional attribute giving the blend per element (first component, clamped to 0..1); replaces the constant Blend.",
+   "attribute_type": "Auto uses the existing component count (new attributes named like `P`, `N`, `Cd`, `v`, `up` or `scale` get 3, others 1). Float uses one noise value spread over all components. Vector creates a 3-component attribute with independent noise per component.",
+   "attribute_names": "Attributes to add noise to, space separated, wildcards allowed. Names that do not exist yet are created.",
+   "use_x": "Apply noise to the first component of 3-component attributes.",
+   "use_y": "Apply noise to the second component of 3-component attributes.",
+   "use_z": "Apply noise to the third component of 3-component attributes.",
+   "attribute_class": "Attribute class that is modified.",
+   "noise_along_vector": "Compute one scalar noise and push the attribute along a vector attribute instead of giving each component its own noise. With `N` this turns a grid into terrain.",
+   "vector_attribute": "Vector attribute that gives the push direction (normalized). Must have 3 components; compute it with Normal if missing.",
+   "range_values": "Value range of the noise before the operation. Zero Centered: -Amplitude to +Amplitude. Zero to One: 0 to Amplitude. One Centered: 1 +- Amplitude (for Multiply). Negative: -Amplitude to 0. Min/Max: from Min to Max. Min + Range Length: Min to Min + length. Middle +- Range Length: Middle - length to Middle + length.",
+   "operation": "How the noise is combined with the existing value. Set Initial only writes when the attribute does not exist; Minimum and Maximum compare per component. For attributes that do not exist, Minimum and Maximum take the noise.",
+   "amplitude": "Size of the noise for the Zero Centered, Zero to One, One Centered and Negative ranges.",
+   "min_value": "Lower end of the range for Min/Max and Min + Range Length.",
+   "max_value": "Upper end of the range for Min/Max.",
+   "middle_value": "Centre of the range for Middle +- Range Length.",
+   "range_length": "Length parameter for Min + Range Length (full length) and Middle +- Range Length (extends this far on each side of Middle).",
+   "use_remap_ramp": "Reshape the noise with the remap ramp. Applied in the 0..1 noise space so it is independent of amplitude.",
+   "remap_ramp": "Ramp mapping noise value (horizontal, 0..1) to a new value (vertical). Can create plateaus and cliffs. Written as `position:value` pairs.",
+   "ramp_mode": "Interpolation between ramp points.",
+   "use_value_correction": "Apply Bias and Gain to the 0..1 noise value.",
+   "bias": "Shifts the noise distribution toward lower or higher values (0.5 = no change).",
+   "gain": "Pushes values toward the middle or the extremes (0.5 = no change).",
+   "gamma": "Gamma on the 0..1 noise value, `t^(1/gamma)`. Applied after Bias/Gain, skipped at 1.",
+   "contrast": "Contrast around 0.5 on the 0..1 noise value. Applied after gamma, skipped at 1.",
+   "clamp_min": "Lower limit when Use Clamp Min is on.",
+   "use_clamp_min": "Clamp the result from below.",
+   "clamp_max": "Upper limit when Use Clamp Max is on.",
+   "use_clamp_max": "Clamp the result from above.",
+   "make_unit_length": "Normalize 3-component results to length 1.",
+   "recompute_normals": "After modifying, recompute normals if the geometry already has an `N` attribute.",
+   "post_absolute": "Fold the noise with an absolute value, producing sharp ridges where it crosses zero.",
+   "post_invert": "Negate the noise, turning valleys into ridges.",
+   "use_normalize": "Stretch the noise of the selected elements exactly to the Normalize range.",
+   "normalize_min": "Target range of normalization (first value = low end, second = high end).",
+   "noise_type": "Noise basis. Value and Perlin are lattice noises, Simplex avoids axis-aligned artifacts, the Worley, Manhattan and Chebyshev types are distance-to-feature-point (cellular) noises with different metrics; the `*_f2f1` variants use second minus first nearest distance.",
+   "location_attribute": "Position used to sample the noise (default `P`). Taken from the attribute class if present with 3 components, otherwise from the points (primitives use their center, detail the mean).",
+   "element_size_x": "Feature size (wavelength) per axis. Larger values give larger patterns; different values per axis stretch the noise. The sample position is divided by this.",
+   "offset_x": "Offset added to the sample position, to move the noise pattern.",
+   "rand_seed": "Seed that selects a different noise pattern. Noise is a function of position, so identical positions always give identical values.",
+   "use_vexpression": "Add the result of the expression to the sample offset.",
+   "vexpression": "Wrangle expression returning a vector per element, added to the sample position. It must return a vector, for example `set(0, @P.y * 0.1, 0)`.",
+   "fractal": "Octave combination. Standard (fBm) sums octaves evenly; Terrain multiplies octaves so peaks get rougher and valleys flatter; Hybrid Terrain multiplies with weights clamped to 1, giving sharp ridges and flat valleys.",
+   "octaves": "Number of noise layers for fractal types other than None.",
+   "lacunarity": "Frequency multiplier per octave.",
+   "roughness": "Amplitude falloff per octave.",
+   "fractal_offset": "Offset used by the Terrain and Hybrid Terrain types.",
+   "warp": "Distance in world units by which the sample position is displaced by another noise before sampling. 0 disables warping, and the next two parameters then have no effect.",
+   "warp_element_size": "Feature size of the warp noise.",
+   "warp_octaves": "Octaves of the warp noise.",
+   "use_animation": "Add a time axis to the noise. The pattern evolves in place along this fourth dimension rather than sliding.",
+   "noise_time": "Position along the time axis.",
+   "time_element_size": "Feature size along the time axis; larger values make the evolution slower."
+  },
+  "houdini_notes": "Covers Attribute Noise and Mountain (Noise Along Vector with `N`). In Middle +- Range Length the range extends Range Length to each side of Middle, which is different from the Attribute Adjust nodes where the length is the total width."
+ },
+ "PCG_AttribPromote": {
+  "summary": "Moves attributes between point, vertex, primitive and detail classes, reducing values when several sources map to one target.",
+  "description": "Works by first building a table of (source element, target element) pairs and then reducing each target's values with the chosen method. When expanding (for example point to vertex) each target has a single source, so the method has no effect; when reducing (vertex to point) it combines the values. This lets all class combinations share one code path.\n\nIf a piece attribute is given, values are reduced per piece instead of per target element: all target elements with the same piece value receive the same result. The piece attribute is read from the New Class and must be integer or string; it is ignored for detail targets.\n\n`original_name` accepts name patterns (`uv*`, `* ^P`) to move several attributes at once. In the new name, `*` is replaced by the original attribute name, which allows batch renaming. Integer attributes stay integer and are rounded rather than truncated after averaging. String attributes can only use Mode, First Match and Last Match when values have to be combined.",
+  "inputs": {
+   "geo": "Geometry whose attributes are promoted."
+  },
+  "outputs": {
+   "geo": "Copy of the input with attributes on the new class."
+  },
+  "params": {
+   "original_name": "Names of the attributes to promote, space separated, wildcards and exclusions allowed. It is an error if nothing matches.",
+   "original_class": "Class the attributes currently live on.",
+   "new_class": "Class to move them to.",
+   "piece_attribute": "Integer or string attribute on the new class that defines pieces. Used when Piece Attribute is on.",
+   "use_piece": "Reduce per piece (value of the piece attribute) instead of per target element.",
+   "method": "How multiple source values are combined: average, maximum, minimum, sum, mode (most common value; ties give the smallest), median, sum of squares, root mean square, or the first or last value found.",
+   "new_name": "Name of the promoted attribute. A `*` is replaced by the original name. Used when Change New Name is on; otherwise the original name is kept.",
+   "change_new_name": "Give the promoted attribute a different name.",
+   "delete_original": "Remove the original attribute after promotion (unless the class and name stay the same)."
+  },
+  "houdini_notes": "Houdini's Array of All Values and Array of Unique Values methods are not available, because attributes here are always fixed-size arrays and cannot hold variable-length arrays."
+ },
+ "PCG_AttribRandomize": {
+  "summary": "Writes random values, directions or orientations into an attribute.",
+  "description": "Used after scattering to add variation to `pscale`, `orient`, color and so on. The random stream is keyed on an id attribute when given, so inserting, deleting or sorting upstream points does not reshuffle the existing values.\n\nThree modes: **Value** fills each component independently from a distribution; **Direction** produces unit vectors on a sphere, in a cone, in a disc or along a line, optionally with random length; **Orientation** produces quaternions, either a fully random rotation or a rotation about an axis by a random angle.\n\nDirections are not made by randomizing each component and normalizing, which would favour the corners of the cube. Sphere and cone directions are uniform in the cosine of the polar angle, and fully random orientations use Shoemake's method, so they are uniform over all rotations (random Euler angles would cluster near the poles).",
+  "inputs": {
+   "geo": "Geometry whose attribute is randomized."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the randomized attribute."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are adjusted. Elements outside the group keep their values.",
+   "attribute_class": "Attribute class that holds the attribute.",
+   "name": "Name of the attribute to write. It is created if it does not exist.",
+   "combine": "How the random values merge with the existing ones. Multiply treats a missing attribute as 1 (not 0). Minimum and Maximum take the random value when the attribute is missing or has a different component count.",
+   "global_scale": "Multiplier applied to the generated values before the operation. Not applied to orientations, since scaling a quaternion is not a rotation.",
+   "mode": "Value generates numbers in each component; Direction generates unit vectors (optionally with random length); Orientation generates quaternions.",
+   "distribution": "Distribution of Value mode. Uniform is between Min and Max; Gaussian uses Mean and Standard Deviation; Power raises the uniform value to the exponent first (an exponent above 1 gives many small values and a few large ones); Constant writes Min; Two Values picks Max with the given probability and Min otherwise; Uniform Discrete steps from Min to Max by Step Size, both ends included; Exponential, Log-Normal and Cauchy are centred on Mean as the median; Custom Discrete picks from the value list; Inside Sphere is uniform inside the unit sphere (circle or ball depending on dimensions).",
+   "dimensions": "Number of components generated in Value mode (1 to 4).",
+   "min_x": "Lower end of the range per component. For Constant it is the value; for Two Values it is Value A.",
+   "max_x": "Upper end of the range per component. For Two Values it is Value B.",
+   "mean": "Mean for Gaussian. For Exponential, Log-Normal and Cauchy it is the median. Log-Normal needs a positive value.",
+   "stddev": "Standard deviation for Gaussian; spread in log space for Log-Normal; scale (gamma) for Cauchy.",
+   "exponent": "Exponent for the Power distribution.",
+   "prob_b": "Probability (0..1) of choosing Max (Value B) for Two Values.",
+   "step_size": "Step for Uniform Discrete.",
+   "value_list": "Values for Custom Discrete, one group per line (`min-max:step` expands to a series); append `w=weight` for the group's probability.",
+   "shape": "Direction mode: Sphere is uniform on the sphere, Cone is inside a cone around the axis, Disc is perpendicular to the axis, Line is along the axis in either sense. Orientation mode: Sphere is a fully random rotation (uniform over all rotations); the others rotate randomly about the axis.",
+   "axis_x": "Reference axis for the Cone, Disc and Line shapes and for rotations in Orientation mode.",
+   "cone_angle": "Half-angle of the cone in degrees (Cone shape).",
+   "angle_min": "Range of rotation angle about the axis in degrees, for Orientation mode with shapes other than Sphere (first value = minimum, second = maximum).",
+   "length_min": "Range of the vector length for Direction mode (first = minimum, second = maximum). Equal values give unit vectors.",
+   "rand_seed": "Seed of the random stream.",
+   "id_attribute": "Optional numeric attribute whose first component is the random key instead of the element number. Results then do not change when upstream elements are added, removed or reordered."
+  },
+  "houdini_notes": "Houdini's Constant, Two Values, Uniform (Discrete), Exponential, Log-Normal, Cauchy, Custom Discrete and Inside Sphere distributions reuse the Min, Max, Mean and Standard Deviation fields as described on the parameters."
+ },
+ "PCG_AttribRename": {
+  "summary": "Renames attributes or groups using old:new pairs, with wildcard support.",
+  "description": "Each pair is written `old:new` (an `=` also works) and pairs are separated by spaces. A wildcard in the old name carries the matched part over to the `*` in the new name: `uv*:tex*` renames `uv1` to `tex1` and `uvSet` to `texSet`. Renaming a name that does not exist is an error that lists the available names. With Rename Groups on, group names are renamed instead of attributes (groups do not exist on the detail class).",
+  "inputs": {
+   "geo": "Geometry with attributes or groups to rename."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the renamed attributes or groups."
+  },
+  "params": {
+   "attribute_class": "Class whose attributes (or groups) are renamed.",
+   "rename": "Rename pairs `old:new` separated by spaces. A `*` in the old name matches any text and is substituted into the new name.",
+   "rename_groups": "Rename groups of the chosen class rather than attributes."
+  },
+  "houdini_notes": "Covers Attribute Rename and Group Rename in one node."
+ },
+ "PCG_AttribReorient": {
+  "summary": "Rotates vector and quaternion point attributes to follow a deformation between a rest and a deformed pose.",
+  "description": "After a deformation, attributes such as `N`, `up`, `v` and `orient` still describe the undeformed shape. For each point the node estimates a local rotation from the one-ring neighbourhood of the point in the rest and deformed positions (Kabsch fit). Vector attributes (3 components) are rotated by it and orientation quaternions (4 components) are rotated by left multiplication. On a collinear neighbourhood (curves, end points) the roll about the tangent is undetermined, so the minimum rotation between the two tangents is used.\n\nThe attributes are read from the deformed geometry, or from the rest geometry if missing there. Both inputs must have the same point count. Other component counts and string attributes are skipped; `P` is never modified. The `report` output lists the processed attributes.",
+  "inputs": {
+   "geo": "Deformed geometry. It receives the reoriented attributes.",
+   "rest": "Geometry in the rest pose, with the same points and connectivity."
+  },
+  "outputs": {
+   "geo": "Copy of the deformed geometry with rotated attributes.",
+   "report": "Text summary of the attributes that were reoriented."
+  },
+  "params": {
+   "attributes": "Point attributes to reorient, space separated, wildcards allowed. Vectors rotate by the local rotation; quaternions are multiplied by it."
+  }
+ },
+ "PCG_AttribStringEdit": {
+  "summary": "Finds and replaces text inside string attributes using substring, wildcard or regular-expression matching.",
+  "description": "Edits the values of one or more string attributes (names separated by spaces, wildcards allowed). Modes: **Substring** replaces every occurrence of Find; **Wildcard** matches the whole string against a pattern containing `*`, and what each `*` captured is placed in order into the `*` of Replace (`piece*_old` with `chunk*` turns `piece12_old` into `chunk12`); **Regex** uses regular-expression substitution, where `\\1` refers to groups. Values that do not match stay as they are. Only distinct values are processed, so large geometry with few names is fast. The `report` output summarizes the edits.",
+  "inputs": {
+   "geo": "Geometry with string attributes."
+  },
+  "outputs": {
+   "geo": "Copy of the input with edited strings.",
+   "report": "Text summary of what was changed."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are edited.",
+   "attribute_class": "Class of the string attributes.",
+   "attributes": "String attribute names to edit, space separated, wildcards allowed.",
+   "mode": "How Find is interpreted: literal substring, whole-string wildcard pattern, or regular expression.",
+   "case_sensitive": "Match upper and lower case as different characters.",
+   "find": "Text, pattern or regular expression to look for.",
+   "replace": "Replacement text. In Wildcard mode `*` receives the text captured by the corresponding `*` in Find; in Regex mode `\\1` refers to capture groups."
+  }
+ },
+ "PCG_AttribTransfer": {
+  "summary": "Transfers attributes and groups from a source geometry to a destination by spatial proximity.",
+  "description": "For each destination point, source points within `distance_threshold` are collected (the nearest `max_sample_count` of them, optionally only those with a matching `match_attribute` value). Their attribute values are averaged with the chosen kernel to give a **target value**. How much of that target replaces the original value is a separate quantity: an alpha derived from the distance of the *nearest* source point, which is 1 inside the threshold and falls to 0 over the last `blend_width` of distance. The result is `lerp(original, target, alpha)`. With Blend Width 0 this is a hard switch: reachable points are fully replaced, others untouched.\n\nThe two are separate so that smoothing (number of samples and kernel) and softness of the influence edge (blend width) can be tuned independently. Primitive attributes are matched by primitive centers. String attributes and groups cannot be averaged, so they take the value from the nearest source element (strings are left alone when alpha is below 0.5). `P` is not transferred. Detail attributes are copied as they are.",
+  "inputs": {
+   "dest": "Geometry that receives the attributes.",
+   "source": "Geometry the attributes come from."
+  },
+  "outputs": {
+   "geo": "Copy of `dest` with the transferred attributes and groups."
+  },
+  "params": {
+   "source_group": "Point group pattern restricting which source points are used.",
+   "dest_group": "Point group pattern restricting which destination points receive values. Primitive transfers consider only primitives whose points all lie in the group.",
+   "prim_attributes": "Primitive attribute name patterns to transfer. Empty transfers none.",
+   "point_attributes": "Point attribute name patterns to transfer (wildcards and `^` exclusions allowed). `P` is always skipped.",
+   "detail_attributes": "Detail attribute name patterns to copy. Empty copies none.",
+   "point_groups": "Point group names (patterns) to transfer, taken from the nearest source point.",
+   "prim_groups": "Primitive group names (patterns) to transfer, taken from the nearest source primitive.",
+   "distance_threshold": "Maximum distance within which source elements are considered. Also the radius for the kernel weights. Must be above 0.",
+   "blend_width": "Width of the soft edge at the end of the threshold, in distance units. 0 gives a hard switch.",
+   "max_sample_count": "Number of nearest source elements that are averaged. 1 takes the single nearest, which can look blocky; more samples give a smoother result.",
+   "kernel": "Weights used when averaging samples. Uniform weights all equally; Inverse Distance favors close ones; Tent falls linearly with distance to the threshold; Gaussian and Smooth fall off smoothly to zero at the threshold.",
+   "match_attribute": "Optional attribute (same class on both sides). Only source elements whose value equals the destination element's value are considered."
+  },
+  "houdini_notes": "Covers Attribute Transfer and Group Transfer. Vertex attributes are not transferred."
+ },
+ "PCG_AttribTransferByUV": {
+  "summary": "Transfers attributes between geometries by matching UV coordinates instead of positions.",
+  "description": "For each destination point or vertex the node finds the source UV triangle that contains its UV and interpolates the source attribute with the barycentric coordinates there. The two geometries may differ in topology and position as long as their UV layouts match: baked high-resolution colors can be moved to a low-resolution mesh, and transferring `P` wraps one geometry onto another via UV space.\n\nSources can be point, vertex or primitive attributes; strings take the value of the dominant corner. A transferred `N` is renormalized. Where a destination UV lies outside every UV island, Nearest uses the closest UV triangle (limited by Max Distance) and Keep leaves the element untouched. The `report` output includes the number of queries inside UV islands, resolved to the nearest triangle, missed, and falling into overlapping UV regions.",
+  "inputs": {
+   "geo": "Destination geometry with UVs.",
+   "source": "Source geometry with matching UV layout and the attributes to transfer."
+  },
+  "outputs": {
+   "geo": "Copy of the destination with the transferred attributes.",
+   "report": "Text summary with counts of inside, nearest, missed and overlapping queries."
+  },
+  "params": {
+   "group": "Point group pattern limiting which destination points are written (applies to the Point class only).",
+   "attribute_class": "Destination class that is written: points or vertices.",
+   "attributes": "Source attribute names to transfer, space separated, wildcards allowed. The UV attribute itself is excluded. Including `P` transfers positions.",
+   "uv_attribute": "Name of the UV attribute on the destination (vertex or point attribute with at least two components).",
+   "source_uv": "Name of the UV attribute on the source. Empty uses the same name as the destination.",
+   "outside": "Behaviour for destination UVs outside all source UV islands: use the nearest source triangle, or leave the element unchanged.",
+   "max_distance": "Largest allowed distance in UV space for the Nearest fallback. 0 means unlimited."
+  }
+ },
+ "PCG_AttribTransformExtract": {
+  "summary": "Computes one rigid transform per piece between a rest and an animated copy of the same geometry.",
+  "description": "Both inputs must have identical topology. Points are grouped into pieces by the `name` style attribute (primitive attribute first, otherwise point attribute), and for each piece a rigid fit (rotation plus translation, no scaling) from rest to animated points is computed. Pieces with fewer than 3 points use translation only.\n\nTwo point clouds are produced, one point per piece: `template` has the piece center moved by the transform plus an `orient` quaternion, and `rest_points` has the rest piece center with an identity `orient`. Plug them into the template and rest inputs of Transform Pieces to make another geometry (for example high-resolution debris) follow each piece exactly. The piece key is copied onto both outputs. The `report` output gives the number of pieces and the largest fit error (RMS).",
+  "inputs": {
+   "rest": "Geometry in the rest pose.",
+   "animated": "Same geometry in the animated pose (same point count and topology)."
+  },
+  "outputs": {
+   "template": "One point per piece at the animated position, with an `orient` quaternion for the piece rotation.",
+   "rest_points": "One point per piece at the rest center, with an identity `orient`.",
+   "report": "Text summary with the piece count and the largest rigid-fit RMS error."
+  },
+  "params": {
+   "piece_attribute": "Attribute on `rest` (primitive attribute, or else point attribute) that identifies the piece each element belongs to."
+  },
+  "houdini_notes": "Piece-wise version of Extract Transform. For decomposing matrix attributes use Attribute Transform Extract (Houdini)."
+ },
+ "PCG_AttribTransformExtractHou": {
+  "summary": "Decomposes 9- or 16-component matrix point attributes into translate, rotate and scale/shear/stretch attributes.",
+  "description": "Splits matrix attributes (9 components = 3x3, 16 components = 4x4 with translation in the last row; same convention as Transform by Attribute) into separate attributes. Two decompositions are offered. **Polar** writes rotation as Euler angles (degrees) plus a symmetric `stretch` 3x3 matrix, with `H3 = Stretch * R`. **Crack** writes rotation, scale and shear, and is the inverse of what the Transform SOP builds for the chosen transform order. Translation is written only for 16-component matrices.\n\nA rotation matrix has several equivalent Euler angle triples. The Euler filter picks, per point, the solution closest to a reference angle: the already filtered angle of its parent in the chosen hierarchy, or the Hint for points without a parent. Points outside `group` receive defaults (translation 0, rotation 0, scale 1, shear 0, identity stretch). If no attribute matches, the geometry passes through and the `report` explains why.\n\nOutput names are built as `prefix + matrix name + suffix`.",
+  "inputs": {
+   "geo": "Geometry with matrix point attributes."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the decomposed attributes.",
+   "report": "Text summary: matrices processed, attributes written, point and root counts."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are decomposed.",
+   "hierarchy": "Where parent points for the Euler filter come from. None filters against the Hint only; Topology uses the previous point along each primitive; Pieces / Points uses the previous selected point with the same piece attribute value.",
+   "piece_attribute": "Integer or string point attribute defining pieces for Pieces / Points. If missing or float, all points form one piece.",
+   "hint_x": "Reference Euler angles (degrees) used for points without a parent.",
+   "decomposition": "Polar writes Euler rotation and a stretch matrix; Crack writes rotation, scale and shear using the transform order.",
+   "xform_order": "Transform order assumed by Crack (for example SRT: scale, then rotate, then translate).",
+   "rotate_order": "Rotation order of the output Euler angles.",
+   "attributes": "Matrix attributes to decompose, space separated, wildcards allowed. Only point attributes with 9 or 16 components are considered.",
+   "t_prefix": "Prefix of the translation attribute name (16-component matrices only).",
+   "t_suffix": "Suffix of the translation attribute name.",
+   "r_prefix": "Prefix of the rotation attribute name.",
+   "r_suffix": "Suffix of the rotation attribute name.",
+   "stretch_prefix": "Prefix of the stretch matrix attribute name (Polar).",
+   "stretch_suffix": "Suffix of the stretch matrix attribute name (Polar).",
+   "s_prefix": "Prefix of the scale attribute name (Crack).",
+   "s_suffix": "Suffix of the scale attribute name (Crack).",
+   "sh_prefix": "Prefix of the shear attribute name (Crack).",
+   "sh_suffix": "Suffix of the shear attribute name (Crack)."
+  },
+  "houdini_notes": "Matrices are read in Houdini's convention (row vectors, translation in the fourth row of 16-component attributes), the same as everywhere else in the plugin. The rest/animated rigid fit per piece is the separate Attribute Transform Extract node."
+ },
+ "PCG_ClusterPoints": {
+  "summary": "Groups points into clusters with k-means and writes a cluster index, cluster centers and optional averaged points or boxes.",
+  "description": "Runs k-means on the chosen attribute (default `P`, but color or any numeric attribute works) with k-means++ initialization; a fixed seed reproduces the result. Each point receives an integer cluster number in the attribute named `name`; if a cluster loses all its points the farthest point becomes its new center. Additional control attributes can be added to the feature vector, each multiplied by its own weight.\n\nThe main output is chosen by Output: the original points with the cluster attribute, one averaged point per cluster (position = mean, `size_attribute` = bounding box size including padding), both merged (in groups `clusterpoints` and `averagepoints`), or one bounding box per cluster. Cluster Filter keeps only listed clusters. The second output is always a point cloud of cluster centers with `cluster` and `count` attributes.\n\nWith Build Clusters off, no k-means is run: the existing integer attribute `name` defines the clusters. Points outside `group` get cluster -1 (or keep their previous value).",
+  "inputs": {
+   "geo": "Points to cluster."
+  },
+  "outputs": {
+   "geo": "Main result according to Output.",
+   "centroids": "One point per cluster at the mean position, with `cluster` and `count` attributes.",
+   "report": "Text summary: number of clusters, k-means iterations and total squared error."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are clustered.",
+   "name": "Name of the integer point attribute that receives the cluster number (also used as the existing attribute when Build Clusters is off).",
+   "output": "Cluster Points keeps the input points; Average Points gives one point per cluster; Both merges the two; Boxes creates a box per cluster.",
+   "color_output": "Points keeps colors unchanged. The two colored options assign a random `Cd` per cluster (there is no particle system, so both behave the same).",
+   "cluster_filter": "Clusters to keep, written like point numbers (`3 4`, `3-6`). Points outside the chosen clusters are removed from the output. Empty keeps all.",
+   "attribute": "Numeric point attribute whose values are clustered.",
+   "weight": "Multiplier for the main attribute in the feature vector.",
+   "control_attribute2": "Optional second attribute added to the feature vector.",
+   "weight2": "Multiplier for the second control attribute.",
+   "control_attribute3": "Optional third attribute added to the feature vector.",
+   "weight3": "Multiplier for the third control attribute.",
+   "build_clusters": "Run k-means. When off, use the existing `name` attribute as the clustering.",
+   "clusters": "Number of clusters (limited to the number of points).",
+   "rand_seed": "Seed for the initial centers and random colors.",
+   "iterations": "Maximum number of k-means iterations.",
+   "copy_point_attributes": "Give averaged points the other point attributes of the cluster: numeric values averaged over the points nearest to the center, strings from the nearest point.",
+   "max_sample_count": "Number of points nearest to the center used for copied attributes.",
+   "size_attribute": "Name of the vector attribute holding the cluster bounding box size on averaged points. Empty writes none.",
+   "padding_min_x": "Amount the cluster bounding box is extended on the minimum side of each axis (Average Points and Boxes).",
+   "padding_max_x": "Amount the cluster bounding box is extended on the maximum side of each axis."
+  },
+  "houdini_notes": "Combines Cluster and Cluster Points."
+ },
+ "PCG_Color": {
+  "summary": "Sets colors with a constant, random values, per-attribute random colors, a ramp over a scalar attribute, or an HSV adjustment.",
+  "description": "Writes a 3-component color attribute (default `Cd`) on selected elements; others keep their color (or white if the attribute is new).\n\n- **Constant**: one color for all.\n- **Random**: one random color per element, keyed on `id` if it exists or on the element number.\n- **Random by Attribute**: the same attribute value gets the same color (for example color pieces by `name`).\n- **Ramp by Attribute**: a scalar (or the length of a vector) attribute is normalized to 0..1 and looked up in the ramp. With Auto Range the range is the minimum and maximum over the selected elements.\n- **Adjust**: modifies the existing colors in HSV (hue shift, saturation and value multipliers) and adds optional random variation; with an attribute set the variation is shared per piece.",
+  "inputs": {
+   "geo": "Geometry to color."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the color attribute."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are colored.",
+   "attribute_class": "Class on which the color is written.",
+   "mode": "How colors are produced; see the node description.",
+   "r": "Color for Constant mode.",
+   "rand_seed": "Seed for random colors and random variation.",
+   "attribute": "Attribute used by Random by Attribute (key), Ramp by Attribute (scalar value) and Adjust (piece key for shared random variation).",
+   "auto_range": "Ramp by Attribute: use the minimum and maximum of the selected elements as the input range. When off, In Min and In Max are used.",
+   "in_min": "Manual input range for Ramp by Attribute (first value = minimum, second = maximum).",
+   "ramp": "Color ramp for Ramp by Attribute as `position:r,g,b` entries separated by spaces.",
+   "ramp_mode": "Interpolation between ramp points.",
+   "hue_shift": "Adjust mode: hue rotation in degrees.",
+   "saturation": "Adjust mode: saturation multiplier.",
+   "value": "Adjust mode: value (brightness) multiplier.",
+   "random_hue": "Adjust mode: random hue variation, up to plus or minus this many degrees.",
+   "random_saturation": "Adjust mode: random saturation variation as a fraction of the saturation (0.2 = plus or minus 20 percent).",
+   "random_value": "Adjust mode: random value variation as a fraction.",
+   "name": "Name of the color attribute written."
+  },
+  "houdini_notes": "Combines the Color SOP with the HSV-adjust behaviour of Attribute Adjust Color. For the full Houdini Attribute Adjust Color semantics use Attribute Adjust Color."
+ },
+ "PCG_EdgeTransport": {
+  "summary": "Propagates or accumulates a point attribute along a tree grown from root points over the edges.",
+  "description": "First a tree is built: **Network** runs shortest paths (edge length) from root points over all edges, each point attaching to its nearest root; **Curves** walks each polyline from its start (or from the end that lies in the root group); **Parent Attribute** takes parents from an integer point attribute. Then the Operation runs along the tree. Points that cannot be reached get value 0 and join the unreached group. The root of each point is written to the integer point attribute `transport_root`.\n\nThe first four operations are plain: **Distance** is the path length from the root, **Copy** passes the root value down, **Sum** adds the attribute along the path (including both ends), **Average** is the sum divided by the number of points on the path. The remaining ones follow Houdini: **Transport** takes the parent's value (root: zero or hold), **Transport from Root** uses the root's accumulated flow, **Total** sums ancestors' values without the point itself (root = 0), **Maximum** and **Minimum** take the extreme over the point and its ancestors. Integrate a Constant Value with Scale by Edge Length gives the distance along edges. Direction Backward goes from tips to roots and merges several children with the merge method. The `report` output gives reached, unreached and root counts.",
+  "inputs": {
+   "geo": "Geometry with edges (polylines or meshes) and points to transport on."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the result attribute, `transport_root` and the unreached group.",
+   "report": "Text summary of reached, unreached and root counts."
+  },
+  "params": {
+   "method": "How the tree is built: shortest paths over the edge network, along curves, or from a parent attribute.",
+   "curve_group": "Primitive group pattern limiting which curves are walked (Curves method). Empty uses all.",
+   "point_group": "Point group pattern limiting which points can take part (Network and Parent Attribute). Empty uses all.",
+   "attribute": "Numeric point attribute to transport. Not needed for Distance.",
+   "direction": "Forward goes from the roots toward the leaves; Backward goes from the leaves to the roots. Applies to the Houdini-style operations.",
+   "parent_attribute": "Integer point attribute holding each point's parent point number (Parent Attribute method). Invalid or self references make the point a root.",
+   "root_choice": "Network method: start from points in the root group, or from the first or last point (when unreached points remain, the lowest or highest remaining point becomes a new root).",
+   "root_group": "Point group pattern for the roots. Network with Root Choice = Group requires it; for Curves it picks the end where each curve starts.",
+   "operation": "What is computed along the tree; see the node description. Distance, Copy, Sum and Average are the basic set; the rest follow Houdini.",
+   "normalization": "Per Component normalizes every connected tree separately to 0..1, Global normalizes everything together. Used when Use Normalization is on.",
+   "use_normalization": "Normalize the result to 0..1 per component of the output.",
+   "new_root_value": "Value at root points for Transport operations: zero, or hold the root's own attribute value.",
+   "integrate_constant": "For Total: use 1 for every point instead of the attribute.",
+   "scale_by_edge_length": "For the Houdini-style operations: multiply each step by the length of the edge to the parent.",
+   "split_method": "Forward direction when a point has several children: Copy gives each child the full value, Split divides it evenly.",
+   "merge_method": "Backward direction when several children meet at a parent: add, or take the maximum or minimum.",
+   "output": "Name of the output attribute. Empty writes back into `attribute` (or into `transport` for Distance).",
+   "unreached_group": "Name of the point group that receives unreachable points. Empty creates no group."
+  },
+  "houdini_notes": "The first four operations (Distance, Copy, Sum, Average) are this plugin's own and differ from Houdini: Sum includes the point itself, whereas Houdini's Total excludes it and sets the root to 0. Transport, Transport from Root, Total, Maximum and Minimum follow Houdini."
+ },
+ "PCG_Enumerate": {
+  "summary": "Writes sequence numbers to elements or pieces, as integers or formatted names.",
+  "description": "In **Elements** mode every selected element gets its index; with a piece attribute, numbering restarts in every piece. In **Pieces** mode every element gets the index of the piece it belongs to. The value is `Start + Step * index`. If Format is set (for example `piece_%d` or `%03d`) the value is written as a string, which is how the Name SOP is used; the format must contain exactly one integer placeholder. Pieces are ordered by first appearance or by sorted value. Elements outside `group` keep their value.",
+  "inputs": {
+   "geo": "Geometry to number."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the numbering attribute."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are numbered.",
+   "attribute_class": "Class that is numbered.",
+   "mode": "Elements numbers each element (restarting per piece if a piece attribute is set); Pieces gives every element its piece number.",
+   "piece_attribute": "Attribute whose distinct values define pieces. Empty means no pieces (Pieces mode then treats everything as one piece).",
+   "order": "How pieces are numbered: by first appearance in the geometry, or by sorted attribute value.",
+   "name": "Name of the attribute written.",
+   "format": "Optional format string with one integer placeholder such as `piece_%d` or `%03d`. If set, a string attribute is written. Empty writes integers.",
+   "start": "Value of the first index.",
+   "step": "Increment between indices."
+  },
+  "houdini_notes": "Covers Enumerate and the Name SOP (string format)."
+ },
+ "PCG_ExtractCentroid": {
+  "summary": "Reduces each piece of geometry to a single point at its centroid.",
+  "description": "Splits the geometry into pieces (by attribute value, per primitive, per point, per connected component, or the whole geometry as one piece, using the same splitting as the For-Each loop) and computes a centroid per piece.\n\nCenter of Mass is **area weighted** (signed, using the face normal so concave faces cancel correctly) instead of averaging points, which would be biased toward finely tessellated areas: a box with one face subdivided 100 times and five single quads would otherwise shift toward the dense face. Bounding Box uses the center of the bounding box and Average Position the plain mean of the piece's points. Without faces, Center of Mass falls back to the point average.\n\nOutput as Points makes a new point cloud with one point per piece, carrying the piece value (the piece attribute, `sourceprim`, `sourcepoint` or `class`) and optionally attributes and groups transferred from the first element of each piece. Output as Attribute keeps the geometry and writes the centroid onto the pieces' own elements.",
+  "inputs": {
+   "geo": "Geometry to reduce to centroids."
+  },
+  "outputs": {
+   "geo": "Point cloud with one point per piece, or the input with a centroid attribute."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements take part.",
+   "run_over": "How the geometry is split: by value of the piece attribute, per primitive, per point, by connected component, or as a single piece.",
+   "piece_attribute": "Attribute defining pieces for Pieces mode (scalar or string).",
+   "piece_elements": "Whether Pieces mode reads the piece attribute from primitives or from points.",
+   "method": "How the centroid is computed: area-weighted center of mass, center of the bounding box, or average of the points.",
+   "output": "Points creates a new point per piece; Attribute writes the centroid to an attribute on the original elements.",
+   "attribute_name": "Name of the vector attribute for Attribute output.",
+   "use_attrib_out": "Write the centroid attribute for Attribute output. When off, the geometry passes through unchanged.",
+   "use_transfer": "Enable transferring attributes and groups to the output points.",
+   "transfer_attributes": "Attribute name patterns copied from each piece's first element onto its output point (Points output).",
+   "transfer_groups": "Group name patterns transferred in the same way."
+  },
+  "houdini_notes": "Center of Mass is always the area centroid of the surface. Houdini computes the volume centroid for closed pieces; the two coincide for symmetric shapes but differ for asymmetric solid pieces."
+ },
+ "PCG_Measure": {
+  "summary": "Measures area, perimeter, volume or curvature of primitives or points and optionally visualizes the result as color.",
+  "description": "Writes the measured value as a float attribute (default name `area`, `perimeter`, `volume` or `curvature` according to the measurement). Area uses the Newell area vector, not a triangle fan with absolute values, which would double count folded parts of concave polygons. Volume uses the same formula with a cone from an arbitrary point, `V = 1/3 (area vector . v0)`, so the sum over a closed mesh equals the enclosed volume regardless of the reference point. Curvature is the mean curvature from the cotangent Laplacian, signed by the point normal; Gaussian curvature is the angle defect divided by area (flat areas 0, a sphere of radius r gives 1/r^2). Primitive curvature is the average over its corners.\n\nElements outside `group` get 0. With Accumulate = Total every element in the group receives the total instead of its own value.\n\nWhen a color attribute name is given, values are mapped through a color ramp over the Visualized Range. By default this range is the **median plus or minus half of Width times the MAD** (median absolute deviation) rather than min/max, because a single degenerate element would otherwise squash the ramp to a single color; most elements then show contrast and outliers saturate at the ends, which is what you look for. Bake Range writes the normalized 0..1 value (scaled to the remap range) into the output attribute instead of the raw measurement.",
+  "inputs": {
+   "geo": "Geometry to measure."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the measurement attribute, and optionally color, total and range group."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are measured. Others get 0.",
+   "element_type": "Measure primitives or points. Perimeter and Volume apply only to primitives.",
+   "measurement": "Quantity to measure. For points, area is the area associated with the point.",
+   "accumulate": "Per Element writes each element's own value; Total writes the sum over the group to all of its elements.",
+   "position_attribute": "Point attribute to use as position instead of `P` (it must have 3 components).",
+   "color_attribute": "Name of the attribute to receive the visualization color. Empty creates no color and the other Visualized Range options have no effect.",
+   "min_value": "Lower end of the visualized range when Use Min is on.",
+   "use_min": "Override the lower end of the visualized range with Min.",
+   "max_value": "Upper end of the visualized range when Use Max is on.",
+   "use_max": "Override the upper end of the visualized range with Max.",
+   "width": "Size of the automatic range in units of the width measure (the range is center +- width/2 times the spread).",
+   "use_width": "Compute the range from center and width. When off, the range is the minimum and maximum of the values.",
+   "width_mode": "Spread measure used by Width: MAD (robust to outliers), standard deviation, or absolute (spread of 1).",
+   "center": "Center of the automatic range: median, mean or zero.",
+   "color_ramp": "Color scheme for the visualization. Custom uses the custom ramp text.",
+   "custom_ramp": "Custom color ramp as `position:r,g,b` entries separated by spaces. Used when Color Ramp is Custom.",
+   "ramp_mode": "Interpolation between ramp points.",
+   "attribute_name": "Name of the output attribute. Empty uses the default name of the measurement.",
+   "total_attribute": "Optional name of a detail attribute that receives the total over the group.",
+   "range_group": "Optional name of a group that receives the elements whose value lies inside the visualized range.",
+   "bake_range": "Write the value normalized to the visualized range, scaled to the remap range, into the output attribute instead of the raw measurement.",
+   "remap_min": "Output range of the baked values (first value = value at the low end of the visualized range, second = at the high end)."
+  }
+ },
+ "PCG_Name": {
+  "summary": "Writes a string attribute (default `name`) based on group membership, with an optional text replacement.",
+  "description": "Two ways to assign names. With the default, Namings has one rule per line: `group : name`. The group can be a group name, wildcard, number list or expression, as in any group field; an empty group means all elements. Rules run in order and later rules overwrite earlier ones where groups overlap. Lines starting with `#` are disabled. With Name from Group on, every element is named after the group it belongs to (matching Group Mask); an element in several groups takes the last one in alphabetical order.\n\nAfterwards a From to To substring replacement is applied to the whole attribute, replacing every occurrence or only the first. Unnamed elements keep their previous value (empty if the attribute is new). An existing numeric attribute with that name is replaced by a string attribute, noted in the `report`.",
+  "inputs": {
+   "geo": "Geometry to name."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the string attribute.",
+   "report": "Text summary: rules or groups used and number of elements named."
+  },
+  "params": {
+   "attribute": "Name of the string attribute to write.",
+   "cls": "Class on which the attribute is written.",
+   "name_from_group": "Name elements after the groups they belong to instead of using Namings.",
+   "group_mask": "Group name pattern selecting which groups are used when Name from Group is on.",
+   "namings": "One rule per line, `group : name`. Later rules overwrite earlier ones. Lines starting with `#` are disabled.",
+   "global_replace": "Replace every occurrence of From; when off only the first occurrence in each value is replaced.",
+   "from_": "Text to search for in the resulting values (plain substring, no wildcards). Empty skips the replacement.",
+   "to": "Replacement text."
+  },
+  "houdini_notes": "The numbered `piece_%d` style naming is done by Enumerate with its Format option."
+ },
+ "PCG_Normal": {
+  "summary": "Computes normals on points, vertices, primitives or the detail, with smoothing control.",
+  "description": "**Point** normals are smooth with one normal per point, so there can be no hard edges. **Vertex** normals have one normal per corner and are grouped by Cusp Angle, which is the only way to represent hard edges: a corner only accumulates neighbouring faces that deviate from its own face by less than the cusp angle (a cube at 60 degrees keeps all edges hard, a sphere stays smooth). **Primitive** normals are one per face, meant for copy and align computations rather than shading. **Detail** gives one normal for the whole geometry, the normalized sum of area normals.\n\nWeighting decides how the face normals around a point or corner are averaged. Normals are written to the attribute named by Normal Name. With Compute Normals off, the node does not compute anything and only post-processes existing normals (Make Unit Length, Reverse).",
+  "inputs": {
+   "geo": "Geometry to compute normals for."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the normal attribute."
+  },
+  "params": {
+   "group": "Group pattern limiting which elements are computed.",
+   "group_type": "How the group is interpreted. Guess reads it as a group of the class chosen in Add Normals to. A specific type reads the group in that class and expands it to the target class (touching elements count, for example a primitive group selects its points).",
+   "normal_name": "Name of the attribute the normals are written to. Empty means `N`.",
+   "compute_normals": "Compute new normals. When off, only Make Unit Length and Reverse are applied to the existing attribute.",
+   "add_to": "Class that receives the normals. Detail ignores the group.",
+   "cusp_angle": "Vertex normals only: maximum angle in degrees between faces whose normals are merged at a corner.",
+   "weighting": "How surrounding face normals are averaged: by face area, equally per corner, or by the corner angle of each face (a large and a thin triangle then count by their opening angle at the point).",
+   "keep_zero": "Where the computed normal is a zero vector (isolated points, degenerate faces) keep the previous value instead.",
+   "make_unit": "Normalize existing normals in the group. Only takes effect when Compute Normals is off, since computed normals are already unit length.",
+   "reverse": "Flip the normals in the group (done last)."
+  }
+ },
+ "PCG_OrientAlongCurve": {
+  "summary": "Writes a rotation-minimizing frame (tangent, up and orientation quaternion) on the points of curves.",
+  "description": "Builds a frame on every curve point by carrying the frame along the curve with the double reflection method, so it only twists where it must and does not flip at bends. It writes `N` (tangent, the +Z of Copy to Points), `up` (+Y) and `orient` (quaternion of the same frame, which Copy to Points prefers over `N` and `up`). Optional outputs are `side` (the X axis) and a curve-parameter attribute (normalized arc length 0..1), both off by default; any name left empty is not written.\n\nOn closed curves the twist accumulated going around the loop is spread evenly over the arc length so that the start and end frames match. Roll and twists rotate `up` about the tangent: `roll + (full_twists * 360 + partial_twist) * u` degrees, where `u` is the normalized arc length. Points on several curves take the frame from the last curve processed. Points not on a curve are left as they are.",
+  "inputs": {
+   "geo": "Geometry with curves (polylines)."
+  },
+  "outputs": {
+   "geo": "Copy of the input with frame attributes on the curve points."
+  },
+  "params": {
+   "group": "Primitive group pattern limiting which curves are processed.",
+   "tangent_type": "How the tangent at a point is derived from its edges: average of the incoming and outgoing edge, the previous edge, or the next edge.",
+   "reverse": "Flip the tangent, so copies face toward the start of the curve.",
+   "up_mode": "Minimal Rotation starts from the Up vector at the first point and carries the frame forward. Constant orients every point toward the Up vector. Attribute uses the point attribute named by Up Attribute.",
+   "up_x": "Up vector used by Minimal Rotation (at the start) and Constant modes.",
+   "up_attribute": "Three-component point attribute giving the up direction in Attribute mode.",
+   "roll": "Extra rotation of the up vector about the tangent, in degrees, applied equally along the curve.",
+   "full_twists": "Number of complete 360 degree twists added along the length of the curve.",
+   "partial_twist": "Additional twist in degrees added along the length of the curve.",
+   "tangent_name": "Name of the tangent attribute. Empty skips it.",
+   "up_name": "Name of the up attribute. Empty skips it.",
+   "orient_name": "Name of the orientation quaternion attribute. Empty skips it.",
+   "side_name": "Name of the optional side (X axis) attribute. Empty skips it.",
+   "curveu_name": "Name of the optional normalized arc length attribute. Empty skips it."
+  },
+  "houdini_notes": "For a local frame that follows only the nearby edges, use PolyFrame instead; its curve normal is the Frenet normal and can flip."
+ },
+ "PCG_PointVelocity": {
+  "summary": "Computes point velocity (and optionally acceleration) from positions on neighbouring frames.",
+  "description": "Finite differences between the current positions and those of the previous and/or next frame, with `dt = 1 / FPS`. **Backward** is `(P - P_prev) / dt`, **Forward** is `(P_next - P) / dt` and **Central** is `(P_next - P_prev) / (2 dt)`. Auto picks Central if both neighbouring frames are connected, otherwise whichever one is.\n\nPoints are matched to the other frames by point number or by an id attribute. Unmatched points get zero velocity and are added to the group `no_velocity`. If Compute Acceleration is on and both frames are connected, `accel = (P_next - 2P + P_prev) / dt^2` is written to the point attribute `accel`. The `report` output tells the method and the matched and unmatched counts.",
+  "inputs": {
+   "geo": "Current frame geometry; receives the velocity.",
+   "prev": "Optional geometry of the previous frame.",
+   "next": "Optional geometry of the next frame."
+  },
+  "outputs": {
+   "geo": "Copy of the current geometry with the velocity attribute and the `no_velocity` group.",
+   "report": "Text summary: method, matched and unmatched points."
+  },
+  "params": {
+   "method": "Difference scheme. Backward needs `prev`, Forward needs `next`, Central needs both. Auto chooses from what is connected.",
+   "fps": "Frame rate that sets the time step `1 / fps`. Must be above 0.",
+   "match": "How points are paired between frames: by point number or by matching attribute values.",
+   "id_attribute": "Attribute present on both frames used for pairing when Match is By Attribute.",
+   "compute_accel": "Also write the `accel` attribute. Requires both `prev` and `next`.",
+   "v_attribute": "Name of the velocity attribute."
+  }
+ },
+ "PCG_PolyFrame": {
+  "summary": "Writes a local frame (N, tangentu, tangentv) on points or primitives.",
+  "description": "Each point or primitive gets a frame derived only from its immediate surroundings. `tangentu` comes from the chosen Style, `N` is the normal, and `tangentv = N x tangentu`. Degenerate cases (zero area, zero length, no UV change) write a zero vector, not NaN.\n\nStyles for primitives: **Two Edges** uses the first edge as tangentu and the cross product of first and last edge as normal; **First Edge** uses the first edge with the Newell normal; **Centroid** points from the face center to the first vertex. For points on faces the corresponding values come from the incident face, averaged where needed. **UV** takes the direction of increasing `u` (the same definition as the tangent space of normal maps); **Attribute Gradient** takes the direction of steepest increase of a scalar point attribute within the face.\n\nOn curve points, `N` is the Frenet principal normal (pointing to the inside of the bend, undefined on straight segments and flipping at inflections). For a frame to place objects along a curve without flips use Orient Along Curve.",
+  "inputs": {
+   "geo": "Geometry to compute frames on."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the frame attributes."
+  },
+  "params": {
+   "group": "Group pattern limiting which primitives take part.",
+   "entity": "Write the frame on points or on primitives.",
+   "style": "How tangentu is derived; see the node description.",
+   "uv_attribute": "UV attribute for the UV style (vertex or point attribute).",
+   "gradient_attribute": "Scalar point attribute for the Attribute Gradient style.",
+   "orthogonal": "Make tangentu perpendicular to N.",
+   "n_name": "Name of the normal attribute. Empty skips it.",
+   "tangentu_name": "Name of the tangentu attribute. Empty skips it.",
+   "tangentv_name": "Name of the tangentv attribute. Empty skips it."
+  }
+ },
+ "PCG_TangentField": {
+  "summary": "Computes the smoothest direction field with 1-, 2-, 4- or 6-fold symmetry on a surface.",
+  "description": "Produces a field of unit tangent vectors on a polygon mesh that varies as little as possible from point to point. Symmetry sets the number of equivalent directions: 1 is an arrow, 2 a line, 4 a cross and 6 a snowflake; with symmetry above 1 each point stores one of the n equivalent directions. Neighbouring points are compared after parallel transport along the edge, and the field minimizing the total difference is found: a constrained linear solve when guides are present, otherwise the smallest eigenvector of the smoothness operator.\n\nGuides come from a vector point attribute, or from the principal curvature directions (Align). Curvature alignment weighs by relative anisotropy, so isotropic regions such as spheres and planes get no imposed direction. Principal directions are lines (sign does not matter), so Align needs Symmetry of 2 or more. The smoothest field is found in a relaxed sense, which can leave pairs of cancelling singularities; guides or curvature alignment suppress them.\n\nOn closed surfaces singularities are unavoidable. The `report` output lists their count and the index sum (equal to `n * Euler characteristic`; on a sphere 2 for n = 1 and 8 for n = 4).",
+  "inputs": {
+   "geo": "Polygon mesh to compute the field on."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the tangent attribute.",
+   "report": "Text summary with the guided point count, singularity count and index sum."
+  },
+  "params": {
+   "symmetry": "Number of equivalent directions per point: 1 arrow, 2 line, 4 cross, 6 snowflake.",
+   "guide_attribute": "Optional vector point attribute whose tangential component guides the field.",
+   "guide_weight": "Strength of the guide relative to smoothness. Higher values follow the guide more closely.",
+   "align": "Align the field with the maximum or minimum principal curvature direction (on a cylinder, around the circumference or along the axis). Needs Symmetry of 2 or more.",
+   "rand_seed": "Seed for the starting vector of the eigenvector solver, which can change the field when several solutions are equally smooth.",
+   "output": "Name of the point attribute that receives the field."
+  }
+ },
+ "PCG_Wrangle": {
+  "summary": "Runs a short vectorized script over points, primitives, vertices or the detail, with VEX-style attribute syntax.",
+  "description": "The code is not executed once per element. It runs **once for the whole geometry**, with `@P` being an array of shape (N, 3), and the script is Python/numpy with the VEX-like attribute shorthand: `@Cd`, `@P.y`, `@ptnum`, `@numpt`, `@primnum`, `@numprim`. Component access `.x .y .z .w` can be read and written. Type prefixes `f@` `i@` `v@` `s@` `2@` `3@` `4@` `p@` declare the type, and a typed assignment converts the value to it as in VEX (`i@id = @P.x * 10` truncates to integers, `v@c = 0.5` fills three components). `@group_name` reads and writes the group `name` of the Run Over class. `rand(x)`, `ch(\"name\")` (and `chv`, `chi`, `chs`) are available, as are `np` and `math`.\n\nBecause the script is vectorized, per-element branching is written with numpy masks and `np.where` rather than `if`. If a group is set, the code still runs on all elements and the unselected rows are restored afterwards, so errors such as division by zero can still occur in unselected elements. Attributes that do not exist are created from the assigned shape.\n\nThe optional `geo1`, `geo2` and `geo3` inputs give access to other geometries by index in functions such as `point(1, \"P\", i)`, `npoints(2)` or `getbbox_size(3)`; without an index, input 0 is used. `ch(\"name\")` in the code creates a custom parameter `name` on the node (type from the function: `ch`/`chf` float, `chi` integer, `chv` vector, `chs` string); see [`ch()` parameters](../concepts/wrangle.md#ch-parameters). The complete syntax is on [Wrangle syntax](../concepts/wrangle.md).",
+  "inputs": {
+   "geo": "Geometry the code runs on (input 0).",
+   "geo1": "Optional second geometry, input 1 in functions such as `point(1, ...)`.",
+   "geo2": "Optional third geometry, input 2.",
+   "geo3": "Optional fourth geometry, input 3."
+  },
+  "outputs": {
+   "geo": "Copy of the input with the changes made by the code."
+  },
+  "params": {
+   "run_over": "Class whose elements `@` attributes refer to. In primitive context `@P` is the primitive center and is read-only.",
+   "code": "The script. Executed once over all elements with `@attribute` shorthand; see the node description.",
+   "group": "Group pattern limiting which elements keep the result. Others are restored to their original values.",
+   "rand_seed": "Seed for `rand()` in the script.",
+   "ch_params": "Internal JSON text with the values of the node's custom parameters (vectors also per component), read with `ch()`. It is maintained by the frontend; do not edit by hand."
+  },
+  "houdini_notes": "Replaces Attribute Wrangle, Attribute Expression, Attribute Combine, Attribute Swap and Rest Position through code. Unlike VEX the code is vectorized instead of run per element, so `if` and `for` over elements are written with numpy masks."
+ }
+}

@@ -1,0 +1,969 @@
+{
+ "last_node_id": 15,
+ "last_link_id": 14,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    420
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "Scatter and copy (read me)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "Scatter points on a surface and copy a model onto every point.\n\n1) Grid + Attribute Noise (terrain fractal, Y only) make rolling ground.\n2) Scatter puts 250 random points on it.\n3) Attribute Randomize writes two point attributes that Copy to Points reads: pscale (uniform size, 0.15 to 0.6) and orient (a random rotation quaternion).\n4) The 'rock' is a coarse sphere roughened by Point Jitter.\n5) Copy to Points places one rock per point, scaled by pscale and rotated by orient. Merge adds the ground back for the preview.\n\nTweak: Scatter Count and Seed, the pscale Min / Max, the jitter Scale, or swap the sphere for any other geometry."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_Grid",
+   "pos": [
+    0,
+    464
+   ],
+   "size": [
+    360,
+    245
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Grid"
+   },
+   "widgets_values": [
+    16.0,
+    16.0,
+    120,
+    120,
+    "zx",
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "quadrilaterals"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "PCG_AttribNoise",
+   "pos": [
+    0,
+    753
+   ],
+   "size": [
+    360,
+    1098
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      2,
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribNoise"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "P",
+    false,
+    true,
+    false,
+    false,
+    "N",
+    1.0,
+    "add",
+    "zero_centered",
+    1.2,
+    false,
+    0.5,
+    0.5,
+    false,
+    "0:0  0.5:0.25  1:1",
+    "linear",
+    false,
+    0.0,
+    false,
+    1.0,
+    "perlin",
+    "P",
+    7.0,
+    7.0,
+    7.0,
+    0.0,
+    0.0,
+    0.0,
+    4,
+    false,
+    "set(0, @P.y * 0.1, 0)",
+    false,
+    0.0,
+    1.0,
+    "terrain",
+    4,
+    2.0,
+    0.5,
+    0.7,
+    0.0,
+    1.0,
+    1,
+    false,
+    false,
+    false,
+    0.0,
+    1.0,
+    "",
+    "auto",
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false
+   ],
+   "title": "Rolling ground"
+  },
+  {
+   "id": 4,
+   "type": "PCG_Color",
+   "pos": [
+    0,
+    1895
+   ],
+   "size": [
+    360,
+    195
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "point",
+    "",
+    "constant",
+    0.36,
+    0.45,
+    0.24,
+    0,
+    "",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Ground colour"
+  },
+  {
+   "id": 5,
+   "type": "PCG_Scatter",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    383
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 3
+    },
+    {
+     "name": "density_texture",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Scatter"
+   },
+   "widgets_values": [
+    "",
+    true,
+    250,
+    10.0,
+    7,
+    true,
+    false,
+    "density",
+    "",
+    true,
+    1000000,
+    false,
+    "name",
+    false,
+    10,
+    1.0,
+    true,
+    10.0,
+    false,
+    true,
+    "N",
+    "sourceprim",
+    "sourceprimuv",
+    true,
+    "by_density",
+    "1",
+    "uv",
+    false,
+    "density",
+    false,
+    "pscale",
+    false,
+    "id",
+    false,
+    "*",
+    "*",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "id": 6,
+   "type": "PCG_AttribRandomize",
+   "pos": [
+    420,
+    427
+   ],
+   "size": [
+    360,
+    381
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribRandomize"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "pscale",
+    "value",
+    "set",
+    1,
+    "",
+    "uniform",
+    1,
+    0.15,
+    0.0,
+    0.0,
+    0.0,
+    0.6,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    0.25,
+    2.0,
+    "sphere",
+    0.0,
+    1.0,
+    0.0,
+    45.0,
+    0.0,
+    360.0,
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    "0\n1",
+    1.0
+   ],
+   "title": "Random size (pscale)"
+  },
+  {
+   "id": 7,
+   "type": "PCG_AttribRandomize",
+   "pos": [
+    420,
+    852
+   ],
+   "size": [
+    360,
+    306
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribRandomize"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "orient",
+    "orient",
+    "set",
+    2,
+    "",
+    "uniform",
+    1,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    0.25,
+    2.0,
+    "sphere",
+    0.0,
+    1.0,
+    0.0,
+    45.0,
+    0.0,
+    360.0,
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    "0\n1",
+    1.0
+   ],
+   "title": "Random rotation (orient)"
+  },
+  {
+   "id": 8,
+   "type": "PCG_Sphere",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    270
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Sphere"
+   },
+   "widgets_values": [
+    1.0,
+    10,
+    7,
+    "polygon_mesh",
+    2,
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "y"
+   ],
+   "title": "Rock base shape"
+  },
+  {
+   "id": 9,
+   "type": "PCG_PointJitter",
+   "pos": [
+    840,
+    314
+   ],
+   "size": [
+    360,
+    295
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PointJitter"
+   },
+   "widgets_values": [
+    "",
+    1.0,
+    "no_scaling",
+    "",
+    "",
+    0.35,
+    1.0,
+    1.0,
+    1.0,
+    3,
+    false,
+    true
+   ],
+   "title": "Roughen"
+  },
+  {
+   "id": 10,
+   "type": "PCG_Color",
+   "pos": [
+    840,
+    653
+   ],
+   "size": [
+    360,
+    195
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "point",
+    "",
+    "constant",
+    0.55,
+    0.52,
+    0.48,
+    0,
+    "",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Rock colour"
+  },
+  {
+   "id": 11,
+   "type": "PCG_CopyToPoints",
+   "pos": [
+    840,
+    892
+   ],
+   "size": [
+    360,
+    350
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "GEOMETRY",
+     "link": 8
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_CopyToPoints"
+   },
+   "widgets_values": [
+    "",
+    "",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    "",
+    "*",
+    "",
+    "",
+    "N v up"
+   ]
+  },
+  {
+   "id": 12,
+   "type": "PCG_Merge",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 10
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 11
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      12,
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Ground + rocks"
+  },
+  {
+   "id": 13,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1260,
+    210
+   ],
+   "size": [
+    520,
+    373
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 12
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    35.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ]
+  },
+  {
+   "id": 14,
+   "type": "PreviewImage",
+   "pos": [
+    1260,
+    627
+   ],
+   "size": [
+    520,
+    560
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Scattered rocks"
+  },
+  {
+   "id": 15,
+   "type": "PCG_Viewport",
+   "pos": [
+    1260,
+    1231
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 14
+    },
+    {
+     "name": "template",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Viewport"
+   },
+   "widgets_values": []
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   2,
+   3,
+   0,
+   4,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   3,
+   3,
+   0,
+   5,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   5,
+   6,
+   0,
+   7,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   6,
+   8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   7,
+   9,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   8,
+   10,
+   0,
+   11,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   9,
+   7,
+   0,
+   11,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   10,
+   4,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   11,
+   11,
+   0,
+   12,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   12,
+   12,
+   0,
+   13,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   13,
+   13,
+   0,
+   14,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   12,
+   0,
+   15,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

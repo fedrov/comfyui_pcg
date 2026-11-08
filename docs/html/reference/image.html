@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image · comfyui_pcg</title>
+<link rel="icon" href="../../images/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("pcg-docs-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true"><symbol id="g-heightfield" viewBox="0 0 32 32"><path d="M4.3 4.3 L18.6 4.3 L18.6 14.7 L4.3 14.7 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.3 4.3 L9.1 4.3 L9.1 14.7 L4.3 14.7 Z" fill="currentColor" stroke="none"/><path d="M9.1 4.3 L13.9 4.3 L13.9 14.7 L9.1 14.7 Z" fill="currentColor" fill-opacity="0.7" stroke="none"/><path d="M13.9 4.3 L18.7 4.3 L18.7 14.7 L13.9 14.7 Z" fill="currentColor" fill-opacity="0.4" stroke="none"/><path d="M4.3 27.1 L12.1 19.3 L18 23.8 L27.7 14.7" fill="none" stroke="currentColor" stroke-width="2"/></symbol></svg>
+<header class="top">
+  <button class="menu" aria-label="Menu" onclick="document.body.classList.toggle('navopen')">&#9776;</button>
+  <a class="brand" href="../index.html"><img src="../../images/icon.png" alt="">comfyui_pcg <span>docs</span></a>
+  <div class="search"><input id="q" type="search" placeholder="Search nodes and pages  ( / )" autocomplete="off"
+    aria-label="Search"><div id="results" role="listbox"></div></div>
+  <button class="theme" aria-label="Toggle light / dark" title="Toggle light / dark">&#9680;</button>
+</header>
+<div class="layout">
+  <aside class="side"><nav aria-label="Documentation"><div class="navsec"><div class="navtitle">Start</div><ul><li><a href="../index.html">comfyui_pcg documentation</a></li><li><a href="../getting-started.html">Getting started</a></li><li><a href="../houdini-users.html">Guide for Houdini users</a></li></ul></div><div class="navsec"><div class="navtitle">Concepts</div><ul><li><a href="../concepts/geometry.html">Geometry</a></li><li><a href="../concepts/groups.html">Group patterns</a></li><li><a href="../concepts/parameters.html">Parameters</a></li><li><a href="../concepts/expressions.html">Expressions</a></li><li><a href="../concepts/wrangle.html">Wrangle syntax</a></li><li><a href="../concepts/loops-and-time.html">Loops and time</a></li><li><a href="../concepts/images.html">Images (COP)</a></li><li><a href="../concepts/viewing-and-export.html">Viewing and export</a></li><li><a href="../concepts/wires.html">Wires</a></li><li><a href="../concepts/shortcuts.html">Keyboard and mouse</a></li></ul></div><div class="navsec"><div class="navtitle">Examples</div><ul><li><a href="../examples/index.html">Example workflows</a></li><li><a href="../examples/tutorial_01_first_geometry.html">Tutorial 1: first geometry</a></li><li><a href="../examples/tutorial_02_scatter_copy.html">Tutorial 2: scatter and copy</a></li><li><a href="../examples/tutorial_03_attributes_wrangle.html">Tutorial 3: attributes and wrangle</a></li><li><a href="../examples/tutorial_04_foreach_variations.html">Tutorial 4: for-each variations</a></li><li><a href="../examples/tutorial_05_cop_texture.html">Tutorial 5: COP texture</a></li><li><a href="../examples/tutorial_06_controller.html">Tutorial 6: controller panel</a></li><li><a href="../examples/pcg_sop_city_block.html">City block</a></li><li><a href="../examples/pcg_sop_rock_garden.html">Rock garden</a></li><li><a href="../examples/pcg_cop_brick_material.html">Brick wall PBR</a></li><li><a href="../examples/pcg_cop_terrain_maps.html">Terrain maps</a></li><li><a href="../examples/pcg_image_to_terrain.html">Image to terrain</a></li><li><a href="../examples/pcg_terrain_to_ai_texture.html">Terrain to AI texture</a></li><li><a href="../examples/pcg_prod_rock_assets.html">Rock assets pipeline</a></li><li><a href="../examples/pcg_prod_modular_city.html">Modular city</a></li><li><a href="../examples/pcg_prod_material_library.html">Material library</a></li><li><a href="../examples/pcg_prod_world_tiles.html">World tiles</a></li></ul></div><div class="navsec"><div class="navtitle">Node reference</div><ul><li><a href="index.html">Node reference</a></li><li><a href="houdini-index.html">Houdini node index</a></li><li><a href="generate.html">Generate <span class="count">24</span></a></li><li><a href="modify.html">Modify <span class="count">76</span></a></li><li><a href="deform.html">Deform <span class="count">16</span></a></li><li><a href="topology.html">Topology <span class="count">12</span></a></li><li><a href="attribute.html">Attributes <span class="count">45</span></a></li><li><a href="group.html">Groups <span class="count">11</span></a></li><li><a href="scatter.html">Scatter &amp; Copy <span class="count">15</span></a></li><li><a href="uv.html">UV <span class="count">9</span></a></li><li><a href="convert.html">Convert <span class="count">7</span></a></li><li><a href="volume.html">Volumes &amp; VDB <span class="count">68</span></a></li><li><a href="render.html">Render &amp; View <span class="count">11</span></a></li><li><a href="output.html">Output &amp; Export <span class="count">8</span></a></li><li><a href="loop.html">Loops <span class="count">9</span></a></li><li><a href="param.html">Parameters &amp; Expressions <span class="count">9</span></a></li><li class="current"><a href="image.html">Image <span class="count">1</span></a></li><li><a href="cop-generate.html">Image: Generators <span class="count">14</span></a></li><li><a href="cop-color.html">Image: Color &amp; Levels <span class="count">15</span></a></li><li><a href="cop-filter.html">Image: Filters <span class="count">25</span></a></li><li><a href="cop-composite.html">Image: Compositing &amp; Masks <span class="count">10</span></a></li><li><a href="cop-transform.html">Image: Transform &amp; Warp <span class="count">32</span></a></li><li><a href="cop-layers.html">Image: Channels &amp; Layers <span class="count">13</span></a></li><li><a href="cop-terrain.html">Image: Height Fields &amp; Terrain <span class="count">22</span></a></li><li><a href="cop-geometry.html">Image: Geometry and Images <span class="count">16</span></a></li><li><a href="cop-sim.html">Image: Simulation <span class="count">7</span></a></li><li><a href="cop-utility.html">Image: Analysis, I/O &amp; Utility <span class="count">28</span></a></li></ul></div></nav></aside>
+  <main class="content">
+    <article>
+<h1 id="image">Image<a class="hash" href="#image" aria-label="Link to this section">#</a></h1>
+<p>Bridges between ComfyUI images and the plugin.</p>
+<p>1 nodes.</p>
+<p><a href="index.html">Back to the reference index</a></p>
+<h2 id="contents">Contents<a class="hash" href="#contents" aria-label="Link to this section">#</a></h2>
+<ul><li><a href="#pcg-heightfieldfromimage"><svg class="ico" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-heightfield"/></svg>Heightfield from Image (PCG)</a> — Builds a displaced grid whose height comes from the brightness of an image.</li></ul>
+<h2 id="nodes">Nodes<a class="hash" href="#nodes" aria-label="Link to this section">#</a></h2>
+<h3 id="pcg-heightfieldfromimage" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-heightfield"/></svg>Heightfield from Image (PCG)<a class="hash" href="#pcg-heightfieldfromimage" aria-label="Link to this section">#</a></h3>
+<p><code>PCG_HeightfieldFromImage</code> · category <code>PCG/image</code></p>
+<p>Builds a displaced grid whose height comes from the brightness of an image.</p>
+<p><img src="../../images/nodes/PCG_HeightfieldFromImage.png" alt="Heightfield from Image (PCG): input and result" loading="lazy"></p>
+<p>Bridges image generation and geometry: the height map can come from any ComfyUI sampler. The image is sampled bilinearly at <code>resolution</code> x <code>resolution</code> grid points, brightness is the average of the RGB channels, and the point's Y is that brightness times Height. The grid lies in the XZ plane. Point normals are computed, and the raw brightness is stored in the point attribute <code>height</code>. Only the first image of a batch is used.</p>
+<p><strong>Inputs</strong></p>
+<div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>image</code></td><td>IMAGE</td><td>Height map; brightness is the mean of RGB.</td></tr></tbody></table></div>
+<p><strong>Outputs</strong></p>
+<div class="table"><table><thead><tr><th>Output</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>geo</code></td><td>GEOMETRY</td><td>Displaced grid with normals and a <code>height</code> point attribute.</td></tr></tbody></table></div>
+<p><strong>Parameters</strong></p>
+<div class="table"><table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td>Size <code>size_x</code> <code>size_z</code></td><td>float [0.001..]</td><td>100, 100</td><td>Size of the grid along X and Z in world units.</td></tr><tr><td>Height Scale <code>height</code></td><td>float</td><td>20</td><td>Multiplier applied to the brightness (0..1) to get the displacement along Y. Negative values invert.</td></tr><tr><td>Grid Resolution <code>resolution</code></td><td>int [2..2049]</td><td>129</td><td>Number of points along each side of the grid.</td></tr></tbody></table></div>
+<hr>
+    </article>
+    <nav class="pagenav"><a class="prev" href="param.html"><span>Previous</span>Parameters &amp; Expressions</a><a class="next" href="cop-generate.html"><span>Next</span>Image: Generators</a></nav>
+    <footer><a class="src" href="https://github.com/fedrov/comfyui_pcg/blob/main/docs/reference/image.md" rel="noopener">Markdown source</a><span>Generated from the Markdown in docs/ by build_html.py</span></footer>
+  </main>
+  
+</div>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

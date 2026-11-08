@@ -1,0 +1,522 @@
+{
+ "PCG_Channel": {
+  "summary": "Evaluates a keyframed curve, written as one line of text, at a given frame.",
+  "description": "A keyframe channel: the curve is a text string of keys, evaluated at `frame`. Wire `frame_f` from Frame (PCG) into `frame`, convert the target parameter to an input and connect `value` to it; dragging the playbar then animates the parameter.\n\nEach key is written `frame:value[:interp][@slope]`. Keys are separated by spaces and may be in any order (they are sorted). The interpolation written on a key controls the segment to its **right**, so one written on the last key has no effect. If two keys share a frame the later one wins. `@slope` sets the tangent at that key in value per frame and is only used by `cubic` and `quintic`; without it the tangent is computed automatically with a spacing-weighted three-point difference that is exact for quadratics at any key spacing (plain Catmull-Rom is only exact for evenly spaced keys). Because of this `cubic` can overshoot on step-like data; pin the tangents with `@0` or use `ease` to prevent it.\n\nExample: `0:0  12:1.5:ease  18:1.5  24:0` pushes in over 12 frames, holds for 6, then pulls out.\n\nThe final output is `curve value * scale + offset`. Use Channel for \"what should the value be at frame N\" and Expression (PCG) for values computed from other values; chain them (Channel into `a`, expression `a * 2`) to combine both.",
+  "inputs": {},
+  "outputs": {
+   "value": "The curve value at `frame`, after scale and offset.",
+   "int": "The same value rounded to the nearest integer.",
+   "info": "A short text summary of the parsed curve, for display or debugging."
+  },
+  "params": {
+   "frame": "Frame at which the curve is evaluated. Fractional frames are allowed. Normally driven by the `frame_f` output of Frame (PCG).",
+   "keys": "The keyframes as `frame:value[:interp][@slope]`, separated by spaces. The interpolation on a key applies to the segment to its right; keys without one use Default Interpolation.",
+   "interp": "Interpolation used for keys that do not name their own. `constant` is a step (holds the left value), `ease` has zero tangent at both ends (smoothstep), `easein` eases only at the start of the segment and `easeout` only at its end, `cubic` and `quintic` are Hermite curves using automatic or `@` tangents (quintic also has zero second derivative at the ends).",
+   "extrapolate": "What the curve does outside the first and last key. `hold` keeps the end value, `linear` continues along the actual end tangent, `cycle` repeats the whole curve, `cycleoffset` repeats it and adds the net change of one period each time (useful for walk cycles that move forward), `mirror` ping-pongs.",
+   "scale": "Multiplier applied to the curve value. Lets one 0 to 1 curve drive parameters of different units.",
+   "offset": "Value added after scaling."
+  },
+  "houdini_notes": "Houdini keys carry separate in and out functions; here each key has a single interpolation (the outgoing one), which avoids ambiguity when the two disagree. The curve is edited as text rather than in a graph editor.",
+  "tips": [
+   "To check a curve visually, connect the output to a parameter and scrub the playbar.",
+   "To suppress overshoot at a plateau, give those keys `@0` or use `ease`."
+  ]
+ },
+ "PCG_Channel3": {
+  "summary": "Evaluates three keyframed curves at the same frame and outputs x, y and z.",
+  "description": "Three Channel (PCG) curves sharing one frame number, one interpolation setting, one extrapolation mode and one scale/offset. Use it for translate or rotate triples such as camera moves. Having the three key lists in one node also shows at a glance whether the x, y and z keys fall on the same frames.\n\nKey syntax is `frame:value[:interp][@slope]`, as described on Channel (PCG). An empty key field behaves exactly like `0:0`: a curve that is always 0, which still goes through `* scale + offset`. You therefore only need to write the axis you want to animate.",
+  "inputs": {},
+  "outputs": {
+   "x": "Curve X value after scale and offset.",
+   "y": "Curve Y value after scale and offset.",
+   "z": "Curve Z value after scale and offset.",
+   "info": "Text summary of the frame and the three values."
+  },
+  "params": {
+   "frame": "Frame at which all three curves are evaluated. Fractional values are allowed; usually driven by `frame_f` of Frame (PCG).",
+   "keys_x": "Keyframes for the X curve as `frame:value[:interp][@slope]`. Empty is the same as `0:0`.",
+   "keys_y": "Keyframes for the Y curve. Empty is the same as `0:0`.",
+   "keys_z": "Keyframes for the Z curve. Empty is the same as `0:0`.",
+   "interp": "Interpolation for keys that do not name their own; applies to all three curves. See Channel (PCG) for the seven options.",
+   "extrapolate": "Behaviour of all three curves outside their first and last key: hold the end value, continue along the end slope, repeat, repeat with offset, or mirror.",
+   "scale": "Multiplier applied to each curve value.",
+   "offset": "Value added to each curve after scaling, including curves left empty."
+  },
+  "tips": [
+   "Stagger keys on purpose between axes to get weight; this node makes accidental misalignment easy to spot."
+  ]
+ },
+ "PCG_Display": {
+  "summary": "Passes geometry through and acts as the target of the display flag shown in the persistent viewer panel.",
+  "description": "The anchor for the display / template flag. In Houdini the display flag itself causes the chain to cook; ComfyUI only executes nodes that lead to an output node, so an intermediate node that is not connected to anything never runs. The display flag therefore works by rewiring this node's `geo` input to the flagged node, so the link on the canvas is the real execution dependency. It survives save/load, undo and copy/paste like any other link.\n\nThe node has no canvas of its own: the image is shown in the persistent viewer panel. A graph normally needs only one Display, and the flag moves its input to wherever you click. Use Viewport (PCG) instead when you want a viewer embedded in the node body, for example to pin two branches side by side. Both use the same transport and the same viewer, so they draw identically.\n\nThe geometry is passed through unchanged, so Display can sit in the middle of a chain.",
+  "inputs": {
+   "geo": "Geometry to display.",
+   "template": "Optional geometry drawn as a grey wireframe for reference only, like a Houdini template flag."
+  },
+  "outputs": {
+   "geo": "The input geometry, unchanged."
+  },
+  "params": {},
+  "houdini_notes": "Houdini's display flag is a node flag that drives cooking. Here it is a sink node whose input is rewired, because ComfyUI only evaluates what leads to an output node."
+ },
+ "PCG_ExportInstances": {
+  "summary": "Writes points as an instance table (CSV or JSON) with asset name, position, rotation and scale for game engines.",
+  "description": "Turns scattered points into one row per instance: `asset`, position `px py pz`, quaternion `qx qy qz qw`, Euler angles `rx ry rz` (degrees, XYZ order, `R = Rz*Ry*Rx`) and scale `sx sy sz`, followed by any extra point attributes you list. The transform is read exactly as Copy to Points reads it (`orient` > `N` + `up` > `pscale` and so on), so what you preview with Copy to Points is what the table describes.\n\nAxis Map converts to another coordinate system and rotations are converted along with positions. Unit Scale is applied to positions only. With Tile Size above 0 the points are split by their original x and z into tiles, one file per tile, and an `_index.json` listing every tile is written next to them. Files are written under the ComfyUI output directory. The node is an output node and returns a text report of what was written.\n\nIt raises an error if the Asset Attribute or an Extra Attribute does not exist on the points.\n\nPacked primitives are read directly: one row per packed primitive, with its own transform and the position where the piece's origin lands. The asset name comes from the point attribute, then the primitive attribute of that name (Pack and Assemble write `name`), and otherwise `piece0`, `piece1` ... per distinct piece.",
+  "inputs": {
+   "points": "Points to export. One table row is written per point."
+  },
+  "outputs": {
+   "report": "Text report: columns, axis map, unit scale, instance count, the files written (with tile and count) and the asset names found."
+  },
+  "params": {
+   "filename": "Output path relative to the ComfyUI output directory, without extension (`.csv` or `.json` is appended). `{index}` is replaced by Index, and `{tx}` / `{ty}` by the tile numbers when tiling is on.",
+   "format": "CSV writes a header plus one line per instance; JSON writes an object with the column metadata and an `instances` list.",
+   "asset_attribute": "Point attribute (string or integer) written to the `asset` column, usually the name of the mesh or prefab to instance. Empty leaves the column blank.",
+   "extra_attributes": "Space-separated point attribute names to append as extra columns. Vector attributes are split into `name_0`, `name_1` and so on.",
+   "axis_map": "Three words saying which original axis each new x, y, z takes, optionally negated. `x y z` keeps the data as is (Y up), `x -z y` gives Z up right-handed, `x z y` gives Z up left-handed. Rotations are converted too.",
+   "unit_scale": "Multiplier applied to positions, for example 100 to convert metres to centimetres.",
+   "tile_size": "Above 0, points are grouped into square tiles of this size by their original x and z, one file per tile, plus an `_index.json`. Include `{tx}` and `{ty}` in the filename to keep tiles apart. 0 writes a single file.",
+   "index": "Number substituted for `{index}` in the filename, for example to write one file per iteration of a loop."
+  },
+  "houdini_notes": "Corresponds to a ROP that outputs instance points and to the Labs instance export; the output here is a plain CSV / JSON table."
+ },
+ "PCG_ExportMesh": {
+  "summary": "Writes geometry to a .glb or .obj file under the ComfyUI output directory and returns its relative path.",
+  "description": "Writes the file directly, without an external mesh library, with UVs, normals (hard edges from vertex `N` are preferred), tangents and vertex colours. The tangents use the same convention as COP Bake Textures, so baked normal maps match. The returned path of a `.glb` can be connected straight to ComfyUI's Preview3D node.\n\nglTF follows the specification: Y up, metres, and the UV origin at the top left (v is written as 1 - v). Scale multiplies positions, so use 100 for centimetres.\n\nSplit by Attribute divides the mesh into several meshes / nodes in one file, named after the values of a primitive attribute; this is how LOD or collision naming conventions are produced. File per Attribute writes a separate file per value of another primitive attribute as `filename_value.ext`; `{name}` in the filename is replaced by the value instead.\n\nTextures attaches external image references to the materials: one `slot = path` per line, with slots `basecolor`, `normal`, `orm` and `emissive`. Paths are relative to the exported file and `{material}` is replaced by the material slot name. `orm` serves as both occlusion and metallicRoughness (R = AO, G = roughness, B = metal), and `normal` should be the OpenGL (+Y) map. OBJ output also writes a `.mtl` file.\n\nWith **GPU Instancing** on (the default) a `.glb` writes packed primitives (from Pack, Assemble or Copy to Points with Pack and Instance) as one mesh per distinct piece plus one node carrying the `EXT_mesh_gpu_instancing` extension, which stores each instance's translation, rotation and scale. Ten thousand rocks become one rock mesh and ten thousand transforms. Pieces whose transforms contain shear (not expressible as translation x rotation x scale) are unpacked into ordinary geometry instead; OBJ output, or the option off, always unpacks. Per-instance point attributes such as `Cd` are not written to instanced pieces.",
+  "inputs": {
+   "geo": "Geometry to export."
+  },
+  "outputs": {
+   "path": "Path of the written file relative to the output directory. With File per Attribute, one path per line."
+  },
+  "params": {
+   "filename": "Output path relative to the ComfyUI output directory, without extension. With File per Attribute you may include `{name}`.",
+   "format": "Binary glTF (`.glb`) or Wavefront OBJ.",
+   "scale": "Multiplier applied to positions (use 100 for centimetres).",
+   "split_attribute": "Primitive attribute whose values split the mesh into separate meshes / nodes inside the file. The attribute value becomes the name. Empty keeps one mesh.",
+   "file_attribute": "Primitive attribute whose values split the output into separate files named `filename_value.ext`. Empty writes one file.",
+   "textures": "One `slot = path` per line (`basecolor`, `normal`, `orm`, `emissive`). Paths are relative to the exported file; `{material}` is replaced with the material slot name. In `.glb` they are written as external image references.",
+   "texture_materials": "Space-separated wildcard patterns limiting which material slots receive the textures. `*` matches all.",
+   "gpu_instancing": "glb only: write packed primitives as instanced meshes (EXT_mesh_gpu_instancing) instead of unpacking them."
+  }
+ },
+ "PCG_Expr": {
+  "summary": "Evaluates a single math expression of up to six float inputs.",
+  "description": "Evaluates `expr` with the connected inputs available as variables `a` to `f`. Unconnected inputs count as 0. The result is output both as a float and rounded to an integer. The function library is the same as in Wrangle (`sin`, `fit`, `clamp`, `lerp`, `rand` ...), with constants `PI`, `TAU` and `E`.\n\nUse it between a Frame (PCG) output and a parameter to shape the value: `fit(a, 0, 1, 0, 360)` turns a camera once around, `sin(a*TAU)*0.5+0.5` makes a there-and-back motion.",
+  "inputs": {
+   "a": "Variable `a` in the expression. 0 when unconnected.",
+   "b": "Variable `b`. 0 when unconnected.",
+   "c": "Variable `c`. 0 when unconnected.",
+   "d": "Variable `d`. 0 when unconnected.",
+   "e": "Variable `e`. 0 when unconnected.",
+   "f": "Variable `f`. 0 when unconnected."
+  },
+  "outputs": {
+   "float": "The expression result.",
+   "int": "The result rounded to the nearest integer."
+  },
+  "params": {
+   "expr": "The expression, using `a` to `f`, numbers, constants and functions. Unconnected variables are 0."
+  },
+  "tips": [
+   "Use Channel (PCG) for keyframed behaviour and Expression for values derived from other values."
+  ]
+ },
+ "PCG_Expr3": {
+  "summary": "Evaluates three math expressions that share the same six float inputs and outputs x, y and z.",
+  "description": "Three expressions evaluated against the same variables `a` to `f` (unconnected inputs are 0). It is cleaner than three separate Expression (PCG) nodes when driving a triple such as `tx/ty/tz` or `rx/ry/rz`. The function library is the same as in Expression (PCG) and Wrangle.",
+  "inputs": {
+   "a": "Variable `a`. 0 when unconnected.",
+   "b": "Variable `b`. 0 when unconnected.",
+   "c": "Variable `c`. 0 when unconnected.",
+   "d": "Variable `d`. 0 when unconnected.",
+   "e": "Variable `e`. 0 when unconnected.",
+   "f": "Variable `f`. 0 when unconnected."
+  },
+  "outputs": {
+   "x": "Result of the X expression.",
+   "y": "Result of the Y expression.",
+   "z": "Result of the Z expression."
+  },
+  "params": {
+   "expr_x": "Expression producing the x output.",
+   "expr_y": "Expression producing the y output.",
+   "expr_z": "Expression producing the z output."
+  }
+ },
+ "PCG_FileCache": {
+  "summary": "Caches geometry to disk and reloads it later without cooking the upstream chain.",
+  "description": "Geometry lives in the Python process and cannot be stored in the workflow file, so reopening ComfyUI normally recomputes the whole chain. File Cache computes once, writes to disk, and reads from disk afterwards.\n\nWhen the node reads from disk, the upstream is genuinely not executed: the `geo` input is lazy, and the read modes ask ComfyUI not to evaluate it. This is what makes the cache save time.\n\nIn `auto` mode the file is read if it exists and written otherwise. `write` always recomputes and overwrites (use it after changing the upstream), and `read` always loads and raises an error if the file is missing; it never evaluates the upstream. In the file path `$F` and `$F4` are replaced by the Frame value (`$F4` zero-padded to 4 digits) and `$V` by Version. A path without extension gets `.npz`. Relative paths are placed under the ComfyUI output directory.\n\nThe format is `.npz` plus a JSON manifest, with no pickle, so cache files are safe to copy around. Primitive data (`prim_data`) must be numpy arrays.",
+  "inputs": {
+   "geo": "Geometry to cache. Optional and lazy: it is not evaluated when the node reads from disk. Required when the node has to write."
+  },
+  "outputs": {
+   "geo": "The geometry, either freshly computed or loaded from disk.",
+   "path": "Absolute path of the cache file used."
+  },
+  "params": {
+   "mode": "`auto` reads the file if it exists, otherwise writes it. `write` always recomputes and overwrites. `read` always reads and errors if the file is missing.",
+   "file": "Cache file path, relative to the ComfyUI output directory. `$F` / `$F4` is replaced by Frame and `$V` by Version.",
+   "version": "Number substituted for `$V` in the path. Bump it to keep several caches side by side.",
+   "frame": "Frame number substituted for `$F` / `$F4`. Not read from the timeline automatically; connect it from a Frame or For-Each Frame Begin output for per-frame caches.",
+   "compress": "Compress the written file. Not shown in Load from Disk mode.",
+   "reload": "Change this number to force a re-read or re-write on the next run."
+  },
+  "houdini_notes": "Corresponds to the File Cache SOP (and covers the Stash use case). Files are `.npz` with a JSON manifest rather than `.bgeo`.",
+  "tips": [
+   "Use `auto` in daily work and switch to `write` once when the upstream changed.",
+   "For per-frame caches put the path with `$F4` inside a For-Each Frame block and connect `frame` from the loop."
+  ]
+ },
+ "PCG_ForEachBegin": {
+  "summary": "Starts a for-each loop block and hands each piece, point, primitive or iteration index to the loop body.",
+  "description": "Equivalent of Houdini's Block Begin. It decides how the input is cut into pieces and how many times the chain between Begin and For-Each End runs. Connect Begin's `loop` output to For-Each End's `loop` input; that link is how End finds its Begin, and without it there is no loop.\n\nIteration Method: **By Pieces** makes one iteration per distinct value of Piece Attribute (typically `name` or `class`), on primitives or points; **By Primitives** and **By Points** make one iteration per element; **By Connectivity** makes one per connected component; **By Count** does not cut the geometry and simply runs Iterations times with the whole input. Group restricts the elements that are cut (all other modes except count). Pieces on points keep isolated points and only primitives whose points are all in the piece.\n\nMethod controls what the `geo` output carries: the current piece (**Extract Piece or Point**), the result of the previous iteration (**Fetch Feedback**, the original input on the first iteration), or always the original input (**Fetch Input**, equal to the `input` output). The `input` output always carries the uncut input, so no second Begin is needed for that.\n\nIteration metadata is written as detail attributes on `geo`: `iteration`, `numiterations`, `value` (string) and `ivalue`, so Wrangles inside the loop can read them with `detail()`. `value` is the piece attribute value in piece mode and the element or iteration number otherwise; `ivalue` is that value as an integer when it is numeric, else the iteration index.\n\nThe loop is realised by expanding the loop body one iteration at a time, so with many iterations the node ids grow longer; Max Iterations is the safety stop. Nested loops are supported. If there are zero pieces, the body still runs once on an empty geometry that keeps the input's attribute layout, and End outputs an empty result.",
+  "inputs": {
+   "geo": "Geometry to iterate over.",
+   "_state": "Internal. Injected by For-Each End when it expands the loop; not shown or used manually."
+  },
+  "outputs": {
+   "loop": "Loop state. Connect to the `loop` input of the matching For-Each End.",
+   "geo": "Geometry for the current iteration, depending on Method. Carries the iteration detail attributes.",
+   "input": "The complete, uncut input geometry.",
+   "iteration": "Current iteration index, starting at 0.",
+   "numiterations": "Total number of iterations.",
+   "value": "Value of the current piece as text: the attribute value in piece mode, otherwise the element or iteration number.",
+   "ivalue": "`value` as an integer when it is numeric, otherwise the iteration index."
+  },
+  "params": {
+   "method": "What the `geo` output provides. Extract Piece or Point gives the current piece; Fetch Feedback gives the previous iteration's result (the original input in the first iteration) for feedback loops together with End's `feedback` gather; Fetch Input always gives the original input.",
+   "iterate_over": "How the input is split into iterations: by distinct values of an attribute, per primitive, per point, per connected component, or by a plain count with no splitting.",
+   "piece_elements": "Whether pieces are formed on primitives or points. Only used with By Pieces and By Connectivity; the other modes imply their element class.",
+   "piece_attribute": "Attribute whose distinct values define the pieces, for example `name` or `class`. It must be a scalar or string attribute on the chosen element class, otherwise the node errors.",
+   "iterations": "Number of iterations for By Count. The geometry is not cut.",
+   "group": "Group pattern limiting which elements are split into pieces. Empty uses all elements. Not used by By Count.",
+   "max_iterations": "Safety limit: the loop stops after this many iterations even if more pieces exist.",
+   "single_pass": "Iteration index to run when Use Single Pass is on. Clamped to the last iteration.",
+   "use_single_pass": "Debug switch. Runs only the iteration given by Single Pass instead of the whole loop, which is useful for checking the loop body on one piece."
+  },
+  "houdini_notes": "In Houdini, Iteration Method, Piece Attribute and similar settings live on Block End, and Block Begin looks them up. Here they are on Begin and End keeps only Gather Method, so the settings are part of Begin's cache signature. The extra `input` output replaces a second Begin set to Fetch Input, and the Fetch Metadata method is replaced by detail attributes on `geo`. Zero iterations cannot skip the loop body entirely; it runs once on empty geometry.",
+  "tips": [
+   "Use Single Pass to debug the loop body on one piece before running everything.",
+   "To process fractured pieces separately, run Voronoi Fracture into By Pieces on the `name` attribute."
+  ]
+ },
+ "PCG_ForEachEnd": {
+  "summary": "Ends a for-each loop block and gathers the results of all iterations.",
+  "description": "Equivalent of Houdini's Block End. The geometry connected to `geo` is the result of one iteration. `loop` must come directly from the paired For-Each Begin; it tells End which Begin to loop back to.\n\nWith **Merge Each Iteration** every iteration's result is merged into one geometry. With **Feedback Each Iteration** only the last result is kept; combined with Begin's Fetch Feedback method this makes an iterative feedback loop. The number of iterations and how the input is split are set on Begin, not here.\n\nEnd's `geo` input has to be downstream of Begin: a link that comes from outside the loop body raises an error, because the loop would silently recompute the same result each time.",
+  "inputs": {
+   "geo": "Result of the loop body for the current iteration.",
+   "loop": "Loop state from the paired For-Each Begin's `loop` output.",
+   "_accum": "Internal. Accumulator injected while the loop expands; not used manually."
+  },
+  "outputs": {
+   "geo": "The merged results of all iterations, or the last result in feedback mode."
+  },
+  "params": {
+   "gather": "`merge` merges every iteration's result (Houdini's Merge Each Iteration). `feedback` keeps only the final iteration's result (Feedback Each Iteration), for use with Begin's Fetch Feedback."
+  },
+  "houdini_notes": "Iteration settings are on For-Each Begin rather than End; see the note on For-Each Begin."
+ },
+ "PCG_ForEachFrameBegin": {
+  "summary": "Starts a per-frame loop that re-evaluates the loop body for each frame and outputs the frame number and time.",
+  "description": "The way to make geometry change over frames. Connect `frame`, `frame_f`, `t` or `seconds` to parameters inside the loop body (convert the widget to an input; put an Expression in between to shape a curve) and the geometry follows the frame. The whole body is re-evaluated for every frame; nodes outside the block run once and stay cached. Connect `loop` to the `loop` input of For-Each Frame End.\n\n**Method**: `input` starts every frame from the original input, so frame N depends only on `frame` (keyframe animation, procedural deformation) and frames are independent. `feedback` starts every frame from the previous frame's result and frame 0 from the original input, which is what Houdini's SOP Solver does (growth, accumulation, progressive fracture). Feedback is truly sequential.\n\n**Cams**: connect a Camera Path and `cam` outputs the camera for the current frame, so a Render Pass in the body gets both moving geometry and a moving camera. The camera count must equal the frame count, or be 1 for a fixed camera; anything else is an error.\n\nFrame metadata is also stored as detail attributes on `geo`: `frame`, `frameindex`, `numframes`, `t` and `time`, readable with `detail()` in a Wrangle. If no geometry is connected, an empty geometry is used.",
+  "inputs": {
+   "geo": "Optional starting geometry. If not connected, the loop starts from empty geometry.",
+   "cams": "Optional camera sequence from Camera Path. Its length must equal Frames, or be 1.",
+   "_state": "Internal. Injected by For-Each Frame End while the loop expands."
+  },
+  "outputs": {
+   "loop": "Loop state. Connect to the `loop` input of For-Each Frame End.",
+   "geo": "Geometry for this frame (original input, or previous frame's result in feedback mode), with frame detail attributes.",
+   "frame": "Current frame number (Start plus the iteration index), as an integer.",
+   "frame_f": "The same frame number as a float, for float parameters.",
+   "t": "Normalised time from 0 to 1 across the loop. 0 when there is only one frame.",
+   "frames": "Total number of frames in the loop.",
+   "seconds": "Time in seconds since Start: (frame - start) / fps.",
+   "cam": "Camera for the current frame (or the single camera) when `cams` is connected."
+  },
+  "params": {
+   "method": "`input` starts each frame from the original input; frames are independent. `feedback` starts each frame from the previous frame's result (frame 0 from the original input), like a SOP Solver.",
+   "start": "Frame number of the first iteration.",
+   "frames": "Number of frames to run.",
+   "fps": "Frames per second, used for the `seconds` output and the `time` detail attribute.",
+   "max_iterations": "Safety limit on the number of frames run.",
+   "single_pass": "Frame index (counted from 0, not the frame number) to run when Use Single Pass is on. Clamped to the last frame.",
+   "use_single_pass": "Debug switch. Runs only the frame given by Single Pass, so the chain can be checked before running everything."
+  },
+  "houdini_notes": "The `feedback` method corresponds to a SOP Solver. The timeline is not read from a global `$F`; time comes only from this node's outputs."
+ },
+ "PCG_ForEachFrameEnd": {
+  "summary": "Ends a per-frame loop and collects each frame's geometry and/or COP image into sequences.",
+  "description": "Collects the result of every frame into sequences. Connect `geo`, `cop` or both; at least one is required, and whatever is connected is collected. A typical setup sends `cop` to Sequence Export for video and `geoseq` to Sequence Motion for motion vectors.\n\nThe accumulated frames are held in memory as literals in the expanded graph. Memory is counted as the loop runs, and when it exceeds about 1 GB the node raises an error that explains the options: lower the resolution, keep fewer layers, use fewer frames or run in several segments. (240 frames of 1024x1024 with five layers is about 4.7 GB.)",
+  "inputs": {
+   "loop": "Loop state from the paired For-Each Frame Begin.",
+   "geo": "Optional. Geometry result for the current frame, collected into `geoseq`.",
+   "cop": "Optional. COP image result for the current frame, collected into `seq`.",
+   "_accum": "Internal. Accumulator injected while the loop expands."
+  },
+  "outputs": {
+   "geoseq": "Geometry sequence, one geometry per frame. Feed to Geo Sequence Pick, Trail, Time Blend, Retime or Sequence Motion.",
+   "seq": "COP image sequence, one image per frame. Feed to Sequence Export.",
+   "merged": "All frames merged into one geometry when Merge Output is on. Otherwise the last frame's geometry is returned.",
+   "frames": "Number of frames actually collected."
+  },
+  "params": {
+   "merge_output": "Also merge all frames into one geometry on the `merged` output, for ghosting or seeing the whole motion at once. Off by default."
+  }
+ },
+ "PCG_Frame": {
+  "summary": "Provides the current frame, normalised time and seconds from the timeline.",
+  "description": "The single source of truth for time. The playbar writes its frame into this node, and every parameter that should animate takes a link from one of its outputs. A graph can contain several Frame nodes: the playbar writes the same frame to all of them, but each has its own Start / End, so their `t` values differ. For example a 0 to 23 main timeline plus a 12 to 18 node for a secondary move.\n\nOutputs: `frame` (int), `frame_f` (the same number as float), `t` = (frame - start) / (end - start), `frames` = |end - start| + 1 and `seconds` = (frame - start) / fps. Both integer and float frame outputs exist because ComfyUI only connects identical types, and most parameters to drive (time, angles, distances) are floats.\n\nThere is no `$F` environment variable. A link is how ComfyUI's cache learns about the dependency: when `frame` changes, only nodes downstream of this node are recomputed and the time-independent part of the graph is reused. Connect the outputs to widgets (convert widget to input), and put an Expression between them to shape a curve: `fit(a, 0, 1, 0, 360)` turns the camera once around, `sin(a*TAU)*0.5+0.5` goes there and back.\n\nEnd may be lower than Start for a reversed range; `t` still runs from 0 at Start to 1 at End and `frames` is still |end - start| + 1. With Start equal to End, `t` is 0.",
+  "inputs": {},
+  "outputs": {
+   "frame": "Current frame number as an integer.",
+   "frame_f": "Current frame number as a float, for float parameters.",
+   "t": "Normalised time: (frame - start) / (end - start). 0 when start equals end.",
+   "frames": "Length of the range: |end - start| + 1.",
+   "seconds": "Time since Start in seconds: (frame - start) / fps."
+  },
+  "params": {
+   "frame": "Current frame. Normally set by the playbar; drag it or edit it to scrub.",
+   "start": "First and last frame of the range (Start, End), used for `t` and `frames`. End may be lower than Start for a reversed range.",
+   "fps": "Frames per second, used only for the `seconds` output."
+  },
+  "houdini_notes": "Replaces Houdini's `$F`, `$T` and `$FPS` variables with explicit links so that ComfyUI's input-hash cache can track the dependency."
+ },
+ "PCG_GeoMetrics": {
+  "summary": "Measures a geometry's quality (counts, closedness, manifoldness, normals, degenerate faces, UV usage, genus) and outputs the numbers.",
+  "description": "Computes objective, deterministic metrics, for automatic selection or as a QA check: element counts, area, signed volume, bounding box, edge lengths, connected components, edge topology, triangle quality, duplicate points, UV statistics, Euler characteristic and genus. Examples of names: `prims`, `points`, `closed`, `boundary_edges`, `nonmanifold_edges`, `flipped_edges`, `degenerate_prims`, `duplicate_points`, `components`, `euler`, `genus`, `tri_quality_min`, `uv_coverage`, `uv_overlap`. The full set is in the `json` output.\n\nThree to watch: `closed` / `boundary_edges` (booleans and volumes need a watertight mesh), `flipped_edges` (neighbouring faces wound in opposite directions, which shows up as black faces or wrong booleans while the mesh looks fine) and `genus` (for a closed manifold, (2 - euler) / 2: 0 for a sphere, 1 for a torus; it is NaN otherwise and is not written to detail). `volume` is signed: on a closed mesh it is the true volume and goes negative if the whole mesh is inside out. `flipped_edges` cannot catch that case because a fully flipped mesh is still consistent, so read both together.\n\nUV coverage and overlap are counted on a `uv_res` x `uv_res` texel grid, so their precision is 1 / `uv_res` and depends on it; overlap counts distinct primitives, not triangles. Self-intersection is deliberately not measured.\n\nWith Write Detail on, every metric is also written as a detail attribute on the output geometry (readable with `detail(\"prims\")`; Select Best uses these).",
+  "inputs": {
+   "geo": "Geometry to measure."
+  },
+  "outputs": {
+   "geo": "The input geometry, with the metrics added as detail attributes if Write Detail is on.",
+   "json": "All metrics as a JSON object.",
+   "value": "The metric named by Pick, as a float.",
+   "int": "The same metric rounded to an integer."
+  },
+  "params": {
+   "compute_quality": "Compute triangle quality (`tri_quality_min`, `tri_quality_mean`), degenerate primitives and duplicate points.",
+   "compute_uv": "Compute UV statistics (`uv_area`, `uv_flipped`, `uv_out_of_range`, `uv_coverage`, `uv_overlap`). Needs a UV attribute.",
+   "uv_attrib": "Vertex attribute holding the UVs. Only used when Compute UV is on.",
+   "uv_res": "Texel grid resolution for UV coverage and overlap. Higher is more precise and slower. Only used when Compute UV is on.",
+   "write_detail": "Write all metrics onto the geometry as detail attributes.",
+   "prefix": "Text put in front of every written detail attribute name, to avoid clashes with existing attributes. Only used when Write Detail is on.",
+   "pick": "Name of the metric sent to the `value` and `int` outputs, for example `prims` or `genus`. An unknown name raises an error listing the valid ones. Empty outputs 0.",
+   "indent": "Indentation of the `json` output. 0 gives a single compact line."
+  },
+  "houdini_notes": "No single Houdini SOP produces these numbers; the UV statistics are comparable to what UV Visualize shows."
+ },
+ "PCG_GeoSequencePick": {
+  "summary": "Picks one frame from a geometry sequence by index, wrapping around at the end.",
+  "description": "Takes one geometry out of a geometry sequence such as the `geoseq` output of For-Each Frame End. The index wraps around (modulo the sequence length) instead of raising an error, because going out of range is normal while scrubbing an index. An empty sequence is an error.\n\nA common use is checking an animation: pick frame 0 and frame 5 into two Viewports and compare.",
+  "inputs": {
+   "geoseq": "Geometry sequence to pick from."
+  },
+  "outputs": {
+   "geo": "The selected frame's geometry.",
+   "frames": "Number of frames in the sequence."
+  },
+  "params": {
+   "index": "Zero-based frame index. Values at or beyond the sequence length wrap around."
+  }
+ },
+ "PCG_GeoSpreadsheet": {
+  "summary": "Shows geometry attributes in a table inside the node, like Houdini's Geometry Spreadsheet.",
+  "description": "Displays the point, vertex, primitive and detail attributes of the input in tables in the node body, together with the element counts and bounding box. It also outputs a short text summary of the geometry, which can be connected to other nodes. It is an output node, so it runs without anything downstream.\n\nThe tables are limited to Max Rows rows starting at Start Row; string and numeric columns are both shown, and non-finite numbers are shown as empty. Group names of each class are listed too.\n\nWhen a class has more rows than Max Rows, the footer shows page buttons (first, previous, next, last) and a row field to jump to. Pages are fetched from the server's cache of the last run, so paging never re-runs the graph and does not change the Start Row widget.",
+  "inputs": {
+   "geo": "Geometry to inspect."
+  },
+  "outputs": {
+   "info": "A short plain-text summary of the geometry."
+  },
+  "params": {
+   "max_rows": "Maximum number of rows shown per attribute class.",
+   "start_row": "Index of the first row shown, for paging through large geometry."
+  },
+  "houdini_notes": "Counterpart of the Geometry Spreadsheet pane. It is read-only and lives in the node body rather than a separate pane."
+ },
+ "PCG_ParamPick": {
+  "summary": "Reads one value out of a JSON text and outputs it as float, int and string, usable in the same run.",
+  "description": "Picks a single value from `json_text` by name and outputs it. Connect the output to a target widget (convert widget to input) and the value takes effect in the current run.\n\nThere are two ways to feed JSON values into a graph. Params from JSON writes into the Parameters panel and its bindings fan out to the whole graph: changing one value recomputes only the nodes that reference it, but the values are written by the front end, so you need to run twice. Param Pick uses a normal link and applies immediately, but all Picks hang off the same JSON, so any change to the JSON invalidates all of them. For JSON that a model supplies as a whole, the coarse invalidation costs nothing. You can use both: the panel for hand-tuned parameters, Picks for what the model gave in this run.\n\nIf the name cannot be found the node raises an error rather than returning 0, because a silent 0 hides the difference between a key the model omitted and a key it set to 0. Enable Fallback to use the default value instead. The JSON is parsed tolerantly (code fences, leading text, trailing commas).\n\nBoolean values become 1 or 0. A list outputs its first component as float and int, and the whole list as JSON text. A string outputs the number it parses to, or the default value if it is not numeric.",
+  "inputs": {},
+  "outputs": {
+   "float": "The picked value as a float.",
+   "int": "The picked value rounded to an integer.",
+   "string": "The picked value as text (JSON text for numbers and lists, the raw string for strings)."
+  },
+  "params": {
+   "name": "Key to read. Use `a.b` for nested objects and `pos.y` (or `pos.1`) for a component of a vector.",
+   "default_value": "Value used when the key is missing and Fallback is on.",
+   "fallback": "When off, a missing key raises an error. When on, Default Value is used instead.",
+   "json_text": "The JSON text to read from. Fenced code blocks, text before the JSON and trailing commas are tolerated."
+  }
+ },
+ "PCG_Parameters": {
+  "summary": "Defines a control panel of named parameters for the whole graph, similar to spare parameters on a Houdini null.",
+  "description": "Declare one parameter per line and the front end builds real widgets on this node for them:\n\n```\nfloat  radius = 1.0 : 0 10   # label\nint    count  = 5   : 1 100\nbool   cap    = true\nstring prefix = piece\nvector pos    = 0 0 0\nvector4 col   = 1 1 1 1\n```\n\nThe format is `type name [= default] [: min max] [# label]`. To use a parameter, bind a widget of another node to it from the node's right-click menu (the PCG bind-parameter entry on the target node; or copy the parameter reference on this node and paste it on the target). The widget label then shows `name <- radius` and follows the panel. This is the counterpart of copying a relative reference in Houdini.\n\nBindings are made by the front end: when the panel changes, the value is written into the target widget. The submitted prompt therefore contains the real value and the cache works at fine grain: changing `radius` only recomputes nodes that reference it. The cost is that when running through the API or headless, bindings are not re-evaluated and the last stored values are used.\n\nBindings look parameters up by **name**, not path. Keep one panel per graph; if several panels declare the same name, the one earliest in the graph wins and the panel title says so. Use name prefixes (`rock_radius`) for grouping. The `json` output carries all current values, for a Wrangle or for archiving, and `schema` describes the declared parameters, for pasting into a prompt. The node only executes when an output is connected.",
+  "inputs": {},
+  "outputs": {
+   "json": "All current parameter values as a JSON object.",
+   "schema": "The declared parameters (type, default, range, components, label) as JSON, to paste into a model prompt for Params from JSON."
+  },
+  "params": {
+   "declare": "One parameter per line: `type name [= default] [: min max] [# label]`. Types are `float`, `int`, `bool`, `string`, `vector` (3 components) and `vector4`. Changing the text adds or removes widgets; stored values of parameters that remain are kept.",
+   "values": "Storage for the current values, written by the generated widgets as JSON. Normally not edited by hand."
+  },
+  "houdini_notes": "Parameters are declared as text rather than built with the parameter interface editor, and references resolve by name instead of by relative path like `ch(\"../ctrl/radius\")`."
+ },
+ "PCG_ParamsFromJSON": {
+  "summary": "Lets a model fill the Parameters panel by applying a JSON object of values to already-declared parameters.",
+  "description": "Parameter-level control by a language model: Parameters (schema output) is pasted into a prompt, the model answers with JSON, and this node writes the values into the panel, from where the existing bindings spread them across the graph.\n\nThe boundary is structural. Only declared parameters can be set: keys that are not declared are reported as `unknown` and create nothing, values of the wrong type are `skipped` (the old value stays), out-of-range values are **clamped** and reported as `clamped`, and parameters not mentioned are left alone. The model can change numbers, but not topology, bindings or the list of parameters. The `report` output names all of these groups, so a half-applied answer is visible.\n\nThe values are written into the panel by the front end, so the run in which they arrive still uses the old values. Press Run **again** to run with the new ones. The node does not re-queue a run on its own, because automatic re-runs combined with parameter changes on every run would loop endlessly.\n\nParsing is tolerant: a ```json fence, a leading sentence such as \"Here you go:\" and trailing commas are accepted, and what was repaired appears in the report. A list is accepted if it contains an object (the first object is used).",
+  "inputs": {},
+  "outputs": {
+   "values": "The parsed JSON object as text.",
+   "applied": "Number of keys passed on to the panel.",
+   "report": "How the text was parsed and how many keys were found."
+  },
+  "params": {
+   "enabled": "When off, nothing is applied and the panel is left untouched.",
+   "json_text": "JSON object of parameter names to values, for example the model's answer. Fences and stray text around it are tolerated."
+  },
+  "tips": [
+   "Run twice: once to deliver the values and once to compute with them."
+  ]
+ },
+ "PCG_PreviewImage": {
+  "summary": "Renders a software-rasterised preview of geometry to a standard IMAGE.",
+  "description": "Renders the geometry with a built-in orthographic rasteriser, with no GPU or OpenGL needed. The output is a normal ComfyUI IMAGE, so it can be connected to PreviewImage or SaveImage. The camera is framed to the bounding sphere. Azimuth 0 and elevation 0 look along the -Z axis from +Z.\n\nShading: **Normal** colours by world-space face normal, **Lambert** is a grey model with one directional light, **Color** is `Cd` multiplied by lighting (`Cd` is looked up on point, vertex, primitive and detail; without it the result is grey). Rasterisation is vectorised, so meshes with hundreds of thousands of triangles take about a second. Empty geometry gives a black image. Requires `torch`.\n\n**Studio** look: smooth shading from `N`, a key light with shadows, sky fill and a soft highlight, screen-space ambient occlusion, a ground that only catches shadows and fades into a gradient background, and supersampling for clean edges. It also maps textures, with the same `slot = path` lines as Export Mesh: `basecolor`, `normal` (tangent space, OpenGL +Y) and `orm` (R = AO, G = roughness, B = metallic), or `ao`, `roughness` and `metallic` separately. A roughness or metallic map switches the surface to metal-rough PBR shading: a GGX highlight from the key light, the studio (ceiling, floor, a softbox and a strip light beside the camera) reflected with Schlick Fresnel, F0 = 0.04 for dielectrics and BaseColor for metals, and the AO map multiplied into the occlusion. Without one the shading is the plain diffuse look with a soft highlight, so polished glass or bare metal would show only as dark surfaces. Paths are relative to ComfyUI's output folder, so files written earlier in the graph can be used, and `{material}` is replaced by each face's material name (a string prim attribute, Material Attribute). The normal map uses the same tangent frames Export Mesh writes and COP Bake Textures bakes against, so a baked map looks as it will in an engine. A material whose file does not exist keeps its `Cd` and mesh normal. A value `@layer` takes that layer from the COP image connected to **textures_cop** instead of a file, for example `basecolor = @basecolor` and `normal = @normal_ts` straight from COP Bake Textures, or `orm = @ao roughness metallic` to pack three layers like an ORM file, which avoids depending on files being written first. The camera direction is the same as Basic, but the frame fits the object's projected extent, so a row of objects fills a wide image. Shading is ignored in Studio.",
+  "inputs": {
+   "geo": "Geometry to render.",
+   "textures_cop": "Optional COP image whose layers Textures can name with `@layer` (Studio look)."
+  },
+  "outputs": {
+   "image": "The rendered preview as an IMAGE."
+  },
+  "params": {
+   "width": "Image width and height in pixels (Width, Height).",
+   "elevation": "Camera elevation angle in degrees. 0 looks horizontally, positive looks from above.",
+   "azimuth": "Rotation of the camera around the vertical axis in degrees.",
+   "shading": "How the surface is coloured. Normal shows face normals as colour, Lambert is a grey model with simple lighting, Color shows the colour attribute times lighting.",
+   "color_attrib": "Attribute read for the colour. Only used in Color shading.",
+   "look": "Basic is the plain preview; Studio adds shadows, ambient occlusion, a shadow-catching ground, a gradient background and textures.",
+   "supersampling": "Studio: renders this many times larger and averages down, for smooth edges (2 is a good default; 3–4 are slower).",
+   "textures": "Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop.",
+   "material_attrib": "Studio: string prim attribute holding each face's material name (used for `{material}` in Textures).",
+   "uv_attrib": "Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1."
+  }
+ },
+ "PCG_Retime": {
+  "summary": "Remaps the timing of a geometry sequence to a new sequence, by speed, by target length or by a time-warp curve.",
+  "description": "Builds a new sequence by choosing, for each output frame `i`, a (possibly fractional) source frame.\n\n- **Speed**: source = `start + i * speed`. A speed of 0.5 is half speed, a negative speed plays backwards.\n- **Output Length**: spreads `frames` output frames evenly over the whole source sequence. Changes duration only, not content.\n- **Time Warp Channel**: source = a keyframe channel evaluated at `i`, for time warps such as rush, hold, ease out: `0:0  6:12  14:12  24:23`. This is the only mode that can express a pause.\n\nInterpolation: **Integer Frames (Hold)** takes the nearest source frame, **Blend Subframes** interpolates between source frames and requires all frames to have the same topology (an error names the offending frame). Integer, boolean and string attributes are not interpolated but taken from the nearer frame. Source frames outside the sequence are clamped to the ends, or wrapped when Loop is on.\n\nAn identity mapping is exactly the identity: with channel `0:0 n-1:n-1` (or speed 1 and start 0) every output frame is bit-identical to the input frame, with no multiply-add.",
+  "inputs": {
+   "geoseq": "Geometry sequence to retime."
+  },
+  "outputs": {
+   "geoseq": "The retimed sequence.",
+   "frames": "Number of frames in the new sequence.",
+   "info": "Text summary: input and output frame count, range of source frames used, mode and interpolation."
+  },
+  "params": {
+   "mode": "How output frames are mapped to source frames: constant speed, evenly stretched to a given length, or by a keyframed time-warp curve.",
+   "frames": "Number of output frames. 0 means automatic: for Speed the source length divided by the absolute speed (rounded up), otherwise the source length.",
+   "speed": "Source frames advanced per output frame. Below 1 is slow motion, above 1 is faster, negative plays backwards. Used in Speed mode.",
+   "start": "Source frame at which output frame 0 starts. Used in Speed mode (and for a single-frame Output Length). Hidden in Time Warp Channel mode.",
+   "keys": "Time-warp keys as `output_frame:source_frame`, for example `0:0  6:12  14:12  24:23` (same key syntax as Channel (PCG)). Only used in Time Warp Channel mode.",
+   "channel_interp": "Default interpolation for keys of the time-warp curve that do not name their own. Linear is the default. Only used in Time Warp Channel mode.",
+   "extrapolate": "Behaviour of the time-warp curve past its first and last key. Only used in Time Warp Channel mode.",
+   "interp": "How fractional source frames are resolved. Hold takes the nearest integer frame and works with changing topology. Blend interpolates positions and other float attributes and needs identical topology in every frame.",
+   "loop": "Wrap source frame numbers outside the sequence around instead of clamping them to the first and last frame."
+  },
+  "houdini_notes": "Based on the Retime SOP; the time-warp channel mode takes the place of animating the retime with a curve."
+ },
+ "PCG_SelectBest": {
+  "summary": "Scores every geometry in a sequence with an expression and outputs the best one, the top K and a ranked report.",
+  "description": "Closes the loop for automatic variant selection: run many variants (for example a For-Each over N seeds), collect them as a geometry sequence, and let the node choose.\n\nThe score is an expression evaluated for each geometry. It can use every metric from Geo Metrics (`prims`, `closed`, `flipped_edges`, `uv_overlap`, `genus` ...), `i` and `n` (index and count) and the geometry-reading functions of Wrangle / Switch (`detail(\"score\")`, `npoints()`, `prim(\"area\", 0, 0)`).\n\nAesthetic scores (CLIP, aesthetic predictors, human preference) are image-side and not computed here. Write them in the loop as a detail attribute on the geometry (Attribute Create, detail class), then weight them with structural criteria in one expression, e.g. `detail(\"score\") * 2 - nonmanifold_edges * 0.1 - degenerate_prims`. Carrying the score on the geometry keeps score and geometry together; separate parallel lists drift out of step.\n\nTies are broken by taking the lower index, so the same input always selects the same variant. `report` is a JSON list sorted by rank with the score and the metrics named in Report Metrics.",
+  "inputs": {
+   "geoseq": "Geometry sequence of variants to score."
+  },
+  "outputs": {
+   "best": "The geometry with the best score.",
+   "top_k": "The best K geometries as a sequence, in rank order.",
+   "index": "Index of the best geometry in the input sequence.",
+   "score": "The best geometry's score.",
+   "report": "JSON list in rank order with `rank`, `index`, `score` and the requested metrics for each geometry."
+  },
+  "params": {
+   "score": "Expression giving a number for each geometry. Can use all metrics, `i`, `n`, the Wrangle function library and geometry-reading functions such as `detail()`.",
+   "mode": "Whether the highest or the lowest score wins.",
+   "top_k": "How many of the best geometries to return in `top_k`. Capped at the sequence length.",
+   "compute_quality": "Compute triangle quality metrics (`tri_quality_min`, `tri_quality_mean`).",
+   "compute_uv": "Compute UV metrics (`uv_area`, `uv_coverage`, `uv_overlap`, ...), counted on a texel grid. Off by default because it is slower.",
+   "uv_attrib": "Vertex attribute holding UVs. Only used when Compute UV is on.",
+   "uv_res": "Grid resolution for UV coverage and overlap; precision is 1 / resolution. Only used when Compute UV is on.",
+   "report_metrics": "Space-separated metric names listed for each geometry in the report, in addition to rank and score."
+  },
+  "tips": [
+   "Make a hard gate by multiplying the score by a metric such as `closed`."
+  ]
+ },
+ "PCG_TimeBlend": {
+  "summary": "Extracts one geometry at a fractional frame of a sequence by interpolating between the two neighbouring frames.",
+  "description": "The counterpart of Houdini's Time Blend: samples a sequence at a possibly fractional frame. Typical uses are rendering a 24 fps sequence at 48 fps, and slow motion, where `frame` is driven by a Channel whose curve advances slower than one frame per frame.\n\n**Blend Subframes** requires the whole sequence to have the same topology (point i is the same point in every frame) and raises an error naming the frame that differs. Sequences whose topology changes, such as fracturing or growth, must use **Integer Frames (Hold)**, which takes the nearest integer frame without interpolating. Integer, boolean and string attributes (`id`, `class`, `name`) are never interpolated and come from the nearer frame, as do groups; they therefore switch when the position passes halfway between two frames.\n\nOutside the sequence the frame is clamped to the first or last frame, or wrapped when Loop is on.",
+  "inputs": {
+   "geoseq": "Geometry sequence to sample."
+  },
+  "outputs": {
+   "geo": "The geometry at the requested frame.",
+   "frames": "Number of frames in the sequence."
+  },
+  "params": {
+   "frame": "Frame to sample, counted from 0 in the sequence. Fractional values interpolate.",
+   "interp": "Hold takes the nearest integer frame. Blend linearly interpolates float attributes between the two frames and needs identical topology.",
+   "loop": "Wrap out-of-range frames around instead of clamping to the first and last frame."
+  },
+  "houdini_notes": "Corresponds to Time Blend. Houdini also requires matching topology but reports a mismatch less clearly; here the error names the offending frame."
+ },
+ "PCG_Trail": {
+  "summary": "Builds a trail from the previous frames of a geometry sequence, as stacked copies, polylines, a swept mesh or a velocity attribute.",
+  "description": "Takes the frame at `index` as the current frame and looks back `length` frames, stepping `increment` frames at a time. Frame numbers outside the sequence are clamped to the ends (or wrapped with Loop), not dropped, so the trail has constant length at the start of the sequence.\n\nModes: **Preserve Original** merges every frame of the trail unchanged, for ghosting or motion-blur reference, and adds a point attribute `trailframe` (0 is the current frame, -1 the previous one, ...) to fade by. **Connect as Polygons** joins the positions of each point over the trail into one open polyline, with a point attribute `trailu` from 0 (oldest) to 1 (current). **Connect as Mesh** sweeps every primitive edge between consecutive trail frames into a quad (a curve becomes a ribbon, an outline becomes a tube wall); an edge shared by two faces is swept once, and geometry with no edges, such as a point cloud, falls back to the polylines. It also writes `trailu`. **Compute Velocity** outputs the current frame with a velocity attribute in units per frame: a backward difference from the previous frame (spaced `increment` apart), or a forward difference on the first frame of the sequence.\n\nThe Connect modes require the frames used to have the same topology; Compute Velocity requires the two frames compared to match.",
+  "inputs": {
+   "geoseq": "Geometry sequence to build the trail from."
+  },
+  "outputs": {
+   "geo": "The trail geometry.",
+   "frames": "Number of frames in the sequence."
+  },
+  "params": {
+   "index": "Frame of the sequence treated as the current frame, counted from 0.",
+   "mode": "Preserve Original stacks the frames as they are, Connect as Polygons makes one polyline per point, Compute Velocity adds a velocity attribute to the current frame, Connect as Mesh sweeps edges into quads.",
+   "length": "Number of frames to look back. 0 gives only the current frame for Preserve and Connect modes.",
+   "increment": "Step between sampled frames. A larger step gives a sparser trail that reads better for fast motion. In Compute Velocity it is also the frame distance of the difference.",
+   "loop": "Wrap out-of-range frame numbers around instead of clamping to the first frame.",
+   "velocity_attrib": "Name of the point attribute written in Compute Velocity mode."
+  },
+  "houdini_notes": "Corresponds to Trail. Houdini's Connect as Mesh on point clouds is the same as Connect as Polygons here; on geometry with edges, Connect as Mesh sweeps edges into quads."
+ },
+ "PCG_Value": {
+  "summary": "Outputs one float that can be connected to many parameters, as a global variable for the graph.",
+  "description": "A single editable number outputting as float and as rounded integer. Connect it to several converted widgets to drive them together.",
+  "inputs": {},
+  "outputs": {
+   "float": "The value.",
+   "int": "The value rounded to the nearest integer."
+  },
+  "params": {
+   "value": "The number to output."
+  }
+ },
+ "PCG_Viewport": {
+  "summary": "Shows geometry in an interactive 3D viewport embedded in the node body and passes the geometry through.",
+  "description": "Every time the node cooks, the geometry is stored in a cache and the front end fetches it to rebuild the view, using a three.js canvas inside the node. Shading and display options are front-end only widgets, so changing them does not re-cook the chain.\n\nThe `geo` output passes the input through unchanged, so Viewport can sit in the middle of a chain like a display flag. Pin several Viewports to compare branches side by side. Use Display (PCG) instead for a single viewer in the persistent panel that follows the display flag.\n\n**Selection**: press **S** with the pointer over the viewport to enter select mode (a toolbar appears at the top; Esc leaves it). Click picks the nearest point or the primitive under the cursor, dragging draws a selection box; Shift adds and Ctrl removes. Visible Only skips what the surface hides. The selection is shown as a group expression such as `0-4 7 12-19`, which any group field accepts: Copy puts it on the clipboard, and → group creates a Group Create node wired to the node feeding the viewport, with the expression as its base pattern. Numbers refer to the geometry the viewport shows.",
+  "inputs": {
+   "geo": "Geometry to show.",
+   "template": "Optional reference geometry drawn as a grey wireframe, like a Houdini template flag."
+  },
+  "outputs": {
+   "geo": "The input geometry, unchanged."
+  },
+  "params": {},
+  "houdini_notes": "The template display is an input link instead of a node flag, so the dependency is visible on the canvas."
+ }
+}

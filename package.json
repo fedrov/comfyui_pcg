@@ -1,0 +1,9 @@
+{
+  "name": "comfyui-pcg-dev",
+  "private": true,
+  "description": "Dev-only: dependencies for the frontend unit tests in tests/*.mjs. Not needed to use the node pack.",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

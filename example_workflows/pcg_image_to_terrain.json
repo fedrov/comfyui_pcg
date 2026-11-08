@@ -1,0 +1,661 @@
+{
+ "last_node_id": 12,
+ "last_link_id": 14,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    -360
+   ],
+   "size": [
+    760,
+    320
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "An image -> terrain (read me first)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "Lifts a landscape image (a photo or an AI-painted perspective view) into a top-down height field, then feeds the terrain chain.\n\n**Pick your own landscape in Load Image first**: it opens on ComfyUI's example.png, a cartoon figure against a flat sky - lifted, the sky turns into a wall at the back and the figure into a spike. Wanted: ground running into the distance, a camera looking slightly down, a real horizon.\n\nBy default it uses Depth Anything V2 (comfyui_controlnet_aux, the first run downloads the weights automatically): it outputs **relative inverse depth**, determined only up to scale and shift; Shift and FOV X are guesses - guess wrong and the terrain gets bent, not uniformly scaled.\n\nThe more accurate route is MoGe (built into ComfyUI core): camera-space points, metric scale and a sky mask are all provided. Put the MoGe model into models/geometry_estimation/, select the two greyed-out MoGe nodes below and press Ctrl+M to unmute them - the wires are already connected: while muted, the frontend drops inputs connected to muted nodes entirely, so HeightField from Depth uses depth; after unmuting, moge_geometry takes priority.\n\nHeightField from Depth's mask layer marks which cells were actually measured; places behind the mountains that can't be seen are filled by push-pull, i.e. guessed. The world_size output is already wired downstream, so the scale matches automatically."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1,
+      4,
+      7
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "DepthAnythingV2Preprocessor",
+   "pos": [
+    380,
+    0
+   ],
+   "size": [
+    340,
+    106
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      2,
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DepthAnythingV2Preprocessor"
+   },
+   "widgets_values": [
+    "depth_anything_v2_vitl.pth",
+    1024
+   ]
+  },
+  {
+   "id": 4,
+   "type": "PreviewImage",
+   "pos": [
+    380,
+    150
+   ],
+   "size": [
+    340,
+    400
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 2
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Depth (near = white)"
+  },
+  {
+   "id": 5,
+   "type": "LoadMoGeModel",
+   "pos": [
+    0,
+    444
+   ],
+   "size": [
+    340,
+    81
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MOGE_MODEL",
+     "type": "MOGE_MODEL",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadMoGeModel"
+   },
+   "widgets_values": [
+    "moge_2_vitl_normal.safetensors"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "MoGeInference",
+   "pos": [
+    380,
+    594
+   ],
+   "size": [
+    340,
+    203
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "moge_model",
+     "type": "MOGE_MODEL",
+     "link": 3
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MoGeInference"
+   },
+   "widgets_values": [
+    9,
+    0.0,
+    4,
+    true,
+    true
+   ]
+  },
+  {
+   "id": 7,
+   "type": "PCG_COPHeightfieldFromDepth",
+   "pos": [
+    760,
+    0
+   ],
+   "size": [
+    340,
+    783
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "link": 6
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "world_size",
+     "type": "FLOAT",
+     "links": [
+      9,
+      11
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightfieldFromDepth"
+   },
+   "widgets_values": [
+    "perspective",
+    640,
+    "disparity",
+    60.0,
+    0.05,
+    0.02,
+    "fit_plane",
+    0.95,
+    true,
+    0.25,
+    1.0,
+    0,
+    true
+   ]
+  },
+  {
+   "id": 8,
+   "type": "PCG_COPStreamPower",
+   "pos": [
+    760,
+    827
+   ],
+   "size": [
+    340,
+    924
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 8
+    },
+    {
+     "name": "world_size",
+     "type": "FLOAT",
+     "link": 9,
+     "widget": {
+      "name": "world_size"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPStreamPower"
+   },
+   "widgets_values": [
+    "C",
+    1.0,
+    1.0,
+    30,
+    "rho8",
+    0.02,
+    0.5,
+    0.0,
+    "",
+    0.01,
+    false,
+    "",
+    "C",
+    "flow",
+    0
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PCG_COPHeightfieldToMesh",
+   "pos": [
+    1140,
+    0
+   ],
+   "size": [
+    340,
+    254
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 10
+    },
+    {
+     "name": "world_size",
+     "type": "FLOAT",
+     "link": 11,
+     "widget": {
+      "name": "world_size"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      12,
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightfieldToMesh"
+   },
+   "widgets_values": [
+    "C",
+    1.0,
+    1.0,
+    1,
+    true,
+    true,
+    "Cd=albedo mask"
+   ]
+  },
+  {
+   "id": 10,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1140,
+    298
+   ],
+   "size": [
+    340,
+    373
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 12
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1600,
+    1200,
+    30.0,
+    0.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "PreviewImage",
+   "pos": [
+    1520,
+    0
+   ],
+   "size": [
+    420,
+    460
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Lifted terrain"
+  },
+  {
+   "id": 12,
+   "type": "PCG_ExportMesh",
+   "pos": [
+    1140,
+    715
+   ],
+   "size": [
+    340,
+    329
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "path",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ExportMesh"
+   },
+   "widgets_values": [
+    "pcg/terrain_from_image",
+    "glb",
+    "",
+    "",
+    1.0,
+    "",
+    "*"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "IMAGE"
+  ],
+  [
+   2,
+   3,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ],
+  [
+   3,
+   5,
+   0,
+   6,
+   0,
+   "MOGE_MODEL"
+  ],
+  [
+   4,
+   2,
+   0,
+   6,
+   1,
+   "IMAGE"
+  ],
+  [
+   5,
+   3,
+   0,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   6,
+   0,
+   7,
+   1,
+   "MOGE_GEOMETRY"
+  ],
+  [
+   7,
+   2,
+   0,
+   7,
+   2,
+   "IMAGE"
+  ],
+  [
+   8,
+   7,
+   0,
+   8,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   9,
+   7,
+   1,
+   8,
+   1,
+   "FLOAT"
+  ],
+  [
+   10,
+   8,
+   0,
+   9,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   11,
+   7,
+   1,
+   9,
+   1,
+   "FLOAT"
+  ],
+  [
+   12,
+   9,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   13,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   9,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

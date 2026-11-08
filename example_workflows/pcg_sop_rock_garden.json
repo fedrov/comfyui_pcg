@@ -1,0 +1,2161 @@
+{
+ "last_node_id": 32,
+ "last_link_id": 36,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    520
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "Rock garden (read me first)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "Purely procedural modelling, no model files at all.\n\n① Left column: For-Each (count mode) runs 8 times, each pass takes a low-poly sphere; Point Jitter's and Attribute Noise's rand_seed are both wired to iteration - the same chain produces 8 rocks, each with a different shape. Match Size puts each rock's bottom on y = 0, Connectivity numbers each piece (class). Poly Reduce then makes a low-poly set at 20% of the polygons for the small pebbles (LOD).\n\n② Second column: terrain = grid + terrain fractal noise; a Wrangle colours by slope and computes a \"gentle + noise patches\" boulder weight, promoted to primitives to act as the scatter group (the group field just says @boulder > 0.5).\n\n③ Third column: Scatter and Align scatters the big rocks (Avoid Overlap pushes them apart with Point Relax, Tilt keeps them from all sitting upright), a Wrangle picks a random class for each point, Copy to Points with Piece Attribute = class picks rocks by number - one node places all 8 kinds. Pebbles work the same way, using the low-poly library, no avoidance, more tilt.\n\n④ Rocks grow moss based on how upward-facing they are plus noise, get merged with the terrain, and output a preview image, a 3D viewport and a glb."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_Sphere",
+   "pos": [
+    0,
+    564
+   ],
+   "size": [
+    360,
+    270
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Sphere"
+   },
+   "widgets_values": [
+    1.0,
+    12,
+    8,
+    "polygon_mesh",
+    2,
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "y"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "PCG_ForEachBegin",
+   "pos": [
+    0,
+    878
+   ],
+   "size": [
+    360,
+    315
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 1
+    },
+    {
+     "name": "_state",
+     "type": "PCG_LOOP",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      2
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "input",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "iteration",
+     "type": "INT",
+     "links": [
+      3,
+      8
+     ],
+     "slot_index": 3
+    },
+    {
+     "name": "numiterations",
+     "type": "INT",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "value",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    },
+    {
+     "name": "ivalue",
+     "type": "INT",
+     "links": [],
+     "slot_index": 6
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachBegin"
+   },
+   "widgets_values": [
+    "fetch_input",
+    "count",
+    "primitives",
+    "name",
+    8,
+    "",
+    false,
+    0,
+    1000
+   ],
+   "title": "Each rock (count × 8)"
+  },
+  {
+   "id": 4,
+   "type": "PCG_PointJitter",
+   "pos": [
+    0,
+    1237
+   ],
+   "size": [
+    360,
+    295
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 2
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 3,
+     "widget": {
+      "name": "rand_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PointJitter"
+   },
+   "widgets_values": [
+    "",
+    1.0,
+    "no_scaling",
+    "",
+    "",
+    0.55,
+    1.0,
+    1.0,
+    1.0,
+    1,
+    false,
+    true
+   ]
+  },
+  {
+   "id": 5,
+   "type": "PCG_Transform",
+   "pos": [
+    0,
+    1576
+   ],
+   "size": [
+    360,
+    363
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Transform"
+   },
+   "widgets_values": [
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    1.0,
+    0.7,
+    1.0,
+    "",
+    "xyz",
+    "srt",
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    false
+   ],
+   "title": "Squash a bit"
+  },
+  {
+   "id": 6,
+   "type": "PCG_Subdivide",
+   "pos": [
+    0,
+    1983
+   ],
+   "size": [
+    360,
+    305
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Subdivide"
+   },
+   "widgets_values": [
+    "",
+    "catmull_clark",
+    2,
+    "edge_corner",
+    "",
+    -1.0,
+    "",
+    "creaseweight"
+   ]
+  },
+  {
+   "id": 7,
+   "type": "PCG_Normal",
+   "pos": [
+    0,
+    2332
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    180.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "id": 8,
+   "type": "PCG_AttribNoise",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    1098
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 7
+    },
+    {
+     "name": "rand_seed",
+     "type": "INT",
+     "link": 8,
+     "widget": {
+      "name": "rand_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribNoise"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "P",
+    true,
+    true,
+    true,
+    true,
+    "N",
+    1.0,
+    "add",
+    "zero_centered",
+    0.12,
+    false,
+    0.5,
+    0.5,
+    false,
+    "0:0  0.5:0.25  1:1",
+    "linear",
+    false,
+    0.0,
+    false,
+    1.0,
+    "worley_f2f1",
+    "P",
+    0.35,
+    0.35,
+    0.35,
+    0.0,
+    0.0,
+    0.0,
+    0,
+    false,
+    "set(0, @P.y * 0.1, 0)",
+    false,
+    0.0,
+    1.0,
+    "standard",
+    2,
+    2.0,
+    0.5,
+    0.7,
+    0.0,
+    1.0,
+    1,
+    false,
+    false,
+    false,
+    0.0,
+    1.0,
+    "",
+    "auto",
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false
+   ],
+   "title": "Pits on the rock surface (along normal)"
+  },
+  {
+   "id": 9,
+   "type": "PCG_MatchSize",
+   "pos": [
+    420,
+    1142
+   ],
+   "size": [
+    360,
+    496
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 9
+    },
+    {
+     "name": "target",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_MatchSize"
+   },
+   "widgets_values": [
+    "input_if_wired",
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    true,
+    "center",
+    "min",
+    "center",
+    true,
+    "same",
+    "same",
+    "same",
+    0.0,
+    -0.15,
+    0.0,
+    false,
+    true,
+    false,
+    "",
+    "prim",
+    false,
+    "xform",
+    ""
+   ],
+   "title": "Bottom on the ground (sunk 0.15 more)"
+  },
+  {
+   "id": 10,
+   "type": "PCG_ForEachEnd",
+   "pos": [
+    420,
+    1682
+   ],
+   "size": [
+    360,
+    126
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 10
+    },
+    {
+     "name": "loop",
+     "type": "PCG_LOOP",
+     "link": 11
+    },
+    {
+     "name": "_accum",
+     "type": "PCG_LOOPACC",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ForEachEnd"
+   },
+   "widgets_values": [
+    "merge"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "PCG_Connectivity",
+   "pos": [
+    420,
+    1852
+   ],
+   "size": [
+    360,
+    111
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Connectivity"
+   },
+   "widgets_values": [
+    "prim",
+    "class"
+   ],
+   "title": "Number each piece → prim class"
+  },
+  {
+   "id": 12,
+   "type": "PCG_Normal",
+   "pos": [
+    420,
+    2007
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      14,
+      22
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    180.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ],
+   "title": "Rock library (8 pieces)"
+  },
+  {
+   "id": 13,
+   "type": "PCG_PolyReduce",
+   "pos": [
+    420,
+    2355
+   ],
+   "size": [
+    360,
+    551
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      26
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PolyReduce"
+   },
+   "widgets_values": [
+    "",
+    "percentage",
+    20.0,
+    1000,
+    "optimal",
+    4.0,
+    "",
+    4.0,
+    false,
+    "",
+    90.0,
+    false,
+    "",
+    "",
+    1.0
+   ],
+   "title": "Low-poly library (for pebbles)"
+  },
+  {
+   "id": 14,
+   "type": "PCG_Grid",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    245
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Grid"
+   },
+   "widgets_values": [
+    40.0,
+    40.0,
+    240,
+    240,
+    "zx",
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "quadrilaterals"
+   ]
+  },
+  {
+   "id": 15,
+   "type": "PCG_AttribNoise",
+   "pos": [
+    840,
+    289
+   ],
+   "size": [
+    360,
+    1098
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 15
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      16
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribNoise"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "P",
+    false,
+    true,
+    false,
+    false,
+    "N",
+    1.0,
+    "add",
+    "zero_centered",
+    2.5,
+    false,
+    0.5,
+    0.5,
+    false,
+    "0:0  0.5:0.25  1:1",
+    "linear",
+    false,
+    0.0,
+    false,
+    1.0,
+    "perlin",
+    "P",
+    16.0,
+    16.0,
+    16.0,
+    0.0,
+    0.0,
+    0.0,
+    3,
+    false,
+    "set(0, @P.y * 0.1, 0)",
+    false,
+    0.0,
+    1.0,
+    "terrain",
+    5,
+    2.0,
+    0.5,
+    0.7,
+    0.0,
+    1.0,
+    1,
+    false,
+    false,
+    false,
+    0.0,
+    1.0,
+    "",
+    "auto",
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false
+   ],
+   "title": "Terrain relief"
+  },
+  {
+   "id": 16,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    1431
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 16
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "# distance to a sine curve → dig a trench along it (the code is Python syntax + @attributes, whole column computed at once)\n@dstream = abs(@P.z - 5 * sin(@P.x * 0.16) - 2)\n@P.y -= 1.2 * (1 - smoothstep(0.0, 3.0, @dstream))",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Dig a stream"
+  },
+  {
+   "id": 17,
+   "type": "PCG_Normal",
+   "pos": [
+    840,
+    1722
+   ],
+   "size": [
+    360,
+    304
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 17
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    60.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "id": 18,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    2070
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 18
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "d = @dstream\nsteep = smoothstep(0.06, 0.22, 1 - @N.y)\n# flat ground is grass, steep places show soil, the stream banks are gravel, the stream is water\n# grass varies between lush and dry in broad patches, plus a fine mottle\ndry = smoothstep(0.35, 0.65, noise(@P * 0.12 + 7.7)) * 0.7 + 0.3 * noise(@P * 1.3)\ngrass = lerp(set(0.20, 0.30, 0.11), set(0.36, 0.37, 0.18), dry)\n@Cd = lerp(grass, set(0.40, 0.32, 0.23), steep)\n@Cd = lerp(set(0.50, 0.46, 0.40), @Cd, smoothstep(1.2, 2.2, d))\n@Cd = lerp(set(0.10, 0.22, 0.30), @Cd, smoothstep(0.7, 1.0, d))\n# big rocks: gentle slope, inside noise patches, a bit away from the stream (appear in clusters, not scattered uniformly)\n@boulder = (1 - steep) * smoothstep(0.46, 0.56, noise(@P * 0.09 + 3.1)) * smoothstep(3.0, 4.5, d)\n# pebbles: stream banks\n@bank = smoothstep(0.7, 1.2, d) * (1 - smoothstep(1.8, 3.2, d))",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Colour + scatter weights"
+  },
+  {
+   "id": 19,
+   "type": "PCG_AttribPromote",
+   "pos": [
+    840,
+    2361
+   ],
+   "size": [
+    360,
+    236
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      20,
+      24,
+      31
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribPromote"
+   },
+   "widgets_values": [
+    "boulder bank",
+    "point",
+    "prim",
+    "average",
+    false,
+    false,
+    "name",
+    false,
+    ""
+   ],
+   "title": "Weights → primitives (scatter groups need primitives)"
+  },
+  {
+   "id": 20,
+   "type": "PCG_ScatterAlign",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    360,
+    534
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 20
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ScatterAlign"
+   },
+   "widgets_values": [
+    "@boulder > 0.5",
+    "count",
+    230,
+    10.0,
+    0.5,
+    0.3,
+    1.3,
+    0.0,
+    1.0,
+    0.0,
+    360.0,
+    18.0,
+    true,
+    1.1,
+    20,
+    1,
+    "surface",
+    "",
+    "",
+    0.1,
+    false,
+    "density",
+    false,
+    1000000,
+    "z",
+    0.0,
+    0.0,
+    1.0,
+    "y",
+    0.0,
+    1.0,
+    0.0,
+    "symmetric",
+    0.0,
+    360.0,
+    false,
+    90.0,
+    0.0,
+    true,
+    "pscale",
+    true,
+    "orient",
+    false,
+    "sourceprimuv",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "title": "Big rocks"
+  },
+  {
+   "id": 21,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    578
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 21
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      23
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "i@class = floor(rand(@ptnum + 0.5) * 8)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Pick a random piece"
+  },
+  {
+   "id": 22,
+   "type": "PCG_CopyToPoints",
+   "pos": [
+    1260,
+    869
+   ],
+   "size": [
+    360,
+    350
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "GEOMETRY",
+     "link": 22
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": 23
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      28
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_CopyToPoints"
+   },
+   "widgets_values": [
+    "",
+    "",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    "class",
+    "*",
+    "",
+    "",
+    "N v up"
+   ],
+   "title": "Place rocks by class"
+  },
+  {
+   "id": 23,
+   "type": "PCG_ScatterAlign",
+   "pos": [
+    1260,
+    1263
+   ],
+   "size": [
+    360,
+    534
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 24
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      25
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ScatterAlign"
+   },
+   "widgets_values": [
+    "@bank > 0.3",
+    "count",
+    2600,
+    10.0,
+    0.5,
+    0.05,
+    0.2,
+    0.0,
+    1.0,
+    0.0,
+    360.0,
+    40.0,
+    false,
+    1.0,
+    20,
+    2,
+    "surface",
+    "",
+    "",
+    0.1,
+    false,
+    "density",
+    false,
+    1000000,
+    "z",
+    0.0,
+    0.0,
+    1.0,
+    "y",
+    0.0,
+    1.0,
+    0.0,
+    "symmetric",
+    0.0,
+    360.0,
+    false,
+    90.0,
+    0.0,
+    true,
+    "pscale",
+    true,
+    "orient",
+    false,
+    "sourceprimuv",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "title": "Stream-bank pebbles"
+  },
+  {
+   "id": 24,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    1841
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 25
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      27
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "i@class = floor(rand(@ptnum + 0.25) * 8)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Pick a random piece"
+  },
+  {
+   "id": 25,
+   "type": "PCG_CopyToPoints",
+   "pos": [
+    1260,
+    2132
+   ],
+   "size": [
+    360,
+    350
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "GEOMETRY",
+     "link": 26
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": 27
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      29
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_CopyToPoints"
+   },
+   "widgets_values": [
+    "",
+    "",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    "class",
+    "*",
+    "",
+    "",
+    "N v up"
+   ],
+   "title": "Place pebbles (low-poly)"
+  },
+  {
+   "id": 26,
+   "type": "PCG_Merge",
+   "pos": [
+    1260,
+    2526
+   ],
+   "size": [
+    360,
+    166
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 28
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 29
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      30
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "All rocks"
+  },
+  {
+   "id": 27,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1260,
+    2736
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 30
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      32
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "rock = set(0.44, 0.42, 0.39) * (0.7 + 0.35 * rand(@class + 7)) * (0.85 + 0.3 * noise(@P * 3.0))\n# upward-facing faces × noise patches → moss\nm = smoothstep(0.55, 0.85, @N.y) * smoothstep(0.42, 0.6, noise(@P * 1.5))\n@Cd = lerp(rock, set(0.22, 0.31, 0.11), m)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Rock colour + moss"
+  },
+  {
+   "id": 28,
+   "type": "PCG_Merge",
+   "pos": [
+    1680,
+    0
+   ],
+   "size": [
+    560,
+    166
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 31
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 32
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      33,
+      34,
+      36
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Terrain + rocks"
+  },
+  {
+   "id": 29,
+   "type": "PCG_Viewport",
+   "pos": [
+    1680,
+    210
+   ],
+   "size": [
+    560,
+    560
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 33
+    },
+    {
+     "name": "template",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Viewport"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 30,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1680,
+    814
+   ],
+   "size": [
+    560,
+    373
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 34
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      35
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1600,
+    1066,
+    32.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ]
+  },
+  {
+   "id": 31,
+   "type": "PreviewImage",
+   "pos": [
+    1680,
+    1231
+   ],
+   "size": [
+    560,
+    460
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 35
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Rock garden"
+  },
+  {
+   "id": 32,
+   "type": "PCG_ExportMesh",
+   "pos": [
+    1680,
+    1735
+   ],
+   "size": [
+    560,
+    329
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 36
+    }
+   ],
+   "outputs": [
+    {
+     "name": "path",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_ExportMesh"
+   },
+   "widgets_values": [
+    "pcg/rock_garden",
+    "glb",
+    "",
+    "",
+    1.0,
+    "",
+    "*"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   2,
+   3,
+   1,
+   4,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   3,
+   3,
+   3,
+   4,
+   1,
+   "INT"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   5,
+   5,
+   0,
+   6,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   6,
+   6,
+   0,
+   7,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   7,
+   7,
+   0,
+   8,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   8,
+   3,
+   3,
+   8,
+   1,
+   "INT"
+  ],
+  [
+   9,
+   8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   10,
+   9,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   11,
+   3,
+   0,
+   10,
+   1,
+   "PCG_LOOP"
+  ],
+  [
+   12,
+   10,
+   0,
+   11,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   13,
+   11,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   14,
+   12,
+   0,
+   13,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   15,
+   14,
+   0,
+   15,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   16,
+   15,
+   0,
+   16,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   17,
+   16,
+   0,
+   17,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   18,
+   17,
+   0,
+   18,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   19,
+   18,
+   0,
+   19,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   20,
+   19,
+   0,
+   20,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   21,
+   20,
+   0,
+   21,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   22,
+   12,
+   0,
+   22,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   23,
+   21,
+   0,
+   22,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   24,
+   19,
+   0,
+   23,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   25,
+   23,
+   0,
+   24,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   26,
+   13,
+   0,
+   25,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   27,
+   24,
+   0,
+   25,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   28,
+   22,
+   0,
+   26,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   29,
+   25,
+   0,
+   26,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   30,
+   26,
+   0,
+   27,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   31,
+   19,
+   0,
+   28,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   32,
+   27,
+   0,
+   28,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   33,
+   28,
+   0,
+   29,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   34,
+   28,
+   0,
+   30,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   35,
+   30,
+   0,
+   31,
+   0,
+   "IMAGE"
+  ],
+  [
+   36,
+   28,
+   0,
+   32,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

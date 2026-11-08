@@ -1,0 +1,36 @@
+[project]
+# Registry id: lowercase, unique across the Comfy Registry, should not contain "ComfyUI".
+# Check that it is still free at https://registry.comfy.org before the first publish.
+name = "pcg-geometry"
+version = "0.1.0"
+description = "Houdini-style procedural geometry (SOPs) and Copernicus-style image nodes (COPs) for ComfyUI: 500+ numpy nodes with Houdini-style parameter panels, a 3D viewport with handles, expressions, keyframes, For-Each loops and a geometry <-> AI texture round trip."
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "fedrov" }]
+keywords = ["comfyui", "procedural", "pcg", "houdini", "sop", "cop", "geometry", "technical-art"]
+classifiers = [
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: Apache Software License",
+]
+dependencies = [
+    "numpy>=1.24",
+    "trimesh>=4.0",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+# Only a few nodes need these; they raise a clear error with the pip command when missing.
+extras = ["manifold3d>=2.3", "fonttools>=4.0"]
+
+[project.urls]
+Repository = "https://github.com/fedrov/comfyui_pcg"
+Documentation = "https://fedrov.github.io/comfyui_pcg/"
+"Bug Tracker" = "https://github.com/fedrov/comfyui_pcg/issues"
+
+[tool.comfy]
+PublisherId = "fedrov"
+DisplayName = "PCG — Procedural Geometry (Houdini-style SOPs & COPs)"
+Icon = "https://raw.githubusercontent.com/fedrov/comfyui_pcg/main/docs/images/icon.png"
+Banner = "https://raw.githubusercontent.com/fedrov/comfyui_pcg/main/docs/images/banner.png"
+includes = []

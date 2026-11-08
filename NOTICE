@@ -1,0 +1,27 @@
+comfyui_pcg
+Copyright 2026 fedrov
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+-------------------------------------------------------------------------------
+Third-party software bundled with this product
+-------------------------------------------------------------------------------
+
+three.js (web/vendor/three.module.js)
+  Copyright 2010-2023 three.js authors
+  Licensed under the MIT License (see web/vendor/LICENSE-three.txt)
+
+-------------------------------------------------------------------------------
+Trademarks
+-------------------------------------------------------------------------------
+
+This project is an independent, clean-room re-implementation of procedural
+modelling concepts. It is not affiliated with, endorsed by, or sponsored by
+Side Effects Software Inc. (SideFX). Houdini, Copernicus and VEX are
+trademarks of Side Effects Software Inc. Their names are used here only to
+describe compatibility and the behaviour the nodes are modelled on. No SideFX
+code, binaries, icons or documentation text are included.
+
+The Erosion COP filter is a re-implementation written from the published
+description of Rune Skovbo Johansen's "Advanced Terrain Erosion Filter";
+no original code was copied (see geo/cop/erosion.py).

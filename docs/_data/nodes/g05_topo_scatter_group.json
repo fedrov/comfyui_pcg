@@ -1,0 +1,920 @@
+{
+ "PCG_AdaptivePrune": {
+  "summary": "Thins a point cloud so that no two remaining points are closer than a radius, keeping points greedily by priority.",
+  "description": "Visits points in priority order and keeps a point only if it does not conflict with an already kept one. Two points conflict when their distance is below the larger of their two radii, where each point's radius is `Radius` (optionally multiplied by a point attribute). The result is a set of kept points that are pairwise non-conflicting, and every removed point sits next to a kept point of higher priority.\n\nWith *Group Pruned Points* the removed points are only put into a point group and nothing is deleted; the `report` output summarises the result.",
+  "inputs": {
+   "geo": "Point cloud (or any geometry with points) to thin."
+  },
+  "outputs": {
+   "geo": "The pruned points, or the full input with the pruned points grouped.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Group pattern restricting which points take part in the pruning.",
+   "radius": "Minimum spacing between kept points. The effective radius of a pair is the larger of the two points' radii.",
+   "radius_attribute": "Optional point attribute that multiplies `Radius` per point. Leave empty for a uniform radius.",
+   "priority": "Decides which point of a conflicting pair survives. *Random* uses the seed, *Attribute* keeps points with the larger attribute value first, *Point Number* keeps lower point numbers first.",
+   "priority_attribute": "Point attribute that ranks the points; larger values are kept first.",
+   "rand_seed": "Seed of the random priority order.",
+   "mode": "Delete the pruned points, or keep everything and only put the pruned points into a group.",
+   "group_name": "Name of the point group that receives the pruned points."
+  },
+  "tips": [
+   "Use *Attribute* priority with `pscale` to let large instances win over small ones."
+  ]
+ },
+ "PCG_ConnectAdjacentPieces": {
+  "summary": "Connects nearby points or pieces with two-point polylines, for constraint or road-network skeletons.",
+  "description": "Builds line primitives between neighbouring things. In *points* mode each point is linked to its nearest points within the search radius, up to `Max Connections`. In *piece_centroids* mode two pieces are linked between their centres when any pair of their points is within the radius. In *piece_points* mode the line joins the closest pair of points of the two pieces.\n\nEach new line carries a `restlength` attribute and the piece numbers or point numbers of its two ends. Pieces are defined by the piece attribute; if that attribute cannot be found, pieces are the connected components of the geometry.",
+  "inputs": {
+   "geo": "Geometry whose points or pieces are to be connected."
+  },
+  "outputs": {
+   "geo": "The connecting lines (plus the input when *Keep Input Geometry* is on in points mode).",
+   "report": "Text summary of how many connections were made."
+  },
+  "params": {
+   "group": "Group pattern restricting which points are used.",
+   "mode": "*Points* links individual points, *Piece Centroids* links pieces centre to centre, *Piece Points* links the closest point pair of two pieces.",
+   "piece_attribute": "Primitive attribute that identifies the pieces. If it does not exist, pieces are taken from connectivity.",
+   "radius": "Maximum distance for a connection to be made.",
+   "max_connections": "Maximum number of connections created per point.",
+   "keep_input": "Keep the input geometry in the output next to the new lines."
+  }
+ },
+ "PCG_Connectivity": {
+  "summary": "Numbers the connected components of the geometry and writes the number to an integer attribute.",
+  "description": "Computes connected components and writes an integer component index to the chosen attribute, on points or on primitives. Elements that belong to the same connected piece share the same number.",
+  "inputs": {
+   "geo": "Geometry to analyse."
+  },
+  "outputs": {
+   "geo": "Input geometry with the component attribute added."
+  },
+  "params": {
+   "cls": "Attribute class that receives the component number: points or primitives.",
+   "attribute": "Name of the integer attribute that stores the component number."
+  },
+  "houdini_notes": "Corresponds to the Connectivity SOP. The Assemble SOP is only partly covered."
+ },
+ "PCG_CopyAndTransform": {
+  "summary": "Makes several copies of the input, where copy k has the same transform applied k times.",
+  "description": "Produces `Total Number` copies including the original. Copy k is transformed by the same transform applied k times: scale and rotation happen about the pivot, followed by the translation. Spiral stairs, for example, are a rotation of 30 degrees plus a lift of 1 per copy; nested copies are a scale of 0.9 per copy.\n\nThe matrices are multiplied together, not approximated as separate `t*k` and `R^k` terms. Normals follow with the inverse transpose. The copy index is written to the copy-number attribute on both points and primitives.",
+  "inputs": {
+   "geo": "Geometry to copy."
+  },
+  "outputs": {
+   "geo": "The original and all transformed copies merged into one geometry."
+  },
+  "params": {
+   "copies": "Total number of copies including the original. Copy k applies the transform k times.",
+   "tx": "Translation applied per copy step.",
+   "rx": "Rotation per copy step in degrees, in Rx Ry Rz order. The transform order is Scale, then Rotate, then Translate.",
+   "sx": "Non-uniform scale per copy step.",
+   "uniform_scale": "Uniform scale factor per copy step, multiplied with the scale vector.",
+   "pivot_x": "Pivot about which scale and rotation are applied.",
+   "copy_attribute": "Name of the copy-number attribute, written on both points and primitives. Leave empty to write nothing."
+  }
+ },
+ "PCG_CopyToPoints": {
+  "summary": "Copies source geometry onto each target point, oriented and scaled by the point's instance attributes.",
+  "description": "Follows the Houdini instance attribute convention. Target points may carry `orient`, `N` with `up`, `rot`, `scale`, `pscale`, `pivot`, `trans` or `transform`. The transform is composed as `P + trans + orient * (rot * (scale * (p - pivot)))`, so the `N` and random `pscale` produced by the scatter nodes can be plugged in directly. A `transform` attribute is read in Houdini's convention (`p' = p * M`, translation of a 4x4 in the fourth row).\n\nWhen a piece attribute is given (for example `name` or `variant`), the source is split into pieces by that attribute and each target point picks the piece whose value matches its own attribute. This lets several variants, such as five tree types, be scattered in one node.",
+  "inputs": {
+   "source": "Geometry to be copied.",
+   "points": "Target points that define where, and with which orientation and scale, the copies are placed."
+  },
+  "outputs": {
+   "geo": "All copies merged into one geometry."
+  },
+  "params": {
+   "source_group": "Group pattern selecting part of the source (primitives, or points for a point cloud).",
+   "target_group": "Point group pattern selecting which target points receive a copy.",
+   "piece_attribute": "Attribute present on both the source and the target points; it splits the source into pieces and matches each target point to a piece.",
+   "transform_using_orientations": "Use the target points' orientation attributes. When off, copies are only translated to the points.",
+   "up_x": "Up vector used when the target points have `N` (or `v`) but no `orient`, `up` or `transform`.",
+   "target_point_attributes": "Pattern of target point attributes passed down to the points of the copies.",
+   "target_prim_attributes": "Pattern of target point attributes passed down to the primitives of the copies.",
+   "multiply_attributes": "Attribute names that are multiplied with the existing source values instead of overwriting them.",
+   "rotate_attributes": "Direction-type attributes that are rotated along with the copy.",
+   "pack_and_instance": "Output one packed primitive per copy instead of real geometry. Packed copies are a point each: cheap to transform, merge and pass around, and the viewport draws them as GPU instances. Nodes that need real polygons unpack them automatically, and Unpack gives exactly the geometry this node gives with the toggle off."
+  }
+ },
+ "PCG_EdgeCusp": {
+  "summary": "Splits geometry along edges so the faces on either side no longer share points, optionally filtered by dihedral angle.",
+  "description": "Cuts along the edges of the edge group (all edges if empty), so the faces on both sides stop sharing endpoints. When `Cusp Angle` is above 0, only edges whose dihedral angle is at least that value are cut. Points that touch no cut edge are left alone.\n\nWith *Compute Normals* the node writes area-weighted point normals, which produce hard edges at the cuts.",
+  "inputs": {
+   "geo": "Polygonal geometry to cusp."
+  },
+  "outputs": {
+   "geo": "Geometry with the selected edges split.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges.",
+   "min_angle": "Only edges with a dihedral angle at least this large (in degrees) are cut. 0 cuts every selected edge.",
+   "compute_normals": "Write area-weighted point normals; the cut edges become hard edges."
+  }
+ },
+ "PCG_EdgeFlip": {
+  "summary": "Flips edges shared by two faces, either by rotating them or by Delaunay-style flipping of triangle pairs.",
+  "description": "In *rotate* mode the two faces sharing an edge are merged into one loop and the edge is rotated along that loop by `Cycles` steps. For two triangles this flips the diagonal; for two quads it rotates the edge. The number of sides of each face does not change.\n\nIn *delaunay* mode only triangle pairs are flipped, and only when the sum of the two opposite angles exceeds 180 degrees. Flipping repeats until no more flips are possible, and edges whose dihedral angle exceeds `Max Dihedral Angle` are not flipped.\n\nAn empty edge group means all edges. Flipped edges are replaced by the new edges in the edge group of the same name.",
+  "inputs": {
+   "geo": "Polygonal geometry to modify."
+  },
+  "outputs": {
+   "geo": "Geometry with the edges flipped.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges.",
+   "mode": "*Rotate* turns edges by a fixed number of steps; *Delaunay* flips triangle pairs until the triangulation is Delaunay.",
+   "cycles": "How many steps each edge is rotated around its two-face loop. Negative values rotate the other way.",
+   "max_angle": "Edges with a dihedral angle above this value (in degrees) are left unflipped."
+  }
+ },
+ "PCG_EdgeGroupPromote": {
+  "summary": "Converts an edge group to a point or primitive group, or a point or primitive group to an edge group.",
+  "description": "Four conversions: edge to point, edge to primitive, point to edge and primitive to edge. The result is written to a group of the target class. If no new name is given the source name is reused, and if that is empty the group is called `promoted`.",
+  "inputs": {
+   "geo": "Geometry that holds the source group."
+  },
+  "outputs": {
+   "geo": "Geometry with the converted group added."
+  },
+  "params": {
+   "source": "Name or pattern of the group to convert.",
+   "direction": "Which classes are converted from and to.",
+   "target": "Name of the new group. Empty reuses the source group name.",
+   "interior_only": "Only for primitive to edge: keep only interior edges, those shared by two primitives that are both in the group. When off, every edge of a selected primitive is included."
+  }
+ },
+ "PCG_GroupCombine": {
+  "summary": "Combines several groups into one using a set-algebra expression.",
+  "description": "The expression uses `|` (union), `&` (intersection), `-` (difference), `^` (symmetric difference) and `!` (complement), with arbitrarily nested parentheses. Precedence follows Python sets: `!` binds tightest, then `-`, `&`, `^`, `|`. Group names may contain wildcards, and `*` stands for the whole set.\n\nExample: `(top & selected) - border`. The group type can be point, primitive, vertex or edge.",
+  "inputs": {
+   "geo": "Geometry that holds the groups to combine."
+  },
+  "outputs": {
+   "geo": "Geometry with the combined group added.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group_type": "Element class of the groups in the expression and of the output group.",
+   "output_group": "Name of the group that receives the result.",
+   "expression": "Set expression over group names: `|` union, `&` intersection, `-` difference, `^` symmetric difference, `!` complement, parentheses allowed. Names may use wildcards; `*` means all elements."
+  }
+ },
+ "PCG_GroupCreate": {
+  "summary": "Creates a group by stacking independent filters (bounding box, normal, edges, random) on a base selection.",
+  "description": "A base set, empty meaning everything, starts the selection. It accepts group names, indices, ranges and `@` expressions. The Bounding Box, Normal, Edges and Random sections are each switched on separately. The first, second and fourth intersect with the running selection, and the edge rule can either union into it or intersect with it. The result is finally merged with any existing group of the same name according to the initial merge mode.\n\nWhen only *Include by Edges* is enabled and the base group is empty, the selection starts from the empty set instead of everything.",
+  "inputs": {
+   "geo": "Geometry to create the group on."
+  },
+  "outputs": {
+   "geo": "Geometry with the new group."
+  },
+  "params": {
+   "name": "Name of the group to create.",
+   "cls": "Element class of the group: points, primitives or vertices.",
+   "merge": "How the result combines with an existing group of the same name. When no such group exists, all options behave like Replace.",
+   "base": "Starting set, as a group pattern. Empty means no restriction. The filters below intersect with it; the edge section is added on top at the end.",
+   "use_bbox": "Enable the bounding box filter.",
+   "sx": "Size of the bounding box along X, Y and Z.",
+   "cx": "Centre of the bounding box.",
+   "bbox_partial": "For primitives and vertices: count an element if any one of its points is inside the box. When off, all of its points must be inside.",
+   "use_normal": "Enable the normal direction filter.",
+   "dir_x": "Direction that the normals are compared against.",
+   "spread": "Maximum angle in degrees between the normal and the direction. 180 accepts everything.",
+   "both_dirs": "Also accept normals pointing in the opposite direction.",
+   "use_edges": "Enable the edge filter.",
+   "edge_combine": "*Include* matches Houdini: elements selected by the edge rules go into the group regardless of the other sections. *Keep* is an addition of this plugin and intersects the edge selection with the earlier result.",
+   "use_angle": "Select edges by the angle between the normals of their two neighbouring faces. Combined by union with *Unshared Edges*.",
+   "min_angle": "Lower bound of the edge angle in degrees.",
+   "max_angle": "Upper bound of the edge angle in degrees.",
+   "unshared": "Select boundary edges, those with only one adjacent face. Combined by union with the angle rule.",
+   "use_random": "Enable random selection.",
+   "rand_seed": "Seed of the random selection.",
+   "percent": "Percentage of the elements that are picked."
+  }
+ },
+ "PCG_GroupDelete": {
+  "summary": "Deletes groups by name, with wildcards, from points, vertices, primitives and edges.",
+  "description": "Each of the four fields takes a list of group names for its element class. Wildcards are supported: `extrude*` matches every group starting with `extrude`, and `* ^keep` means all groups except `keep`. Edge groups are handled too.\n\nA field left empty leaves that class untouched, also when *Delete Unselected* is on, where an empty field does not mean everything.",
+  "inputs": {
+   "geo": "Geometry holding the groups."
+  },
+  "outputs": {
+   "geo": "Geometry with the matching groups removed."
+  },
+  "params": {
+   "point": "Names or patterns of point groups to delete. Empty leaves point groups untouched.",
+   "vertex": "Names or patterns of vertex groups to delete. Empty leaves vertex groups untouched.",
+   "prim": "Names or patterns of primitive groups to delete. Empty leaves primitive groups untouched.",
+   "edge": "Names or patterns of edge groups to delete. Empty leaves edge groups untouched.",
+   "delete_non_selected": "Invert the selection: delete the groups that do not match. Classes with an empty field are still not touched."
+  }
+ },
+ "PCG_GroupEdges": {
+  "summary": "Creates a real edge group from edge angle, length, boundary and random rules.",
+  "description": "Corresponds to the Edges section of Houdini's Group Create, but outputs an actual edge group. The group is stored as pairs of points, not edge indices, because edge indices are derived from the topology and change after delete, merge or fuse, so a group based on indices would silently point to different edges.\n\nAll enabled rules (angle, length, unshared, random) must hold at the same time for an edge to be selected. Without any rule enabled, every edge of the base set is selected.",
+  "inputs": {
+   "geo": "Geometry whose edges are to be grouped."
+  },
+  "outputs": {
+   "geo": "Geometry with the new edge group."
+  },
+  "params": {
+   "name": "Name of the edge group.",
+   "merge": "How the result combines with an existing edge group of the same name.",
+   "base": "Edge group pattern giving the starting set of edges. Empty means all edges.",
+   "use_angle": "Select edges by the angle between the normals of their adjacent faces.",
+   "min_angle": "Lower bound of the edge angle in degrees.",
+   "max_angle": "Upper bound of the edge angle in degrees.",
+   "use_length": "Select edges by length.",
+   "min_length": "Minimum and maximum edge length of the range, as two values.",
+   "unshared": "Only edges on the boundary, those with a single adjacent face.",
+   "use_random": "Keep only a random subset of the edges that passed the other rules.",
+   "rand_seed": "Seed of the random selection.",
+   "percent": "Percentage of edges that are picked."
+  }
+ },
+ "PCG_GroupExpand": {
+  "summary": "Grows or shrinks a point or primitive group along the topology.",
+  "description": "Two measures are available. *Topology Steps* hops across a number of edges and is tied to mesh density: on a subdivided mesh, expanding by 3 steps covers half the distance it did before. *Edge Distance* accumulates edge length, giving a geodesic distance that is independent of density. This is not Euclidean distance: two pieces of geometry that touch in space but are not connected are infinitely far apart, so the selection on either side of a wall never bleeds across.\n\nShrinking is an expansion of the complement followed by an inversion (morphological erosion). The outer boundary of the geometry is not eroded, because the complement only contains elements that really are not in the group and there is nothing outside the geometry. This matches Houdini but differs from image erosion.\n\n*Output Falloff* also writes a 0 to 1 distance falloff attribute, so no separate Attribute Fade is needed.",
+  "inputs": {
+   "geo": "Geometry that holds the group."
+  },
+  "outputs": {
+   "geo": "Geometry with the expanded or shrunk group, and optionally the falloff attribute."
+  },
+  "params": {
+   "cls": "Element class of the group: points or primitives.",
+   "group": "Group pattern to expand or shrink.",
+   "output_group": "Name of the result group. If empty, the input group is overwritten in place, which requires `Base Group` to be a plain group name (not a range or `@` expression).",
+   "mode": "Expand grows the group outward; Shrink erodes it.",
+   "metric": "*Topology Steps* counts edge hops; *Edge Distance* uses the accumulated edge length along the surface.",
+   "radius": "Number of edge hops for Topology Steps, or the accumulated edge length for Edge Distance.",
+   "output_falloff": "Also write a falloff attribute: 1 inside the original group, decreasing linearly to 0 at the Steps / Distance value.",
+   "falloff_attribute": "Name of the falloff attribute."
+  }
+ },
+ "PCG_GroupFindPath": {
+  "summary": "Finds shortest paths or boundary loops between points and writes them as an edge group.",
+  "description": "Writes an edge group, plus a point group of the same name, on the source geometry; no new geometry is created.\n\nIn *Shortest Path* mode the points are visited in the order they are written (for example `12 40 7`), with a shortest path between each consecutive pair. With *Close Path* the path also returns to the first point. *Boundary Loop* writes, for each given point, the entire boundary loop it sits on, such as the rim of an opening or a hole. *Start/End Pairs* pairs the points two by two (1st with 2nd, 3rd with 4th and so on) and builds one path per pair; the number of points must be even.\n\nThe cost of an edge is its length by default, optionally scaled by a point cost attribute. Collision groups block points from being used by the path (end points excepted).",
+  "inputs": {
+   "geo": "Mesh to search paths on."
+  },
+  "outputs": {
+   "geo": "Input geometry with the path edge group and point group added.",
+   "report": "Text summary with the number of paths and the number that were unreachable."
+  },
+  "params": {
+   "points": "Point numbers (in order) or a point group. Shortest Path needs at least two points; Boundary Loop needs one point on the boundary.",
+   "mode": "*Shortest Path* chains the points in order, *Boundary Loop* selects the open boundary loop of each point, *Start/End Pairs* makes one path per consecutive pair.",
+   "close": "Return to the starting point. For Start/End Pairs each pair returns along a second path. With only two points this closes a loop only if *Avoid Self Intersection* is also on.",
+   "avoid_self_intersection": "Later segments avoid the points already used by earlier segments (end points excepted). With *Close Path* this finds a return route that does not retrace the outbound one.",
+   "use_length": "Use the edge length as cost. When off, every edge costs the same.",
+   "cost_attribute": "Optional point attribute that makes edges more expensive: the edge cost is multiplied by 1 + Cost Weight x the average of the attribute at the edge's two points.",
+   "cost_weight": "Weight of the cost attribute in that multiplier.",
+   "collision_group": "Point group the path may not pass through (end points excepted). Empty means no restriction.",
+   "contain_within_collision": "Invert the collision group: the path may only run through points in the group.",
+   "group_name": "Name of the edge group and of the point group that receive the path."
+  }
+ },
+ "PCG_GroupFromAttribBoundary": {
+  "summary": "Creates a group at the places where an attribute value changes.",
+  "description": "The attribute class decides what counts as a change. For a primitive attribute, edges between neighbouring faces with different values. For a vertex attribute, edges where the corners on the two sides differ, which finds UV seams. For a point attribute, edges whose two end points differ.\n\nThe output group can be an edge group, the points of those edges, or the faces next to them. Unshared (open boundary) edges can be included as well.",
+  "inputs": {
+   "geo": "Geometry that carries the attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with the boundary group added.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "attribute_class": "Class of the attribute that is compared: primitive, vertex or point.",
+   "attribute": "Name of the attribute to compare.",
+   "tolerance": "How much numeric attribute values may differ before they count as different.",
+   "include_unshared": "Also include open boundary edges, those with only one adjacent face.",
+   "group_type": "What the group contains: the boundary edges, their points, or the primitives next to them.",
+   "group_name": "Name of the group to create."
+  }
+ },
+ "PCG_GroupInside": {
+  "summary": "Groups the points or primitives that lie inside a second piece of geometry.",
+  "description": "Equivalent to the Bounding Object option of Houdini's Group SOP, but using the actual closed surface of the second input. The test is ray parity: a ray is cast from the point, the surface crossings are counted, and an odd count means inside. Since the ray caster only returns the nearest hit, the ray is restarted from just past each hit until nothing is hit.\n\nA ray that grazes an edge or vertex may count 0 or 2 crossings and flip the parity, which is common on axis-aligned meshes. Several unrelated oblique directions therefore vote on the result; with three directions, grazing all of them at once is negligible. The directions avoid small integer ratios so they do not hit cube vertices exactly.",
+  "inputs": {
+   "geo": "Geometry whose points or primitives are tested.",
+   "volume": "Closed geometry that defines the inside."
+  },
+  "outputs": {
+   "geo": "Input geometry with the group added."
+  },
+  "params": {
+   "group_name": "Name of the group to create.",
+   "cls": "Whether points or primitives are tested.",
+   "invert": "Group the elements outside instead of inside.",
+   "ray_directions": "Number of oblique rays that vote on inside or outside. 1 is fastest, 3 is the most robust against rays that graze edges."
+  },
+  "tips": [
+   "The second input must be a closed surface; open meshes give unreliable parity."
+  ]
+ },
+ "PCG_GroupPromote": {
+  "summary": "Converts a group between point, primitive, edge and vertex classes.",
+  "description": "One *Convert From / To* menu replaces Houdini's two separate dropdowns, so the available conversions are listed as pairs. The conversion rules differ per direction.\n\nTwo defaults are opposite to Houdini so that existing graphs keep their behaviour: *Keep Original Group* is on, and *Include Only Elements Entirely Contained* is on, which means a point group only produces the primitives whose points are all in the group.\n\nThe result can alternatively be written as a 0/1 integer attribute instead of a group.",
+  "inputs": {
+   "geo": "Geometry that holds the source group."
+  },
+  "outputs": {
+   "geo": "Geometry with the converted group (or attribute) added."
+  },
+  "params": {
+   "name": "Name of the source group.",
+   "direction": "Source class and target class of the conversion, for example point to primitive. *prim_to_prim* just copies the group under a new name, which is only useful together with the boundary option.",
+   "new_name": "Name of the converted group. Empty reuses the original group name.",
+   "keep_original": "Keep the source group. Houdini defaults to off.",
+   "only_boundary": "Only include elements on the boundary of the group. Supported only when starting from a primitive group.",
+   "include_unshared": "With the boundary option: also include unshared (open boundary) edges.",
+   "include_curve_unshared": "With the boundary option: also include all unshared edges of curves.",
+   "only_full": "For point to primitive, point to edge and edge to primitive: only include elements whose points (or edges) are all in the source group. Houdini defaults to off.",
+   "share_edge": "For point to primitive: only include primitives that share an edge with the original group.",
+   "as_attribute": "Write a 0/1 integer attribute instead of a group. Not supported when the target is edges."
+  }
+ },
+ "PCG_MatchTopology": {
+  "summary": "Renumbers a mesh so that its point, primitive and corner order matches a reference mesh.",
+  "description": "Use it when `geo` and `reference` are the same mesh but their point numbers, primitive numbers or starting corners have been scrambled. *Topology* mode starts from a pair of seed corners and walks both meshes in step across opposite edges. It ignores positions, so it works however much the mesh has been deformed. Seeds left at -1 are found automatically. *Position* mode matches by nearest point instead.\n\nThe output is `geo` renumbered to follow `reference`.",
+  "inputs": {
+   "geo": "Mesh to renumber.",
+   "reference": "Mesh whose numbering is to be reproduced."
+  },
+  "outputs": {
+   "geo": "The input mesh renumbered to match the reference.",
+   "report": "Text summary of the matching."
+  },
+  "params": {
+   "mode": "*Topology* walks both meshes from seed corners and ignores positions. *Position* pairs points by nearest distance.",
+   "ref_prim": "Seed primitive on the reference. -1 finds the seed automatically.",
+   "ref_point": "Seed point on the reference primitive, selecting the starting corner. Only used when both seed primitives are set.",
+   "geo_prim": "Seed primitive on the input mesh that corresponds to the reference seed primitive. -1 finds the seed automatically.",
+   "geo_point": "Seed point on the input primitive that corresponds to the reference seed point. Only used when both seed primitives are set.",
+   "tolerance": "Maximum distance for two points to be matched in Position mode."
+  }
+ },
+ "PCG_Partition": {
+  "summary": "Creates one group for every distinct value of an attribute.",
+  "description": "Each different value of the attribute gets its own group. The group name is the rule with `$ATTR` replaced by the value. Characters that cannot appear in a group name (the decimal point and minus sign of floats, and other special characters in strings) are replaced, and a name that would start with a digit is prefixed with an underscore.",
+  "inputs": {
+   "geo": "Geometry that carries the attribute."
+  },
+  "outputs": {
+   "geo": "Geometry with the new groups.",
+   "report": "Text summary of the groups that were created."
+  },
+  "params": {
+   "attribute_class": "Class of the attribute and of the groups created: primitive, point or vertex.",
+   "attribute": "Name of the attribute whose values define the groups.",
+   "rule": "Group name template. `$ATTR` is replaced by the attribute value; one group per distinct value."
+  }
+ },
+ "PCG_PointRelax": {
+  "summary": "Pushes points apart until their radii no longer overlap.",
+  "description": "Each point is a sphere whose radius is `pscale` times *Point Radius Scale*, or the *Point Radius* value when there is no `pscale` or it is switched off. A radius of 0 is determined automatically. Overlapping points push each other away over several iterations.\n\nWith a surface connected, every step projects the points back onto it. Points outside the group do not move but still block the others. A point moves by at most *Max Step* times its radius per iteration, and relaxation stops early once nothing overlaps.",
+  "inputs": {
+   "geo": "Points to relax.",
+   "surface": "Optional surface the points are projected back onto after every step."
+  },
+  "outputs": {
+   "geo": "The relaxed points.",
+   "report": "Text summary of the relaxation."
+  },
+  "params": {
+   "group": "Group pattern of the points that may move. Points outside it stay fixed but still act as obstacles.",
+   "iterations": "Maximum number of relaxation iterations. The loop ends sooner if no overlaps remain.",
+   "radius": "Radius used when there is no `pscale` attribute or *Use pscale* is off. 0 chooses a radius automatically.",
+   "use_pscale": "Read each point's radius from `pscale`.",
+   "radius_scale": "Multiplier applied to the radius of every point.",
+   "max_step": "Largest move per iteration as a fraction of the point radius."
+  }
+ },
+ "PCG_PolyCut": {
+  "summary": "Cuts polygons and polylines along their edges into open polylines, by point group, point attribute threshold, or edge rules.",
+  "description": "Faces and polylines are turned into polylines by cutting along edges. Three strategies are specific to this plugin: *Cut Points* breaks the polylines at the points of the point group, *Keep Points* only keeps edges whose two ends are both in the point group, and *Threshold* inserts a point where a point attribute crosses the threshold (shared by neighbouring faces). *Keep* selects all (only break), above or below. A closed face that is not cut is kept unchanged.\n\n*Remove* and *Cut* are the semantics of Houdini's PolyCut. They look for edges that fail the test, which can be edges whose attribute crosses *Cut Value* or changes by more than *Cut Threshold* (with an empty attribute, all edges fail). With *Type* set to points, the failing points' ends are deleted or the line is broken there. With *Type* set to edges, the failing edge is deleted or broken in its middle. In these two strategies *Cut Points* is Houdini's Cut Points (empty means all points) and *Cut Value* is the cut value; *Keep* is not used.",
+  "inputs": {
+   "geo": "Polygons or polylines to cut."
+  },
+  "outputs": {
+   "geo": "Polylines resulting from the cut.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Primitive group pattern of the polygons that are processed.",
+   "mode": "*Remove* and *Cut* follow Houdini's PolyCut; *Cut Points*, *Keep Points* and *Threshold* are extensions of this plugin.",
+   "cut_type": "For Remove and Cut: whether the cut acts on points (the two end points of failing edges) or on the edges themselves.",
+   "points": "Point group pattern. In Cut Points / Keep Points mode it is the point selection. In Remove and Cut mode it limits which points may be removed or broken; empty means all.",
+   "cut_edges": "Edge group pattern limiting which edges may be removed or cut. Empty means all.",
+   "detect": "How failing edges are detected: *Crossing* when the attribute crosses the cut value along the edge, *Change* when it differs by more than the cut threshold between the two ends.",
+   "attribute": "Point attribute that is tested. In Remove and Cut mode an empty attribute makes every edge fail.",
+   "threshold": "Value the attribute is compared against (the cut value).",
+   "cut_threshold": "Largest allowed attribute difference between the two points of an edge (the distance for vector attributes).",
+   "keep": "In Threshold mode: *All* only breaks the geometry at the crossings, *Above* and *Below* keep only the part above or below the threshold.",
+   "keep_closed": "In Remove and Cut mode: a closed polygon whose result is still one loop stays closed instead of becoming an open polyline."
+  }
+ },
+ "PCG_PolySplit": {
+  "summary": "Splits polygons along a path of points and edge positions.",
+  "description": "Locations are separated by spaces. `12` (or `p12`) is a point, `3-7@0.25` is the position t = 0.25 on the edge from point 3 to point 7, and omitting `@` means the midpoint. Houdini's notation (`p3-7:0.25`, `0v2`, `0e1:0.25`) is accepted too; the in-face form `0f:u,v` is not supported.\n\nTwo consecutive locations must lie on the same face, and that face is cut in two along the line between them. New points on edges are inserted into all faces on both sides, so no T-junctions are left. *Close Path* connects the last location back to the first. If an output edge group is named, the cut edges are written to it.\n\nThe *Edge Loop* path type inserts a ring of edges through quad loops starting from each edge location; with more than one loop the rings are spaced evenly.",
+  "inputs": {
+   "geo": "Polygonal geometry to split."
+  },
+  "outputs": {
+   "geo": "Geometry with the faces split.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "locations": "Space-separated split locations: `12` is a point, `3-7@0.25` is a position on an edge (midpoint when `@` is omitted). Houdini's `p3-7:0.25`, `0v2` and `0e1:0.25` forms are accepted too.",
+   "path_type": "*Shortest Path* only cuts between consecutive locations that share a face; no path is searched. *Edge Loop* inserts edge loops through quad strips from each edge location.",
+   "close_path": "Connect the last location back to the first.",
+   "num_loops": "Number of edge loops inserted, spaced evenly. Only for Edge Loop.",
+   "edge_percentage": "Position along the edge used for all edge locations when *Use Edge Percentage* is on. Unavailable when Edge Loop inserts several loops.",
+   "use_edge_percentage": "Place every edge location at the same *Edge Percentage* instead of the individual t values.",
+   "edge_group": "Name of the edge group that receives the new cut edges. Empty writes none."
+  },
+  "houdini_notes": "The Shortest Path option is named to match Houdini, but no path is searched: consecutive locations still have to lie on the same face."
+ },
+ "PCG_PolyStitch": {
+  "summary": "Welds and stitches the seams between patches of different resolution so both sides share the same points.",
+  "description": "Boundary points closer than the tolerance are welded. With snapping on, the remaining boundary points are snapped onto the boundary edges of other patches, and points that land on an edge are inserted into the face that owns that edge. T-junctions at the seam disappear and both sides use the same sequence of points. The report includes the number of boundary edges that remain.",
+  "inputs": {
+   "geo": "Polygonal patches to stitch together."
+  },
+  "outputs": {
+   "geo": "Stitched geometry.",
+   "report": "Text summary including the number of remaining boundary edges."
+  },
+  "params": {
+   "group": "Primitive group pattern restricting which primitives are stitched.",
+   "tolerance": "Maximum distance for welding and for snapping onto edges.",
+   "snap": "Snap the remaining boundary points onto other patches' boundary edges and insert them into those edges."
+  }
+ },
+ "PCG_RewireVertices": {
+  "summary": "Reconnects vertices to different points according to an integer attribute.",
+  "description": "An integer attribute gives, for each vertex, the point number that the vertex should reference. A vertex attribute is preferred; if there is none, the point attribute of the same name is used. Values of -1 or out of range leave the vertex unchanged.\n\nOptionally consecutive duplicate corners and primitives that can no longer stand as a face are removed, and points that nobody uses can be deleted.",
+  "inputs": {
+   "geo": "Geometry whose vertices are to be rewired."
+  },
+  "outputs": {
+   "geo": "Rewired geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "attribute": "Integer attribute with the target point number per vertex. A vertex attribute is preferred, otherwise a point attribute is used. -1 or out-of-range values leave the vertex untouched.",
+   "keep_unused_points": "Keep points that are no longer referenced by any vertex. When off they are deleted.",
+   "remove_degenerate": "Remove consecutive duplicate corners and primitives that no longer have enough points to form a face."
+  }
+ },
+ "PCG_TriDivide": {
+  "summary": "Triangulates the selected faces and subdivides them until edges and areas are below limits, without creating T-points.",
+  "description": "Selected faces are triangulated and then bisected along their longest edge (longest-edge propagation) until each edge is no longer than *Max Edge Length* and each area no larger than *Max Area*. A value of 0 disables that limit. Both triangles sharing the split edge are bisected together, so there are no T-points, the shape stays the same and the smallest angle does not keep getting worse. Neighbouring faces that are not selected only receive a midpoint on the shared edge.\n\nWith *Restore Delaunay* on, a final Lawson edge-flip pass is done. Only edges whose dihedral angle is at most the flip angle are flipped.",
+  "inputs": {
+   "geo": "Polygonal geometry to subdivide."
+  },
+  "outputs": {
+   "geo": "Subdivided geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting the faces to subdivide.",
+   "max_edge_length": "Longest allowed edge. 0 means no limit.",
+   "max_area": "Largest allowed triangle area. 0 means no limit.",
+   "delaunay": "Finish with Lawson edge flips to restore the Delaunay property.",
+   "flip_angle": "Edges are only flipped when their dihedral angle is at most this value in degrees, so curved surfaces keep their shape."
+  }
+ },
+ "PCG_Unsubdivide": {
+  "summary": "Reverses Catmull-Clark subdivision by a given number of levels.",
+  "description": "Recognises the original vertices, edge points and face points that Catmull-Clark subdivision leaves behind, and rewinds the topology by `Levels` levels. With *Fit* positions are recovered by inverting the subdivision stencil in the least-squares sense, so a mesh that really came from subdivision is restored exactly. With *Keep*, the subdivided positions of the original vertices are simply kept, as Houdini does, which makes the shape shrink a little.",
+  "inputs": {
+   "geo": "Subdivided polygonal mesh."
+  },
+  "outputs": {
+   "geo": "Mesh with the topology rewound.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "levels": "Number of subdivision levels to undo.",
+   "positions": "*Fit* solves for the original positions by least squares; *Keep* keeps the current positions of the surviving vertices.",
+   "boundary": "Boundary interpolation rule that was used when the mesh was subdivided. It has to match for Fit to reproduce the original."
+  },
+  "houdini_notes": "The Keep option is Houdini's behaviour; Fit is an addition that reconstructs the original positions exactly when the mesh came from Catmull-Clark subdivision."
+ },
+ "PCG_Voronoi2D": {
+  "summary": "Builds a planar Voronoi diagram from points and outputs either cell polygons or their boundary lines.",
+  "description": "The dual of a Delaunay triangulation: scatter points in, get city-block-like cells out. It is the 2D partitioning counterpart of the 3D Voronoi Fracture node, which cuts solids into chunks. A typical road-network chain is Scatter, Voronoi 2D (edges), PolyPath, PolyExpand2D for the road width; what remains in between are the blocks.\n\nEach site's cell is the boundary region clipped by the perpendicular bisector between the site and each of its Delaunay neighbours. Because the cell is always bounded, sites on the convex hull and inside use the same code path, and no unbounded cells need special handling. For this reason the boundary region must be convex: with *Polygon* the convexity is checked and an error is raised if it fails. For a concave outline, compute with a bounding box and then cut with Boolean or Clip.\n\nThe output points are new points (Voronoi vertices) with no relation to the sites, so point attributes are not carried down. Each cell gets a primitive attribute (default `site`) with the site's point number. Vertices shared between neighbouring cells are welded, so the lines can be joined into a network.",
+  "inputs": {
+   "geo": "Site points.",
+   "bounds_geo": "Convex closed polygon used as the boundary when *Boundary* is set to Polygon."
+  },
+  "outputs": {
+   "geo": "Cell polygons, or the de-duplicated cell edges as two-point lines."
+  },
+  "params": {
+   "group": "Point group pattern selecting the sites.",
+   "plane": "Plane the points are projected onto for the 2D computation. *Fit Plane* is determined from the points; *XY*, *ZX* and *YZ* are axis planes; *Specify Plane* uses the origin and normal below.",
+   "output": "*Cells* gives one closed polygon per site. *Edges* gives the unique cell boundary segments, each a two-point line, which suits road networks.",
+   "boundary": "*Bounds* uses the bounding box of the sites plus padding. *Polygon* uses the first closed polygon of the second input, which must be convex.",
+   "padding": "Extra margin around the site bounding box, for Bounds boundary.",
+   "plane_origin_x": "A point on the plane. Not used for Fit Plane.",
+   "plane_normal_x": "Normal of the plane for Specify Plane.",
+   "plane_distance": "Additional offset of the plane along its normal.",
+   "site_attribute": "Name of the primitive attribute that stores the site's point number on each cell.",
+   "interior_group": "Name of the primitive group that marks the edges shared by two cells, as opposed to edges on the boundary.",
+   "fuse_tolerance": "Sites closer than this are merged, since two coincident sites would produce degenerate bisectors and empty cells.",
+   "hull_tolerance": "Tolerance of the convex-hull step in the Delaunay computation. Very small values are needed so almost-cocircular points are not dropped.",
+   "on_failure": "What to do when no cell can be produced (for example all sites lie outside the boundary polygon). *Fail with Error* raises an error; the other two options return the input geometry unchanged."
+  }
+ },
+ "PCG_FindShortestPath": {
+  "summary": "Finds least-cost paths along the edges of a mesh or curve network using Dijkstra's algorithm.",
+  "description": "The cost of an edge is its length (or 1 per step), multiplied by `1 + Cost Weight * cost` and by `1 + Slope Weight * |slope|`. On terrain, the slope weight makes roads follow contour lines, and a cost attribute steers them around water or forest. The cost attribute is averaged over the two points of an edge. The slope is the absolute cosine between the edge direction and the up vector. Houdini-style additive costs (point and primitive cost attributes), surface constraints and directed primitives are applied on top of that.\n\nThe output paths mode decides which paths are built; see the *Output Paths* menu. Paths that cannot be reached (disconnected parts, or above the max cost) are skipped and counted in the report.\n\n*Output* chooses what is produced. *Paths* outputs only the path polylines (point copies carrying `srcpt`, and primitive attributes `cost`, `length`, `startpt`, `endpt`). *Merge* outputs the source geometry together with the paths. *Group* outputs no new geometry and writes an edge group and a point group of the same name onto the source.",
+  "inputs": {
+   "geo": "Mesh or curve network; the search follows its edges."
+  },
+  "outputs": {
+   "geo": "The paths, the source plus the paths, or the source with a path group, depending on `Output`.",
+   "report": "Text summary: number of paths, number unreachable and total cost."
+  },
+  "params": {
+   "start_group": "Point group, or point numbers written in order (`12 40 7`). Sequence and Corresponding modes use that order.",
+   "end_group": "Point group or point numbers of the destinations. Not used in Sequence mode.",
+   "mode": "*Nearest End*: each start goes to its cheapest end. *Each Pair*: one path for every start/end combination. *Sequence*: the start points are chained in the order written. *Any to Any*: only the single cheapest path of all. *Any Start to Each End*: one path per end, coming from the cheapest start. *Corresponding*: starts and ends are paired in order (equal counts required).",
+   "close_sequence": "In Sequence mode, also connect the last point back to the first (needs more than two points).",
+   "use_length": "Use the edge length as base cost. When off, every edge costs 1 (counting steps).",
+   "omit_distance": "Drop the length / step part of the cost entirely, so only the point and primitive cost attributes remain.",
+   "cost_attribute": "Optional point attribute used as a multiplier: the edge cost is multiplied by `1 + Cost Weight * average cost` of the edge's two points.",
+   "cost_weight": "Weight of the cost attribute in the multiplier.",
+   "slope_weight": "How strongly steep edges are penalised. 0 ignores slope.",
+   "up_x": "Up direction used to measure the slope.",
+   "max_cost": "Paths costing more than this are treated as unreachable. Only used when *Use Max Cost* is on.",
+   "use_max_cost": "Enable the *Max Search Path Cost* limit.",
+   "point_cost_attribute": "Numeric point attribute added to the cost whenever a path steps into that point. The start point itself is not charged.",
+   "prim_cost_attribute": "Numeric primitive attribute added to the cost of the edges of that primitive. If several primitives share an edge, the lowest numbered one is used.",
+   "surface_prims": "Primitive group pattern. When given, paths may only travel along the edges of these primitives.",
+   "directed_prims": "Primitive group pattern. An edge that exists only in these primitives can only be walked in the primitive's direction; an edge that also belongs to another primitive is usable both ways.",
+   "edges_to_avoid": "Names of edge groups whose edges the paths may not use.",
+   "output": "*Paths* only outputs the path lines, *Merge* adds them to the source geometry, *Group* writes an edge group and point group on the source geometry.",
+   "group_name": "Name of the edge group and the point group of the same name that receive the paths."
+  },
+  "tips": [
+   "Costs must be positive; a negative cost attribute or weight is rejected with an error.",
+   "For roads over terrain, combine a small Slope Weight with a cost attribute that is high on water."
+  ]
+ },
+ "PCG_PointReplicate": {
+  "summary": "Scatters a cluster of new points around each source point.",
+  "description": "Every selected point spawns `Points per Point` new points (or a count read from an attribute) around itself. There are two families of shapes. *Sphere*, *Shell*, *Disk* and *Gaussian* are offsets in world space scaled by `Radius` times the radius attribute (`pscale` by default): sphere fills a ball uniformly, shell puts points on its surface, disk is a flat disc perpendicular to `N` (the Y axis if there is no `N`), and gaussian uses a normal distribution with the radius as its standard deviation. *Circle*, *Line* and *Grid* are generated in local space, controlled by Orientation, Center, Size and Uniform Scale, and then placed on each source point with the same instance rules as Copy to Points (`orient`, `N` with `up`, `pscale`, `scale`, `trans`, `pivot`, `transform`). These three ignore Radius.\n\nEvery source point draws its own random numbers from the seed and its `id` attribute (or its point number if there is no `id`), so adding or deleting other points does not change the cluster around a point. New points inherit the source point's attributes and get a point attribute with the source point number (`source` by default).",
+  "inputs": {
+   "geo": "Source points."
+  },
+  "outputs": {
+   "geo": "The new points, together with the original points if *Keep Input Geometry* is on.",
+   "report": "Text summary: number of new points and number of source points."
+  },
+  "params": {
+   "group": "Group pattern selecting the source points that spawn clusters.",
+   "keep_original": "Keep the source points in the output along with the new ones.",
+   "count": "Number of points created around each source point.",
+   "count_attribute": "Integer point attribute used directly as the number of points per source point (rounded, negative counts as 0). Unlike Houdini's Generate From Attribute it is not a probability times Points per Point.",
+   "shape": "Sphere, Shell, Disk and Gaussian are world-space shapes of this plugin using Radius. Circle, Line and Grid are built in local space and placed with the instance rules of Copy to Points.",
+   "orientation": "Plane of the circle or grid in local space. A line runs along the plane's normal axis, so with XY it lies along local Z, which is `N` or `v`.",
+   "center_x": "Local-space centre of the shape, applied after Size.",
+   "size_x": "Local-space size of the shape along each axis.",
+   "uniform_scale": "Overall scale applied to the local-space shape.",
+   "velocity_stretch": "Stretch the shape along local Z by the speed `v`. *Scaled* keeps the point's instance scale; *Ignore Geometry Scale* drops `pscale` and `scale` so that only the velocity stretches the shape. Needs a `v` attribute on the input.",
+   "velocity_scale": "Multiplier for the velocity stretch.",
+   "radius": "Radius of the world-space shapes. Multiplied by the radius attribute when it exists.",
+   "radius_attribute": "Point attribute that scales the radius per source point. If the attribute is missing, the radius is used as is.",
+   "rand_seed": "Seed of the random numbers. Combined with each point's `id` (or point number).",
+   "copy_source_attributes": "Copy attributes of the source point to the new points. When off, only `P` and the source attributes are written.",
+   "source_attributes": "Pattern of the point attributes that are copied.",
+   "inherit_velocity": "Multiplier for the `v` of the new points relative to the source point's `v`.",
+   "radial_velocity": "Adds this factor times the new point's offset from the source point to `v` (created if absent).",
+   "keep_source_attributes": "Write the source tracking attributes below.",
+   "source_point_attribute": "Name of the point attribute that stores the number of the source point. Original points kept in the output also get their own number.",
+   "source_index_attribute": "Name of an attribute for the index of a point within its cluster, counting from 0. Kept original points get -1. Empty writes none.",
+   "output_group": "Name of the point group that contains the new points. Only written when *Create Output Group* is on.",
+   "create_output_group": "Put the new points into the output group."
+  }
+ },
+ "PCG_Scatter": {
+  "summary": "Scatters points over the surface of polygons, by total count, density or per-primitive count.",
+  "description": "Faces are triangulated with ear clipping, not fans, so concave n-gons stay inside their outline and no points land outside the face. Points are drawn with probability proportional to triangle area, multiplied by a density attribute when enabled.\n\n*Generate* chooses the model. *By Density* draws either a fixed total number of points (*Force Total Count*) or `Density Scale` times the weighted total area. An optional density texture on the second input is sampled at the surface's UVs and accepts points with probability proportional to the texture value, so the density precision depends only on the texture resolution and not on the mesh. *Count per Primitive* gives each primitive an exact number of points. *In Texture Space* scatters in the UV unit square and keeps the points that fall within the UV area of the surface.\n\nRelaxation pushes the random points apart into a blue-noise-like distribution. After every iteration the points are projected back onto the nearest triangle, so they can migrate across triangles and do not drift off the surface. The relaxation radius is estimated from the target density as `sqrt(total area / (N * pi))`, the radius of N non-overlapping discs filling the area. With Count per Primitive, relaxation runs per primitive so points stay on their own primitive.\n\nWith *Primitive Seed* each primitive has its own random stream, so editing one face does not reshuffle the points on the others. This is slower because it samples face by face.\n\nThe node outputs a point cloud only. Point attributes (and vertex attributes, such as UVs, interpolated by corner) are interpolated barycentrically from the source; primitive and detail attributes are copied.",
+  "inputs": {
+   "geo": "Polygonal surface to scatter on.",
+   "density_texture": "Optional image that modulates the density, sampled at the surface UVs (see *UV Attribute*)."
+  },
+  "outputs": {
+   "points": "The scattered points with the output attributes."
+  },
+  "params": {
+   "group": "Primitive group pattern restricting the scatter to some faces. Empty uses all faces.",
+   "generate": "*By Density* scatters by total count or density, *Count per Primitive* places an exact number on every primitive, *In Texture Space* scatters in the UV unit square and maps the points to the surface.",
+   "count": "Total number of points when *Force Total Count* is on.",
+   "force_total_count": "Create exactly the Total Number of points. When off, the number follows from the density scale and the area.",
+   "density_scale": "Points per unit of weighted area. The point count is this value times the weighted total area. For In Texture Space it is the expected number of points in the UV unit square. Unused while Force Total Count is on.",
+   "use_density": "Weight triangle sampling by a density attribute and an area override.",
+   "density_attribute": "Point attribute multiplied into the area weighting (averaged over the triangle's points).",
+   "area_attribute": "Primitive attribute that replaces the geometric area of each primitive when weighting.",
+   "texture_uv_attribute": "UV attribute (point or vertex) used for the density texture, for In Texture Space and for texture-space output.",
+   "count_per_prim_attribute": "An integer, or the name of an integer primitive attribute, giving the number of points on each primitive. A missing attribute raises an error.",
+   "rand_seed": "Global seed of the random numbers.",
+   "use_prim_seed": "Give each primitive its own random stream so that editing one face does not change the points on the others.",
+   "prim_seed_attribute": "Primitive attribute whose value seeds each primitive's random stream.",
+   "randomize_order": "Shuffle the order of the output points. Otherwise points come out grouped by the triangle they were drawn from.",
+   "max_points": "Upper limit for the number of points when *Use Max Points* is on.",
+   "use_max_points": "Enable the Max Point Limit.",
+   "use_relax": "Relax the points into a more even distribution.",
+   "relax_iterations": "Number of relaxation iterations. Each iteration does a neighbour search and a projection back to the surface.",
+   "use_geometric_normals": "Write the face normal of the triangle each point sits on as the output normal instead of interpolating the source `N`. Independent of Relax. Without a source `N`, geometric normals are used anyway.",
+   "scale_radii_by": "Multiplier for the estimated relaxation radius.",
+   "max_relax_radius": "Upper limit for the relaxation radius when *Use Max Relax Radius* is on.",
+   "use_max_relax_radius": "Cap the relaxation radius, and the output radius, at Max Relax Radius.",
+   "use_out_attribs": "Write the point attributes listed below (prim number, UVW, normal and interpolated attributes).",
+   "sourceprim_attribute": "Name of the integer attribute that stores the source primitive number.",
+   "uv_attribute": "Name of the attribute that stores the barycentric coordinates `(u, v, 0)` of the point on its source triangle.",
+   "normal_attribute": "Name of the normal attribute. Empty skips it.",
+   "interpolate_attributes": "Interpolate the source point attributes onto the scattered points. Vertex attributes are controlled by *Vertex Attributes* below, not by this switch.",
+   "out_density_name": "Name of the attribute that receives the local point density (points per unit area).",
+   "use_out_density": "Write the density attribute.",
+   "out_radius_name": "Name of the attribute that receives the point radius, computed as 0.537 divided by the square root of the density, capped by Max Relax Radius when that is on.",
+   "use_out_radius": "Write the radius attribute.",
+   "out_id_name": "Name of the integer id attribute. It is the index of the point at the time of scattering, so it stays stable after points are deleted downstream.",
+   "use_out_id": "Write the id attribute.",
+   "out_texture_space": "Express the output density and radius in texture space (relative to the UV area) rather than in surface space.",
+   "point_attributes": "Pattern of source point attributes that are interpolated onto the new points.",
+   "vertex_attributes": "Pattern of source vertex attributes (such as `uv`) that are interpolated by corner onto the new points. A vertex attribute overrides a point attribute of the same name.",
+   "primitive_attributes": "Pattern of source primitive attributes copied unchanged onto the points from the primitive each point sits on.",
+   "detail_attributes": "Pattern of source detail attributes copied to every point.",
+   "detail_as_detail": "Pattern of source detail attributes copied to the output as detail attributes."
+  },
+  "houdini_notes": "Scatter on Voxels Independently is not implemented: the node scatters on surfaces only, not on volumes (see Scatter Volume). Primitive and detail attribute patterns copy attributes only; groups are not copied.",
+  "tips": [
+   "Use *Primitive Seed* when the surface is edited procedurally, to keep points on unchanged faces from reshuffling.",
+   "Feed `N` and `pscale` into Copy to Points directly: this node's normal and radius outputs follow the same conventions."
+  ]
+ },
+ "PCG_ScatterAlign": {
+  "summary": "Scatters points on a surface and writes a ready-to-use instance frame: scale, normal, up vector and orientation.",
+  "description": "A scatter node plus the attributes that Copy to Points needs, in one step. The point count follows from *Point Count Method*: a total, a density, a coverage (the fraction of the area covered by discs of radius `pscale`, which gives `N = Coverage * area / (pi * E[pscale^2])`), or a spacing for hexagonal packing (`N = area / (sqrt(3)/2 * Spacing^2)`).\n\nEach point gets `pscale`, a random value between the min and max radius; `N`, the surface normal (interpolated point normals when the surface has them); `up`, the Up Vector projected onto the tangent plane and rotated randomly about `N`; and `orient`, a quaternion of the same frame. By default instance +Z is aligned to `N` and +Y to `up`, the same convention as Copy to Points. *Max Random Cone Angle* tilts the normal in a random direction so that grass or rocks are not all upright.\n\n*Remove Overlapping* pushes the points apart on the surface (using Point Relax with `pscale` times the radius scale) so that instances do not interpenetrate; normals are then recomputed at the new positions. The random numbers depend only on the seed, so the same input gives the same result.\n\nIn *Existing Points* mode nothing is scattered. The attributes are written onto the points of the second input instead. The normal comes from the nearest surface triangle of the first input (also writing `sourceprim`); without faces it comes from the point's own `N`, else +Y. Points outside the point group keep their attributes, and newly created attributes get unit-instance values (`pscale` 1, identity `orient`).",
+  "inputs": {
+   "geo": "Surface to scatter on (and the normal source in Existing Points mode).",
+   "points": "Point cloud that receives the attributes in Existing Points mode."
+  },
+  "outputs": {
+   "geo": "The scattered points with `pscale`, `N`, `up` and `orient` (or the second input with those attributes added).",
+   "report": "Text summary: point count, area, coverage and overlap statistics."
+  },
+  "params": {
+   "scatter_mode": "*Surface* scatters new points. *Existing Points* only adds the attributes to the points of the second input.",
+   "group": "Primitive group pattern restricting the surface faces.",
+   "point_group": "Point group pattern selecting which points of the second input receive attributes.",
+   "tag_name": "When not empty, a string point attribute `tag` is written with this value.",
+   "rand_seed": "Global seed. The result only depends on the seed and the input.",
+   "mode": "How the number of points is determined: *Total Points*, *Density* per unit area, *Coverage* of the area by discs of radius `pscale`, or *Spacing* (hexagonal packing).",
+   "count": "Number of points to scatter.",
+   "density": "Points per unit of area.",
+   "density_attribute": "Point attribute used as a density weight.",
+   "use_density_attribute": "Weight the scattering by the density attribute. With the Density method it also determines the count; with the other methods it only affects the distribution.",
+   "coverage": "Fraction of the surface area covered by discs of radius `pscale`, one per point. The point count is derived from it.",
+   "spacing": "Point spacing for hexagonal packing; the count is the area divided by `sqrt(3)/2 * Spacing^2`.",
+   "scale_min": "Minimum and maximum of `pscale`; each point gets a uniform random value in the range. Coverage mode also uses it to derive the count.",
+   "normal_direction": "Which axis of the instance is aligned with the surface normal. Z is the default of this plugin (Houdini uses Y).",
+   "normal_custom_x": "Instance axis that is aligned to the normal when *Normal Direction* is Custom.",
+   "forward_direction": "Which axis of the instance is aligned with the Up Vector projected onto the tangent plane.",
+   "forward_custom_x": "Instance axis aligned to the forward direction when *Forward Direction* is Custom.",
+   "up_x": "Reference up direction. It is projected onto the tangent plane to give the `up` attribute.",
+   "tilt": "Maximum angle in degrees by which the normal is tilted in a random direction.",
+   "rotation_range": "*Symmetric* rotates randomly by plus or minus half the Random Rotation. *Min / Max* picks a uniform angle between Min Angle and Max Angle.",
+   "rotate_random": "Total range of the random rotation about the normal in degrees (plus or minus half of it).",
+   "min_angle": "Lower end of the random rotation about the normal, in degrees.",
+   "max_angle": "Upper end of the random rotation about the normal, in degrees.",
+   "round_to": "When above 0, the random rotation is rounded to a multiple of this angle in degrees (for example 90 for building parts).",
+   "round_rotation": "Switch for rounding the random rotation.",
+   "offset_angle": "Fixed extra rotation about the normal in degrees, applied after the random rotation.",
+   "avoid_overlap": "Push the points apart along the surface so instances of size `pscale` do not overlap.",
+   "relax_iterations": "Number of iterations of the overlap removal.",
+   "overlap_scale": "Multiplier applied to `pscale` when measuring overlap.",
+   "emergency_limit": "Maximum number of points when *Use Emergency Limit* is on.",
+   "use_emergency_limit": "Cap the point count at the Emergency Limit.",
+   "prim_uvw_attribute": "Name of the attribute that stores the barycentric coordinates of the point on its source triangle (like Scatter's `sourceprimuv`).",
+   "use_prim_uvw": "Write the primitive UVW attribute.",
+   "radius_attribute": "Name under which the random radius is stored (`pscale` by default).",
+   "use_radius_attribute": "Write the radius attribute.",
+   "orient_attribute": "Name of the orientation quaternion attribute.",
+   "use_orient_attribute": "Write the orientation attribute.",
+   "surface_point_attributes": "Pattern of surface point attributes interpolated onto the new points.",
+   "surface_vertex_attributes": "Pattern of surface vertex attributes interpolated onto the new points.",
+   "surface_primitive_attributes": "Pattern of surface primitive attributes copied to the new points.",
+   "surface_detail_attributes": "Pattern of surface detail attributes copied to the new points."
+  },
+  "houdini_notes": "Scatter Points Around Constraint Points is not implemented. The default for Normal Direction is Z instead of Houdini's Y, to keep earlier graphs unchanged. Houdini always writes the tag attribute; here it is written only when a tag name is given.",
+  "tips": [
+   "Connect the result straight to Copy to Points; no further attribute work is needed."
+  ]
+ },
+ "PCG_ScatterFromMap": {
+  "summary": "Scatters points on a surface with an image as the density field, using rejection sampling at each point's own UV.",
+  "description": "Typical use: planting grass or placing rocks from an AI-generated mask.\n\nThe obvious alternative, writing the image into a density point attribute and feeding it to Scatter, ties the density precision to the mesh resolution, because Scatter averages the attribute over the three corners of a triangle. A 2x2 grid under a 1024x1024 mask would see only 4 values. This node instead scatters more points than needed (*Oversample*), looks up the image at each point's own UV, and keeps the point with probability `density / max`. The precision is limited only by the image resolution, not by the mesh.\n\nThe cost is that the count is not exact, so the *Total Point Count* method repeats rounds with a new seed, adjusting the number of candidates with the previous acceptance rate, until enough points are accepted; surplus points are cut. The probability is normalised by the maximum of the whole image, so one isolated bright pixel lowers the acceptance everywhere and costs extra rounds. Blur the image or clamp the highlights if that happens.\n\nThe order of processing is decode, invert, floor, scatter. *Density Scale* multiplies only the written density attribute, since the count is fixed and the probability is normalised, so scaling cannot change the distribution. With *By Density* and *By Coverage*, the count is not fixed: candidates are drawn at `lambda * area * max(mask)` and thinned in one round, so the expected count is `lambda` times the integral of the mask over the area.\n\nOptional post-processing writes `pscale` and `footprint` (Variability), `N` and `orient` (Randomize Orients), quantised positions and a `tag` attribute. Nothing is added when these options are at their defaults. The second output is the number of points.",
+  "inputs": {
+   "geo": "Polygonal surface with UVs to scatter on.",
+   "cop": "Image whose channel gives the density."
+  },
+  "outputs": {
+   "points": "The scattered points, carrying the density attribute and the interpolated surface attributes.",
+   "count": "Number of points produced."
+  },
+  "params": {
+   "tag_name": "When not empty, a string point attribute `tag` with this value is written.",
+   "group": "Primitive group pattern restricting the surface faces.",
+   "scatter_method": "*Total Point Count* aims for an exact number of points. *Density* sets the number of points per unit area where the mask is 1. *Coverage* derives the density from the fraction of the area covered by footprint discs (Outer Radius times the point scale).",
+   "layer": "Name of the image layer used as the density map.",
+   "channel": "Index of the channel of the layer that is read.",
+   "decode": "Colour decoding applied to the image values before use: none, sRGB to linear, or linear to sRGB.",
+   "count": "Number of points to produce for the Total Point Count method.",
+   "density": "Number of points per unit of surface area where the mask value is 1.",
+   "coverage": "Fraction of the (mask-weighted) area to be covered by footprint discs of radius Outer Radius times the point scale.",
+   "outer_radius": "Radius of the disc each point occupies (times its `pscale`), stored in `footprint`. Coverage uses it to compute the count.",
+   "density_scale": "Multiplier for the written density attribute only; it does not change the distribution or the count.",
+   "density_floor": "Minimum density on a 0 to 1 scale, so fully black areas of the mask still get some points. Applied after invert.",
+   "invert": "Use one minus the mask value as the density.",
+   "rand_seed": "Seed of the random numbers.",
+   "max_points": "Hard upper limit for the point count. 0 means unlimited.",
+   "variability": "Random per-point scale written to `pscale`. *Uniform* draws between the range limits, *Normal* draws a clamped normal around the range centre, *Exact* gives every point the same scale.",
+   "range_min": "Minimum and maximum of the random scale.",
+   "spread": "Standard deviation of the normal distribution of the scale.",
+   "exact_scale": "The scale given to every point.",
+   "randomize_orients": "Write `N` and `orient` with random rotation about the normal.",
+   "match_normals": "Use the surface normal as the up axis of the orientation. When off, the up axis is +Y.",
+   "randomize_up": "Maximum angle in degrees by which the up axis is randomly tilted away from the normal.",
+   "randomize_yaw": "Random rotation about the up axis, plus or minus this angle in degrees.",
+   "quantization": "Snap point positions to a grid of this size on all three axes. 0 means no quantization.",
+   "oversample": "Factor by which the first round draws more candidates than the target count. Only for the Total Point Count method.",
+   "max_rounds": "Maximum number of sampling rounds before giving up on reaching the count. Only for the Total Point Count method.",
+   "filter": "How the image is sampled: bilinear or nearest pixel.",
+   "border": "How UVs outside 0 to 1 are treated: clamp to the edge, wrap around, or read black.",
+   "uv_attrib": "Name of the UV attribute on the surface.",
+   "uv_scale_u": "Scale applied to the UVs before the image lookup.",
+   "uv_offset_u": "Offset added to the UVs after scaling.",
+   "out_density": "Name of the point attribute that receives the density value at each point (scaled by Density Scale). Empty writes nothing."
+  },
+  "houdini_notes": "Corresponds to HeightField Scatter. Per Point Count using Source Points is not implemented. The Relax Iterations value is not used; use Point Relax downstream for blue-noise spacing."
+ },
+ "PCG_ScatterVolume": {
+  "summary": "Scatters points inside a closed piece of geometry, randomly or on a jittered grid.",
+  "description": "The points are in the interior, so they make solid seeds for Voronoi Fracture; surface scatter would give cells hugging the shell, resulting in shards instead of solid chunks.\n\n*Random* scatters in the bounding box and discards points outside the geometry (rejection sampling). The distribution is truly random, so there are sparse and dense regions, and Voronoi fracturing gives uneven chunk sizes like natural breakage. *Grid* uses a jittered regular grid, giving similar chunk sizes like man-made cutting. The hit rate is volume divided by bounding box volume, which can be a few percent for a thin diagonal bar, so batches are drawn and the rate re-estimated until the count is reached.\n\nInside tests use ray parity and require a closed surface; an open mesh is rejected with an error (close it with PolyFill first). With *Min Distance* above 0 a Poisson-disc filter is applied using a spatial grid (linear time). No further points are added afterwards, so the final count can fall below the target.",
+  "inputs": {
+   "geo": "Closed polygonal geometry that defines the volume."
+  },
+  "outputs": {
+   "points": "Points inside the volume."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting the faces that form the volume.",
+   "mode": "*Random* draws random points inside. *Grid* uses a jittered regular lattice; Count has no effect there.",
+   "count": "Number of points to scatter in Random mode.",
+   "spacing": "Grid cell size in Grid mode. A spacing that would create too many cells is rejected with an error.",
+   "jitter": "How far each grid point may be displaced inside its cell, from 0 (regular grid) to 1 (anywhere in the cell).",
+   "min_distance": "When above 0, points closer together than this are removed (Poisson-disc filtering). No points are added back afterwards.",
+   "rand_seed": "Seed of the random numbers.",
+   "ray_directions": "Number of oblique rays that vote on whether a point is inside. 3 is the most robust against rays that graze edges."
+  },
+  "houdini_notes": "Corresponds to Scatter combined with a volume (Points from Volume)."
+ },
+ "PCG_CopyToCurves": {
+  "summary": "Copies source geometry along curves, at sampled positions or on the curves' existing points, oriented by the curve frame.",
+  "description": "Two families of modes. In *Count* and *Spacing* mode, points are taken along each curve by count (both ends included) or by spacing, and the orientation is the rotation-minimising frame used by Orient Along Curve: +Z along the curve and +Y as the up vector. The copies are then placed as in Copy to Points. *Start / End Offset* leave out a stretch of arc length at each end. A closed curve does not repeat a copy at its start. *Roll per Copy* rotates copy k by an additional k times the step (alternating fence posts, spirals), where k counts from 0 on every curve separately, as in Chain.\n\n*Curve Points* follows Houdini's Copy to Curves: the source is copied onto every existing point of each curve without resampling. The Frame, Additional Rotations and Scales settings only act in this mode. The frame is made of the tangent (see *Tangent Type*) and an up vector carried along the curve by rotation-minimising transport, followed by extra rotation in the curve frame (roll or twist about the tangent, yaw about the up axis, pitch about the outward axis), then scale and optional stretch at turns. On closed curves, leftover twist is spread so that it adds up to a whole turn.\n\nIf a piece attribute is given, the source is split into pieces and copies cycle through them in order (in Curve Points mode the attribute on the curve point selects the piece if it exists, otherwise they cycle). The output carries `curvenum` (index of the source curve) and the copy number attribute.",
+  "inputs": {
+   "source": "Geometry to copy.",
+   "curves": "Curves to copy along."
+  },
+  "outputs": {
+   "geo": "All copies merged into one geometry."
+  },
+  "params": {
+   "source_group_type": "Whether the source group names primitives or points. *Guess* decides from the group name.",
+   "group": "Primitive group pattern selecting which curves are used.",
+   "mode": "*Count* and *Spacing* resample the curves. *Curve Points* uses the existing points without resampling and enables the Frame, Rotation and Scale settings.",
+   "count": "Number of copies on each curve, with copies at both ends. A closed curve does not repeat the copy at the start point.",
+   "spacing": "Distance between copies along the curve, starting at the beginning.",
+   "start_offset": "Arc length left free at the start and at the end of each curve.",
+   "piece_attribute": "Attribute that splits the source into pieces. In Count and Spacing mode the pieces are used in turn; in Curve Points mode a matching attribute on the curve points picks the piece, otherwise they alternate.",
+   "copy_attribute": "Name of the attribute that stores the copy number. Empty writes none.",
+   "closed_continuous": "Keep orientations continuous around closed curves by distributing the twist that accumulates on the way round.",
+   "extrapolate_ends": "Estimate the tangents at the two ends of an open curve by mirroring the neighbouring tangent in the first edge, which is exact for circular arcs. Only for Average and Central Difference tangents.",
+   "use_point_attribs": "Use the curve point attributes `up`, `orient`, `rot`, `scale`, `pscale`, `transform`, `trans` and `pivot` when they exist.",
+   "target_up": "Source of the up vector at the start of each curve: the *Curve Normal* (normal of the curve's plane, or Y for a straight curve), the *Y Axis*, a vector *Attribute* on the curve primitive or detail, or a *Custom* vector.",
+   "up_at_start": "Fix the up vector at the start of the curve. When off, the whole curve is rotated about its tangent so that the average deviation from the target up is zero.",
+   "use_end_up": "Also match a target up vector at the end of the curve; the difference is spread along the arc length.",
+   "start_up_attrib": "Name of the primitive or detail vector attribute that holds the start up vector.",
+   "end_up_attrib": "Name of the primitive or detail vector attribute that holds the end up vector.",
+   "up_x": "Up vector at the start of the curve. In Count and Spacing mode this is the up vector of the frame; in Curve Points mode it is the custom start up vector.",
+   "end_up_x": "Custom up vector at the end of the curve, when using an end up vector.",
+   "roll": "Rotation about the tangent in degrees, added to every copy. In Curve Points mode it is only applied when *Apply Roll or Twist* is on.",
+   "roll_step": "Additional rotation about the tangent per copy, in degrees. Copy k is rotated k times this value, counting from 0 on every curve.",
+   "apply_roll": "Apply roll and twist in Curve Points mode.",
+   "twist_per": "How the twist is distributed along the curve: per edge, per unit of distance, scaled by an attribute, or as a total over the whole curve by edges or by distance.",
+   "full_twists": "Number of full 360 degree turns of twist (see *Twist Per* for what the amount is measured against).",
+   "partial_twist": "Extra twist in degrees added to the full twists.",
+   "twist_ramp_attrib": "Attribute (point, primitive or detail) whose value scales the twist when *Twist Per* is Scale by Attribute.",
+   "apply_yaw": "Apply yaw rotation about the up axis.",
+   "yaw": "Constant yaw offset in degrees.",
+   "yaw_per": "How the incremental yaw is distributed along the curve, as for twist.",
+   "incremental_yaw": "Yaw added per edge, unit of distance, or over the curve, depending on *Yaw Per*, in degrees.",
+   "yaw_ramp_attrib": "Attribute that scales the yaw when *Yaw Per* is Scale by Attribute.",
+   "apply_pitch": "Apply pitch rotation about the outward axis.",
+   "pitch": "Constant pitch offset in degrees.",
+   "pitch_per": "How the incremental pitch is distributed along the curve, as for twist.",
+   "incremental_pitch": "Pitch added per edge, unit of distance, or over the curve, depending on *Pitch Per*, in degrees.",
+   "pitch_ramp_attrib": "Attribute that scales the pitch when *Pitch Per* is Scale by Attribute.",
+   "uniform_scale": "Uniform scale applied to every copy.",
+   "stretch_around_turns": "Stretch copies at sharp corners by 1/cos(angle/2) along the mitre direction, so that thickness is kept at bends.",
+   "max_stretch": "Upper limit of the corner stretch factor.",
+   "source_group": "Group pattern selecting part of the source to copy. Read in every mode.",
+   "tangent_type": "How tangents are computed at curve points: average of the adjacent edges, central difference, the previous or next edge only, or the fixed Z axis.",
+   "rotate_order": "Order in which roll, yaw and pitch are applied (p = pitch, y = yaw, r = roll). The first listed is applied first, all in the curve frame.",
+   "normalize_scales": "Ignore the curve point `pscale` and `scale` attributes. Only meaningful with *Transform Using Curve Point Attributes*.",
+   "target_attributes": "Pattern of curve point attributes that are copied onto the points of the copies."
+  }
+ },
+ "PCG_Chain": {
+  "summary": "Lays out source pieces one after another along curves, as rigid links or deformed to follow the curve.",
+  "description": "Two modes.\n\n*Rigid Links* places each link as a rigid piece along the curve. Every link takes up its own bounding box length along local Z plus *Piece Spacing*; a negative spacing makes links overlap, as in chain rings. The link centre sits at the midpoint of the chord, +Z points along the chord, and on bends both ends lie on the curve. Neighbouring links are rotated by an extra *Roll per Link* (90 degrees by default for alternating chain links), counting from 0 on every curve. *Fit to Curve* adjusts the gaps equally so that the last link ends exactly at the end of the curve (a closed curve closes exactly), with the spacing only deciding how many links fit. With a piece attribute, several link types alternate.\n\n*Deform Along Curve* is Houdini's Chain. The source is split into pieces by connectivity or by a piece attribute. The pieces are arranged into a chain following a pattern (cycle, explicit, random, weighted random), each piece's length being its bounding box length along the Forward axis times the piece scale plus spacing. The chain is then mapped onto the curve (see Map Length and Offset): every point is placed in the curve frame at its position, so each piece follows the bends of the curve. The curve frame uses the averaged tangent interpolated within segments and an up vector carried along the curve. Beyond the ends the geometry is extended along the end tangent, clamped to the end point, or clipped. Closed curves wrap around.\n\nThe output carries a copy number attribute and optionally the position, index and curve number along the curve.",
+  "inputs": {
+   "source": "Geometry providing the link pieces.",
+   "curves": "Curves the chain is laid along."
+  },
+  "outputs": {
+   "geo": "The chain of copies merged into one geometry."
+  },
+  "params": {
+   "chain_mode": "*Rigid Links* places whole links on the chord (the plugin's original method); *Deform Along Curve* is Houdini's Chain with pattern, mapping and deformation.",
+   "geometry_group": "Primitive group pattern removed from the source in Deform Along Curve mode before it is split into pieces.",
+   "group": "Primitive group pattern selecting which curves are used.",
+   "spacing": "Added to the length of each piece along its forward axis. Negative values make pieces overlap.",
+   "fit": "Adjust the gaps equally so that the last link ends exactly at the end of the curve. The spacing then only decides how many links fit.",
+   "up_x": "Up vector of the curve frame. In Deform Along Curve mode it applies when *Curve Up Control* is Custom.",
+   "roll": "Rotation of all links about the curve direction, in degrees.",
+   "roll_step": "Extra rotation of each link relative to the previous one, in degrees, counting from 0 on each curve. 90 gives alternating chain links.",
+   "find_pieces": "Whether the source is split into pieces by connectivity or by a piece attribute.",
+   "piece_attribute": "Attribute that identifies the pieces. In Rigid Links mode the pieces alternate; in Deform Along Curve mode it splits the source.",
+   "number_of_pieces": "*Fit* places as many pieces as fit in a given fraction of the curve; *Explicit* places a fixed number.",
+   "fraction_of_curve": "Fraction of the curve length that may be filled with pieces.",
+   "only_full_pattern": "Only place whole repeats of the pattern, dropping the incomplete last repeat.",
+   "num_pieces": "Number of pieces placed when *Number of Pieces* is Explicit, including any caps.",
+   "uniform_piece_scale": "Uniform scale of the pieces, applied in the chain's own coordinates before mapping to the curve.",
+   "map_length_using": "How *Map Length* is measured: as a fraction of the curve length, a fraction of the chain's natural length, or as a distance.",
+   "map_length": "Length over which the chain is stretched on the curve. The chain is scaled along the curve to fill it.",
+   "map_length_attrib": "Primitive attribute on the curves that overrides *Map Length* for each curve. Empty is not used.",
+   "offset_using": "How *Position Offset* is measured: as a fraction of the curve (`curve_u`), a fraction of the chain length, or as a distance.",
+   "position_offset": "Where along the curve the chain starts.",
+   "offset_attrib": "Primitive attribute on the curves that overrides *Position Offset* for each curve. Empty is not used.",
+   "start_behavior": "What happens to geometry that lies before the start of the curve: *Extend* continues along the end tangent, *Clamp* stops at the end point (the geometry bunches up), *Clip* cuts it off. Closed curves wrap around instead.",
+   "end_behavior": "What happens to geometry that lies beyond the end of the curve, with the same options as the start.",
+   "class_pattern": "Explicit pattern as space-separated piece numbers, for example `0 0 1`.",
+   "pattern_offset": "Shift of the starting position in the pattern.",
+   "rand_seed": "Seed of the random pattern choices.",
+   "repeat_length": "For random patterns: choose this many pieces randomly, then repeat them. 0 means no repetition.",
+   "piece_weights": "Weights of the pieces in piece-number order, separated by spaces, for the weighted random pattern (Houdini uses a piece/weight list).",
+   "weight_attrib": "Primitive attribute giving the weight of each piece, averaged over the piece, for the attribute-weighted random pattern.",
+   "use_start_cap": "Use a specific piece as the first piece of the chain.",
+   "start_cap_piece": "Piece number of the start cap.",
+   "use_end_cap": "Use a specific piece as the last piece of the chain.",
+   "end_cap_piece": "Piece number of the end cap.",
+   "exclude_end_pieces": "Keep the cap pieces out of the repeating pattern.",
+   "rigid_end_pieces": "Place the cap pieces rigidly at the middle of their position instead of bending them.",
+   "base_scale": "Base scale factor for the cross-section of the chain when scaling is enabled.",
+   "scale_attrib": "Numeric attribute on the curve points that multiplies the scale, interpolated along the curve. Empty is not used.",
+   "enable_rotation": "Rotate the pieces about the curve direction by the base rotation and rotation attribute.",
+   "base_rotation": "Rotation about the curve direction in degrees, multiplied by the rotation attribute when one is set.",
+   "rotation_attrib": "Numeric attribute on the curve points that multiplies the base rotation, interpolated along the curve.",
+   "forward_x": "Direction in the source geometry that is the chain direction when *Forward Direction* is Custom.",
+   "up_dir": "Axis of the source geometry that points up in the curve frame.",
+   "upaxis_x": "Custom up axis of the source geometry.",
+   "center_on_curve": "Center each piece's cross-section on the curve.",
+   "piece_rotation": "Rotation about the curve direction applied cumulatively: piece k is rotated by k times this angle, in degrees.",
+   "curve_up_control": "Up vector at the start of the curve: the curve normal, an axis, or the custom vector.",
+   "position_attrib": "Name of a point attribute that receives the position (arc length) along the curve. Empty writes none.",
+   "index_attrib": "Name of a point attribute that receives the index of the piece in the chain. Empty writes none.",
+   "curvenum_attrib": "Name of a point attribute that receives the number of the source curve. Empty writes none.",
+   "copy_attribute": "Name of the copy number attribute. Empty writes none.",
+   "enable_deformation": "Deform the pieces along the curve. When off, the chain is laid out straight along world Z, with z being the arc-length coordinate, so that it can be deformed later.",
+   "repeat_pattern": "How pieces are chosen: cycle in order, an explicit list, random, random weighted by the weights list, or random weighted by a primitive attribute.",
+   "enable_scale": "Scale the chain's cross-section.",
+   "forward_dir": "Axis of the source geometry that runs along the chain.",
+   "attribs_to_transform": "Pattern of vector point attributes (such as `N`) that are rotated into the curve frame along with the pieces."
+  },
+  "houdini_notes": "Deform Along Curve corresponds to Houdini's Chain. Rigid Links is the plugin's own earlier method, which places whole links rigidly on the chord."
+ }
+}

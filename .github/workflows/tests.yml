@@ -1,0 +1,42 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # The suites import the package as `comfyui_pcg`, so check it out under that folder name.
+      - uses: actions/checkout@v4
+        with:
+          path: comfyui_pcg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: comfyui_pcg/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r comfyui_pcg/requirements.txt scipy manifold3d fonttools pillow
+          # CPU-only torch for the few nodes that hand images to ComfyUI
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install frontend test dependencies
+        working-directory: comfyui_pcg
+        run: npm install --no-audit --no-fund
+
+      - name: Run test suites
+        working-directory: comfyui_pcg
+        run: python tests/run_tests.py --js

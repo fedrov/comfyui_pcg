@@ -1,0 +1,747 @@
+{
+ "last_node_id": 12,
+ "last_link_id": 10,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    520
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "Attributes and wrangle (read me)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "Attributes are named values stored on points or faces. This graph creates some, edits them with an expression, colours by one and builds a group from it.\n\n1) Attribute Create writes 'dist' = distance from the origin (expression length(@P)).\n2) Attribute Noise writes a second attribute, 'height' (0 to 1), instead of moving P.\n3) Wrangle edits it with Python-like code: heights fade out towards the edge using @dist.\n4) Attribute Promote copies 'height' from points to faces, because the next two nodes work on faces.\n5) Group Create puts every face with @height > 0.35 into the group 'tall'; PolyExtrude raises only those faces, each by its own height (Local Attributes on, Distance Scale = height).\n6) Color 'Ramp from Attribute' maps height to a blue-to-red ramp.\n\nTweak: the group threshold, the noise Element Size and Seed, the extrude Distance, or the Wrangle code."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_Grid",
+   "pos": [
+    0,
+    564
+   ],
+   "size": [
+    360,
+    245
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Grid"
+   },
+   "widgets_values": [
+    12.0,
+    12.0,
+    61,
+    61,
+    "zx",
+    0.0,
+    0.0,
+    0.0,
+    0,
+    0,
+    0,
+    "quadrilaterals"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "PCG_AttribCreate",
+   "pos": [
+    0,
+    853
+   ],
+   "size": [
+    360,
+    270
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribCreate"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "dist",
+    "float",
+    1,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    "",
+    true,
+    "length(@P)",
+    false
+   ],
+   "title": "dist = length(@P)"
+  },
+  {
+   "id": 4,
+   "type": "PCG_AttribNoise",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    1098
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribNoise"
+   },
+   "widgets_values": [
+    "",
+    "point",
+    "height",
+    true,
+    true,
+    true,
+    false,
+    "N",
+    1.0,
+    "add",
+    "zero_to_one",
+    1.0,
+    false,
+    0.5,
+    0.5,
+    false,
+    "0:0  0.5:0.25  1:1",
+    "linear",
+    false,
+    0.0,
+    false,
+    1.0,
+    "perlin",
+    "P",
+    4.0,
+    4.0,
+    4.0,
+    0.0,
+    0.0,
+    0.0,
+    5,
+    false,
+    "set(0, @P.y * 0.1, 0)",
+    false,
+    0.0,
+    1.0,
+    "standard",
+    3,
+    2.0,
+    0.5,
+    0.7,
+    0.0,
+    1.0,
+    1,
+    false,
+    false,
+    false,
+    0.0,
+    1.0,
+    "",
+    "float",
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false
+   ],
+   "title": "height = noise"
+  },
+  {
+   "id": 5,
+   "type": "PCG_Wrangle",
+   "pos": [
+    420,
+    1142
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 3
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "# @dist and @height are point attributes; this runs on all points at once\n@height = @height * (1 - smoothstep(3.0, 6.0, @dist))",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Fade towards the edge"
+  },
+  {
+   "id": 6,
+   "type": "PCG_AttribPromote",
+   "pos": [
+    420,
+    1433
+   ],
+   "size": [
+    360,
+    236
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AttribPromote"
+   },
+   "widgets_values": [
+    "height",
+    "point",
+    "prim",
+    "average",
+    true,
+    false,
+    "name",
+    false,
+    ""
+   ],
+   "title": "height: points to faces"
+  },
+  {
+   "id": 7,
+   "type": "PCG_GroupCreate",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    244
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_GroupCreate"
+   },
+   "widgets_values": [
+    "tall",
+    "prim",
+    "replace",
+    "@height > 0.35",
+    false,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    false,
+    false,
+    0.0,
+    0.0,
+    1.0,
+    180.0,
+    false,
+    false,
+    "include",
+    false,
+    20.0,
+    180.0,
+    false,
+    0,
+    50.0,
+    true
+   ],
+   "title": "Group 'tall'"
+  },
+  {
+   "id": 8,
+   "type": "PCG_PolyExtrude",
+   "pos": [
+    840,
+    288
+   ],
+   "size": [
+    360,
+    402
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 6
+    },
+    {
+     "name": "spine",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PolyExtrude"
+   },
+   "widgets_values": [
+    "tall",
+    "individual",
+    3.0,
+    0.0,
+    0.0,
+    1,
+    false,
+    0.0,
+    1.0,
+    0.0,
+    false,
+    0.0,
+    1.0,
+    0.0,
+    true,
+    "height",
+    "",
+    false,
+    true,
+    false,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    true,
+    true,
+    false,
+    true,
+    "extrudeFront",
+    "extrudeBack",
+    "extrudeSide",
+    "",
+    "",
+    true,
+    false,
+    60.0,
+    false,
+    "proportional",
+    "prim_edge_normal"
+   ],
+   "title": "Raise 'tall' by its height"
+  },
+  {
+   "id": 9,
+   "type": "PCG_Color",
+   "pos": [
+    840,
+    734
+   ],
+   "size": [
+    360,
+    349
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      8,
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "prim",
+    "",
+    "ramp_by_attribute",
+    1.0,
+    1.0,
+    1.0,
+    0,
+    "height",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Colour by height"
+  },
+  {
+   "id": 10,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    520,
+    373
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 8
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    40.0,
+    30.0,
+    "color",
+    "Cd",
+    "studio",
+    2,
+    "",
+    "material",
+    "uv"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "PreviewImage",
+   "pos": [
+    1260,
+    417
+   ],
+   "size": [
+    520,
+    560
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 9
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Coloured by height"
+  },
+  {
+   "id": 12,
+   "type": "PCG_Viewport",
+   "pos": [
+    1260,
+    1021
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 10
+    },
+    {
+     "name": "template",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Viewport"
+   },
+   "widgets_values": []
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   2,
+   3,
+   0,
+   4,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   3,
+   4,
+   0,
+   5,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   5,
+   6,
+   0,
+   7,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   6,
+   7,
+   0,
+   8,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   7,
+   8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   8,
+   9,
+   0,
+   10,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   9,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   10,
+   9,
+   0,
+   12,
+   0,
+   "GEOMETRY"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

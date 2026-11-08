@@ -1,0 +1,845 @@
+{
+ "PCG_COPDistort": {
+  "topic": "cop-transform",
+  "summary": "Warps an image per pixel by a vector image, so noise, hand-painted flow or motion vectors displace the pixels.",
+  "description": "Computes `out[p] = cop[p + amount * field[p]]`. This is the general form of Houdini's Distort by Noise: wire a 2-channel COP Noise into `field` for noise distortion, a painted flow map for directional dragging, or a backward motion vector layer for a frame-to-frame warp.\n\nThe lookup is **backward**: the field says where in the input each output pixel fetches its value from, so the visual result is the opposite of \"pushing pixels along the vector\". The benefit is that no holes appear. For a forward-looking result use a negative `amount` (equivalent for small displacements, not for large ones).\n\nIf the field has a different resolution than the main input it is resampled to the main input first, as in Composite.",
+  "inputs": {
+   "cop": "Image whose layers are warped.",
+   "field": "Image that holds the 2-channel vector layer used as displacement."
+  },
+  "outputs": {
+   "cop": "The warped image."
+  },
+  "params": {
+   "layers": "Layers of the main input to warp. Empty means all layers; otherwise a space-separated list of layer names.",
+   "field_layer": "Name of the 2-channel vector layer on the `field` input.",
+   "amount": "Scale applied to the vector before the lookup. Positive values fetch from `p + amount * field[p]`; negative values reverse the apparent direction.",
+   "units": "Unit in which the field vector is interpreted: UV (1 = full image size), pixels, or normalized (1 = half the image size).",
+   "filter": "Sampling filter for the lookup: smooth bilinear interpolation or nearest pixel.",
+   "border": "What a lookup outside the image returns: edge pixel (clamp), tiled (wrap) or black."
+  }
+ },
+ "PCG_COPDither": {
+  "topic": "cop-filter",
+  "summary": "Quantizes layers to a small number of levels using ordered, error-diffusion or random dithering.",
+  "description": "Equivalent of Surface Dither. Values are first clamped to 0-1, then reduced to `levels` evenly spaced steps with a dithering pattern that preserves the average brightness.\n\nBayer methods are ordered dithering: the pattern tiles and does not flicker in animation. Floyd-Steinberg is error diffusion, processed serially (scanline order, top to bottom), and is the closest to the original average brightness but slower on large images. White noise uses a random threshold per pixel.",
+  "inputs": {
+   "cop": "Image to dither."
+  },
+  "outputs": {
+   "cop": "Image with the selected layers quantized."
+  },
+  "params": {
+   "layers": "Layers to dither. Empty means all layers; otherwise a space-separated list of layer names.",
+   "method": "Dither algorithm. `bayer4`/`bayer8` use a 4x4 or 8x8 Bayer matrix; `floyd_steinberg` diffuses the quantization error to neighbours; `white_noise` uses random thresholds.",
+   "levels": "Number of output levels per channel (at least 2). 2 gives pure black and white.",
+   "rand_seed": "Seed for the White Noise method. Other methods ignore it."
+  }
+ },
+ "PCG_COPDropShadow": {
+  "topic": "cop-composite",
+  "summary": "Builds a drop shadow from an alpha mask by offsetting, blurring and tinting it behind the original image.",
+  "description": "Takes the alpha (the 4th channel of `layer`, or a separate alpha layer), shifts it by an offset, blurs it, colors it and places it underneath the original image. The result is RGBA.\n\nThe node errors out if there is no alpha at all; it does not guess one.",
+  "inputs": {
+   "cop": "Image containing the layer that casts the shadow."
+  },
+  "outputs": {
+   "cop": "RGBA image: the original with the shadow composited underneath."
+  },
+  "params": {
+   "layer": "Color layer to cast the shadow from and composite over.",
+   "alpha_layer": "Layer whose first channel is the shadow alpha. Empty uses the 4th channel of `layer`, and errors if there is none.",
+   "offset": "Shadow offset as two numbers `x y` in pixels. Positive y points up.",
+   "blur": "Blur radius of the shadow in pixels.",
+   "color": "Shadow color as space-separated RGB values.",
+   "opacity": "Overall opacity of the shadow, 0 to 1."
+  }
+ },
+ "PCG_COPEdge": {
+  "topic": "cop-filter",
+  "summary": "Detects edges as the gradient magnitude of a layer, optionally also outputting the x/y gradients and direction.",
+  "description": "The main output is the gradient magnitude. With `components` on, three more layers `<out>_gx`, `<out>_gy` and `<out>_dir` (direction angle) are written as well.\n\n**Kernels are normalized to true derivatives.** Raw integer Sobel kernels return 8 times the real gradient (Prewitt 6, Scharr 32). Left alone, switching kernels would change edge strength several-fold and every threshold would need retuning. Here every kernel is divided out, so on a linear ramp `f = a*x + b*y` the gx and gy outputs are exactly `a` and `b`. The consequence is that values look smaller than in tools using raw integer kernels. The Laplacian is not normalized; it is the plain second derivative sum, so `f = a*x^2` gives `2a`.\n\n**Multi-channel layers are processed per channel**, and the magnitude is the root of the summed squares, not a grayscale conversion first. A red-green boundary with equal luminance would vanish after conversion. If you want luminance-based edges, put a COP Luminance in front.",
+  "inputs": {
+   "cop": "Image containing the layer to analyze."
+  },
+  "outputs": {
+   "cop": "Image with the edge layer added (and optionally the gradient components)."
+  },
+  "params": {
+   "layer": "Layer to detect edges on.",
+   "method": "Derivative kernel: Sobel, Prewitt, Scharr, or Laplacian (second derivative).",
+   "scale": "Final multiplier on the result. The default 1 gives the true per-pixel gradient; use roughly 4 to 10 to make faint edges visible.",
+   "border": "How pixels outside the image are read at the borders: clamp, wrap or black.",
+   "components": "Also output the x gradient, y gradient and direction angle as extra layers (suffixes `_gx`, `_gy`, `_dir`).",
+   "out_layer": "Name of the edge magnitude layer.",
+   "keep_layers": "Keep the other input layers in the output; off outputs only the edge result."
+  },
+  "tips": [
+   "Edge strength is a true per-pixel gradient, so a unit-range image rarely exceeds 1. Raise `scale` before thresholding for display."
+  ]
+ },
+ "PCG_COPEdgeDetectProbe": {
+  "topic": "cop-filter",
+  "summary": "Finds edges by probing a neighbourhood for differing ids, depth jumps or normal creases, in the manner of Houdini's Edge Detect by Contour, Depth and Normal.",
+  "description": "For every pixel, integer-offset neighbours inside a probe radius are examined. The radius is `thickness_scale` (multiplied by the optional thickness layer), not smaller than `min_probe_radius`, and capped at 64 pixels. A neighbour is on the line if its value differs from the pixel by more than `contour_tolerance` (Contour, Euclidean distance over channels, normally an id layer), if its depth differs by more than `depth_tolerance` in either direction (Depth), or if the dot product of the normalized normals is below `normal_tolerance` (Normal). The pixel's result is the strongest weight among such neighbours: 1 for immediate neighbours, falling off as a Gaussian of the distance with sigma = `edge_spread` times the radius, cut off at the radius.\n\nThis is separate from COP Contour (iso-lines) and from the lineart ControlNet packaging in Control Image. Houdini's documentation does not specify the algorithm in detail; this is the plugin's own definition. There is no camera, so tolerances are absolute values, and pixels outside the image repeat the edge pixel.",
+  "inputs": {
+   "cop": "Image containing the id, depth or normal layer, and optionally a thickness layer."
+  },
+  "outputs": {
+   "cop": "Image with the edge layer added."
+  },
+  "params": {
+   "kind": "What counts as an edge: `contour` compares ids, `depth` compares depth values, `normal` compares normal directions.",
+   "layer": "Layer to analyze. Contour uses an id layer, Depth uses the first channel of a depth (Z) layer, Normal needs a 3-channel normal layer.",
+   "thickness_layer": "Optional per-pixel thickness layer. Empty disables it; when connected, `thickness_scale` multiplies it to give the probe radius.",
+   "thickness_scale": "Probe radius in pixels, or a multiplier of the thickness layer when one is given.",
+   "edge_spread": "Gaussian falloff of the line: sigma = Edge Spread times the probe radius. Larger values give a more solid line; 0 marks only pixels directly next to a discontinuity.",
+   "blur": "Gaussian blur (sigma in pixels) applied to the input before detection.",
+   "contour_tolerance": "Contour mode: minimum difference (Euclidean over channels) between a neighbour and the pixel for the neighbour to count as an edge.",
+   "depth_tolerance": "Depth difference above which a neighbour counts as an edge in Depth mode.",
+   "normal_tolerance": "Normal mode: neighbours whose normal dot product is below this value count as a crease.",
+   "min_probe_radius": "Lower limit for the probe radius in pixels, applied after the thickness layer.",
+   "out_layer": "Name of the output edge layer."
+  },
+  "houdini_notes": "Combines Edge Detect by Contour, by Depth and by Normal into one node selected by Kind. Without a camera or ray differentials, tolerances are absolute and not scaled by distance or slope."
+ },
+ "PCG_COPEikonal": {
+  "topic": "cop-sim",
+  "summary": "Solves the eikonal equation to give the arrival time (or geodesic distance) from seed pixels through a speed field.",
+  "description": "Solves `|grad T| = 1/F` with a Godunov upwind scheme and fast sweeping, starting from the pixels of `seed_layer` that are above 0.5. The speed `F` is the speed layer multiplied by `speed`; a speed of 0 is a wall. With a constant speed of 1, the result is the geodesic distance in pixels around obstacles.\n\nUnreachable pixels are written as -1. If an id layer name is given, the id of the nearest seed region (connected component of the seed mask) is propagated and written as well.\n\nThe scheme is first order: diagonal directions close to the seeds have the largest error (around 10% within a few pixels), falling to around 1% far away.",
+  "inputs": {
+   "cop": "Image containing the seed layer and optionally a speed layer."
+  },
+  "outputs": {
+   "cop": "Image with the arrival time layer (and id layer) added.",
+   "report": "Text report with the number of sweeps and whether the solve converged."
+  },
+  "params": {
+   "seed_layer": "Layer whose pixels above 0.5 are the starting points (time 0). Errors if no seed pixel exists.",
+   "speed_layer": "Optional layer giving a per-pixel speed multiplier; 0 marks a wall. Empty means speed is `speed` everywhere.",
+   "speed": "Global speed multiplier.",
+   "max_sweeps": "Maximum number of full sweep iterations. A point source typically converges in 2 to 3.",
+   "tolerance": "Convergence threshold: sweeping stops when the largest change falls below this.",
+   "out_layer": "Name of the arrival time layer.",
+   "id_layer": "Name of an output layer holding the index of the nearest seed region. Empty skips it."
+  }
+ },
+ "PCG_COPEqualize": {
+  "topic": "cop-color",
+  "summary": "Shifts or scales the selected channels so that their measured minimum, maximum or average hits chosen target values.",
+  "description": "Measures the minimum, maximum and average of a luminance (chosen by `luminance_type`) and then moves all selected channels together to the target: stretch to Black/White, move the minimum to Black, move the maximum to White, move the average to Target Average, or scale so the maximum length hits White.\n\nThis is not histogram equalization; for that use COP Histogram.",
+  "inputs": {
+   "cop": "Image containing the layer to equalize."
+  },
+  "outputs": {
+   "cop": "Image with the equalized layer."
+  },
+  "params": {
+   "layer": "Layer to equalize.",
+   "mask": "Blend between the original and the new values; 1 uses only the new value.",
+   "red": "Apply to the red channel. For single-channel layers this is the only switch that is read.",
+   "green": "Apply to the green channel.",
+   "blue": "Apply to the blue channel.",
+   "alpha": "Apply to the alpha channel.",
+   "equalize_by": "What is matched: `stretch` maps min/max to Black/White; `min_to_black` and `max_to_white` move just that end; `average` moves the mean to Target Average; `max_length` scales the maximum length to White.",
+   "fit_method": "Whether the adjustment is applied as an offset (shift) or as a multiplication (scale).",
+   "luminance_type": "How a pixel's brightness is computed for measuring: weighted luma formulas (SGI, NTSC, HDTV), channel average/max/min, vector magnitude, HSV components, or a single channel.",
+   "black": "Target value for the dark end.",
+   "white": "Target value for the bright end.",
+   "target_average": "Target mean value when equalizing by average.",
+   "active_layer": "Only pixels where this layer is above 0.5 contribute to the min/max/average measurement. Empty uses the whole image.",
+   "mask_layer": "Optional layer multiplied per pixel into Mask. Empty disables it.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer."
+  }
+ },
+ "PCG_COPErosion": {
+  "topic": "cop-terrain",
+  "summary": "Adds erosion-like gullies and ridges to a height layer in a single, per-pixel pass; it is a filter, not a simulation.",
+  "description": "Produces a result that looks water-carved: channels running down slope and ridges, with fine rills branching off the walls of coarser ones. Each pixel is evaluated independently in one pass, and it runs on the GPU when one is available.\n\nThe idea follows Rune Skovbo Johansen's Advanced Terrain Erosion Filter (March 2026), re-implemented from its description.\n\n**Compared with a real simulation it lacks** a continuous river network (a gully can end mid-slope), sediment deposition, and any dependence on upstream flow: gully depth depends only on local slope. For those you need flow accumulation, which is a different and much slower node.\n\nThe output overwrites the input height layer (so Height to Normal can follow without changes), and an extra `erosion` layer in [-1, 1] is written (ridges above 0, gullies below 0) for texture layering.\n\nWith `tile` on the result is seamless. With it off, `origin_x`/`origin_y` give the world position of the image's lower-left corner so tiles generated separately line up without seams.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the eroded height layer and the erosion mask layer."
+  },
+  "params": {
+   "layer": "Height layer to erode.",
+   "strength": "Height scale: the height layer value times Strength gives the world height. Shared by all height-field nodes.",
+   "world_size": "World-space width of the whole image; pixel spacing is World Size divided by the image width. Shared by all height-field nodes.",
+   "amplitude": "Depth of the coarsest gullies in world units. Each finer octave is multiplied by Gain.",
+   "wavelength": "Spacing of the coarsest gullies in pixels. Each finer octave divides it by Lacunarity.",
+   "octaves": "Number of gully levels, from coarse to fine.",
+   "lacunarity": "Wavelength divider between successive octaves.",
+   "gain": "Depth multiplier between successive octaves. The usual fractal value 0.5 with lacunarity 2 makes every level equally steep and fills the image with fine clutter, so the default is lower.",
+   "steepness": "Slope mask sharpness: the slope is passed through an ease-out and used as a mask. Higher values let gentler slopes carve gullies.",
+   "flow_blur": "Before choosing the flow direction at each octave, the input slope is blurred by Flow Blur times that octave's wavelength. Fine noise in the input (typical for AI-generated height maps) otherwise makes large gullies zigzag within their own width and curl into worm shapes. It has almost no effect on smooth input. 0 matches the original method.",
+   "rand_seed": "Random seed for the gully pattern.",
+   "fade": "How flat areas are treated: `altitude` fades flat areas into ridges (high) or gullies (low) depending on height; `none` leaves flat areas untouched.",
+   "height_min": "Height range (min, max) used by the altitude fade. If both are equal, the image's own min and max are used. Give explicit values when generating tiles, otherwise each tile uses its own range.",
+   "tile": "Make the result tile seamlessly.",
+   "origin_x": "World position (x, y) of this image's lower-left corner, used when generating tiles.",
+   "out_layer": "Name of the eroded height output layer.",
+   "mask_layer": "Name of the output layer in [-1, 1] (ridges above 0, gullies below 0). Empty skips it.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPExport": {
+  "topic": "cop-utility",
+  "summary": "Converts a COP layer to a ComfyUI IMAGE and MASK for previewing, saving or any node that takes an IMAGE.",
+  "description": "Because IMAGE is conventionally 0-1, values are clamped by default. SDFs, normals and displacement naturally contain negative values or values above 1 and would turn all black or all white, so clamping can be switched off with `mode`.\n\nChannel handling: a 1-channel layer is replicated to gray, a 4-channel layer drops its alpha (ComfyUI carries alpha as a separate MASK), and a 2-channel layer gets a zero third channel.\n\n`normalize` is a data-dependent mapping: it changes with the input frame. It is good for inspection and not for exporting assets.",
+  "inputs": {
+   "cop": "Image containing the layers to export."
+  },
+  "outputs": {
+   "image": "ComfyUI IMAGE built from the selected layer.",
+   "mask": "ComfyUI MASK taken from channel 0 of the mask layer, clamped to 0-1; all ones if that layer does not exist."
+  },
+  "params": {
+   "layer": "Layer to export as the IMAGE.",
+   "mode": "Range handling: `clamp` clips to 0-1 (normal color layers); `raw` outputs values unchanged; `signed` maps [-1, 1] to [0, 1] (normals, signed noise); `normalize` stretches this image's min/max to fill 0-1 (SDFs, height fields).",
+   "mask_layer": "Layer whose channel 0 becomes the MASK output (clamped to 0-1 regardless of mode). If the layer is missing, the mask is all ones."
+  }
+ },
+ "PCG_COPExtrapolateBoundaries": {
+  "topic": "cop-filter",
+  "summary": "Extends the valid interior of an image outward by copying nearest interior values, mainly to bleed texture edges.",
+  "description": "The fill-area layer is split into inside and outside by `threshold` and `inner_side`. Outside pixels within Edge Padding (in image units) copy the nearest interior value; this can be pulled inward by Edge Offset and can restrict sampling to interior pixels only. Pixels beyond the padding are handled by `exterior`: left unchanged, set to black, or filled by diffusion.\n\nThis is distinct from COP Smooth Fill, which fills holes in a mask with three different algorithms.\n\nInterior pixels are never changed. Errors if the fill-area layer has no interior pixels. A value exactly equal to the threshold counts as exterior.",
+  "inputs": {
+   "cop": "Image containing the layers to extend and the fill-area layer."
+  },
+  "outputs": {
+   "cop": "Image with the boundaries extrapolated."
+  },
+  "params": {
+   "layers": "Layers to extrapolate. Empty means all layers except the fill-area layer.",
+   "fillarea_layer": "Layer that defines the valid interior.",
+   "mask": "Amount by which the new values are blended in (multiplied by the mask layer).",
+   "mask_layer": "Optional layer controlling the blend per pixel. Empty disables it.",
+   "exterior": "How pixels beyond Edge Padding are treated: `unchanged`, `black`, or `diffuse_fill` (smooth Laplace-style relaxation using the interior plus padding as known values).",
+   "inner_side": "Which side of the threshold is the interior.",
+   "threshold": "Value of the fill-area layer separating inside from outside.",
+   "edge_padding": "Distance from the interior within which values are copied outward, in image units (the long side of the image is 2).",
+   "edge_offset": "How far to step back inward from the nearest interior point before sampling.",
+   "sample_only_present": "On: bilinear sampling uses interior pixels only (weights renormalized, falling back to the nearest point), so exterior values such as black edges do not bleed in. Off: plain bilinear sampling, which blends smoothly with exterior values at the edge.",
+   "diffuse_iterations": "Number of diffusion iterations for the Diffuse Fill exterior mode."
+  }
+ },
+ "PCG_COPFFT": {
+  "topic": "cop-filter",
+  "summary": "Performs a forward or inverse Fourier transform, shows the magnitude spectrum, or filters frequencies.",
+  "description": "Covers Houdini's Fast Fourier Transform and Filter Frequencies. `forward` turns channel 0 into a 2-channel layer (real, imaginary) without normalization (the DC component is the sum of the pixels); `inverse` takes (real, imaginary) back to one real channel; `magnitude` outputs `log(1 + |F|)` per channel for viewing the spectrum; `filter` transforms, multiplies by a radial window and transforms back, per channel, with a cosine soft edge (a hard cutoff would ring).\n\nCutoffs are in cycles per image (image width = 1 cycle); the radial distance is elliptical, each axis scaled by its own size.",
+  "inputs": {
+   "cop": "Image containing the layer to transform."
+  },
+  "outputs": {
+   "cop": "Image with the transformed or filtered layer."
+  },
+  "params": {
+   "layer": "Layer to transform. Forward uses only its first channel; Magnitude and Filter work on every channel.",
+   "mode": "`forward` (to Re/Im), `inverse` (back to image), `magnitude` (log spectrum for display), or `filter` (frequency filtering in one step).",
+   "centered": "Move the DC component to the image center (for viewing spectra). An inverse must use the same setting as the forward it undoes. Has no effect in Filter mode.",
+   "filter": "Filter type in Filter mode: pass low frequencies, pass high frequencies, pass a band, or remove a band.",
+   "cutoff": "Cutoff frequency in cycles per image. For band-pass and band-stop this is the low end of the band.",
+   "cutoff_high": "Upper frequency of the band, in cycles per image (band-pass and band-stop only).",
+   "softness": "Width of the cosine soft edge around each cutoff, in cycles per image.",
+   "out_layer": "Name of the output layer. Empty uses the layer name plus the mode; in Filter mode empty overwrites the input layer."
+  }
+ },
+ "PCG_COPFeather": {
+  "topic": "cop-filter",
+  "summary": "Softens the edge of a mask with a smoothstep ramp based on the exact distance to the boundary.",
+  "description": "The mask is thresholded at 0.5 and the ramp of width `width` pixels follows the exact distance to the boundary. Unlike a Gaussian blur, thin strips do not fade overall and sharp corners are not rounded off. In `both` mode the boundary itself is always exactly 0.5.\n\nIn `inward` mode strips narrower than the width do get lighter overall; that is the literal meaning of softening inward only.",
+  "inputs": {
+   "cop": "Image containing the mask layer."
+  },
+  "outputs": {
+   "cop": "Image with the feathered mask."
+  },
+  "params": {
+   "layer": "Mask layer to feather.",
+   "width": "Width of the transition in pixels.",
+   "direction": "Where the ramp is placed: `both` spreads it half inside and half outside the boundary, `inward` softens only inside the mask, `outward` only outside.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer."
+  }
+ },
+ "PCG_COPFeatherSlope": {
+  "topic": "cop-filter",
+  "summary": "Limits the maximum rate of change between neighbouring pixels by lifting dark pixels toward bright ones (or the reverse).",
+  "description": "Equivalent of Houdini's Feather. With High to Low on, bright pixels stay fixed and the darker surroundings are raised until the slope limit is satisfied; with it off, dark pixels stay and bright ones are pushed down. The slope is given by the Feather Method (distance per unit change, or change per distance, in image units). The shape of the resulting islands comes from the sweep directions selected by `direction` (Diamond, Square, Octagon, Custom, Circle).\n\nThis differs from the older COP Feather, which applies a smoothstep by distance to the mask boundary.",
+  "inputs": {
+   "cop": "Image containing the layer to feather."
+  },
+  "outputs": {
+   "cop": "Image with the slope-limited layer."
+  },
+  "params": {
+   "layer": "Layer to process.",
+   "mask": "Amount by which the new values are blended in (multiplied by the mask layer).",
+   "mask_layer": "Optional layer controlling the blend per pixel. Empty disables it.",
+   "high_to_low": "On: bright pixels stay and dark pixels are raised. Off: dark pixels stay and bright pixels are lowered.",
+   "include_border": "Take values from outside the image according to `border` (use Wrap for seamless textures).",
+   "border": "Rule for values outside the image. Layers carry no border metadata here, so it is set on the node; Clamp has no effect.",
+   "direction": "Shape of the feathered region by sweep directions. Circle is a 16-direction approximation (maximum deviation about 2.7%). Custom uses the sweep switches below.",
+   "sweep_nx": "Custom direction: sweep toward -x.",
+   "sweep_px": "Custom direction: sweep toward +x.",
+   "sweep_ny": "Custom direction: sweep toward -y.",
+   "sweep_py": "Custom direction: sweep toward +y.",
+   "sweep_nxny": "Custom direction: sweep along the (-x, -y) diagonal.",
+   "sweep_nxpy": "Custom direction: sweep along the (-x, +y) diagonal.",
+   "sweep_pxny": "Custom direction: sweep along the (+x, -y) diagonal.",
+   "sweep_pxpy": "Custom direction: sweep along the (+x, +y) diagonal.",
+   "method": "How the slope is specified: `distance_for_unit_change` uses Distance, `change_per_distance` uses Change.",
+   "distance": "Distance over which the value may change by one unit, in image units (the long side is 2). Used by Distance for Unit Change.",
+   "change": "Allowed change per unit distance. Used by Change per Distance.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer."
+  }
+ },
+ "PCG_COPFill": {
+  "topic": "cop-generate",
+  "summary": "Fills a layer with a constant value, softly blended through an optional mask.",
+  "description": "Equivalent of Fill. Every channel of the layer is replaced by the matching entry of `value`. If a mask layer is given, the constant is blended in proportionally to the mask (clamped to 0-1), so soft masks give soft edges; without a mask the whole layer is filled.",
+  "inputs": {
+   "cop": "Image containing the layer to fill."
+  },
+  "outputs": {
+   "cop": "Image with the layer filled."
+  },
+  "params": {
+   "layer": "Layer to fill.",
+   "value": "Fill value as space-separated numbers, one per channel. If fewer numbers than channels are given, the last one is repeated.",
+   "mask_layer": "Optional mask layer (first channel, clamped to 0-1) controlling how much of the fill is applied. Empty fills everywhere.",
+   "invert_mask": "Use 1 minus the mask, so the fill is applied where the mask is low."
+  }
+ },
+ "PCG_COPFit": {
+  "topic": "cop-color",
+  "summary": "Remaps the measured minimum and maximum of each layer to a chosen output range and reports statistics.",
+  "description": "Rescales values so that the actual minimum and maximum found in the layer land on `out_min` and `out_max`. COP does not clamp values, so the real range of an image (noise in plus/minus 1, an SDF in hundreds of pixels, depth in metres) is often unknown; Fit is the quickest way to inspect it without knowing the range in advance. The second output is a one-line statistics text for the chosen layer.\n\nBy default all channels share one range, which preserves hue. With `per_channel` on, each channel is stretched on its own, which changes color relationships. A constant layer (min equal to max) is written as `out_min` without dividing by zero.",
+  "inputs": {
+   "cop": "Image whose layers are remapped."
+  },
+  "outputs": {
+   "cop": "Image with the remapped layers.",
+   "stats": "Text report of the statistics of the layer named by Stats Layer."
+  },
+  "params": {
+   "layers": "Layers to remap. Empty means all layers; otherwise a space-separated list of layer names.",
+   "out_min": "Target range (min, max) that the measured minimum and maximum are mapped to.",
+   "per_channel": "Stretch each channel to the full range separately. This changes the color relationships between channels.",
+   "stats_layer": "Layer that the statistics report is computed for."
+  }
+ },
+ "PCG_COPFlip": {
+  "topic": "cop-transform",
+  "summary": "Mirrors layers horizontally and/or vertically by reversing pixel indices.",
+  "description": "The flip reverses the index order directly, with no resampling, so it is bit-exact lossless. Vertical flips the v axis; since row 0 of a COP image is the bottom, this turns the image upside down. Enabling both is a 180 degree rotation, which is cheaper than a rotation in COP Transform (also lossless).",
+  "inputs": {
+   "cop": "Image to flip."
+  },
+  "outputs": {
+   "cop": "The flipped image."
+  },
+  "params": {
+   "layers": "Layers to flip. Empty means all layers; otherwise a space-separated list of layer names.",
+   "horizontal": "Mirror left to right.",
+   "vertical": "Mirror top to bottom."
+  }
+ },
+ "PCG_COPFloodFill": {
+  "topic": "cop-utility",
+  "summary": "Selects the connected region around a seed whose values are close to the seed value and outputs it as a mask.",
+  "description": "Equivalent of Fill Connected. Starting from the seed (a uv position or a seed layer), every connected pixel whose value differs from the seed value by no more than `tolerance` is selected. The result is a mask layer. The second output is the number of selected pixels.",
+  "inputs": {
+   "cop": "Image containing the layer to flood."
+  },
+  "outputs": {
+   "cop": "Image with the selection mask layer added.",
+   "count": "Number of selected pixels."
+  },
+  "params": {
+   "layer": "Layer whose values are compared against the seed value.",
+   "seed_uv": "Seed position as two numbers `u v` (0 to 1). Ignored when a seed layer is given.",
+   "seed_layer": "Optional layer whose pixels above 0.5 are the seeds. When set, Seed UV is not used.",
+   "tolerance": "Maximum allowed difference from the seed value for a pixel to be included.",
+   "connectivity": "Which neighbours count as connected: 4 (edge neighbours) or 8 (including diagonals).",
+   "out_layer": "Name of the output mask layer."
+  }
+ },
+ "PCG_COPFlowAccumulation": {
+  "topic": "cop-terrain",
+  "summary": "Computes how much upstream area drains through each pixel of a height field, and derives river, lake and flow direction layers from it.",
+  "description": "First the height field is pit-filled with Priority-Flood plus an epsilon: depressions become lakes and every pixel is guaranteed a lower neighbour, so water always reaches an outlet (by default the four image edges; with `tile` the single lowest point; a base layer restricts outlets to its marked pixels). Then water is passed downstream by one of three methods: D8 (steepest neighbour; rivers are one pixel wide lines at 0 and 45 degrees), Rho8 (randomized D8, unbiased in average direction, seeded by `rand_seed`) or MFD (split among all lower neighbours by slope to the power of `exponent`, giving sheet flow on slopes).\n\nOutput layers: `flow` is the drainage area (in world units squared; resolution independent in channels), `river` is a river-network mask with a logarithmic soft transition around `river_area`, `lake` is the fill depth and `flow_dir` is the downstream direction (u, v). An empty layer name disables that output. A rain layer, if given, scales rainfall per pixel (e.g. more on windward slopes).\n\nWater is conserved: the total leaving through the outlets equals the total rainfall, and the report states it. The pit filling is a sequential priority queue and runs on the CPU only (about 3 s for 1024x1024).",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the flow, river, lake and direction layers added.",
+   "report": "Text report including the water balance (rain in versus flow out)."
+  },
+  "params": {
+   "layer": "Height layer to route water over.",
+   "strength": "Height scale: height value times Strength gives world height. Shared by all height-field nodes.",
+   "world_size": "World-space width of the whole image; pixel spacing is World Size divided by image width. Shared by all height-field nodes.",
+   "method": "Flow routing: `d8` single steepest neighbour, `rho8` randomized D8, `mfd` multiple flow direction split by slope.",
+   "exponent": "Slope exponent for MFD: higher values concentrate flow toward the steepest neighbour.",
+   "rand_seed": "Random seed for Rho8.",
+   "fill_pits": "Fill depressions so they become lakes. If off, water that falls into a pit does not reach an outlet.",
+   "tile": "Use the lowest point of the whole image as the outlet instead of the four edges.",
+   "base_layer": "Optional layer whose pixels above 0.5 are the outlets. Empty uses the four edges.",
+   "rain_layer": "Optional per-pixel rainfall amount. Empty means uniform rain.",
+   "river_layer": "Name of the river mask layer. Empty disables it.",
+   "river_area": "Drainage area (world units squared) around which the river mask transitions.",
+   "river_softness": "Width of the logarithmic soft transition of the river mask around River Area.",
+   "flow_layer": "Name of the drainage area layer. Empty disables it.",
+   "lake_layer": "Name of the lake depth layer (how deep each pit was filled). Empty disables it.",
+   "dir_layer": "Name of the downstream direction layer (u, v). Empty disables it.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPFlowSolve": {
+  "topic": "cop-sim",
+  "summary": "Projects a 2-channel velocity layer to be divergence-free, or runs a stable-fluids simulation that advects density layers.",
+  "description": "Covers Flow Block Begin/End and Flow Project Non-Divergent Multigrid. Velocity is a 2-channel layer in pixels per step (v pointing up, like the rest of COP).\n\n`project` performs one Helmholtz projection, turning any vector field into an incompressible flow. `simulate` runs Stam's stable fluids for `steps` iterations, each consisting of: add force, advect velocity, project, advect the density layers, then multiply by `1 - dissipation`.\n\nBoth edge modes are solved directly: Wrap uses an exact FFT projection; Clamp makes the borders walls using a mirrored extension and FFT, also exact. The velocity and density layers are written back under their original names, so the result can be fed into the next segment. The report states the maximum remaining divergence and where it was computed.",
+  "inputs": {
+   "cop": "Image containing the velocity layer, density layers and optional force layer."
+  },
+  "outputs": {
+   "cop": "Image with updated velocity and density layers.",
+   "report": "Text report with the maximum divergence and the compute device."
+  },
+  "params": {
+   "velocity_layer": "2-channel velocity layer in pixels per step.",
+   "mode": "`project` only makes the velocity divergence-free; `simulate` advances the fluid for several steps.",
+   "density_layers": "Space-separated layers carried along by the flow (any channel count). Used by Simulate.",
+   "steps": "Number of simulation steps (Simulate only).",
+   "dt": "Time step per simulation step, scaling forces and advection.",
+   "force_layer": "Optional layer whose first two channels are added to the velocity each step. Empty adds no force.",
+   "force_scale": "Multiplier on the force layer.",
+   "dissipation": "Fraction of density removed per step; 0 keeps density constant.",
+   "edge": "Boundary condition: `wrap` is periodic, `clamp` makes the image borders walls.",
+   "tolerance": "No longer has any effect, since both boundary modes are solved directly. Kept so older graphs stay compatible.",
+   "compute": "Device: `auto` picks the GPU when it is worthwhile, otherwise `cpu` or `cuda` are forced."
+  },
+  "tips": [
+   "Run `project` on a hand-painted or noise-generated vector field to get a swirling, incompressible field, then feed it to COP Distort."
+  ]
+ },
+ "PCG_COPFractalSample": {
+  "topic": "cop-generate",
+  "summary": "Layers a source image into itself at shrinking, rotating, jittered scales, like fractal noise whose basis function is an image.",
+  "description": "Equivalent of Fractal Sample. Each octave samples the source layer with a scale of `lacunarity^octave`, an optional rotation (`angle`), jitter and random flips, around the image center. The octaves are weighted by `roughness^octave` and combined by the blend mode: Add, Subtract, Maximum or Over (Over only makes sense for RGBA). With one octave and no rotation or jitter the output equals the source.\n\nAdd and Subtract are normalized by the sum of the weights so that the value range matches the source. Samples first have `bias` subtracted (so the result is centered on 0), and `offset_with_bias` adds it back at the end. Over does not subtract bias.\n\nMaintain Tileable rounds the lacunarity to an integer and the angle to multiples of 90 degrees; the source itself must already tile for the result to tile. The noise post-processing parameters (fold, complement, bias, gain, gamma, contrast, clamps) are then applied to the combined result in that order.",
+  "inputs": {
+   "cop": "Image containing the source layer."
+  },
+  "outputs": {
+   "cop": "Image with the fractal layer added."
+  },
+  "params": {
+   "source_layer": "Layer used as the basis function for every octave.",
+   "maintain_tileable": "Round lacunarity to an integer and the angle to multiples of 90 degrees. The source must already be tileable.",
+   "max_octaves": "Number of octaves layered.",
+   "lacunarity": "Scale multiplier per octave: octave n samples the source at lacunarity^n times the frequency.",
+   "roughness": "Weight multiplier per octave; lower values make finer octaves weaker.",
+   "bias": "Midpoint subtracted from each sample before weighting.",
+   "offset_with_bias": "Add the bias back after combining so the result is re-centered on the original midpoint.",
+   "blend_mode": "How octaves combine: Add, Subtract (first octave minus the rest), Maximum, or Over. Over only works with RGBA.",
+   "border": "Sampling outside the source image: tiled (wrap), edge pixel (clamp) or black.",
+   "filter": "Sampling filter: bilinear or nearest pixel. There is no area filtering, so strongly minified octaves can alias.",
+   "rand_seed": "Seed for jitter, random angles and random flips.",
+   "jitter": "Each octave gets a random uv offset in the range plus/minus Jitter.",
+   "angle_mode": "`per_octave` rotates by Angle times (octave + 1) cumulatively; `random` picks a random angle between -Angle and +Angle per octave.",
+   "angle": "Rotation in degrees (see Angle Mode).",
+   "random_flip_x": "Randomly mirror each octave horizontally.",
+   "random_flip_y": "Randomly mirror each octave vertically.",
+   "fold": "Take the absolute value of the result (post-process, applied first).",
+   "complement": "Invert the result as 1 minus value.",
+   "pp_bias": "Perlin bias curve: 0.5 does nothing, below 0.5 pulls values toward 0, above 0.5 toward 1.",
+   "gain": "Perlin gain curve; 0.5 does nothing.",
+   "gamma": "Raises the value to the power gamma; above 1 darkens.",
+   "contrast": "Scales the result around 0.5.",
+   "clamp_min": "Lower clamp value, used only when Use Clamp Min is on.",
+   "use_clamp_min": "Enable the lower clamp.",
+   "clamp_max": "Upper clamp value, used only when Use Clamp Max is on.",
+   "use_clamp_max": "Enable the upper clamp.",
+   "out_layer": "Name of the output layer."
+  },
+  "houdini_notes": "The weight normalization is the plugin's own choice, and the Houdini documentation's reference to gain \"after weight and gain\" is not implemented. Border offers clamp, wrap and black only; Filter offers bilinear and point only, with no area filtering. The optional per-pixel input layers for octaves, lacunarity and roughness are not supported."
+ },
+ "PCG_COPFunction": {
+  "topic": "cop-color",
+  "summary": "Applies a per-pixel unary function such as abs, pow, exp, log, sin, frac, step, smoothstep, mod or sigmoid.",
+  "description": "Equivalent of Function. The function is applied to every channel of the selected layers.\n\nThe node never produces NaN: log and sqrt of negative numbers give 0, and the reciprocal of 0 gives 0. A NaN would be smeared by a downstream blur and turn the whole image black with no visible source.\n\n`pow` keeps the sign (`x^a` applied to the magnitude). `step` is 1 where `x >= a`. `smoothstep` runs from `a` to `b`. `mod` is `x mod a` (result has the sign of `a`; 0 when `a` is 0). `sigmoid` is the logistic function.",
+  "inputs": {
+   "cop": "Image whose layers are transformed."
+  },
+  "outputs": {
+   "cop": "Image with the function applied."
+  },
+  "params": {
+   "layers": "Layers to process. Empty means all layers; otherwise a space-separated list of layer names.",
+   "function": "The function to apply per pixel.",
+   "a": "First function parameter: the exponent for pow, the threshold for step, the lower edge for smoothstep, the modulus for mod. Other functions ignore it.",
+   "b": "Upper edge for smoothstep. Other functions ignore it."
+  }
+ },
+ "PCG_COPGeoToLayer": {
+  "topic": "cop-geometry",
+  "summary": "Converts volume primitives of a geometry into image layers by taking a slice, one voxel per pixel.",
+  "description": "Equivalent of Geometry to Layer. Each requested volume becomes one layer named after its primitive (`output<N>` if it has no name). 3D volumes are sliced in the chosen plane at the given offset, with one voxel mapped to one pixel. Names with a wildcard such as `vel.*` collect the matching volumes, sorted by name, into one multi-channel layer named without the `.*`.\n\nAll outputs must have the same resolution, since layers in one image share a resolution. With `optional` on, a requested volume that cannot be found is filled with the default value using the resolution of the `size_ref` image instead of raising an error.",
+  "inputs": {
+   "geo": "Geometry containing the volume primitives to convert.",
+   "size_ref": "Image whose resolution is used when an optional output is missing."
+  },
+  "outputs": {
+   "cop": "Image with one layer per converted output."
+  },
+  "params": {
+   "slice": "Plane through the 3D volume: XY, YZ or ZX.",
+   "slice_offset": "Position of the slice plane along its normal, in world coordinates.",
+   "outputs": "Space-separated list of what to convert: primitive names, volume indices, or wildcard names such as `vel.*` that are merged into one multi-channel layer. Empty converts every volume, one layer each.",
+   "out_type": "Channel layout of the layers: `auto` uses the number of matched volumes; `id` (1 channel, rounded to integers), `mono` (1), `uv` (2), `rgb` (3), `rgba` (4) truncate or pad with zeros.",
+   "optional": "Do not error when a requested output is missing; fill it with the default value at the size of `size_ref`.",
+   "default_value": "Value used for missing optional outputs."
+  },
+  "houdini_notes": "VDB and camera primitives are not supported. The Slice Offset parameter is an extension; Houdini's node has no offset. Houdini outputs can have independent resolutions, while here all layers of one image share one."
+ },
+ "PCG_COPGlow": {
+  "topic": "cop-filter",
+  "summary": "Adds a glow or star-shaped light streaks around the bright parts of an image.",
+  "description": "Covers Glow and Star Glow. Pixels brighter than `threshold` (with a soft knee, using the maximum of the first three channels) are extracted. In `glow` mode the extracted light is blurred at three scales (radius, half and quarter radius) and averaged; in `star` mode it is smeared along `rays` evenly spaced directions. The result times `intensity` is added back to the original. Alpha is left unchanged.",
+  "inputs": {
+   "cop": "Image to add glow to."
+  },
+  "outputs": {
+   "cop": "Image with the glow added."
+  },
+  "params": {
+   "layers": "Layers to process. Empty means all layers; otherwise a space-separated list of layer names.",
+   "mode": "`glow` is a round multi-scale Gaussian glow; `star` is a directional streak glow.",
+   "threshold": "Brightness above which light contributes to the glow.",
+   "intensity": "Strength of the glow added back to the image.",
+   "radius": "Size of the glow in pixels (Glow mode). Smaller scales at half and quarter size are mixed in.",
+   "rays": "Number of streak directions (Star mode).",
+   "ray_length": "Length of each streak in pixels (Star mode).",
+   "angle": "Rotation of the first streak direction in degrees (Star mode).",
+   "border": "How pixels outside the image are read while blurring: clamp, wrap or black."
+  }
+ },
+ "PCG_COPGradient": {
+  "topic": "cop-generate",
+  "summary": "Generates a gradient (along u, v, a diagonal, radially or by angle) through a color ramp.",
+  "description": "Equivalent of Ramp. The gradient position (0 to 1) is computed per pixel from the chosen direction and looked up in the ramp. The ramp uses the same text syntax as the geometry-side Attribute Fade and Measure ramps: space-separated `position:value` stops such as `0:0 0.5:1 1:0`, or multi-component values such as `0:0,0,0 1:1,0.5,0`. The number of components is taken from the first stop and sets the channel count of the layer.\n\nRadial reaches 1 at a distance of 0.5 from the center; angular runs once around the center, from 0 to 1.",
+  "inputs": {},
+  "outputs": {
+   "cop": "Image containing the gradient layer."
+  },
+  "params": {
+   "resolution_x": "Width and height of the generated image in pixels.",
+   "direction": "Gradient geometry: `u` varies left to right, `v` bottom to top, `diagonal` along the direction given by Angle, `radial` by distance from the center, `angular` by angle around the center.",
+   "angle": "Direction of the gradient in degrees (Diagonal only).",
+   "center_x": "Center of the gradient (Radial and Angular), as an offset in the image's centered coordinates.",
+   "ramp": "Ramp stops as space-separated `position:value` pairs. A value may be several comma-separated components to produce a multi-channel layer.",
+   "ramp_mode": "Interpolation between stops: linear, smooth, or constant (steps).",
+   "layer": "Name of the output layer.",
+   "device": "Compute backend: `auto` picks automatically, `cpu`/`numpy`/`cuda` force a backend, `exact` is the reference path."
+  }
+ },
+ "PCG_COPHFClip": {
+  "topic": "cop-terrain",
+  "summary": "Clamps a height layer into a minimum/maximum range, optionally with a soft knee.",
+  "description": "Equivalent of HeightField Clip. Heights are limited to [Min, Max] in the chosen mode, with `softness` giving a C1 continuous knee instead of a hard edge. A second layer `<out>_clipped` holds the amount that was changed. The height layer defaults to `C`, like the rest of the terrain nodes. An optional mask blends the clipped result back into the original height.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the clipped height layer and the `_clipped` difference layer."
+  },
+  "params": {
+   "layer": "Height layer to clip.",
+   "mask_layer": "Optional mask layer (0 to 1) that blends the clipped result over the original height. Empty clips everywhere.",
+   "mode": "Which side is clipped: `both` limits to the range, `above` only lowers values over Max, `below` only raises values under Min.",
+   "min": "Lower height limit.",
+   "max": "Upper height limit.",
+   "softness": "Width of the smooth knee in height units. 0 gives a hard clamp.",
+   "out_layer": "Name of the output layer. Empty overwrites the input layer; the change layer is written as `<name>_clipped`."
+  }
+ },
+ "PCG_COPHFCutoutByObject": {
+  "topic": "cop-terrain",
+  "summary": "Carves the terrain down to the bottom of a geometry, fills it up to its top, or both.",
+  "description": "The height field lies in the xz plane, centered, with width `world_size`; world height is the layer value times `strength`. For every texel two vertical rays are shot (down and up) to find the top and bottom of the geometry in that column (the outermost two if several layers exist).\n\n`carve` lowers the ground to the geometry's bottom where the geometry passes through the ground (geometry fully buried does not cut a hole). `fill` raises the ground to the geometry's top where the geometry rests on the ground (floating geometry does not pull the ground up). `both` carves then fills, so the geometry's solid part becomes the terrain. A layer `<out>_cut` marks the modified texels with 1, useful for texturing or scatter avoidance.",
+  "inputs": {
+   "cop": "Image containing the height layer.",
+   "geo": "Geometry (needs polygons) used as the cutting object."
+  },
+  "outputs": {
+   "cop": "Image with the modified height layer and the `_cut` layer.",
+   "report": "Text report of the operation."
+  },
+  "params": {
+   "layer": "Height layer to modify.",
+   "strength": "Height scale: layer value times Strength gives world height.",
+   "world_size": "Width of the height field in world units along x and z (centered on the origin).",
+   "mode": "`carve` digs terrain down to the object's bottom, `fill` builds terrain up to the object's top, `both` does both.",
+   "out_layer": "Name of the output layer. Empty overwrites the height layer; the change marker is written as `<name>_cut`."
+  }
+ },
+ "PCG_COPHFMaskByObject": {
+  "topic": "cop-terrain",
+  "summary": "Projects a geometry vertically onto a height field and outputs a mask of where it covers, crosses, floats above or is buried below the ground.",
+  "description": "Uses the same grid convention as HeightField Project: xz plane, centered, width `world_size`, world height equal to layer value times `strength`. Each texel's column is tested with rays from above and below to find the top and bottom of the geometry.\n\nModes: `footprint` is 1 wherever the geometry covers the column; `intersect` where the geometry passes through the ground (bottom at or below the ground and top at or above it); `above` where the geometry is entirely above the ground; `below` where it is entirely buried.\n\n`feather` softens the mask outward by a world-space distance (exact distance with a smoothstep). `invert` flips the mask.",
+  "inputs": {
+   "cop": "Image containing the height layer.",
+   "geo": "Geometry (needs polygons) to project."
+  },
+  "outputs": {
+   "cop": "Image with the mask layer added.",
+   "report": "Text report of the operation."
+  },
+  "params": {
+   "mode": "Which relation between object and ground is marked: footprint, intersect, above (floating) or below (buried).",
+   "layer": "Height layer defining the ground.",
+   "strength": "Height scale: layer value times Strength gives world height.",
+   "world_size": "Width of the height field in world units (centered on the origin).",
+   "feather": "Width of the outward soft edge in world units. 0 gives a hard mask.",
+   "invert": "Invert the mask.",
+   "out_layer": "Name of the output mask layer."
+  }
+ },
+ "PCG_COPHFProject": {
+  "topic": "cop-terrain",
+  "summary": "Projects geometry down onto a height field, or, with no geometry connected, transforms the height field in 3D and projects it back.",
+  "description": "Covers HeightField Project and HeightField Transform 3D. With `geo` connected, a ray is cast straight down from above each texel; the height of the hit, divided by `strength`, is combined into the layer according to `mode`. With no geometry, the height field itself is turned into a mesh, transformed with `translate`, `rotate` (Euler XYZ, degrees) and `scale` about its center, and projected back onto the same grid. The mode is then always Replace, so tilting, lifting or rotating a terrain is a true 3D transform and not an image-space warp.\n\n`project` chooses which surface a ray takes: the highest hit, or the lowest (Minimum Height). If `max_height` is above 0, only geometry whose height value lies within plus/minus that value is projected. `mask` and `mask_layer` blend the result with the original height. `projection_only` outputs just the projected heights without compositing, and `hitmask_layer` writes a mask of the texels that were hit. The second output is a report with the number of hit texels.\n\nThe grid convention is the one of HeightField to Mesh: xz plane, centered, width `world_size`.",
+  "inputs": {
+   "cop": "Image containing the height layer.",
+   "geo": "Geometry to project from above. When disconnected, the node performs the 3D transform of the height field."
+  },
+  "outputs": {
+   "cop": "Image with the projected height layer (and optional hit mask).",
+   "report": "Text report with the number of hit texels."
+  },
+  "params": {
+   "layer": "Height layer to project onto.",
+   "project": "Which surface a ray picks: `maximum` the topmost, `minimum` the lowest.",
+   "max_height": "If above 0, only geometry within this height range (as a height value, plus/minus) is projected. 0 means unlimited.",
+   "mask": "Blend amount between original and result. When a mask layer is given, it is multiplied by it.",
+   "mask_layer": "Optional layer controlling the blend per pixel.",
+   "mode": "How the projected height combines with the existing height (only with geometry connected): max, min, add, replace, multiply, or blend. Blend replaces the height where hit and leaves the rest; Replace fills misses with Fill Value. Without geometry the mode is fixed to Replace.",
+   "projection_only": "Output only the projected heights, with misses set to Fill Value, without combining with the original height or the mask.",
+   "fill_value": "Value for texels that were not hit (with geometry, only used by Replace and Output Projection Only).",
+   "strength": "Height scale: layer value times Strength gives world height.",
+   "world_size": "Width of the height field in world units (centered on the origin).",
+   "translate": "Translation (x y z) applied in the 3D transform. Only used when no geometry is connected.",
+   "rotate": "Rotation (x y z, Euler angles in degrees). Only used when no geometry is connected.",
+   "scale": "Scale (x y z) about the height field's center. Only used when no geometry is connected.",
+   "out_layer": "Name of the output layer. Empty overwrites the height layer.",
+   "hitmask_layer": "Name of a layer that receives 1 where a ray hit and 0 elsewhere. Empty disables it."
+  }
+ },
+ "PCG_COPHeatDistort": {
+  "topic": "cop-transform",
+  "summary": "Distorts pixels with simplex noise that drifts over time, producing a heat-haze effect.",
+  "description": "Equivalent of Heat Distort (the procedural one). Pixels are pushed by up to `amount` pixels using simplex noise that drifts in the given direction as time advances. If a field layer is given, the distortion is scaled by that layer's values, so it only acts where the layer is above 0 (for instance, the haze above a heat source). Wire the frame number into `time` for animation.",
+  "inputs": {
+   "cop": "Image to distort (and optionally the field layer)."
+  },
+  "outputs": {
+   "cop": "The distorted image."
+  },
+  "params": {
+   "layers": "Layers to distort. Empty means all layers; otherwise a space-separated list of layer names.",
+   "amount": "Maximum displacement in pixels.",
+   "scale": "Feature size of the noise in uv units.",
+   "direction": "Direction in degrees in which the noise drifts.",
+   "speed": "Drift speed; the actual offset is Time times Speed.",
+   "time": "Animation time, normally the frame number.",
+   "rand_seed": "Seed of the noise.",
+   "field_layer": "Optional layer that scales the distortion strength per pixel. Empty applies the distortion uniformly.",
+   "border": "What a lookup outside the image returns: clamp, wrap or black."
+  },
+  "houdini_notes": "For distortion driven by an input noise layer, use COP Heat Distort by Layer instead."
+ },
+ "PCG_COPHeatDistortByLayer": {
+  "topic": "cop-transform",
+  "summary": "Distorts pixels using an input noise layer (or direction layer), with optional curved tracing, streak blur and chromatic aberration.",
+  "description": "Equivalent of Heat Distort by Layer. Instead of generating noise it uses a noise layer of the input. The displacement direction is the gradient of the noise (or an explicit 2-channel direction layer, if given) rotated by `angle`, then scaled: `displacement = scale * effect * Rot(angle) * direction` in image units (the long side is 2, +y up). The output samples the source at `p - displacement` with bilinear filtering.\n\n`accurate` walks backward along the field in steps of about `step_pixels`, evaluating the field at each position, so curved fields give curved trajectories; off, a single straight step is taken. `streak_blur` averages samples along that path. `blur_source` blurs the source and mixes between sharp and blurred according to displacement magnitude relative to the maximum. `blur_noise` pre-blurs the noise before its gradient is taken. `chromatic` offsets red, green and blue by different multiples of the displacement (alpha follows green) on layers with at least 3 channels.\n\nThe formulas are not given in Houdini's documentation; the definitions here are the plugin's own.",
+  "inputs": {
+   "cop": "Image containing the layers to distort, the noise layer, and optionally the effect, direction and mask layers."
+  },
+  "outputs": {
+   "cop": "The distorted image."
+  },
+  "params": {
+   "layers": "Layers to distort. Empty means all layers except the noise, effect, direction and mask layers.",
+   "noise_layer": "Layer whose gradient drives the distortion (when no direction layer is given).",
+   "effect_layer": "Optional layer that scales the distortion strength per pixel. Empty means 1 everywhere.",
+   "dir_layer": "Optional 2-channel direction layer in image units. Empty uses the gradient of the noise layer.",
+   "mask": "Blend amount between the original and distorted image; 1 uses only the distorted result.",
+   "mask_layer": "Optional layer controlling the blend per pixel. Empty disables it.",
+   "scale": "Overall displacement strength: displacement = Scale times effect times the gradient, in image units.",
+   "angle": "Rotation of the direction vectors in degrees. 0 leaves the direction as is.",
+   "accurate": "Trace a curved path backward through the field instead of one straight step.",
+   "step_pixels": "Length of each tracing step in pixels when Accurate Distortion or Streak Blur takes multiple steps.",
+   "streak_blur": "Average samples along the displacement path to smear the image.",
+   "scale_by_timestep": "Multiply the displacement by Timestep, so it behaves as a per-frame amount.",
+   "timestep": "Time step used by Scale by Timestep. Houdini's `$FPS` is not available here, so it is set explicitly (default 1/24).",
+   "blur_source": "Blur the source image and blend the blurred version in proportion to the local displacement strength.",
+   "blur_source_size": "Gaussian size of the source blur, in image units.",
+   "blur_noise": "Blur the noise layer before computing its gradient.",
+   "blur_noise_size": "Gaussian size of the noise blur, in image units.",
+   "chromatic": "Enable chromatic aberration: color channels are displaced by different amounts.",
+   "ca_scale": "Overall scale of the chromatic displacement.",
+   "ca_red": "Displacement multiplier for the red channel.",
+   "ca_green": "Displacement multiplier for the green channel (alpha follows it).",
+   "ca_blue": "Displacement multiplier for the blue channel.",
+   "border": "What a lookup outside the image returns: clamp, wrap or black."
+  },
+  "houdini_notes": "The older COP Heat Distort generates its own simplex noise that drifts in time; this node takes the noise as an input layer. The default channel multipliers for chromatic aberration (1.2 / 1.0 / 0.8) are the plugin's choice, since Houdini's documentation does not give them."
+ },
+ "PCG_COPHeightToAO": {
+  "topic": "cop-terrain",
+  "summary": "Computes ambient occlusion from a height field, where 1 is unoccluded and 0 is fully dark.",
+  "description": "Horizon-based AO: from each pixel, `directions` rays are marched with `steps` samples out to `radius` pixels and the largest elevation angle above the pixel's tangent plane is found, converted to an occlusion and averaged over directions.\n\n**Elevation is measured against the tangent plane, not the horizontal.** Measured against the horizontal, a whole slope would be occluded looking uphill, although an infinite slope has no occlusion physically. So any plane, however steep, gives exactly 1; convex shapes (peaks) give exactly 1; concave places (pits, gullies) are below 1 and darker with stronger curvature. Scaling height and world size together does not change the result, since only angles matter.\n\nCost is `directions x steps` full-image operations (64 by default). With `tile` off, samples outside the image do not contribute, so no dark rim appears along downhill edges.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the AO layer added."
+  },
+  "params": {
+   "layer": "Height layer.",
+   "strength": "Height scale: layer value times Strength gives world height. Shared by all height-field nodes.",
+   "world_size": "World-space width of the whole image. Shared by all height-field nodes.",
+   "radius": "Maximum search distance in pixels (must be above 0).",
+   "directions": "Number of directions sampled around each pixel (up to 64). Cost grows with Directions times Steps.",
+   "steps": "Number of samples along each direction (up to 64).",
+   "intensity": "Strength of the occlusion; higher values darken more.",
+   "tile": "Treat the image as periodic, for seamless textures.",
+   "out_layer": "Name of the AO output layer.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPHeightToCaustics": {
+  "topic": "cop-terrain",
+  "summary": "Simulates the light patterns a water surface focuses onto the bottom, from a height field used as the water surface.",
+  "description": "The output is 1 under a calm surface and above 1 where light is focused. It uses photon tracing: every pixel emits `supersample` squared photons, which are refracted by the surface normal (with the given index of refraction), travel to a floor at `depth`, and are splatted bilinearly into the four pixels around the landing point. This is more robust than inverting a Jacobian, because focal lines are exactly where the Jacobian is zero and an analytic approach would divide by zero there.\n\nProperties: a calm surface gives exactly 1; with `tile` on, energy is conserved (the sum of all pixels equals the pixel count); a bump in the surface acts as a converging lens (above 1 directly below) and a dent as a diverging lens (below 1). With an IOR of 1 the image is about 1 everywhere. For oblique light, the shift caused by a calm surface is subtracted, so the pattern stays aligned with the surface above it. There is no Fresnel term, no absorption, and light is refracted once only.\n\nThe node runs on the CPU only, so results are deterministic (accumulation order matters for the last digits).",
+  "inputs": {
+   "cop": "Image containing the water surface height layer."
+  },
+  "outputs": {
+   "cop": "Image with the caustics layer added."
+  },
+  "params": {
+   "layer": "Height layer used as the water surface.",
+   "strength": "Height scale: layer value times Strength gives world height. Shared by all height-field nodes.",
+   "world_size": "World-space width of the whole image. Shared by all height-field nodes.",
+   "depth": "Depth of the floor below the surface, in world units. Deeper floors let the light focus further and spread more.",
+   "ior": "Index of refraction of the water (about 1.33 for water). 1 means no refraction and therefore no caustics.",
+   "azimuth": "Horizontal direction of the incoming light in degrees. Only matters for oblique light (elevation below 90).",
+   "elevation": "Sun elevation in degrees; 90 is straight down.",
+   "supersample": "Photons per pixel along each axis; the total is Supersample squared. Higher is smoother and slower.",
+   "tile": "Treat the image as periodic. Recommended for seamless textures. With it off, photons landing outside the image are lost, and the output is normalized so a calm surface still gives 1 at the borders.",
+   "out_layer": "Name of the caustics output layer.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPHeightToNormal": {
+  "topic": "cop-terrain",
+  "summary": "Converts a height layer into a tangent-space normal layer (signed, +Y up, OpenGL convention).",
+  "description": "Computes `N = normalize(-dh/dx, -dh/dy, 1)` with derivatives in world units, written as a signed layer in [-1, 1] with +Y equal to +v. Use it to get a normal map from a grayscale height from a diffusion model or an albedo conversion. Follow it with COP Convert Normal (signed to packed) to export, or feed Control Image in normal mode for ControlNet.\n\nScale: height value times Strength is the world height and World Size is the world width of the whole image. The eight height-field nodes share this pair with the same defaults, so tuning it once keeps AO, shadow and caustics in the same world.\n\nOn a linear slope `h = a*x + b*y` every pixel, including the border ring, gets exactly `normalize(-a, -b, 1)`. One-sided differences are used at the border, because a clamp-padded central difference gives only half the slope in the outermost ring and would leave seams along the edges of a sloped tile.\n\nOnly channel 0 of a multi-channel layer is used; run COP Luminance first for color images.",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the normal layer added."
+  },
+  "params": {
+   "layer": "Height layer. Only its first channel is used.",
+   "strength": "Height scale: layer value times Strength gives world height.",
+   "world_size": "World-space width of the whole image.",
+   "method": "Derivative operator: `central` is sharper and exactly inverts Normal to Height (exact mode); `sobel` adds smoothing and is steadier on noisy (AI-generated) heights.",
+   "tile": "Treat the image as periodic. Use for seamless textures.",
+   "out_layer": "Name of the normal output layer.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPHeightToShadow": {
+  "topic": "cop-terrain",
+  "summary": "Casts sun shadows over a height field, optionally with soft edges.",
+  "description": "The output is a mask where 1 means in shadow. Turn on `invert` to get 1 for lit areas, which can be multiplied straight onto a color.\n\nFor each pixel, samples are taken toward the light up to `max_distance` pixels; if any sample's elevation angle exceeds the sun elevation, the pixel is in shadow. For a wall of height H the shadow length is exactly `H / tan(elevation)` in world scale, and at 90 degrees elevation there is no shadow.\n\nSoftness models the sun as a disc by its angular radius (a first-order approximation, not an area-light integral).",
+  "inputs": {
+   "cop": "Image containing the height layer."
+  },
+  "outputs": {
+   "cop": "Image with the shadow layer added."
+  },
+  "params": {
+   "layer": "Height layer.",
+   "strength": "Height scale: layer value times Strength gives world height. Shared by all height-field nodes.",
+   "world_size": "World-space width of the whole image. Shared by all height-field nodes.",
+   "azimuth": "Direction the light comes from, in degrees: 0 = from +u, 90 = from +v.",
+   "elevation": "Sun elevation angle above the horizon in degrees.",
+   "softness": "Angular radius of the sun in degrees. 0 gives hard shadows.",
+   "max_distance": "How far toward the light each pixel searches, in pixels.",
+   "step": "Distance between samples along the search, in pixels. Each step is one full-image sampling.",
+   "tile": "Treat the image as periodic, for seamless textures.",
+   "invert": "Output 1 for lit and 0 for shadowed.",
+   "out_layer": "Name of the shadow output layer.",
+   "keep_layers": "Keep the other input layers in the output."
+  }
+ },
+ "PCG_COPHeightfieldFromDepth": {
+  "topic": "cop-terrain",
+  "summary": "Turns a single image's depth into a top-down height field, so a picture of a landscape can feed the terrain chain.",
+  "description": "Intended workflow: an AI image of a valley, depth estimated by MoGe or Depth Anything, flattened here into a height field, then used with erosion, river networks, splat maps and mesh conversion.\n\n**perspective** (landscape photos, AI perspective images): either connect `moge_geometry` (the core MoGeInference output, recommended; it supplies camera-space points, metric scale and a sky mask, so nothing is guessed), or connect `depth` (relative inverse depth from Depth Anything and similar, which is only known up to scale and offset: `z = 1/(d + shift)` is a guess and the FOV must be entered by hand; wrong guesses bend the terrain rather than scaling it). The ground plane is fitted with weights proportional to area (z squared) and the camera pitch is solved automatically. Points are rasterized top-down, a cell takes the mean height of the points that land in it, and unseen cells (behind mountains, sparse distant areas) are filled by push-pull. The `mask` layer marks the cells that were really measured; the filled values are guesses.\n\n**top_down** (satellite images, AI orthographic maps): the depth is used directly as height, normalized to Relief times World Size.\n\nConnect the original image to `image` to also get an `albedo` layer (the color projected top-down; MoGe supplies its own). The `world_size` output can be wired to the world size of the height-field family so scales match. The height layer is `C`.",
+  "inputs": {
+   "depth": "Depth or disparity image (Depth Anything and similar). Required for top_down; optional in perspective when moge_geometry is connected.",
+   "moge_geometry": "MoGe geometry output (camera-space points, with scale and sky mask). Takes priority over depth in perspective mode.",
+   "image": "Original color image; produces the `albedo` layer. Optional."
+  },
+  "outputs": {
+   "cop": "Height field image: height in layer `C`, plus `mask` (measured cells, perspective only) and `albedo` when color is available.",
+   "world_size": "World-space width of the generated height field, to wire into the world size parameters of other height-field nodes.",
+   "report": "Text summary: source, number of points, coverage, world width, height range, up mode and camera pitch."
+  },
+  "params": {
+   "mode": "`perspective` lifts a perspective image into a ground-plane height field; `top_down` treats the depth as a top-down height map.",
+   "depth_kind": "Meaning of the depth image: `disparity` (inverse depth, near = bright) or `depth` (near = dark). Not used with moge_geometry in perspective mode.",
+   "batch_index": "Which image of the batch to use.",
+   "resolution": "Resolution (width and height) of the generated height field. If the report shows low coverage, lower this or raise the depth map resolution.",
+   "fov_x": "Horizontal field of view in degrees. Only used when depth is connected without moge_geometry.",
+   "up": "How the ground is determined: `fit_plane` fits a plane to the points and solves camera pitch; `camera_level` assumes the camera is level (more robust when a large depression in the foreground would tilt the fit).",
+   "far_quantile": "Discards the farthest fraction of points: only points up to this depth quantile are kept. Points near the horizon are sparse and inaccurate and would only stretch the grid into holes.",
+   "fill_holes": "Fill cells with no measurement by push-pull interpolation. The filled values are guesses.",
+   "shift": "Offset in `z = 1 / (d + shift)` for converting disparity to depth. Only used when depth is connected.",
+   "sky": "Pixels with disparity at or below this value are treated as sky and dropped.",
+   "relief": "Top Down mode: the height range as a fraction of World Size.",
+   "world_size": "Top Down mode: world width of the output; perspective mode derives it from the points.",
+   "dequantize": "Smooth an 8-bit depth map back to continuous values before lifting. Depth Anything through comfyui_controlnet_aux delivers 256 levels; each level would lift to one arc on the ground, which shows as horizontal streaks and terraces in the far field. Every value stays within its own quantization bin, so silhouettes stay sharp. Has no effect on float depth or MoGe, and also applies in top_down mode."
+  },
+  "tips": [
+   "Prefer moge_geometry over a plain depth map for perspective images; a guessed depth bends the terrain.",
+   "Perspective mode needs ground running into the distance under a horizon. A figure, a portrait or a flat-coloured drawing has no ground to fit: the sky lifts as a wall at the back and the subject as a spike."
+  ]
+ },
+ "PCG_COPHeightfieldToMesh": {
+  "topic": "cop-geometry",
+  "summary": "Converts a height layer into a Y-up grid mesh with one point per pixel center.",
+  "description": "Each pixel center becomes a point; `step` thins the grid by taking every Nth pixel without resampling, so each point holds the exact pixel value. Mesh width is `world_size` and height is the layer value times `strength`.\n\nv points toward -Z (north), so the height map reads correctly in a Houdini-style top view (X right, Z down). Points carry `uv` (pixel center, matching COP sampling) and `height`, so a later Scatter from Map or Attribute from Map lines up exactly with the terrain.\n\nPoint normals come from the height gradient (the same operator as COP Height to Normal), not from averaging mesh faces. Other layers can be carried over as point attributes.",
+  "inputs": {
+   "cop": "Image containing the height layer and any layers to carry over."
+  },
+  "outputs": {
+   "geo": "Grid mesh with `P`, `N`, `uv` and `height`."
+  },
+  "params": {
+   "layer": "Height layer.",
+   "strength": "Height scale: layer value times Strength gives mesh height.",
+   "world_size": "World-space width of the mesh.",
+   "step": "Take every Nth pixel as a point, without resampling. At least 2 points per axis must remain.",
+   "center": "Place the mesh center at the origin.",
+   "normals": "Compute point normals from the height gradient.",
+   "attribs": "Space-separated layers to bring in as point attributes. Use `dst=src` to rename, for example `Cd=C erosion`."
+  }
+ }
+}

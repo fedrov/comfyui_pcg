@@ -1,0 +1,1108 @@
+"""
+Panel specs for group g13 (format: see the docstring at the top of panel_specs.py).
+
+Camera / render / back-projection (Camera Path / Camera Pick / Camera To Points / Motion Vectors /
+Render Sequence / Sequence Motion / Texture Render / UV Backproject / UV Resolve),
+scatter and copy (Adaptive Prune / Chain / Copy and Transform / Copy to Curves / Point Relax /
+Point Replicate / Scatter from Map / Scatter Volume / Voronoi 2D), topology editing
+(Connect Adjacent Pieces / Edge Cusp / Edge Flip / Find Shortest Path / Match Topology /
+PolyCut / PolySplit / PolyStitch / Rewire Vertices / Tri Divide / Unsubdivide) and UV
+(UV Auto Seams / UV Fuse / UV Smooth / UV Transform).
+
+All hide / disable conditions follow whether the node's run() and the geo/ implementation actually read the parameter (see each item's comment).
+"""
+
+_DEVICE_MENU = {"auto": "Auto", "cpu": "CPU", "cuda": "CUDA", "numpy": "NumPy",
+                "exact": "Exact (float64)"}
+_FILTER_MENU = {"bilinear": "Bilinear", "closest": "Closest"}
+_BORDER_MENU = {"clamp": "Clamp", "wrap": "Wrap", "black": "Black"}
+_DECODE_MENU = {"none": "None", "srgb_to_linear": "sRGB to Linear",
+                "linear_to_srgb": "Linear to sRGB"}
+_UNITS_MENU = {"pixels": "Pixels", "normalized": "Normalized (NDC)",
+               "uv": "UV (0-1)"}
+_DEVICE = {"label": "Device", "sep": True, "menu": _DEVICE_MENU,
+           "help": "Which backend the output image lives on; exact = float64 numpy"}
+
+
+SPECS = {
+    # ════════════════════════════════════════════════════ Camera / render (this plugin's own)
+    # ── Camera Path: path frame count / mode → lens (projection, resolution, FOV / ortho size) → Target →
+    #    Orbit section / Interpolate section → Clipping. sequence.camera_path + render.camera:
+    #    the orbit mode reads elev / azim / distance / margin / frame_geometry, the interpolate mode
+    #    fixes frame_geometry=False and only reads eye / eye_end / target; target is read by both modes
+    "PCG_CameraPath": {
+        "order": ["frames", "loop", "mode", "projection", "resolution_x", "fov",
+                  "ortho_size", "target_x",
+                  "frame_geometry", "margin", "elev", "azim", "distance",
+                  "eye_x", "eye_end_x", "near", "far"],
+        "inputs": {
+            "frames": {"label": "Frames"},
+            "loop": {"label": "Loop",
+                     "help": "On: the last frame does not repeat the first (looping animation); off: closed interval, the last frame lands exactly on the end"},
+            "mode": {"label": "Path", "sep": True,
+                     "menu": {"orbit": "Orbit", "interpolate": "Interpolate (Look At)"}},
+            "projection": {"label": "Projection",
+                           "menu": {"perspective": "Perspective",
+                                    "orthographic": "Orthographic"}},
+            # project(): orthographic does not read fov; perspective does not read ortho_size
+            "fov": {"label": "Field of View",
+                    "hide": "{ projection == orthographic }",
+                    "help": "Vertical field of view (degrees)"},
+            # with orbit + Frame Geometry, ortho_size is overridden by bounding sphere radius × 2 × Margin
+            "ortho_size": {"label": "Ortho Height",
+                           "hide": "{ projection == perspective }",
+                           "disable": "{ mode == orbit frame_geometry == 1 }",
+                           "help": "World size of the frame vertically; horizontal follows the aspect ratio"},
+            "target_x": {"section": None, "sep": True,
+                         "row": {"kind": "vector",
+                                 "members": ["target_x", "target_y", "target_z"],
+                                 "label": "Target"},
+                         "help": "Orbit: orbit center (replaced by the bounding box center when Frame Geometry is on"
+                                 " and geometry is connected); Interpolate: look-at point"},
+            "target_y": {"section": None},
+            "target_z": {"section": None},
+            # Orbit section
+            "frame_geometry": {"section": "Orbit", "label": "Frame Geometry",
+                               "hide": "{ mode != orbit }",
+                               "help": "Automatically sets distance / ortho size from the geometry's bounding sphere; treated as a unit sphere when no geometry is connected"},
+            "margin": {"label": "Frame Margin", "hide": "{ mode != orbit }",
+                       "disable": "{ frame_geometry == 0 }"},
+            "elev": {"row": {"kind": "vector", "members": ["elev", "elev_end"],
+                             "label": "Elevation"},
+                     "hide": "{ mode != orbit }", "help": "Start / end elevation (degrees)"},
+            "elev_end": {"hide": "{ mode != orbit }"},
+            "azim": {"row": {"kind": "vector", "members": ["azim", "azim_end"],
+                             "label": "Azimuth"},
+                     "hide": "{ mode != orbit }", "help": "Start / end azimuth (degrees)"},
+            "azim_end": {"hide": "{ mode != orbit }"},
+            # render.camera: with frame_geometry, dist is overridden by frame_distance / radius×3
+            "distance": {"row": {"kind": "vector",
+                                 "members": ["distance", "distance_end"],
+                                 "label": "Distance"},
+                         "hide": "{ mode != orbit }",
+                         "disable": "{ frame_geometry == 1 }",
+                         "help": "Start / end distance"},
+            "distance_end": {"hide": "{ mode != orbit }"},
+            # Interpolate section
+            "eye_x": {"row": {"label": "Eye Start"}, "hide": "{ mode != interpolate }"},
+            "eye_end_x": {"row": {"label": "Eye End"},
+                          "hide": "{ mode != interpolate }"},
+            "near": {"label": "Near Clipping"},
+            "far": {"label": "Far Clipping", "help": "0 = unlimited"},
+        },
+    },
+
+    # ── Camera Pick: just one index
+    "PCG_CameraPick": {
+        "order": ["index"],
+        "inputs": {
+            "index": {"label": "Index", "help": "Out-of-range values wrap around the camera count, no error"},
+        },
+    },
+
+    # ── Camera To Points:Path / Frustum Depth
+    "PCG_CameraToPoints": {
+        "order": ["path", "frustum_depth"],
+        "inputs": {
+            "path": {"label": "Create Path", "help": "Also outputs a polyline connecting the cameras in frame order"},
+            "frustum_depth": {"label": "Frustum Depth", "help": "Depth of the frustum wireframe; 0 = none"},
+        },
+    },
+
+    # ── Motion Vectors:Group / Units / Depth Bias / Silhouette Guard / Device
+    "PCG_MotionVectors": {
+        "order": ["group", "units", "depth_bias", "silhouette_guard", "device"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "units": {"label": "Units", "menu": dict(_UNITS_MENU),
+                      "help": "Normalized: full frame = 2 (same as NDC); UV: full frame = 1"},
+            "depth_bias": {"label": "Depth Bias", "sep": True,
+                           "help": "Depth tolerance for disocclusion, as a fraction of the bounding sphere radius"},
+            "silhouette_guard": {"label": "Silhouette Guard",
+                                 "help": "Shrinks the silhouette inward by this many pixels; pixels on the edge count as needing a repaint"},
+            "device": dict(_DEVICE),
+        },
+    },
+
+    # ── Render Sequence: Group → channel toggles → More Passes section → Motion Vectors section (toggle in the section header)
+    #    → Attributes section → Device. render.render: normal_source is only read for the normal channel;
+    #    normal_space affects normal and shade (facing gives the same result in both spaces); id / uv attributes are only read for their channels
+    "PCG_RenderSequence": {
+        "order": ["group", "pass_depth", "pass_mask", "pass_normal", "pass_shade",
+                  "pass_position", "pass_uv", "pass_id", "pass_facing",
+                  "motion", "motion_units", "loop",
+                  "normal_space", "normal_source", "id_attribute", "uv_attribute",
+                  "cull", "device"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "pass_depth": {"label": "Depth", "sep": True,
+                           "help": "With no channel ticked it behaves as if only Mask were ticked"},
+            "pass_mask": {"label": "Mask"},
+            "pass_normal": {"label": "Normal"},
+            "pass_shade": {"label": "Shaded Preview"},
+            "pass_position": {"label": "Position (P)"},
+            "pass_uv": {"label": "UV"},
+            "pass_id": {"label": "Piece ID"},
+            "pass_facing": {"label": "Facing Ratio"},
+            # section-header toggle: with motion off, motion_units / loop are not read (render_sequence)
+            "motion": {"section": "Motion Vectors", "gate": True,
+                       "label": "Motion Vectors"},
+            "motion_units": {"section": "Motion Vectors", "label": "Units",
+                             "menu": dict(_UNITS_MENU)},
+            "loop": {"section": "Motion Vectors", "label": "Loop",
+                     "help": "Motion of the last frame connects back to frame 0; when off the last frame gets zero motion + full disocclusion"},
+            "normal_space": {"label": "Normal Space",
+                             "menu": {"camera": "Camera", "world": "World"},
+                             "hide": "{ pass_normal == 0 pass_shade == 0 }"},
+            "normal_source": {"label": "Normal Source",
+                              "menu": {"auto": "Auto (Point N or Face)",
+                                       "point": "Point", "face": "Face"},
+                              "hide": "{ pass_normal == 0 }"},
+            "id_attribute": {"label": "ID Attribute", "hide": "{ pass_id == 0 }"},
+            "uv_attribute": {"label": "UV Attribute", "hide": "{ pass_uv == 0 }"},
+            "cull": {"label": "Backface Culling",
+                     "menu": {"none": "None", "back": "Back Faces",
+                              "front": "Front Faces"}},
+            "device": dict(_DEVICE),
+        },
+    },
+
+    # ── Sequence Motion: same as Motion Vectors, plus a Loop
+    "PCG_SequenceMotion": {
+        "order": ["group", "units", "loop", "depth_bias", "silhouette_guard", "device"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "units": {"label": "Units", "menu": dict(_UNITS_MENU)},
+            "loop": {"label": "Loop",
+                     "help": "Motion of the last frame connects back to frame 0; when off the last frame gets zero motion + full disocclusion"},
+            "depth_bias": {"label": "Depth Bias", "sep": True,
+                           "help": "In units of the bounding sphere radius (fraction)"},
+            "silhouette_guard": {"label": "Silhouette Guard"},
+            "device": dict(_DEVICE),
+        },
+    },
+
+    # ── Texture Render: Group / texture layer / UV attribute → sampling → background → Device (all parameters are read)
+    "PCG_TextureRender": {
+        "order": ["group", "layer", "uv_attrib", "filter", "border", "background",
+                  "device"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "layer": {"label": "Texture Layer"},
+            "uv_attrib": {"label": "UV Attribute"},
+            "filter": {"label": "Filter", "sep": True, "menu": dict(_FILTER_MENU)},
+            "border": {"label": "Border", "menu": dict(_BORDER_MENU)},
+            "background": {"label": "Background", "help": "Value for pixels not covered by geometry"},
+            "device": dict(_DEVICE),
+        },
+    },
+
+    # ── UV Backproject: input / texture resolution → Weighting section → Visibility section → Advanced section.
+    #    backproject(): depth_bias is only read when visibility is depth / triangle+depth;
+    #    silhouette_guard still applies when visibility = none
+    "PCG_UVBackproject": {
+        "order": ["group", "layer", "resolution_x", "decode",
+                  "facing_power", "facing_min", "border_fade",
+                  "visibility", "depth_bias", "silhouette_guard",
+                  "weight_scale", "conservative", "filter", "uv_attrib",
+                  "normal_attrib"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "layer": {"label": "Source Layer"},
+            "resolution_x": {"row": {"label": "Texture Resolution"},
+                             "help": "Must be identical on every node in the same back-projection chain"},
+            "decode": {"label": "Decode", "menu": dict(_DECODE_MENU)},
+            "facing_power": {"section": "Weighting", "label": "Facing Power"},
+            "facing_min": {"section": "Weighting", "label": "Facing Cutoff",
+                           "help": "Texels with N·view ≤ this get weight 0"},
+            "border_fade": {"section": "Weighting", "label": "Border Fade",
+                            "help": "A band this fraction wide around the outermost edge of the frame fades out linearly"},
+            "visibility": {"section": "Visibility", "label": "Visibility",
+                           "menu": {"triangle+depth": "Triangle ID or Depth",
+                                    "triangle": "Triangle ID",
+                                    "depth": "Depth", "none": "None"}},
+            "depth_bias": {"section": "Visibility", "label": "Depth Bias",
+                           "hide": "{ visibility == triangle } { visibility == none }",
+                           "help": "In units of the bounding sphere radius (fraction)"},
+            "silhouette_guard": {"section": "Visibility", "label": "Silhouette Guard"},
+            "weight_scale": {"label": "View Weight"},
+            "conservative": {"label": "Conservative Dilation",
+                             "help": "Pixels by which triangles are dilated during uv rasterization"},
+            "filter": {"label": "Filter", "menu": dict(_FILTER_MENU)},
+            "uv_attrib": {"label": "UV Attribute"},
+            "normal_attrib": {"label": "Normal Attribute"},
+        },
+    },
+
+    # ── UV Resolve: output layer / encoding → dilation / hole filling → background → Device. resolve(): hole filling (push-pull)
+    #    fills every empty texel, so background is only visible with Fill Holes off (or an all-empty accumulator)
+    "PCG_UVResolve": {
+        "order": ["layer", "encode", "dilate", "fill_holes", "background", "device"],
+        "inputs": {
+            "layer": {"label": "Output Layer"},
+            "encode": {"label": "Encode",
+                       "menu": {"none": "None", "srgb": "Linear to sRGB",
+                                "linear": "sRGB to Linear"}},
+            "dilate": {"label": "Dilate (Gutter)", "sep": True,
+                       "help": "Writes a few extra rings of texels outside the uv islands"},
+            "fill_holes": {"label": "Fill Holes"},
+            "background": {"label": "Background", "disable": "{ fill_holes == 1 }"},
+            "device": dict(_DEVICE),
+        },
+    },
+
+    # ════════════════════════════════════════════════════ Scatter / copy
+    # ── Adaptive Prune: Group / Radius → Priority → Operation. adaptive_prune():
+    #    seed is only read for random priority, priority_attribute only for attribute, the group name is only written in group mode
+    "PCG_AdaptivePrune": {
+        "order": ["group", "radius", "radius_attribute", "priority",
+                  "priority_attribute", "rand_seed", "mode", "group_name"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "radius": {"label": "Radius"},
+            "radius_attribute": {"label": "Radius Scale Attribute",
+                                 "help": "If given, multiplied onto Radius; the larger radius of the two points is used"},
+            "priority": {"label": "Priority", "sep": True,
+                         "menu": {"random": "Random",
+                                  "attribute": "Attribute (Largest First)",
+                                  "index": "Point Number"}},
+            "priority_attribute": {"label": "Priority Attribute",
+                                   "hide": "{ priority != attribute }"},
+            "rand_seed": {"label": "Seed", "hide": "{ priority != random }"},
+            "mode": {"label": "Operation", "sep": True,
+                     "menu": {"delete": "Delete Pruned Points",
+                              "group": "Group Pruned Points"}},
+            "group_name": {"label": "Output Group", "hide": "{ mode != group }"},
+        },
+    },
+
+    # ── Chain: Curve Group / Spacing / Fit → orientation (Up / Roll / Roll Step) → pieces → output attributes
+    "PCG_Chain": {
+        "order": ["chain_mode", "geometry_group", "group", "spacing", "fit", "up_x", "roll", "roll_step",
+                  "enable_deformation", "find_pieces", "piece_attribute", "number_of_pieces",
+                  "fraction_of_curve", "only_full_pattern", "num_pieces", "uniform_piece_scale",
+                  "map_length_using", "map_length", "map_length_attrib", "offset_using", "position_offset",
+                  "offset_attrib", "start_behavior", "end_behavior", "repeat_pattern", "class_pattern",
+                  "pattern_offset", "rand_seed", "repeat_length", "piece_weights", "weight_attrib",
+                  "use_start_cap", "start_cap_piece", "use_end_cap", "end_cap_piece", "exclude_end_pieces",
+                  "rigid_end_pieces", "enable_scale", "base_scale", "scale_attrib", "enable_rotation",
+                  "base_rotation", "rotation_attrib", "forward_dir", "forward_x", "up_dir", "upaxis_x",
+                  "center_on_curve", "piece_rotation", "curve_up_control", "attribs_to_transform",
+                  "position_attrib", "index_attrib", "curvenum_attrib", "copy_attribute"],
+        "inputs": {
+            "chain_mode": {"label": "Mode",
+                           "menu": {"rigid_links": "Rigid Links on Chords",
+                                    "deform_along_curve": "Deform Along Curve (Houdini)"},
+                           "help": "Rigid Links is this plugin's original approach (each link placed rigidly on the chord); Deform Along Curve is Houdini's Chain"},
+            "geometry_group": {"label": "Geometry Group", "hide": "{ chain_mode != deform_along_curve }"},
+            "group": {"label": "Curve Group"},
+            "spacing": {"label": "Piece Spacing",
+                        "help": "Each link takes its own bounding box length along Forward + Spacing; negative = links interpenetrate"},
+            "fit": {"label": "Fit to Curve", "hide": "{ chain_mode == deform_along_curve }",
+                    "help": "Uniformly adjusts the spacing so the last link ends exactly at the end point (Spacing only decides how many links fit)"},
+            "up_x": {"row": {"kind": "vector", "members": ["up_x", "up_y", "up_z"], "label": "Curve Up Vector"},
+                     "hide": "{ chain_mode == deform_along_curve curve_up_control != custom }"},
+            "roll": {"label": "Roll", "hide": "{ chain_mode == deform_along_curve }"},
+            "roll_step": {"label": "Roll per Link", "hide": "{ chain_mode == deform_along_curve }", "help": "Extra angle per successive link (counted from 0 on each curve)"},
+            "enable_deformation": {"label": "Enable Deformation", "folder": "Chain Pattern", "hide": "{ chain_mode != deform_along_curve }",
+                                   "help": "Off: lays them out in a straight line along world Z (z = curve arc-length coordinate), then deforms"},
+            "find_pieces": {"label": "Find Pieces", "hide": "{ chain_mode != deform_along_curve }",
+                            "menu": {"connectivity": "By Connectivity", "piece_attribute": "By Piece Attribute"}},
+            "piece_attribute": {"label": "Piece Attribute",
+                                "hide": "{ chain_mode == deform_along_curve find_pieces != piece_attribute }",
+                                "help": "Rigid Links: if given, cycles through pieces in order; Deform Along Curve: splits pieces by it"},
+            "number_of_pieces": {"label": "Number of Pieces", "hide": "{ chain_mode != deform_along_curve }", "sep": True,
+                                 "menu": {"fit": "Fit Pieces Along Curve", "explicit": "Explicit Number"}},
+            "fraction_of_curve": {"label": "Fraction of Curve", "hide": "{ chain_mode != deform_along_curve } { number_of_pieces != fit }"},
+            "only_full_pattern": {"label": "Only Repeat Full Pattern", "hide": "{ chain_mode != deform_along_curve } { number_of_pieces != fit }"},
+            "num_pieces": {"label": "Num Pieces", "hide": "{ chain_mode != deform_along_curve } { number_of_pieces != explicit }"},
+            "uniform_piece_scale": {"label": "Uniform Piece Scale", "hide": "{ chain_mode != deform_along_curve }"},
+            "map_length_using": {"label": "Map Length Using", "hide": "{ chain_mode != deform_along_curve }", "sep": True,
+                                 "menu": {"fraction_curve": "Fraction of Curve Length",
+                                          "fraction_geo": "Fraction of Geo Length", "distance": "Distance"}},
+            "map_length": {"label": "Map Length", "hide": "{ chain_mode != deform_along_curve }"},
+            "map_length_attrib": {"label": "Pos End Attrib", "hide": "{ chain_mode != deform_along_curve }",
+                                  "help": "Prim attribute on the curves; if given, overrides Map Length per curve; leave empty to not use"},
+            "offset_using": {"label": "Offset Position Using", "hide": "{ chain_mode != deform_along_curve }",
+                             "menu": {"curve_u": "Curve U Position", "fraction_geo": "Fraction of Geo Length",
+                                      "distance": "Distance"}},
+            "position_offset": {"label": "Position Offset", "hide": "{ chain_mode != deform_along_curve }"},
+            "offset_attrib": {"label": "Pos Offset Attrib", "hide": "{ chain_mode != deform_along_curve }",
+                              "help": "Prim attribute on the curves; if given, overrides Position Offset per curve; leave empty to not use"},
+            "start_behavior": {"label": "Start Behavior", "hide": "{ chain_mode != deform_along_curve }",
+                               "menu": {"extend": "Extend", "clamp": "Clamp", "clip": "Clip"}},
+            "end_behavior": {"label": "End Behavior", "hide": "{ chain_mode != deform_along_curve }",
+                             "menu": {"extend": "Extend", "clamp": "Clamp", "clip": "Clip"}},
+            "repeat_pattern": {"label": "Repeat Pattern", "folder": "Pattern", "hide": "{ chain_mode != deform_along_curve }",
+                               "menu": {"cycle": "Cycle", "explicit": "Explicit Pattern", "random": "Random",
+                                        "weighted_random": "Weighted Random",
+                                        "weighted_random_attrib": "Weighted Random from Attribute"}},
+            "class_pattern": {"label": "Class Pattern", "hide": "{ chain_mode != deform_along_curve } { repeat_pattern != explicit }",
+                              "help": "Space-separated piece numbers, e.g. 0 0 1"},
+            "pattern_offset": {"label": "Offset", "hide": "{ chain_mode != deform_along_curve }"},
+            "rand_seed": {"label": "Seed", "hide": "{ chain_mode != deform_along_curve } { repeat_pattern == cycle } { repeat_pattern == explicit }"},
+            "repeat_length": {"label": "Repeat Length",
+                              "hide": "{ chain_mode != deform_along_curve } { repeat_pattern == cycle } { repeat_pattern == explicit }",
+                              "help": "Repeats after randomly picking this many pieces; 0 = no repeat"},
+            "piece_weights": {"label": "Weights", "hide": "{ chain_mode != deform_along_curve } { repeat_pattern != weighted_random }",
+                              "help": "Weights in piece-number order, space-separated (Houdini uses Piece / Weight multiparm rows)"},
+            "weight_attrib": {"label": "Weight Attribute", "hide": "{ chain_mode != deform_along_curve } { repeat_pattern != weighted_random_attrib }"},
+            "use_start_cap": {"label": "Use Start Cap", "hide": "{ chain_mode != deform_along_curve }", "sep": True},
+            "start_cap_piece": {"label": "Start Cap Piece", "hide": "{ chain_mode != deform_along_curve }", "disable": "{ use_start_cap == 0 }"},
+            "use_end_cap": {"label": "Use End Cap", "hide": "{ chain_mode != deform_along_curve }"},
+            "end_cap_piece": {"label": "End Cap Piece", "hide": "{ chain_mode != deform_along_curve }", "disable": "{ use_end_cap == 0 }"},
+            "exclude_end_pieces": {"label": "Exclude End Pieces from Pattern", "hide": "{ chain_mode != deform_along_curve }"},
+            "rigid_end_pieces": {"label": "Do Not Deform End Pieces", "hide": "{ chain_mode != deform_along_curve }"},
+            "enable_scale": {"label": "Enable Scale", "folder": "Deformation", "hide": "{ chain_mode != deform_along_curve }"},
+            "base_scale": {"label": "Base Scale Factor", "hide": "{ chain_mode != deform_along_curve }", "disable": "{ enable_scale == 0 }"},
+            "scale_attrib": {"label": "Curve Attribute (Scale)", "hide": "{ chain_mode != deform_along_curve }", "disable": "{ enable_scale == 0 }",
+                             "help": "Numeric attribute on the curve points, multiplied onto the scale; leave empty to not use"},
+            "enable_rotation": {"label": "Enable Rotation", "hide": "{ chain_mode != deform_along_curve }", "sep": True},
+            "base_rotation": {"label": "Base Rotation", "hide": "{ chain_mode != deform_along_curve }", "disable": "{ enable_rotation == 0 }"},
+            "rotation_attrib": {"label": "Curve Attribute (Rotation)", "hide": "{ chain_mode != deform_along_curve }",
+                                "disable": "{ enable_rotation == 0 }"},
+            "forward_dir": {"label": "Forward Direction", "folder": "Alignment", "hide": "{ chain_mode != deform_along_curve }",
+                            "menu": {"x": "X", "y": "Y", "z": "Z", "custom": "Custom"}},
+            "forward_x": {"row": {"kind": "vector", "members": ["forward_x", "forward_y", "forward_z"],
+                                  "label": "Forward Axis Vector"},
+                          "hide": "{ chain_mode != deform_along_curve } { forward_dir != custom }"},
+            "up_dir": {"label": "Up Direction", "hide": "{ chain_mode != deform_along_curve }",
+                       "menu": {"x": "X", "y": "Y", "z": "Z", "custom": "Custom"}},
+            "upaxis_x": {"row": {"kind": "vector", "members": ["upaxis_x", "upaxis_y", "upaxis_z"],
+                                 "label": "Up Axis Vector"},
+                         "hide": "{ chain_mode != deform_along_curve } { up_dir != custom }"},
+            "center_on_curve": {"label": "Center Geometry on Curve", "hide": "{ chain_mode != deform_along_curve }"},
+            "piece_rotation": {"label": "Piece Rotation", "hide": "{ chain_mode != deform_along_curve }"},
+            "curve_up_control": {"label": "Curve Up Control", "hide": "{ chain_mode != deform_along_curve }",
+                                 "menu": {"curve_normal": "Curve Normal", "x": "X", "y": "Y", "z": "Z",
+                                          "custom": "Custom"}},
+            "attribs_to_transform": {"label": "Attributes to Transform", "folder": "Attributes", "hide": "{ chain_mode != deform_along_curve }"},
+            "position_attrib": {"label": "Output Position Along Curve", "hide": "{ chain_mode != deform_along_curve }", "help": "Name; leave empty to not write"},
+            "index_attrib": {"label": "Output Index Along Curve", "hide": "{ chain_mode != deform_along_curve }", "help": "Name; leave empty to not write"},
+            "curvenum_attrib": {"label": "Output Curve Number", "hide": "{ chain_mode != deform_along_curve }", "help": "Name; leave empty to not write"},
+            "copy_attribute": {"label": "Copy Number Attribute", "help": "Leave empty to not write"},
+        },
+    },
+
+    # ── Copy and Transform SOP:Total Number / Translate / Rotate / Scale /
+    #    Uniform Scale / Pivot Translate, Copy Number Attribute at the end
+    "PCG_CopyAndTransform": {
+        "order": ["copies", "tx", "rx", "sx", "uniform_scale", "pivot_x",
+                  "copy_attribute"],
+        "inputs": {
+            "copies": {"label": "Total Number", "help": "Includes the original; copy k applies the same transform k times"},
+            "tx": {"sep": True},
+            "rx": {"help": "Degrees, Rx Ry Rz order; transform order Scale → Rotate → Translate"},
+            "uniform_scale": {"label": "Uniform Scale"},
+            "pivot_x": {"row": {"label": "Pivot Translate"}},
+            "copy_attribute": {"label": "Copy Number Attribute", "sep": True,
+                               "help": "Written once on points and once on prims; leave empty to not write"},
+        },
+    },
+
+    # ── Copy to Curves: Curve Group / sampling method (Count or Spacing) / Offset at both ends →
+    #    orientation → pieces → output attributes. copy_to_curves(): count only in count mode, spacing only in spacing mode
+    "PCG_CopyToCurves": {
+        "order": ["source_group", "source_group_type", "group", "mode", "count", "spacing",
+                  "start_offset", "end_offset", "piece_attribute", "copy_attribute",
+                  "tangent_type", "closed_continuous", "extrapolate_ends", "use_point_attribs",
+                  "target_up", "up_at_start", "use_end_up", "start_up_attrib", "end_up_attrib",
+                  "up_x", "end_up_x", "rotate_order", "roll", "roll_step", "apply_roll", "twist_per",
+                  "full_twists", "partial_twist", "twist_ramp_attrib", "apply_yaw", "yaw", "yaw_per",
+                  "incremental_yaw", "yaw_ramp_attrib", "apply_pitch", "pitch", "pitch_per",
+                  "incremental_pitch", "pitch_ramp_attrib", "normalize_scales", "uniform_scale",
+                  "stretch_around_turns", "max_stretch", "target_attributes"],
+        "inputs": {
+            "source_group": {"label": "Source Group", "folder": "Copy"},
+            "source_group_type": {"label": "Source Group Type",
+                                  "menu": {"guess": "Guess from Group", "prim": "Primitive", "point": "Point"},
+                                  "disable": '{ source_group == "" }'},
+            "group": {"label": "Curve Group"},
+            "mode": {"label": "Sample By", "sep": True,
+                     "menu": {"count": "Count", "spacing": "Spacing",
+                              "curve_points": "Curve Points (Houdini)"},
+                     "help": "Curve Points = Houdini's semantics: copies onto every existing point of the curve; the tabs below only apply in this mode"},
+            "count": {"label": "Count", "hide": "{ mode != count }",
+                      "help": "Copies per curve, placed at both ends (closed curves do not repeat at the start)"},
+            "spacing": {"label": "Spacing", "hide": "{ mode != spacing }"},
+            "start_offset": {"row": {"kind": "vector",
+                                     "members": ["start_offset", "end_offset"],
+                                     "label": "Start / End Offset"},
+                             "hide": "{ mode == curve_points }",
+                             "help": "Arc length left free at each end"},
+            "piece_attribute": {"label": "Piece Attribute", "sep": True,
+                                "help": "Count / Spacing: cycles through pieces in order; Curve Points: picks pieces by this attribute if the curve points have it (Houdini), otherwise cycles"},
+            "copy_attribute": {"label": "Copy Number Attribute", "help": "Leave empty to not write"},
+            "tangent_type": {"label": "Tangent Type", "folder": "Frame", "hide": "{ mode != curve_points }",
+                             "menu": {"average": "Average of Edge Directions",
+                                      "central_difference": "Central Difference",
+                                      "previous": "Previous Edge", "next": "Next Edge",
+                                      "z_axis": "Z Axis (Ignore Curve)"}},
+            "closed_continuous": {"label": "Make Closed Curve Orientations Continuous", "hide": "{ mode != curve_points }"},
+            "extrapolate_ends": {"label": "Extrapolate End Tangents", "hide": "{ mode != curve_points }",
+                                 "disable": "{ tangent_type == previous } { tangent_type == next } { tangent_type == z_axis }"},
+            "use_point_attribs": {"label": "Transform Using Curve Point Attributes", "hide": "{ mode != curve_points }"},
+            "target_up": {"label": "Target Up Vector", "hide": "{ mode != curve_points }", "sep": True,
+                          "menu": {"curve_normal": "Curve Normal", "y_axis": "Y Axis",
+                                   "attribute": "Attribute", "custom": "Custom"}},
+            "up_at_start": {"label": "Target Up Vector at Start (else Average)", "hide": "{ mode != curve_points }"},
+            "use_end_up": {"label": "Use Target End Up Vector", "hide": "{ mode != curve_points }",
+                           "disable": "{ up_at_start == 0 }"},
+            "start_up_attrib": {"label": "Start Up Attribute", "hide": "{ mode != curve_points } { target_up != attribute }"},
+            "end_up_attrib": {"label": "End Up Attribute", "hide": "{ mode != curve_points } { target_up != attribute }",
+                              "disable": "{ use_end_up == 0 } { up_at_start == 0 }"},
+            "up_x": {"row": {"kind": "vector", "members": ["up_x", "up_y", "up_z"], "label": "Start Up Vector"},
+                     "hide": "{ mode == curve_points target_up != custom }",
+                     "help": "Under Count / Spacing: the up at the start; under Curve Points: the start up for Custom"},
+            "end_up_x": {"row": {"kind": "vector", "members": ["end_up_x", "end_up_y", "end_up_z"],
+                                 "label": "End Up Vector"},
+                         "hide": "{ mode != curve_points } { target_up != custom }",
+                         "disable": "{ use_end_up == 0 } { up_at_start == 0 }"},
+            "rotate_order": {"label": "Rotate Order", "folder": "Additional Rotations", "hide": "{ mode != curve_points }",
+                             "menu": {"pyr": "Pitch, Yaw, Roll", "pry": "Pitch, Roll, Yaw",
+                                      "ypr": "Yaw, Pitch, Roll", "yrp": "Yaw, Roll, Pitch",
+                                      "rpy": "Roll, Pitch, Yaw", "ryp": "Roll, Yaw, Pitch"},
+                             "help": "Listed first rotates first (all in the curve frame)"},
+            "roll": {"label": "Roll", "disable": "{ mode == curve_points apply_roll == 0 }"},
+            "roll_step": {"label": "Roll per Copy", "hide": "{ mode == curve_points }",
+                          "help": "Copy k rotates k times more (k counted from 0 on each curve)"},
+            "apply_roll": {"label": "Apply Roll or Twist", "hide": "{ mode != curve_points }"},
+            "twist_per": {"label": "Twist Per", "hide": "{ mode != curve_points }", "disable": "{ apply_roll == 0 }",
+                          "menu": {"per_edge": "Per Edge", "per_unit_distance": "Per Unit Distance",
+                                   "scale_by_attribute": "Scale by Attribute",
+                                   "full_curve_by_edges": "Per Full Curve by Edges",
+                                   "full_curve_by_distance": "Per Full Curve by Distance"}},
+            "full_twists": {"label": "Full Twists", "hide": "{ mode != curve_points }", "disable": "{ apply_roll == 0 }"},
+            "partial_twist": {"label": "Partial Twist", "hide": "{ mode != curve_points }", "disable": "{ apply_roll == 0 }"},
+            "twist_ramp_attrib": {"label": "Twist Ramp Attribute",
+                                  "hide": "{ mode != curve_points } { twist_per != scale_by_attribute }",
+                                  "disable": "{ apply_roll == 0 }"},
+            "apply_yaw": {"label": "Apply Yaw", "hide": "{ mode != curve_points }", "sep": True},
+            "yaw": {"label": "Yaw", "hide": "{ mode != curve_points }", "disable": "{ apply_yaw == 0 }"},
+            "yaw_per": {"label": "Yaw Per", "hide": "{ mode != curve_points }", "disable": "{ apply_yaw == 0 }",
+                        "menu": {"per_edge": "Per Edge", "per_unit_distance": "Per Unit Distance",
+                                 "scale_by_attribute": "Scale By Attribute",
+                                 "full_curve_by_edges": "Per Full Curve by Edges",
+                                 "full_curve_by_distance": "Per Full Curve by Distance"}},
+            "incremental_yaw": {"label": "Incremental Yaw", "hide": "{ mode != curve_points }", "disable": "{ apply_yaw == 0 }"},
+            "yaw_ramp_attrib": {"label": "Yaw Ramp Attribute", "hide": "{ mode != curve_points } { yaw_per != scale_by_attribute }",
+                                "disable": "{ apply_yaw == 0 }"},
+            "apply_pitch": {"label": "Apply Pitch", "hide": "{ mode != curve_points }", "sep": True},
+            "pitch": {"label": "Pitch", "hide": "{ mode != curve_points }", "disable": "{ apply_pitch == 0 }"},
+            "pitch_per": {"label": "Pitch Per", "hide": "{ mode != curve_points }", "disable": "{ apply_pitch == 0 }",
+                          "menu": {"per_edge": "Per Edge", "per_unit_distance": "Per Unit Distance",
+                                   "scale_by_attribute": "Scale By Attribute",
+                                   "full_curve_by_edges": "Per Full Curve by Edges",
+                                   "full_curve_by_distance": "Per Full Curve by Distance"}},
+            "incremental_pitch": {"label": "Incremental Pitch", "hide": "{ mode != curve_points }", "disable": "{ apply_pitch == 0 }"},
+            "pitch_ramp_attrib": {"label": "Pitch Ramp Attribute",
+                                  "hide": "{ mode != curve_points } { pitch_per != scale_by_attribute }",
+                                  "disable": "{ apply_pitch == 0 }"},
+            "normalize_scales": {"label": "Normalize Scales", "folder": "Scales and Shears", "hide": "{ mode != curve_points }",
+                                 "disable": "{ use_point_attribs == 0 }",
+                                 "help": "Ignores pscale / scale on the curve points (only meaningful with Transform Using Curve Point Attributes)"},
+            "uniform_scale": {"label": "Uniform Scale", "hide": "{ mode != curve_points }"},
+            "stretch_around_turns": {"label": "Stretch Around Turns", "hide": "{ mode != curve_points }"},
+            "max_stretch": {"label": "Max Stretch", "hide": "{ mode != curve_points }", "disable": "{ stretch_around_turns == 0 }"},
+            "target_attributes": {"label": "Attributes from Target", "folder": "Attributes", "hide": "{ mode != curve_points }",
+                                  "help": "Name pattern of curve point attributes copied onto the copies' points (only the Apply to Point / by Copy row is implemented)"},
+        },
+    },
+
+    # ── Point Relax SOP: Group / Iterations → radius (Point Radius, Use pscale, Scale) → Max Step
+    "PCG_PointRelax": {
+        "order": ["group", "iterations", "radius", "use_pscale", "radius_scale",
+                  "max_step"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "iterations": {"label": "Iterations"},
+            # point_relax(): Radius is only ignored when Use pscale is on AND the points have pscale, so it is not hidden
+            "radius": {"label": "Point Radius", "sep": True,
+                       "help": "Used when there is no pscale (or Use pscale is off); 0 = automatic"},
+            "use_pscale": {"label": "Use pscale Attribute"},
+            "radius_scale": {"label": "Point Radius Scale"},
+            "max_step": {"label": "Max Step", "sep": True,
+                         "help": "Each step moves at most Max Step × radius"},
+        },
+    },
+
+    # ── Point Replicate:Group / Count / Radius / Distribution / Seed / Keep Original
+    "PCG_PointReplicate": {
+        "order": ["group", "keep_original", "count", "count_attribute",
+                  "shape", "orientation", "center_x", "center_y", "center_z",
+                  "size_x", "size_y", "size_z", "uniform_scale",
+                  "velocity_stretch", "velocity_scale",
+                  "radius", "radius_attribute", "rand_seed",
+                  "copy_source_attributes", "source_attributes", "inherit_velocity",
+                  "radial_velocity", "keep_source_attributes", "source_point_attribute",
+                  "source_index_attribute", "create_output_group", "output_group"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "keep_original": {"label": "Keep Input Geometry"},
+            # point_replicate(): a given count_attribute replaces Count entirely
+            "count": {"label": "Points per Point", "sep": True,
+                      "disable": '{ count_attribute != "" }'},
+            "count_attribute": {"label": "Count Attribute",
+                                "help": "Integer point attribute, used directly as each point's point count (Houdini's Generate From "
+                                        "Attribute is probability × Points per Point, which differs)"},
+            "shape": {"label": "Shape", "sep": True,
+                      "menu": {"sphere": "Sphere Volume", "shell": "Sphere Surface",
+                               "disk": "Disk (Perpendicular to N)",
+                               "gaussian": "Gaussian", "circle": "Circle", "line": "Line",
+                               "grid": "Grid"},
+                      "help": "The first four are this plugin's own (world space, Radius × radius attribute); Circle / Line / Grid "
+                              "are generated in local space and then placed by the instancing rules (Size, Center, pscale, orient / N)"},
+            "orientation": {"label": "Orientation",
+                            "menu": {"xy": "XY Plane", "yz": "YZ Plane", "zx": "ZX Plane"},
+                            "hide": "{ shape == sphere } { shape == shell } { shape == disk } "
+                                    "{ shape == gaussian }",
+                            "help": "Circle / square lie in this plane; Line runs along the plane's normal axis (XY → local Z = along N)"},
+            "center_x": {"row": {"label": "Center"},
+                         "hide": "{ shape == sphere } { shape == shell } { shape == disk } "
+                                 "{ shape == gaussian }"},
+            "size_x": {"row": {"label": "Size"},
+                       "hide": "{ shape == sphere } { shape == shell } { shape == disk } "
+                               "{ shape == gaussian }"},
+            "uniform_scale": {"label": "Uniform Scale",
+                              "hide": "{ shape == sphere } { shape == shell } { shape == disk } "
+                                      "{ shape == gaussian }"},
+            "velocity_stretch": {"label": "Velocity Stretch",
+                                 "menu": {"none": "None", "scaled": "Scaled",
+                                          "ignore_geometry_scale": "Ignore Geometry Scale"},
+                                 "hide": "{ shape == sphere } { shape == shell } "
+                                         "{ shape == disk } { shape == gaussian }"},
+            "velocity_scale": {"label": "Velocity Scale",
+                               "hide": "{ shape == sphere } { shape == shell } { shape == disk } "
+                                       "{ shape == gaussian }",
+                               "disable": "{ velocity_stretch == none }"},
+            "radius": {"label": "Radius",
+                       "hide": "{ shape == circle } { shape == line } { shape == grid }"},
+            "radius_attribute": {"label": "Radius Attribute",
+                                 "hide": "{ shape == circle } { shape == line } { shape == grid }"},
+            "rand_seed": {"label": "Seed"},
+            "copy_source_attributes": {"folder": "Attributes",
+                                       "label": "Copy Source Attributes"},
+            "source_attributes": {"folder": "Attributes", "label": "Attributes",
+                                  "disable": "{ copy_source_attributes == 0 }"},
+            "inherit_velocity": {"folder": "Attributes", "label": "Inherit Velocity"},
+            "radial_velocity": {"folder": "Attributes", "label": "Radial Velocity"},
+            "keep_source_attributes": {"folder": "Attributes", "label": "Keep Source Attributes",
+                                       "sep": True},
+            "source_point_attribute": {"folder": "Attributes", "label": "Source Point Attribute",
+                                       "disable": "{ keep_source_attributes == 0 }"},
+            "source_index_attribute": {"folder": "Attributes", "label": "Source Index Attribute",
+                                       "disable": "{ keep_source_attributes == 0 }",
+                                       "help": "Empty = do not write"},
+            "create_output_group": {"folder": "Attributes", "in_toggle": "output_group",
+                                    "sep": True},
+            "output_group": {"folder": "Attributes", "label": "Create Output Group",
+                             "toggle": "create_output_group"},
+        },
+    },
+
+    # ── Scatter from Map: Group / texture layer and channel → count and density → Sampling section → UV section → output attributes
+    "PCG_ScatterFromMap": {
+        "order": ["tag_name", "group", "scatter_method", "layer", "channel", "decode",
+                  "count", "density", "coverage", "outer_radius", "density_scale",
+                  "density_floor", "invert", "rand_seed", "max_points",
+                  "variability", "range_min", "range_max", "spread", "exact_scale",
+                  "randomize_orients", "match_normals", "randomize_up", "randomize_yaw",
+                  "quantization",
+                  "oversample", "max_rounds", "filter", "border",
+                  "uv_attrib", "uv_scale_u", "uv_offset_u", "out_density"],
+        "inputs": {
+            "tag_name": {"label": "Tag Name", "help": "When non-empty, writes a string point attribute tag"},
+            "group": {"label": "Group"},
+            "scatter_method": {"label": "Scatter Method",
+                               "menu": {"count": "Total Point Count using Mask Layer",
+                                        "density": "By Density using Mask Layer",
+                                        "coverage": "By Coverage using Mask Layer"},
+                               "help": "Per Point Count using Source Points is not implemented"},
+            "layer": {"label": "Density Layer"},
+            "channel": {"label": "Channel"},
+            "decode": {"label": "Decode", "menu": dict(_DECODE_MENU)},
+            "count": {"label": "Total Point Count", "sep": True,
+                      "hide": "{ scatter_method != count }"},
+            "density": {"label": "Density", "hide": "{ scatter_method != density }",
+                        "help": "Points per unit area where the mask value is 1"},
+            "coverage": {"label": "Coverage", "hide": "{ scatter_method != coverage }"},
+            "outer_radius": {"label": "Outer Radius",
+                             "help": "Radius of the disk a point occupies (× scale), written to footprint; By Coverage derives the point count from it"},
+            "max_points": {"label": "Max Points", "help": "Hard cap; 0 = unlimited"},
+            "variability": {"label": "Variability Method", "sep": True,
+                            "menu": {"none": "None (No pscale)",
+                                     "uniform": "Uniform Distribution",
+                                     "normal": "Normal Distribution",
+                                     "exact": "Exact Scale"}},
+            "range_min": {"row": {"kind": "vector", "members": ["range_min", "range_max"],
+                                  "label": "Range"},
+                          "hide": "{ variability == none } { variability == exact }"},
+            "range_max": {"in_row": "range_min"},
+            "spread": {"label": "Spread", "hide": "{ variability != normal }"},
+            "exact_scale": {"label": "Exact Scale", "hide": "{ variability != exact }"},
+            "randomize_orients": {"label": "Randomize Orients", "sep": True},
+            "match_normals": {"label": "Match Normals with Terrain",
+                              "disable": "{ randomize_orients == 0 }"},
+            "randomize_up": {"label": "Randomize Up", "disable": "{ randomize_orients == 0 }"},
+            "randomize_yaw": {"label": "Randomize Yaw", "disable": "{ randomize_orients == 0 }"},
+            "quantization": {"label": "Quantization", "help": "0 = no quantization; quantizes all three axes"},
+            "density_scale": {"label": "Density Scale",
+                              "help": "Only scales the density attribute written out. The point count is set by Count and probabilities are normalized by the whole-image maximum, so a global multiplier cannot change the distribution"},
+            "density_floor": {"label": "Density Floor", "help": "Minimum density (0-1)"},
+            "invert": {"label": "Invert Density"},
+            "rand_seed": {"label": "Seed"},
+            "oversample": {"label": "Oversample", "disable": "{ scatter_method != count }"},
+            "max_rounds": {"label": "Max Rounds", "disable": "{ scatter_method != count }"},
+            "filter": {"label": "Filter", "menu": dict(_FILTER_MENU)},
+            "border": {"label": "Border", "menu": dict(_BORDER_MENU)},
+            "uv_attrib": {"label": "UV Attribute"},
+            "out_density": {"section": None, "label": "Output Density Attribute",
+                            "sep": True, "help": "Leave empty to not write"},
+        },
+    },
+
+    # ── Scatter Volume: Group / Mode → Count (random) or Spacing / Jitter (grid) →
+    #    Min Distance / Seed / Ray Directions. scatter_volume(): grid mode does not read count, random mode
+    #    does not read spacing / jitter
+    "PCG_ScatterVolume": {
+        "order": ["group", "mode", "count", "spacing", "jitter", "min_distance",
+                  "rand_seed", "ray_directions"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "mode": {"label": "Method",
+                     "menu": {"random": "Random", "grid": "Jittered Grid"}},
+            "count": {"label": "Count", "hide": "{ mode != random }"},
+            "spacing": {"label": "Spacing", "hide": "{ mode != grid }"},
+            "jitter": {"label": "Jitter Scale", "hide": "{ mode != grid }"},
+            "min_distance": {"label": "Min Distance", "sep": True,
+                             "help": "> 0 applies Poisson-disk filtering (no points are added back afterwards)"},
+            "rand_seed": {"label": "Seed"},
+            "ray_directions": {"label": "Inside Test Rays", "sep": True,
+                               "help": "Number of axis-aligned rays cast for the inside/outside test (majority vote)"},
+        },
+    },
+
+    # ── Voronoi 2D: Group / Plane → Output / Boundary / Padding → Plane section →
+    #    Local Attributes section → Advanced section. plane_basis(): fit_plane does not read origin / normal
+    #    (but reads distance), the three axis modes read origin but not normal; padding is only read for the bounds boundary;
+    #    site attributes are only written on cells, the interior group only on edges
+    "PCG_Voronoi2D": {
+        "order": ["group", "plane", "output", "boundary", "padding",
+                  "plane_origin_x", "plane_normal_x", "plane_distance",
+                  "site_attribute", "interior_group",
+                  "fuse_tolerance", "hull_tolerance", "on_failure"],
+        "inputs": {
+            "group": {"label": "Site Group"},
+            "plane": {"label": "Plane",
+                      "menu": {"fit_plane": "Fit Plane", "xy": "XY Plane",
+                               "zx": "ZX Plane", "yz": "YZ Plane",
+                               "specify_plane": "Specify Plane"}},
+            "output": {"label": "Output", "sep": True,
+                       "menu": {"cells": "Cells (Polygons)", "edges": "Edges (Lines)"}},
+            "boundary": {"label": "Boundary",
+                         "menu": {"bounds": "Bounding Box",
+                                  "polygon": "Second Input Polygon"},
+                         "help": "Polygon needs the second input connected, and it must be convex"},
+            "padding": {"label": "Padding", "hide": "{ boundary != bounds }"},
+            "plane_origin_x": {"label": "Plane Origin", "hide": "{ plane == fit_plane }"},
+            "plane_normal_x": {"hide": "{ plane != specify_plane }"},
+            "plane_distance": {"label": "Plane Offset",
+                               "help": "Extra offset along the plane normal"},
+            "site_attribute": {"label": "Site Attribute", "hide": "{ output != cells }"},
+            "interior_group": {"label": "Interior Edge Group",
+                               "hide": "{ output != edges }"},
+            "fuse_tolerance": {"section": "Advanced", "label": "Fuse Tolerance"},
+            "hull_tolerance": {"section": "Advanced", "label": "Hull Tolerance"},
+            "on_failure": {"section": "Advanced", "label": "On Failure",
+                           "menu": {"fail_with_error": "Fail with Error",
+                                    "warn_and_keep_input": "Warn and Keep Input",
+                                    "output_nothing": "Output Nothing"}},
+        },
+    },
+
+    # ════════════════════════════════════════════════════ Topology editing
+    # ── Connect Adjacent Pieces SOP:Connection Type / Search Radius / Max Connections /
+    #    Piece Attribute. connect_adjacent_pieces(): the piece attribute is only read in the two piece modes,
+    #    keep_input is only read in points mode
+    "PCG_ConnectAdjacentPieces": {
+        "order": ["group", "mode", "piece_attribute", "radius", "max_connections",
+                  "keep_input"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "mode": {"label": "Connection Type",
+                     "menu": {"points": "Adjacent Points",
+                              "piece_centroids": "Adjacent Pieces (Centroids)",
+                              "piece_points": "Adjacent Pieces (Closest Points)"}},
+            "piece_attribute": {"label": "Piece Attribute", "hide": "{ mode == points }",
+                                "help": "If not found, pieces are split by connectivity"},
+            "radius": {"label": "Search Radius", "sep": True},
+            "max_connections": {"label": "Max Connections"},
+            "keep_input": {"label": "Keep Input Geometry", "hide": "{ mode != points }"},
+        },
+    },
+
+    # ── Edge Cusp SOP:Group / Cusp Angle / Compute Normals
+    "PCG_EdgeCusp": {
+        "order": ["edges", "min_angle", "compute_normals"],
+        "inputs": {
+            "edges": {"label": "Group", "help": "Edge group; empty = all edges"},
+            "min_angle": {"label": "Cusp Angle",
+                          "help": "Only cuts edges with dihedral angle ≥ this; 0 = cut all"},
+            "compute_normals": {"label": "Compute Normals", "sep": True},
+        },
+    },
+
+    # ── Edge Flip SOP: Group / Mode → Cycles (rotate) / Max Angle (delaunay).
+    #    edge_flip(): cycles is only read in rotate, max_angle only in delaunay
+    "PCG_EdgeFlip": {
+        "order": ["edges", "mode", "cycles", "max_angle"],
+        "inputs": {
+            "edges": {"label": "Group", "help": "Edge group; empty = all edges"},
+            "mode": {"label": "Mode",
+                     "menu": {"rotate": "Rotate Edges", "delaunay": "Delaunay"}},
+            "cycles": {"label": "Cycles", "hide": "{ mode != rotate }"},
+            "max_angle": {"label": "Max Dihedral Angle", "hide": "{ mode != delaunay }"},
+        },
+    },
+
+    # ── Find Shortest Path SOP: Start / End Points / path mode, Cost and Output tabs.
+    #    find_shortest_path(): sequence does not read the end group and is the only one that reads close_sequence;
+    #    cost_weight is only read when a cost attribute is given; up only when slope_weight ≠ 0; group names are only written for group output
+    "PCG_FindShortestPath": {
+        "order": ["start_group", "end_group", "mode", "close_sequence",
+                  "use_length", "omit_distance", "cost_attribute", "cost_weight", "slope_weight",
+                  "up_x", "use_max_cost", "max_cost", "point_cost_attribute",
+                  "prim_cost_attribute", "surface_prims", "directed_prims", "edges_to_avoid",
+                  "output", "group_name"],
+        "inputs": {
+            "start_group": {"label": "Start Points",
+                            "help": "Point group, or point numbers in order (sequence / corresponding follow this order)"},
+            "end_group": {"label": "End Points", "hide": "{ mode == sequence }"},
+            "mode": {"label": "Output Paths",
+                     "menu": {"nearest_end": "From Each Start to Any End",
+                              "each_pair": "From Each Start to Each End",
+                              "sequence": "Through Start Points in Order (PCG)",
+                              "any_to_any": "From Any Start to Any End",
+                              "any_start_to_each_end": "From Any Start to Each End",
+                              "corresponding": "From Each Start to Corresponding End"}},
+            "close_sequence": {"label": "Close Sequence",
+                               "hide": "{ mode != sequence }"},
+            "use_length": {"folder": "Cost", "label": "Use Edge Length",
+                           "help": "Off = every edge costs 1 (by step count)",
+                           "disable": "{ omit_distance == 1 }"},
+            "omit_distance": {"folder": "Cost", "label": "Omit Distance from Cost",
+                              "help": "The edge length / step count × multiplier part is counted as 0 entirely, leaving only Point / Primitive Cost"},
+            "cost_attribute": {"folder": "Cost", "label": "Cost Attribute (PCG, Multiplier)"},
+            "cost_weight": {"folder": "Cost", "label": "Cost Weight",
+                            "disable": '{ cost_attribute == "" }'},
+            "slope_weight": {"folder": "Cost", "label": "Slope Weight (PCG)", "sep": True},
+            "up_x": {"folder": "Cost", "disable": "{ slope_weight == 0 }"},
+            "up_y": {"folder": "Cost"},
+            "up_z": {"folder": "Cost"},
+            "use_max_cost": {"folder": "Cost", "section": None, "gate": None, "in_toggle": "max_cost",
+                             "sep": True},
+            "max_cost": {"folder": "Cost", "label": "Max Search Path Cost", "section": None,
+                         "toggle": "use_max_cost"},
+            "point_cost_attribute": {"folder": "Cost", "label": "Point Cost Attribute",
+                                     "help": "Added when the path enters this point (Houdini's additive cost)"},
+            "prim_cost_attribute": {"folder": "Cost", "label": "Primitive Cost Attribute"},
+            "surface_prims": {"folder": "Surface Constraints", "label": "Surface Primitives"},
+            "directed_prims": {"folder": "Surface Constraints", "label": "Directed Primitives"},
+            "edges_to_avoid": {"folder": "Surface Constraints", "label": "Edges to Avoid"},
+            "output": {"folder": "Output", "label": "Output",
+                       "menu": {"paths": "Paths Only", "merge": "Merge with Input",
+                                "group": "Groups on Input"}},
+            "group_name": {"folder": "Output", "label": "Path Group",
+                           "hide": "{ output != group }",
+                           "help": "Edge group and point group of the same name"},
+        },
+    },
+
+    # ── Match Topology SOP: Method → seeds (topology) / Tolerance (position).
+    #    match_topology(): seeds are only read in topology, and the seed points only when ref_prim / geo_prim are both ≥ 0
+    "PCG_MatchTopology": {
+        "order": ["mode", "ref_prim", "ref_point", "geo_prim", "geo_point",
+                  "tolerance"],
+        "inputs": {
+            "mode": {"label": "Method",
+                     "menu": {"topology": "Topology", "position": "Nearest Position"}},
+            "ref_prim": {"label": "Reference Primitive", "sep": True,
+                         "hide": "{ mode != topology }",
+                         "help": "-1 = find seeds automatically"},
+            "ref_point": {"label": "Reference Point", "hide": "{ mode != topology }",
+                          "disable": "{ ref_prim < 0 } { geo_prim < 0 }"},
+            "geo_prim": {"label": "Input Primitive", "hide": "{ mode != topology }"},
+            "geo_point": {"label": "Input Point", "hide": "{ mode != topology }",
+                          "disable": "{ ref_prim < 0 } { geo_prim < 0 }"},
+            "tolerance": {"label": "Distance Tolerance", "hide": "{ mode != position }"},
+        },
+    },
+
+    # ── PolyCut SOP:Polygon Group / Type / Cut Points | Cut Edges / Strategy / Detect Edge
+    #    Changes / Cut Attribute / Cut Value / Cut Threshold / Keep Polygons Closed.
+    #    The first three Strategy modes are this plugin's originals (Houdini only has Remove / Cut), each reads its own parameters:
+    #    poly_cut(): points is not read in threshold mode, and in remove / cut mode only read when Type = points;
+    #    attribute / threshold are not read in the two point-group modes; keep is only read in threshold mode;
+    #    _poly_cut_hou(): cut_threshold is only read when detect == change, threshold (Cut Value) only in crossing
+    "PCG_PolyCut": {
+        "order": ["group", "mode", "cut_type", "points", "cut_edges", "detect", "attribute",
+                  "threshold", "cut_threshold", "keep", "keep_closed"],
+        "inputs": {
+            "group": {"label": "Polygon Group"},
+            "mode": {"label": "Strategy",
+                     "menu": {"cut_points": "Cut at Points",
+                              "keep_points": "Keep Edges Between Points",
+                              "threshold": "Attribute Threshold",
+                              "remove": "Remove", "cut": "Cut"},
+                     "help": "Remove / Cut are Houdini PolyCut's two modes; the first three are this plugin's extensions"},
+            "cut_type": {"label": "Type", "menu": {"points": "Points", "edges": "Edges"},
+                         "hide": "{ mode != remove mode != cut }"},
+            "points": {"label": "Cut Points",
+                       "hide": "{ mode == threshold } { mode == remove cut_type == edges } "
+                               "{ mode == cut cut_type == edges }",
+                       "help": "Remove / Cut modes: restricts which points may be removed / cut, empty = all"},
+            "cut_edges": {"label": "Cut Edges",
+                          "hide": "{ mode != remove mode != cut } { cut_type != edges }",
+                          "help": "Restricts which edges may be removed / cut, empty = all"},
+            "detect": {"label": "Detect Edge Changes",
+                       "menu": {"crossing": "Cut At Attribute Crossing",
+                                "change": "Cut At Attribute Change"},
+                       "hide": "{ mode != remove mode != cut }"},
+            "attribute": {"label": "Cut Attribute",
+                          "hide": "{ mode == cut_points } { mode == keep_points }",
+                          "help": "In Remove / Cut modes, empty = no edge qualifies"},
+            "threshold": {"label": "Cut Value",
+                          "hide": "{ mode == cut_points } { mode == keep_points } "
+                                  "{ mode == remove detect == change } "
+                                  "{ mode == cut detect == change }"},
+            "cut_threshold": {"label": "Cut Threshold",
+                              "hide": "{ mode != remove mode != cut } { detect != change }",
+                              "help": "Maximum attribute difference between adjacent points (vector attributes use distance)"},
+            "keep": {"label": "Keep", "hide": "{ mode != threshold }",
+                     "menu": {"all": "All (Cut Only)", "above": "Above Threshold",
+                              "below": "Below Threshold"}},
+            "keep_closed": {"label": "Keep Polygons Closed",
+                            "hide": "{ mode != remove mode != cut }"},
+        },
+    },
+
+    # ── PolySplit SOP:Split Locations / Path Type / Close Path / Number of Loops /
+    #    Edge Percentage / output edge group. poly_split(): close_path is only read in shortest_path,
+    #    num_loops only in edge_loop; edge_percentage is not read in edge_loop when num_loops > 1
+    "PCG_PolySplit": {
+        "order": ["locations", "path_type", "close_path", "num_loops",
+                  "use_edge_percentage", "edge_percentage", "edge_group"],
+        "inputs": {
+            "locations": {"label": "Split Locations",
+                          "help": "Space-separated: 12 = point, 3-7@0.25 = on the edge at t=0.25 (omit @ = midpoint);"
+                                  " also accepts Houdini's p3-7:0.25 / 0v2 / 0e1:0.25"},
+            "path_type": {"label": "Path Type",
+                          "menu": {"shortest_path": "Shortest Path",
+                                   "edge_loop": "Edge Loop"},
+                          "help": "Shortest Path mode does no path finding: consecutive locations must be on the same face"},
+            "close_path": {"label": "Close Path", "hide": "{ path_type == edge_loop }"},
+            "num_loops": {"label": "Number of Loops", "hide": "{ path_type != edge_loop }"},
+            "use_edge_percentage": {"section": None, "gate": None,
+                                    "in_toggle": "edge_percentage"},
+            "edge_percentage": {"section": None, "toggle": "use_edge_percentage",
+                                "label": "Edge Percentage",
+                                "disable": "{ path_type == edge_loop num_loops > 1 }"},
+            "edge_group": {"label": "Output Edge Group", "sep": True,
+                           "help": "Leave empty to not write"},
+        },
+    },
+
+    # ── PolyStitch SOP:Group / Tolerance / Snap
+    "PCG_PolyStitch": {
+        "order": ["group", "tolerance", "snap"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "tolerance": {"label": "Tolerance"},
+            "snap": {"label": "Snap to Boundary Edges"},
+        },
+    },
+
+    # ── Rewire Vertices SOP:Attribute / Keep Unused Points / Remove Degenerate
+    "PCG_RewireVertices": {
+        "order": ["attribute", "keep_unused_points", "remove_degenerate"],
+        "inputs": {
+            "attribute": {"label": "Point Number Attribute",
+                          "help": "Vertex attribute takes priority, otherwise the point one; -1 / out of range = unchanged"},
+            "keep_unused_points": {"label": "Keep Unused Points", "sep": True},
+            "remove_degenerate": {"label": "Remove Degenerate Primitives"},
+        },
+    },
+
+    # ── Tri Divide SOP: Group → Refinement (Max Edge Length / Max Area) → Delaunay edge flips
+    "PCG_TriDivide": {
+        "order": ["group", "max_edge_length", "max_area", "delaunay", "flip_angle"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "max_edge_length": {"label": "Max Edge Length", "sep": True,
+                                "help": "0 = unlimited"},
+            "max_area": {"label": "Max Area", "help": "0 = unlimited"},
+            "delaunay": {"label": "Restore Delaunay", "sep": True},
+            "flip_angle": {"label": "Max Flip Dihedral Angle",
+                           "disable": "{ delaunay == 0 }"},
+        },
+    },
+
+    # ── Unsubdivide SOP: Levels / Positions / Boundary. unsubdivide._once():
+    #    boundary is only read for fit (inverting the subdivision stencil)
+    "PCG_Unsubdivide": {
+        "order": ["levels", "positions", "boundary"],
+        "inputs": {
+            "levels": {"label": "Levels"},
+            "positions": {"label": "Positions",
+                          "menu": {"fit": "Fit (Least Squares)",
+                                   "keep": "Keep Original Vertices"}},
+            "boundary": {"label": "Vertex Boundary Interpolation",
+                         "menu": {"edge_corner": "Edges and Corners",
+                                  "edge_only": "Edges Only", "smooth": "None"},
+                         "hide": "{ positions != fit }",
+                         "help": "Must match the subdivision"},
+        },
+    },
+
+    # ════════════════════════════════════════════════════ UV
+    # ── UV Auto Seams:Group / Mode → Min Angle(angle / both)/ Cone Angle(charts / both)
+    #    / Make Disks → output group / attributes. auto_seams(): reads the two angles per mode branch
+    "PCG_UVAutoSeams": {
+        "order": ["group", "include_edges", "island_attribute", "exclude_edges",
+                  "mode", "min_angle", "cone_angle", "uv_attribute",
+                  "connectivity_tolerance", "make_disks",
+                  "output_group", "output_chart_attribute"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "include_edges": {"label": "Include Edges", "sep": True,
+                              "help": "Enforce cuts: these edges are always seams"},
+            "island_attribute": {"label": "Island Attribute",
+                                 "help": "Enforce cuts: integer prim attribute; cuts between adjacent faces with different values"},
+            "exclude_edges": {"label": "Exclude Edges",
+                              "help": "Avoid cuts: these edges are not used as seams; Ensure Disk also avoids them first when adding seams"
+                                      " (when they form a loop by themselves, one of them has to be cut)"},
+            "mode": {"label": "Mode", "sep": True,
+                     "menu": {"angle": "Crease Angle", "charts": "Normal Charts",
+                              "both": "Both", "existing_islands": "Existing Islands"}},
+            "min_angle": {"label": "Min Crease Angle",
+                          "hide": "{ mode == charts } { mode == existing_islands }"},
+            "cone_angle": {"label": "Chart Cone Angle",
+                           "hide": "{ mode == angle } { mode == existing_islands }",
+                           "help": "Smaller = more pieces, lower distortion"},
+            "uv_attribute": {"label": "UV Attribute", "hide": "{ mode != existing_islands }"},
+            "connectivity_tolerance": {"label": "Connectivity Tolerance",
+                                       "hide": "{ mode != existing_islands }"},
+            "make_disks": {"label": "Ensure Disk Topology",
+                           "help": "Guarantees every piece is a disk after cutting (so LSCM can unwrap it)"},
+            "output_group": {"label": "Output Seam Group", "sep": True},
+            "output_chart_attribute": {"label": "Output Chart Attribute",
+                                       "help": "Leave empty to not write"},
+        },
+    },
+
+    # ── UV Pelt SOP 2.0:UV Attribute / Edge Cut Group / Pelting Method / Output Group,
+    #    Pelt section (Iterations / Boundary Springs / Stiffness / Hint), Frame section (Use Range,
+    #    U / V Range, Orientation). pelt(): all parameters are always read, Range only when use_range
+    "PCG_UVPelt": {
+        "order": ["attribute_name", "seam_group", "method", "output_group",
+                  "iterations", "boundary_springs", "stiffness_attribute", "hint_prim",
+                  "use_range", "u_range_min", "v_range_min", "orientation"],
+        "inputs": {
+            "attribute_name": {"label": "UV Attribute"},
+            "seam_group": {"label": "Edge Cut Group"},
+            "method": {"label": "Pelting Method",
+                       "menu": {"spring_relaxation": "Spring Relaxation",
+                                "tutte_barycentric": "Tutte Barycentric",
+                                "discrete_harmonic": "Discrete Harmonic"}},
+            "output_group": {"label": "Output Group", "help": "Writes this piece's faces to a group; leave empty to not write"},
+            "iterations": {"section": "Pelt", "label": "Iterations",
+                           "help": "Max iterations of the solver (CG)"},
+            "boundary_springs": {"label": "Boundary Springs", "help": "Larger = boundary hugs the frame more and the piece is bigger"},
+            "stiffness_attribute": {"label": "Stiffness Attribute"},
+            "hint_prim": {"label": "Hint Primitive", "help": "Only unwraps the piece containing this face"},
+            "use_range": {"section": "Frame", "label": "Use Range"},
+            "u_range_min": {"row": {"kind": "vector", "label": "U Range",
+                                    "members": ["u_range_min", "u_range_max"]},
+                            "disable": "{ use_range == 0 }"},
+            "v_range_min": {"row": {"kind": "vector", "label": "V Range",
+                                    "members": ["v_range_min", "v_range_max"]},
+                            "disable": "{ use_range == 0 }"},
+            "orientation": {"label": "Orientation",
+                            "help": "Arc-length parameter (0..1) at which the boundary point nearest the hint face lands on the frame"},
+        },
+    },
+
+    # ── UV Unwrap SOP:UV Attribute / Group / Plane Group / Planes(Rotate Order + Rotate)/
+    #    Layout / Scale / Spacing. unwrap(): Rotate is only read without a second input (with one, its polygons are used)
+    "PCG_UVUnwrap": {
+        "order": ["attribute_name", "group", "plane_group", "rotate_order", "rotate_x",
+                  "layout", "scale", "spacing"],
+        "inputs": {
+            "attribute_name": {"label": "UV Attribute"},
+            "group": {"label": "Group"},
+            "plane_group": {"label": "Plane Group", "help": "Which polygons of the second input act as planes"},
+            "rotate_order": {"label": "Rotate Order", "sep": True,
+                             "menu": {"xyz": "Rx Ry Rz", "xzy": "Rx Rz Ry",
+                                      "yxz": "Ry Rx Rz", "yzx": "Ry Rz Rx",
+                                      "zxy": "Rz Rx Ry", "zyx": "Rz Ry Rx"},
+                             "help": "Rotates the three default coordinate planes; unused when the second input is connected"},
+            "rotate_x": {"row": {"kind": "vector", "label": "Rotate",
+                                 "members": ["rotate_x", "rotate_y", "rotate_z"]}},
+            "layout": {"label": "Layout", "sep": True,
+                       "menu": {"strip": "Strip", "square": "Square"}},
+            "scale": {"label": "Scale",
+                      "menu": {"none": "None", "uniform": "Uniform", "stretch": "Stretch"}},
+            "spacing": {"label": "Spacing", "help": "Spacing between regions, as a percentage of the layout space (√ sum of region bounding box areas)"},
+        },
+    },
+
+    # ── UV Fuse SOP: Group / UV Attribute / Mode / Distance (both modes read distance)
+    "PCG_UVFuse": {
+        "order": ["group", "uv_attribute", "mode", "distance"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "uv_attribute": {"label": "UV Attribute"},
+            "mode": {"label": "Fuse", "sep": True,
+                     "menu": {"shared_points": "Shared Points Only",
+                              "distance": "Any Within Distance"}},
+            "distance": {"label": "Distance"},
+        },
+    },
+
+    # ── UV Smooth: Group / UV Attribute → Solve / Weights → Iterations / Strength (only relax reads them)
+    #    → Pin Boundary
+    "PCG_UVSmooth": {
+        "order": ["group", "uv_attribute", "solve", "weights", "iterations",
+                  "strength", "pin_boundary"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "uv_attribute": {"label": "UV Attribute"},
+            "solve": {"label": "Method", "sep": True,
+                      "menu": {"relax": "Relax (Iterative)",
+                               "harmonic": "Harmonic (Solve to Convergence)"}},
+            "weights": {"label": "Weights",
+                        "menu": {"cotangent": "Cotangent", "uniform": "Uniform"}},
+            "iterations": {"label": "Iterations", "hide": "{ solve != relax }"},
+            "strength": {"label": "Strength", "hide": "{ solve != relax }"},
+            "pin_boundary": {"label": "Pin Boundary", "sep": True},
+        },
+    },
+
+    # ── UV Transform SOP:Group / UV Attribute / Class → Translate / Rotate / Scale /
+    #    Pivot. uv transform(): with Per Island each island uses its own bounding box center and Pivot is not read
+    "PCG_UVTransform": {
+        "order": ["group", "attribute_name", "attribute_class", "per_island",
+                  "translate_u", "rotate", "scale_u", "pivot_u"],
+        "inputs": {
+            "group": {"label": "Group"},
+            "attribute_name": {"label": "UV Attribute"},
+            "attribute_class": {"label": "Attribute Class",
+                                "menu": {"vertex": "Vertex", "point": "Point"}},
+            "per_island": {"label": "Per Island",
+                           "help": "Each island transforms around its own center"},
+            "translate_u": {"sep": True},
+            "rotate": {"label": "Rotate"},
+            "pivot_u": {"hide": "{ per_island == 1 }"},
+        },
+    },
+}

@@ -1,0 +1,441 @@
+{
+ "ok": [
+  {
+   "src": "float radius = 1.0 : 0 10   # radius",
+   "specs": [
+    {
+     "type": "float",
+     "name": "radius",
+     "default": 1.0,
+     "min": 0.0,
+     "max": 10.0,
+     "label": "radius",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "int   count  = 5 : 1 100",
+   "specs": [
+    {
+     "type": "int",
+     "name": "count",
+     "default": 5,
+     "min": 1,
+     "max": 100,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "bool  cap = true",
+   "specs": [
+    {
+     "type": "bool",
+     "name": "cap",
+     "default": true,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "bool  off = 0",
+   "specs": [
+    {
+     "type": "bool",
+     "name": "off",
+     "default": false,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string prefix = my piece",
+   "specs": [
+    {
+     "type": "string",
+     "name": "prefix",
+     "default": "my piece",
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string quoted = \"has  spaces\"",
+   "specs": [
+    {
+     "type": "string",
+     "name": "quoted",
+     "default": "has  spaces",
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "vector pos = 1 2 3",
+   "specs": [
+    {
+     "type": "vector",
+     "name": "pos",
+     "default": [
+      1.0,
+      2.0,
+      3.0
+     ],
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 3
+    }
+   ]
+  },
+  {
+   "src": "vector one = 2",
+   "specs": [
+    {
+     "type": "vector",
+     "name": "one",
+     "default": [
+      2.0,
+      2.0,
+      2.0
+     ],
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 3
+    }
+   ]
+  },
+  {
+   "src": "vector4 col = 1, 0.5, 0.25, 1",
+   "specs": [
+    {
+     "type": "vector4",
+     "name": "col",
+     "default": [
+      1.0,
+      0.5,
+      0.25,
+      1.0
+     ],
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 4
+    }
+   ]
+  },
+  {
+   "src": "f a\ni b\nb c\ns d\nv e\nv4 g",
+   "specs": [
+    {
+     "type": "float",
+     "name": "a",
+     "default": 0.0,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    },
+    {
+     "type": "int",
+     "name": "b",
+     "default": 0,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    },
+    {
+     "type": "bool",
+     "name": "c",
+     "default": false,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    },
+    {
+     "type": "string",
+     "name": "d",
+     "default": "",
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    },
+    {
+     "type": "vector",
+     "name": "e",
+     "default": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 3
+    },
+    {
+     "type": "vector4",
+     "name": "g",
+     "default": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 4
+    }
+   ]
+  },
+  {
+   "src": "# whole-line comment\n// also a comment\n\n  float  x  =  -2.5  ",
+   "specs": [
+    {
+     "type": "float",
+     "name": "x",
+     "default": -2.5,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "vec3 nudge = -1 0 1 : -5 5 # offset",
+   "specs": [
+    {
+     "type": "vector",
+     "name": "nudge",
+     "default": [
+      -1.0,
+      0.0,
+      1.0
+     ],
+     "min": -5.0,
+     "max": 5.0,
+     "label": "offset",
+     "n": 3
+    }
+   ]
+  },
+  {
+   "src": "int steps : 1 64",
+   "specs": [
+    {
+     "type": "int",
+     "name": "steps",
+     "default": 0,
+     "min": 1,
+     "max": 64,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "FLOAT Upper = 3",
+   "specs": [
+    {
+     "type": "float",
+     "name": "Upper",
+     "default": 3.0,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "float e_1 = 1e3",
+   "specs": [
+    {
+     "type": "float",
+     "name": "e_1",
+     "default": 1000.0,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string dir = \"C:/out#1\"  # output directory",
+   "specs": [
+    {
+     "type": "string",
+     "name": "dir",
+     "default": "C:/out#1",
+     "min": null,
+     "max": null,
+     "label": "output directory",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string s = 'a: b # c' # label: x",
+   "specs": [
+    {
+     "type": "string",
+     "name": "s",
+     "default": "a: b # c",
+     "min": null,
+     "max": null,
+     "label": "label: x",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string t = \"half # not label",
+   "specs": [
+    {
+     "type": "string",
+     "name": "t",
+     "default": "\"half",
+     "min": null,
+     "max": null,
+     "label": "not label",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "float r = 1 : 0 2 # say \"a:b\"",
+   "specs": [
+    {
+     "type": "float",
+     "name": "r",
+     "default": 1.0,
+     "min": 0.0,
+     "max": 2.0,
+     "label": "say \"a:b\"",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "float r # label = \"a#b:c\"",
+   "specs": [
+    {
+     "type": "float",
+     "name": "r",
+     "default": 0.0,
+     "min": null,
+     "max": null,
+     "label": "label = \"a#b:c\"",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string p =   \"x:1\"",
+   "specs": [
+    {
+     "type": "string",
+     "name": "p",
+     "default": "x:1",
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string e = \"a:b\" # l",
+   "specs": [
+    {
+     "type": "string",
+     "name": "e",
+     "default": "a:b",
+     "min": null,
+     "max": null,
+     "label": "l",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string k = \"a\" # \"b:c\"",
+   "specs": [
+    {
+     "type": "string",
+     "name": "k",
+     "default": "a",
+     "min": null,
+     "max": null,
+     "label": "\"b:c\"",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "string s =",
+   "specs": [
+    {
+     "type": "string",
+     "name": "s",
+     "default": "",
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "src": "float x =   ",
+   "specs": [
+    {
+     "type": "float",
+     "name": "x",
+     "default": 0.0,
+     "min": null,
+     "max": null,
+     "label": "",
+     "n": 1
+    }
+   ]
+  }
+ ],
+ "bad": [
+  "float",
+  "float 1bad = 1",
+  "nope x = 1",
+  "float a = 1\nfloat a = 2",
+  "float a = x",
+  "vector v = 1 2",
+  "float a : 1",
+  "float a : 5 1",
+  "bool b : 0 1",
+  "string s : 0 1",
+  "bool b = maybe",
+  "string u = \"x\" : y",
+  "float w : 0 1 = \"a#b\"",
+  "string m = a \"b:c\""
+ ]
+}

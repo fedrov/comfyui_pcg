@@ -1,0 +1,1467 @@
+{
+ "PCG_VDB": {
+  "summary": "Creates an empty or filled VDB volume of a given class, type and voxel size.",
+  "description": "Creates a VDB prim covering the reference geometry's bounds (+ Padding) or Size / Center at Voxel Size. Class SDF / Fog / None, scalar or vector. Empty (no active voxels, every voxel = Background) unless Fill Active is on (every voxel active with Value). Background defaults to 0 (fog / none) or 3 voxels (SDF).",
+  "inputs": {
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "name": "Name of the new VDB.",
+   "vdb_class": "Grid class: fog volume (density), level set (SDF, negative inside) or none.",
+   "vector": "Make a vector grid (three floats per voxel) instead of a scalar one.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "size_x": "Size of the box the grid covers (when there is no reference geometry).",
+   "center_x": "Centre of the box.",
+   "padding": "Extra space around the reference bounds or the box.",
+   "auto_background": "Use the default background: 0, or 3 voxels for an SDF.",
+   "background": "Background value (the value of every inactive voxel).",
+   "fill_active": "Make every voxel active with Value; otherwise the VDB is empty.",
+   "value": "Value of the voxels when Fill Active is on."
+  }
+ },
+ "PCG_VDBActivate": {
+  "summary": "Changes which voxels of a VDB are active, by box, voxel range, dilation, reference geometry or value.",
+  "description": "Combines the active region with a region (Union / Intersect / A − B / Copy). Region Type: Position (world box), Voxel (inclusive index box, voxel 0 = the bounding-box minimum), Expand (dilate by voxels or distance; face / face+edge / face+edge+vertex pattern), Reference (second input: bounding box, its VDBs' active voxels, the convex hull of its points, or inside its implicit surface, offset in voxels / world), Deactivate (voxels within Tolerance of the background) and Fill SDF (the inside of an SDF). Union / Copy can write Value.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "operation": "How the region combines with the current active region: union, intersect, A − B (deactivate the region) or copy (exactly the region).",
+   "set_value": "Write Value into the voxels the region activates (Union and Copy).",
+   "value": "Value written into the activated voxels.",
+   "region": "How the region is given: a world box, an index box, by expanding the active region, from a reference, by deactivating background voxels, or by filling the inside of an SDF.",
+   "center_x": "Centre of the world box; voxels touching the box are in the region.",
+   "size_x": "Size of the world box.",
+   "min_x": "Minimum voxel index (voxel 0 is at the bounding-box minimum).",
+   "max_x": "Maximum voxel index (inclusive).",
+   "expand": "Dilate the active region by this many voxels.",
+   "expand_dist": "Dilate by at least this world distance.",
+   "pattern": "Neighbour pattern of the dilation.",
+   "bound_group": "Which volumes of the reference input are used.",
+   "use_vdb": "Activate where the reference VDBs are active.",
+   "use_hull": "Activate inside the convex hull of the reference points.",
+   "use_implicit": "Activate inside the implicit surface of the reference volumes (SDF < offset, fog > 0.5).",
+   "voxel_offset": "Grow (positive) or shrink the hull / implicit surface by this many voxels.",
+   "world_offset": "Grow or shrink the hull / implicit surface by this world distance.",
+   "bg_tolerance": "Deactivate voxels within this distance of the background value.",
+   "prune": "Collapse constant 8³ leaves afterwards.",
+   "prune_tolerance": "Tolerance for pruning."
+  }
+ },
+ "PCG_VDBActivateSDF": {
+  "summary": "Activates a narrow band of a given width around the surface of an SDF, with true distances.",
+  "description": "The narrow band |φ| ≤ Half-Width voxels around the surface becomes active and gets true distances (redistanced from the zero crossing); everything else is inactive ±background (the background becomes the band width). The input SDF is assumed to be right near its surface.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "half_width": "Width of the active band on each side of the surface, in voxels."
+  }
+ },
+ "PCG_VDBDensify": {
+  "summary": "Makes every voxel of a VDB active.",
+  "description": "Every voxel becomes active (the VDB keeps its values; inactive ones held the background).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute."
+  }
+ },
+ "PCG_VDBPrune": {
+  "summary": "Collapses constant regions of a VDB and deactivates background regions.",
+  "description": "Value: 8³ leaves whose values differ by at most Tolerance collapse to one constant (their mean). Inactive: leaves within Tolerance of the background are deactivated. Level Set: voxels with |φ| ≥ background are deactivated (outside +background, inside −background).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "mode": "Value: collapse leaves of (almost) equal values; Inactive: deactivate leaves at the background; Level Set: deactivate voxels at or beyond the band.",
+   "tolerance": "Values within this tolerance count as equal."
+  }
+ },
+ "PCG_VDBClip": {
+  "summary": "Deactivates the voxels of a VDB outside (or inside) a box, a mask VDB or a camera frustum.",
+  "description": "Keeps the active voxels inside (or outside, Keep Inside off) the clipping region -- the bounding box of the second input, the active voxels of a mask VDB there, or the view frustum of the camera input (frame edges, near and far planes) -- expanded by Padding; the rest become inactive background. For SDFs the removed voxels take the outside background value. The grid is not resampled into a frustum-shaped grid; voxels keep their places.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "clip": "Geometry whose bounding box (or mask VDB) defines the clipping region; not needed for Camera Frustum.",
+   "camera": "Camera whose view frustum is the clipping region when Clip To is Camera Frustum."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "inside": "Keep the voxels inside the region (off: keep those outside).",
+   "clipper": "What defines the region: the second input's bounding box, a mask VDB in the second input, or the camera's view frustum.",
+   "mask": "Name of the mask VDB in the second input.",
+   "padding": "Grows the region by this world distance."
+  }
+ },
+ "PCG_VDBFill": {
+  "summary": "Sets a box of voxels to a value and activates or deactivates it.",
+  "description": "Sets a box -- inclusive index range, world range, or the reference geometry's bounds -- to Value (x only for scalar grids) and makes it active (or inactive: then it takes the background).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "mode": "How the box is given: index range, world range, or the reference geometry's bounds.",
+   "min_x": "Minimum voxel index.",
+   "max_x": "Maximum voxel index (inclusive).",
+   "wmin_x": "Minimum world corner.",
+   "wmax_x": "Maximum world corner.",
+   "value_x": "Fill value (x only for scalar volumes).",
+   "active": "Activate the box (off: deactivate it; it then holds the background)."
+  }
+ },
+ "PCG_VDBTopologyToSDF": {
+  "summary": "Turns the active region of a VDB into an SDF.",
+  "description": "The active voxels as a solid: an SDF with the surface half a voxel outside the outermost active samples (exact Euclidean distance transforms), after Voxel Dilation and Closing Width (dilate then erode); Smoothing Steps of mean filtering + redistancing. Narrow band of Half-Band voxels (or world units).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "output_name": "Keep the name, add a suffix, or use a custom name.",
+   "custom_name": "Suffix or custom name.",
+   "world_space": "Give the half band in world units.",
+   "half_band": "Half width of the narrow band in voxels.",
+   "half_band_world": "Half width of the narrow band in world units.",
+   "dilation": "Dilate the active region by this many voxels first.",
+   "closing": "Dilate then erode by this many voxels to fill holes and gaps.",
+   "smoothing": "Number of smoothing passes (mean filter + redistance)."
+  }
+ },
+ "PCG_VDBDiagnostics": {
+  "summary": "Checks VDBs for invalid values, wrong backgrounds and bad SDF gradients, and optionally repairs them.",
+  "description": "Tests: finite values, a valid background, inactive voxels holding the background, SDF gradient magnitude within Tolerance of 1 (in the band), active values within [Min, Max]. Repair: non-finite -> background, inactive -> background, values clamped into the range. Mark: adds \"<name>_bad\" fog VDBs = 1 at failing voxels. The report lists the counts per volume.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "test_finite": "Check for NaN and infinite values.",
+   "test_background": "Check that the background value is valid.",
+   "test_inactive": "Check that inactive voxels hold the background.",
+   "test_gradient": "Check that |∇φ| is close to 1 in the band of SDFs.",
+   "gradient_tolerance": "Allowed deviation of |∇φ| from 1.",
+   "test_range": "Check that active values lie in the range.",
+   "range_min": "Allowed value range.",
+   "repair": "Fix what can be fixed: invalid and inactive values become the background, values are clamped into the range.",
+   "mark": "Add a fog VDB named <name>_bad that is 1 at failing voxels."
+  }
+ },
+ "PCG_VDBVisualizeTree": {
+  "summary": "Draws the leaf / internal node layout and the active voxels of VDBs as geometry.",
+  "description": "Leaf nodes (8³ blocks holding active voxels) and internal nodes (128³ blocks) as wireframe boxes or points, active voxels as boxes or points, the grid bounding box; groups leaves / internal / voxels / bbox and Cd. Keep Original Geometry keeps the volumes.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "leaves": "How leaf nodes (8³ blocks holding active voxels) are drawn.",
+   "internal": "How internal nodes (128³ blocks) are drawn.",
+   "voxels": "How active voxels are drawn.",
+   "bbox": "Draw the grid's bounding box.",
+   "keep": "Keep the volumes in the output."
+  }
+ },
+ "PCG_VDBMetadata": {
+  "summary": "Sets the name, class, background and VDB flag of volumes.",
+  "description": "Sets the name, class, background and VDB flag of the selected volumes (each with a toggle).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "name": "New name.",
+   "set_name": "Change the name.",
+   "vdb_class": "New grid class.",
+   "set_class": "Change the grid class.",
+   "background": "New background value.",
+   "set_background": "Change the background value (inactive voxels take it).",
+   "vdb": "VDB (on) or a dense Houdini volume (off).",
+   "set_vdb": "Change whether the prim is a VDB."
+  }
+ },
+ "PCG_VDBVectorMerge": {
+  "summary": "Merges three scalar volumes into one vector volume.",
+  "description": "Pairs the X / Y / Z scalar grids (by base name for patterns like *.x, else in order) into vector grids on the X grid's samples; missing components are 0. Named after the X grid's base name, or Merged VDB Name (# = number). Remove Source VDBs deletes the scalars.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "xgroup": "Pattern of the X component volumes.",
+   "ygroup": "Pattern of the Y component volumes.",
+   "zgroup": "Pattern of the Z component volumes.",
+   "use_basename": "Name the vector volume after the X volume's base name (vel.x -> vel).",
+   "merge_name": "Name when not using the base name; # becomes a number.",
+   "remove_sources": "Delete the merged scalar volumes."
+  }
+ },
+ "PCG_VDBVectorSplit": {
+  "summary": "Splits vector volumes into scalar .x / .y / .z volumes.",
+  "description": "Each vector grid becomes scalar grids <name>.x / .y / .z; scalar grids pass through. Keep Source Volumes keeps the vector grids too.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "keep_source": "Keep the vector volumes as well."
+  }
+ },
+ "PCG_VDBTransform": {
+  "summary": "Translates, scales and rotates volumes.",
+  "description": "Translate and (non-uniform) scale move the grid exactly; with a rotation the grid is resampled into the axis-aligned bounds of the rotated one at the same voxel size (grids here are axis aligned). Order: scale, rotate, translate about the pivot. Transform Vectors rotates / scales vector values.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "t_x": "Translation.",
+   "r_x": "Rotation in degrees (X, then Y, then Z).",
+   "s_x": "Scale per axis.",
+   "uniform_scale": "Multiplies the scale.",
+   "p_x": "Pivot for rotation and scale.",
+   "invert": "Apply the inverse transform.",
+   "xform_vectors": "Rotate and scale the values of vector volumes too."
+  }
+ },
+ "PCG_VDBLOD": {
+  "summary": "Builds lower-resolution levels of detail of volumes.",
+  "description": "Level L keeps every 2^L-th sample after a 2^L box filter (level 0 = the input). Single Level, Level Range (start, end, step) or an LOD Pyramid of Count levels; outputs are named <name>_level<L> unless Preserve Grid Names (single level).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "lod": "One level, a range of levels, or a pyramid.",
+   "level": "Level to build (0 = the input; level L keeps every 2^L-th voxel).",
+   "range_start": "Start, end and step of the levels.",
+   "count": "Number of pyramid levels.",
+   "reuse": "Keep the input's name (single level only)."
+  }
+ },
+ "PCG_VDBMerge": {
+  "summary": "Merges VDBs with the same name (or all of them) into one.",
+  "description": "VDBs of the same class collated by name / primitive number / all are merged into one whose grid covers all of them (first one's voxel size): fog add (or none), SDF union / intersect, other add.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "collation": "Which VDBs merge together: same name, same primitive number, or all.",
+   "interp": "Interpolation when sampling another grid: linear (trilinear) or nearest.",
+   "op_fog": "Operation for fog VDBs.",
+   "op_sdf": "Operation for SDF VDBs."
+  }
+ },
+ "PCG_VDBSegment": {
+  "summary": "Splits volumes into their connected pieces.",
+  "description": "Splits each volume into connected pieces: SDF interiors, or active non-background voxels of fog / other grids (face connectivity). Pieces are named <name>_<n> (Append Segment Number) and get a random Cd (Color Segments).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "color": "Give each piece a random color (Cd).",
+   "append_number": "Append the piece number to the name."
+  }
+ },
+ "PCG_VDBRemap": {
+  "summary": "Remaps volume values from one range to another through a ramp.",
+  "description": "Input Range -> Output Range through the Transfer Function ramp (empty = linear). Below / Above the input range: Clamp, Preserve (keep the value) or Extrapolate (continue the end slope). The background is remapped too; Deactivate turns voxels equal to the new background inactive.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "below": "What happens below the input range: clamp, keep the value, or extrapolate.",
+   "above": "What happens above the input range.",
+   "in_min": "Input range.",
+   "out_min": "Output range.",
+   "ramp": "Transfer function from the input range (x) to the output range (y); empty = linear.",
+   "deactivate": "Deactivate voxels that end up equal to the remapped background."
+  }
+ },
+ "PCG_ConvertVDB": {
+  "summary": "Converts between VDBs, dense volumes, polygons, fog and SDF.",
+  "description": "To VDB (from a Houdini volume; Deactivate Tolerance drops background voxels), to Volume (densify, no mask), to Polygons (closed iso-surface at Isovalue; Adaptivity reduces the face count), or between classes: fog -> SDF (Fog Isovalue, ±Half Band voxels) and SDF -> fog (OpenVDB's ramp across the interior band).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "convert_to": "Target: VDB, dense volume, polygons, fog to SDF, or SDF to fog.",
+   "isovalue": "Surface value for polygons.",
+   "fog_isovalue": "Fog value that becomes the SDF surface.",
+   "half_band": "Half width of the SDF band in voxels (and the ramp width for SDF to fog).",
+   "adaptivity": "Reduce the polygon count by this fraction.",
+   "keep_original": "Keep the volumes next to the polygons.",
+   "deactivate_tolerance": "When converting to VDB, deactivate voxels within this distance of the background."
+  }
+ },
+ "PCG_VDBFromPolygons": {
+  "summary": "Builds an SDF (and optionally fog and attribute volumes) from a polygon mesh.",
+  "description": "Exact SDF of the mesh at Voxel Size (or the reference VDB's), narrow band of Exterior / Interior Band voxels (or world units; Fill Interior keeps the whole inside), or an unsigned distance field. Optional fog VDB (0 outside, 0 -> 1 across the interior band) and surface attribute VDBs: for each listed point / vertex / prim attribute, the value at the closest surface point.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "world_units": "Give band widths in world units instead of voxels.",
+   "ext_band": "Width of the band outside the surface.",
+   "int_band": "Width of the band inside the surface.",
+   "fill_interior": "Keep true distances for the whole inside.",
+   "unsigned": "Output unsigned distances (works on open meshes).",
+   "build_distance": "Output the SDF.",
+   "distance_name": "Name of the SDF.",
+   "build_fog": "Output a fog volume.",
+   "fog_name": "Name of the fog volume.",
+   "attributes": "Point, vertex or prim attributes to store in volumes (value at the closest surface point)."
+  }
+ },
+ "PCG_VDBFromParticles": {
+  "summary": "Builds an SDF from points as spheres of their pscale.",
+  "description": "SDF union of spheres of radius pscale × Particle Scale; particles smaller than Minimum Radius (voxels) are ignored; Velocity Trails add tapering spheres back along v × Velocity Scale every Trail Resolution × radius. Optional fog VDB.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Points to use (empty = all).",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "world_units": "Give band widths in world units instead of voxels.",
+   "half_band": "Half width of the narrow band.",
+   "particle_scale": "Multiplies pscale (the sphere radius).",
+   "min_radius": "Particles smaller than this many voxels are ignored.",
+   "velocity_trails": "Add trails of spheres behind each particle along -v.",
+   "velocity_scale": "Scales the trail length.",
+   "trail_resolution": "Spacing of the trail spheres, relative to the radius.",
+   "build_distance": "Output the SDF.",
+   "distance_name": "Name of the SDF.",
+   "build_fog": "Output a fog volume.",
+   "fog_name": "Name of the fog volume."
+  }
+ },
+ "PCG_VDBFromParticleFluid": {
+  "summary": "Builds a smooth fluid surface SDF from particles.",
+  "description": "A smooth fluid surface from particles: spheres of Influence Scale × separation / 2 (isolated droplets: Droplet Scale), voxel size = Particle Separation × Voxel Scale, then Dilate, Smooth passes and Erode (in units of half a separation).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Points to use (empty = all).",
+   "separation": "Typical distance between particles.",
+   "voxel_scale": "Voxel size relative to the separation.",
+   "influence_scale": "Sphere radius relative to half the separation.",
+   "droplet_scale": "Radius of isolated droplets relative to half the separation.",
+   "dilate": "Grow the surface (in half separations).",
+   "smooth": "Number of smoothing passes.",
+   "erode": "Shrink the surface back (in half separations).",
+   "name": "Name of the output volume."
+  }
+ },
+ "PCG_VDBRenormalizeSDF": {
+  "summary": "Restores the distance property of an SDF after it was edited.",
+  "description": "Restores |∇φ| = 1 (exact distance to the zero crossing), keeping the band.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "iterations": "Number of renormalisation passes."
+  }
+ },
+ "PCG_VDBRebuildSDF": {
+  "summary": "Builds a clean SDF from an iso contour of any scalar volume.",
+  "description": "An SDF from the Isovalue contour of any scalar grid (fog: dense = inside), with new exterior / interior bands (voxels or world units); Fill Interior keeps the whole inside active.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "isovalue": "Value that defines the surface (0 for an SDF, around 0.5 for fog).",
+   "world_units": "Give band widths in world units instead of voxels.",
+   "ext_band": "Width of the band outside.",
+   "int_band": "Width of the band inside.",
+   "fill_interior": "Keep the whole inside active."
+  }
+ },
+ "PCG_VDBMorphSDF": {
+  "summary": "Moves one SDF surface towards another over time.",
+  "description": "Moves the source surface toward the target (second input): ∂φ/∂t + φ_target |∇φ| = 0 (Godunov upwind, CFL-limited substeps) for Timestep, renormalising every Renorm Steps substeps. A large timestep ends at the target. Optional alpha mask (third input) blends.",
+  "inputs": {
+   "source": "Source volumes.",
+   "target": "Target SDF.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "source_group": "Source SDFs.",
+   "target_group": "Target SDF in the second input.",
+   "timestep": "How long to morph; long enough and the source becomes the target.",
+   "renorm_steps": "Renormalise every this many substeps (0 = never).",
+   "mask_name": "Name of the mask volume in the mask input (empty = the first one).",
+   "invert_mask": "Invert the mask: 0 becomes 1 and 1 becomes 0.",
+   "min_mask": "Mask values at or below this count as 0.",
+   "max_mask": "Mask values at or above this count as 1."
+  }
+ },
+ "PCG_VDBFracture": {
+  "summary": "Cuts SDF volumes into fragments with cutter shapes.",
+  "description": "Cuts each SDF with the cutters of the second input (polygons -> exact SDF on the same grid, or SDF VDBs), optionally instanced on the points of the third input (centred, random rotation): inside piece max(φ, φc), residual max(φ, −φc). Allow Cutter Overlap cuts the earlier fragments too; Separate Cutters by Connectivity uses each connected piece of the cutter separately.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "cutters": "Cutter geometry: closed polygons or SDF volumes.",
+   "points": "Points."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "separate_cutters": "Cut with each connected piece of the cutter separately.",
+   "cutter_overlap": "Later cutters cut the fragments made by earlier ones too.",
+   "center_cutter": "Centre the cutter on each instance point.",
+   "random_rotation": "Rotate each cutter instance randomly.",
+   "rand_seed": "Seed for the random rotations.",
+   "segment_fragments": "Split fragments into their connected pieces.",
+   "fragment_group": "Prim group for the fragments.",
+   "visualize": "Give fragments random colors."
+  }
+ },
+ "PCG_VDBToSpheres": {
+  "summary": "Fills the inside of an SDF with non-overlapping spheres (points with pscale).",
+  "description": "Greedy packing inside the Isovalue contour: Point Count random candidates, repeatedly the deepest becomes a sphere; others shrink to stay outside it (or, Overlapping, only those inside it are dropped). Radii in voxels or world units, Min / Max Radius and Min / Max Spheres. Output: points with pscale and id (copy a sphere onto them; sphere primitives are not a prim type here).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "isovalue": "Value that defines the surface (0 for an SDF, around 0.5 for fog).",
+   "world_units": "Give band widths in world units instead of voxels.",
+   "radius_min": "Smallest sphere radius.",
+   "use_radius_min": "Use a minimum radius.",
+   "radius_max": "Largest sphere radius.",
+   "use_radius_max": "Use a maximum radius.",
+   "spheres_min": "Minimum number of spheres.",
+   "use_spheres_min": "Produce at least Min Spheres.",
+   "spheres_max": "Maximum number of spheres.",
+   "use_spheres_max": "Stop at Max Spheres.",
+   "scatter": "Number of candidate centres.",
+   "overlapping": "Allow spheres to overlap.",
+   "add_id": "Add an id attribute.",
+   "add_pscale": "Add the radius as pscale.",
+   "rand_seed": "Random seed."
+  }
+ },
+ "PCG_VDBPlatonic": {
+  "summary": "Creates the SDF or fog of a sphere or a Platonic solid.",
+  "description": "SDF (narrow band of Half-Band Width voxels) or fog of a sphere or a Platonic solid of the given radius (circumradius for the solids) and centre; exact distances to the solid's faces.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "solid": "Shape.",
+   "radius": "Radius of the sphere or circumradius of the solid.",
+   "center_x": "Centre.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "half_width": "Half width of the narrow band in voxels.",
+   "fog": "Output fog instead of an SDF.",
+   "name": "Name of the output volume."
+  }
+ },
+ "PCG_VDBNoise": {
+  "summary": "Adds fractal noise to the surface of an SDF.",
+  "description": "φ − Amplitude × fractal Perlin noise (Frequency, Octaves, Lacunarity, Gain, Roughness, Noise Offset); Straight / Absolute / Inverse Absolute. Positive noise pushes the surface out. An optional mask volume (second input) suppresses or scales the noise.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "amp": "Noise amplitude; positive noise pushes the surface out.",
+   "freq": "Noise frequency.",
+   "octaves": "Extra octaves.",
+   "lacunarity": "Frequency multiplier per octave.",
+   "gain": "Amplitude multiplier per octave.",
+   "roughness": "Extra amplitude multiplier per octave.",
+   "surface_offset": "Offset of the surface the noise is applied around.",
+   "noise_offset_x": "Offset of the noise pattern.",
+   "mode": "Straight noise, its absolute value, or one minus its absolute value.",
+   "mask_group": "Mask volume in the second input.",
+   "mask_mode": "How the mask limits or scales the noise.",
+   "threshold": "Mask threshold.",
+   "falloff": "Soft range around the threshold."
+  }
+ },
+ "PCG_VDBExtrapolate": {
+  "summary": "Widens an SDF band, converts fog to SDF, or extends fields off a surface.",
+  "description": "Expand SDF Narrowband (by Dilation voxels, true distances), Convert Fog VDB to SDF, Renormalize SDF, or Extend Field(s) off the surface of the fog / SDF source: each voxel of the Extension Group grids takes the value at its closest voxel on the surface (what fast sweeping converges to).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Source volume (an SDF or a fog volume).",
+   "mode": "What to do: widen the SDF band, convert fog to SDF, renormalise, or extend fields off the surface.",
+   "dilate": "Voxels to widen the band by.",
+   "pattern": "Neighbour pattern of the widening.",
+   "fog_isovalue": "Surface value of the fog source.",
+   "sdf_isovalue": "Surface value of the SDF source.",
+   "ext_group": "Volumes (on the same grid) whose values are extended off the surface."
+  }
+ },
+ "PCG_VDBOcclusionMask": {
+  "summary": "Marks the voxels hidden from a camera behind a surface.",
+  "description": "A fog VDB \"<name>_occlusion\" on each SDF's grid: 1 where the voxel is hidden from the camera because the line of sight to the eye passes through the inside first; Erode shrinks it. (Houdini builds the mask in a camera frustum grid; here it lives on the input grid.)",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "camera": "The camera."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "erode": "Shrink the mask by this many voxels.",
+   "steps": "Samples along each line of sight."
+  }
+ },
+ "PCG_VDBRay": {
+  "summary": "Projects points onto the surface of a volume, along their normals or to the closest point.",
+  "description": "Moves points onto the surface of the VDB in the second input: Ray Intersection along N (or reversed, from Bias; nearest or farthest hit; sphere tracing + bisection) or Closest Surface Point (the exact closest point on the extracted iso surface, at any distance from it). Scale moves only part of the way; Store Distances writes dist; Ray Hit Group collects hits.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "vdb": "The volume to project onto."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Points to project (empty = all).",
+   "method": "Along the normals (ray intersection) or to the closest surface point.",
+   "isovalue": "Value that defines the surface (0 for an SDF, around 0.5 for fog).",
+   "transform": "Move the points.",
+   "scale": "Move only this fraction of the way.",
+   "store_dist": "Store the distance moved in dist.",
+   "farthest": "Use the farthest intersection instead of the nearest.",
+   "reverse": "Shoot rays against the normals.",
+   "bias": "Start the rays this far along them.",
+   "create_group": "Put points that hit into a group.",
+   "hit_group": "Name of the hit group."
+  }
+ },
+ "PCG_VolumeSDF": {
+  "summary": "Converts any volume into an SDF of one of its iso contours.",
+  "description": "Any volume -> SDF of its Iso Surface contour (same resolution). Invert flips the sign (use it for fog so dense = inside). Use Maximum Distance clamps to ±Maximum Distance. Distances are exact to the extracted contour (Houdini uses fast marching).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "iso": "Contour that becomes the zero surface (0.5 for fog, 0 for SDF).",
+   "invert": "Flip the sign (for fog, so dense regions are inside).",
+   "max_dist": "Largest distance kept.",
+   "use_max": "Clamp distances."
+  }
+ },
+ "PCG_VDBAnalysis": {
+  "summary": "Computes gradient, curvature, Laplacian, closest point, divergence, curl, length or normalized fields.",
+  "description": "Gradient, Curvature (mean curvature ∇·(∇φ/|∇φ|)), Laplacian, Closest Point (P − φ∇φ) on scalar grids; Divergence, Curl, Length, Normalize on vector grids. Central differences in world units. An optional mask VDB (second input) zeroes the result outside its active voxels. Vector results are vector grids (VDB Vector Split for .x / .y / .z).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "operator": "The quantity to compute; the first four need scalar volumes, the rest vector volumes.",
+   "mask_name": "Name of the mask volume in the mask input (empty = the first one).",
+   "output_name": "Keep the name, append the operator, or use a custom name.",
+   "custom_name": "Custom output name."
+  }
+ },
+ "PCG_VDBSmooth": {
+  "summary": "Smooths volumes with a mean, Gaussian or median filter, or offsets them.",
+  "description": "Mean / Gaussian / Median over a cube of ± Filter Voxel Radius (or world radius), or Offset, Iterations times; only active voxels change; an optional alpha mask (second input, Min / Max cutoff, invert) blends.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "operation": "Filter type, or Offset (add a constant).",
+   "world_units": "Give the radius in world units.",
+   "radius": "Filter radius in voxels.",
+   "world_radius": "Filter radius in world units.",
+   "iterations": "Number of passes.",
+   "offset": "Value added per pass in Offset mode.",
+   "mask_name": "Name of the mask volume in the mask input (empty = the first one).",
+   "invert_mask": "Invert the mask: 0 becomes 1 and 1 becomes 0.",
+   "min_mask": "Mask values at or below this count as 0.",
+   "max_mask": "Mask values at or above this count as 1."
+  }
+ },
+ "PCG_VDBAdvect": {
+  "summary": "Moves volume content through a velocity field.",
+  "description": "Moves the selected grids through a velocity (a vector VDB, or vel.x/.y/.z volumes) in the second input for Timestep: Semi-Lagrangian / Mid-Point / RK3 / RK4 back-tracing, Substeps, limiter (none / clamp to the source neighbourhood extrema / revert to first order). VDB grids grow so the content does not leave them; SDFs (Respect Grid Class) are renormalised.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "velocity": "Velocity volume(s): a vector volume or vel.x / vel.y / vel.z."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "vel_name": "Name of the velocity volume (empty = the first vector volume, or three scalar volumes vel.x / vel.y / vel.z).",
+   "respect_class": "Renormalise SDFs after advection.",
+   "timestep": "Time to advect for.",
+   "substeps": "Substeps per timestep.",
+   "advection": "Integration scheme of the back-tracing.",
+   "limiter": "Keeps higher-order schemes from overshooting."
+  }
+ },
+ "PCG_VDBAdvectPoints": {
+  "summary": "Moves points through a velocity field or onto a closest-point field.",
+  "description": "Advection (RK1–RK4 through the velocity for Timestep in Substeps), Projection (to a closest-point vector field, VDB Analysis → Closest Point) or Constrained Advection (both); Output Streamlines adds the paths as polylines.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "velocity": "Velocity volume(s): a vector volume or vel.x / vel.y / vel.z."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Points to move (empty = all).",
+   "vel_name": "Name of the velocity volume (empty = the first vector volume, or three scalar volumes vel.x / vel.y / vel.z).",
+   "operation": "Advect, project onto a closest-point field, or both.",
+   "integration": "Runge-Kutta order.",
+   "timestep": "Time to advect for.",
+   "substeps": "Steps per timestep.",
+   "cpt_name": "Closest-point vector volume (from VDB Analysis).",
+   "iterations": "Extra projection passes.",
+   "streamlines": "Add the point paths as polylines."
+  }
+ },
+ "PCG_VDBProjectNonDivergent": {
+  "summary": "Removes the divergence from a velocity field (pressure projection).",
+  "description": "Removes the divergence of vector grids: ∇²p = ∇·u (conjugate gradient, Iterations / Tolerance), u − ∇p. Without a collider p = 0 beyond the grid; Bounding Box collider = no flow through the grid border; a VDB collider (second input) = no flow into its inside / active voxels. Output Pressure adds p.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "collider": "Optional collider volume."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "iterations": "Maximum solver iterations.",
+   "tolerance": "Relative residual at which the solver stops.",
+   "use_collider": "Use a collider.",
+   "collider_type": "Bounding box (no flow through the grid border) or a static VDB.",
+   "collider_name": "Collider volume in the second input.",
+   "invert_collider": "Swap the collider's inside and outside.",
+   "output_pressure": "Add the pressure volume."
+  }
+ },
+ "PCG_VDBPotentialFlow": {
+  "summary": "Computes the potential flow of a fluid around the solid of an SDF.",
+  "description": "Flow around the solid of an SDF in a domain dilated by Dilation Voxels: ∇²φ = 0 with no flow through the solid (Neumann, driven by the Background Velocity) and φ = 0 at the domain border; outputs the velocity ∇φ (+ background when Apply Background Velocity) as a vector VDB, and optionally the potential.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "dilation_voxels": "Size of the flow domain around the solid, in voxels.",
+   "iterations": "Maximum solver iterations.",
+   "tolerance": "Relative residual at which the solver stops.",
+   "use_background": "Drive the flow with a background velocity.",
+   "background_x": "Background (free-stream) velocity.",
+   "apply_background": "Add the background velocity to the output.",
+   "output_potential": "Add the potential volume.",
+   "name": "Name of the velocity volume."
+  }
+ },
+ "PCG_VDBCombine": {
+  "summary": "Combines pairs of volumes with arithmetic, SDF boolean or activity operations.",
+  "description": "A × A Multiplier with B × B Multiplier (B resampled to A's grid; A grows to cover B for VDBs): Copy A / B, Invert A, Add, Subtract, Multiply, Divide, Maximum, Minimum, (1 − A) × B, A + (1 − A) × B, SDF Union / Intersection / Difference, Replace A with Active B, and Activity Union / Intersection / Difference (masks only). Collation: A/B pairs, each A with the first B, or flatten all A into the first A. Deactivate Background Voxels, Prune.",
+  "inputs": {
+   "a": "A volumes.",
+   "b": "B volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "agroup": "A volumes.",
+   "bgroup": "B volumes.",
+   "collation": "How A and B are paired.",
+   "operation": "How A and B combine.",
+   "amult": "Multiplies A first.",
+   "bmult": "Multiplies B first.",
+   "interp": "Interpolation when sampling another grid: linear (trilinear) or nearest.",
+   "deactivate": "Deactivate voxels equal to the background afterwards.",
+   "bg_tolerance": "Tolerance for that.",
+   "prune": "Collapse constant leaves afterwards.",
+   "prune_tolerance": "Tolerance for pruning."
+  }
+ },
+ "PCG_VDBResample": {
+  "summary": "Resamples volumes to a new voxel size or to match a reference VDB.",
+  "description": "Same world content on a new grid: Explicitly (scale the voxel size, translate in voxels, rotate about the pivot -- the grid stays axis aligned), To Match Reference VDB (second input), Using Voxel Size Only, or Using Voxel Scale Only. Nearest / linear interpolation; SDFs are redistanced (Rebuild SDF).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "mode": "How the new grid is defined.",
+   "ref_name": "Reference VDB in the second input.",
+   "interp": "Interpolation when sampling another grid: linear (trilinear) or nearest.",
+   "t_x": "Translation in voxels.",
+   "r_x": "Rotation in degrees (X, then Y, then Z).",
+   "s_x": "Scale of the voxel size.",
+   "p_x": "Pivot for rotation and scale.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "voxel_scale": "Voxel size multiplier.",
+   "rebuild_sdf": "Redistance SDFs after resampling.",
+   "xform_vectors": "Rotate vector values too."
+  }
+ },
+ "PCG_VDBPointsGroup": {
+  "summary": "Groups points by percentage, bounding box or SDF range.",
+  "description": "A point group from: a percentage or a count (random, or seeded by an attribute), a bounding box or the bounds of the second input, and an SDF range (the second input's SDF, Min ≤ φ ≤ Max, invertible). Filters combine with AND.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group_name": "Name of the group to create.",
+   "enable_number": "Filter by number.",
+   "number_mode": "Percentage or total count.",
+   "percent": "Percentage of points.",
+   "count": "Number of points.",
+   "seed_attribute": "Attribute used to make the random choice stable (empty = random).",
+   "enable_box": "Filter by a box.",
+   "bound_mode": "A box, or the bounds of the second input.",
+   "size_x": "Size of the box.",
+   "center_x": "Centre of the box.",
+   "enable_sdf": "Filter by SDF value.",
+   "sdf_name": "SDF volume (second input).",
+   "sdf_min": "Lowest SDF value.",
+   "use_min": "Use the minimum.",
+   "sdf_max": "Highest SDF value.",
+   "use_max": "Use the maximum.",
+   "invert": "Invert the SDF test.",
+   "rand_seed": "Random seed."
+  }
+ },
+ "PCG_VDBScatter": {
+  "summary": "Scatters points in the active voxels of volumes.",
+  "description": "Points in the active voxels: Point Total, Point Density (per unit volume) or Points Per Voxel; Spread jitters within the voxel; Scale Density by Voxel Values (fog / other); SDFs scatter in the Interior, on the Isosurface (projected onto it) or in the Narrow Band. Keep Original Geometry, Scatter Group.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "keep": "Keep the incoming geometry in the output.",
+   "mode": "How many points: a total, a density per unit volume, or per voxel.",
+   "count": "Total number of points.",
+   "points_per_voxel": "Points per active voxel.",
+   "density": "Points per unit volume.",
+   "multiply": "Scale the density by the voxel values (fog).",
+   "spread": "How far points may move from the voxel centre (fraction of a voxel).",
+   "sdf_domain": "For SDFs: the narrow band, the interior, or the iso-surface.",
+   "isovalue": "Value that defines the surface (0 for an SDF, around 0.5 for fog).",
+   "rand_seed": "Random seed.",
+   "scatter_group": "Point group for the new points (empty = none)."
+  }
+ },
+ "PCG_VolumeAdjustFog": {
+  "summary": "Adjusts fog density with patterns, ramps and pre / post processing.",
+  "description": "Pre-process (overwrite with Initial Value, complement), an adjustment of Adjust Value × pattern (constant / random / noise / line / radial / bounding box, through the Remap Ramp, scaled to Range) combined by Operation, post-process (scale, add, clamp, complement), blended by Blend Amount or a blend volume.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "blend_volume": "Optional volume used as the blend amount."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Volumes to adjust.",
+   "operation": "How the adjustment combines with the density.",
+   "value": "Adjustment value.",
+   "pattern": "Spatial pattern of the adjustment.",
+   "range_min": "Range the pattern is mapped to.",
+   "ramp": "Ramp applied to the pattern (empty = linear).",
+   "element_size": "Noise size.",
+   "offset_x": "Noise offset.",
+   "rand_seed": "Random seed.",
+   "line_origin_x": "Start of the line pattern.",
+   "line_dir_x": "Direction of the line pattern.",
+   "radial_center_x": "Centre of the radial pattern.",
+   "radial_radius": "Radius of the radial pattern.",
+   "pre_overwrite": "Replace the density with Initial Value first.",
+   "initial_value": "Initial value.",
+   "pre_complement": "Use 1 − density first.",
+   "post": "Post-process the result.",
+   "post_scale": "Multiplies the result.",
+   "post_add": "Added to the result.",
+   "clamp_min": "Lowest value.",
+   "post_clamp_min": "Clamp below.",
+   "clamp_max": "Highest value.",
+   "post_clamp_max": "Clamp above.",
+   "post_complement": "Use 1 − result.",
+   "blend": "Blend by a constant or by a volume.",
+   "blend_amount": "Blend amount (0 = unchanged, 1 = adjusted).",
+   "blend_name": "Blend volume in the third input."
+  }
+ },
+ "PCG_VolumeBound": {
+  "summary": "Builds the bounding box of the voxels that meet a condition.",
+  "description": "A box around the voxels meeting the condition (≥ / > / ≤ / < / = Bounding Value), on the voxel edges (±½ voxel) and expanded by Voxel Padding (−0.5 = bound on voxel centres). No matching voxel: no box.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "region": "Which voxels count.",
+   "value": "Value compared against.",
+   "padding_x": "Grow the box by this many voxels."
+  }
+ },
+ "PCG_VolumeBreak": {
+  "summary": "Cuts polygons with the surface of an SDF.",
+  "description": "Cuts polygons with the zero surface of the SDF in the second input (fog: its 0.5 contour), linear along edges; keeps inside, outside or both, with inside / outside primitive groups. Snapping Tolerance snaps near-zero point distances to the surface. Holes are not closed.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "volume": "The SDF volume."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "volume_group": "SDF volume in the second input.",
+   "keep": "Which side to keep.",
+   "snap": "Point distances smaller than this snap to the surface.",
+   "create_groups": "Create inside / outside groups.",
+   "inside_group": "Name of the inside group.",
+   "outside_group": "Name of the outside group."
+  }
+ },
+ "PCG_VolumeCompress": {
+  "summary": "Quantizes and simplifies volume values the way compressed volumes store them.",
+  "description": "16³ tiles whose values differ by at most Constant Tolerance become constant; values are quantised to Quantization Tolerance (ordered dithering optional); Use 16bit Float rounds to half floats; a mask (second input, strictly above Mask Minimum / below Mask Maximum, invertible) zeroes the rest. Values are what a compressed Houdini volume would read back.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "constant_tolerance": "16³ tiles whose values differ by at most this become constant.",
+   "quantization_tolerance": "Round values to multiples of this (0 = off).",
+   "dither": "Dithering when quantizing.",
+   "half": "Round to 16-bit floats.",
+   "mask_group": "Mask volume in the second input.",
+   "mask_min": "Keep voxels whose mask is above this.",
+   "use_min": "Use the mask minimum.",
+   "mask_max": "Keep voxels whose mask is below this.",
+   "use_max": "Use the mask maximum.",
+   "invert_mask": "Invert the mask."
+  }
+ },
+ "PCG_VolumeConvolve": {
+  "summary": "Convolves volumes with a 3×3×3 kernel.",
+  "description": "27 coefficients (three z planes z−1 / z / z+1, each 3 rows y−1..y+1 of x−1..x+1, whitespace separated); Normalize Kernel divides by their sum; Add, or Add Absolute (|coefficient × voxel|).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "kernel": "27 coefficients: three planes (z−1, z, z+1), each three rows of three.",
+   "normalize": "Divide by the sum of the coefficients.",
+   "operation": "Add, or add absolute products."
+  }
+ },
+ "PCG_VolumeFeather": {
+  "summary": "Limits how fast volume values change, growing or shrinking fog smoothly.",
+  "description": "Caps how fast values may change: High to Low v = max(v, w − rate·d) (fog grows), otherwise min(v, w + rate·d) (fog shrinks), over the 26 neighbours until stable. The rate comes from the Feather Mode (change per distance / per voxel, distance or voxels for a unit change, slope angle).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "mode": "How the rate of change is given.",
+   "amount": "The rate (meaning depends on Feather Mode).",
+   "high_to_low": "Limit decreases (fog grows); off limits increases (fog shrinks).",
+   "border": "Values beyond the grid.",
+   "border_value": "Value used with Constant."
+  }
+ },
+ "PCG_VolumeFFT": {
+  "summary": "Computes the forward or inverse Fourier transform of volumes.",
+  "description": "Volumes in (real, imaginary) pairs; a lone real volume gets a zero imaginary part (written to a new <name>_imag volume). Invert computes the inverse; Normalize makes forward then inverse the identity; Center DC shifts zero frequency to the centre; Compute 2D Slices transforms each slice along the axis.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "center_dc": "Move zero frequency to the centre.",
+   "invert": "Inverse transform.",
+   "normalize": "Scale so forward then inverse returns the input.",
+   "slices": "Transform 2D slices separately.",
+   "axis": "Axis the slices are taken along."
+  }
+ },
+ "PCG_VolumeFromAttrib": {
+  "summary": "Writes a point attribute into volumes.",
+  "description": "Writes a point attribute (second input) into the volumes: Accumulated (trilinear splat, normalised where the total weight exceeds Threshold; Bandwidth widens the splat), or Extrapolated (nearest point within Max Extrapolation Distance / cells). Combined with the volume by Calculation with pre / post add and multiply.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "points": "Points."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "point_group": "Points to use (empty = all).",
+   "attribute": "Point attribute to write.",
+   "use_attribute": "Use the attribute (off: write 1).",
+   "accumulated": "Splat each point into its eight surrounding voxels.",
+   "extrapolated": "Each voxel takes the nearest point's value.",
+   "max_cells": "Extrapolation reach in voxels.",
+   "max_dist": "Extrapolation reach in world units.",
+   "threshold": "Total weight above which the splat is normalised.",
+   "bandwidth": "Widens the splat by this many voxels.",
+   "scale_by_volume": "Divide by the voxel volume.",
+   "calculation": "How the value combines with the volume.",
+   "dest_add": "Added to the destination value before the operation.",
+   "dest_mul": "Multiplies the destination value before the operation.",
+   "src_add": "Added to the source value before the operation.",
+   "src_mul": "Multiplies the source value before the operation.",
+   "post_add": "Added to the result.",
+   "post_mul": "Multiplies the result."
+  }
+ },
+ "PCG_VolumeMerge": {
+  "summary": "Flattens several volumes into one base volume.",
+  "description": "Flattens the Merge Group volumes (second input, or the first input's other volumes) into the base volume: Copy (the last), Add, Multiply, Maximum, Minimum, Average; Dest / Source pre add-multiply, post add-multiply, clamps. Clamp at Volume Boundary: B contributes 0 outside its own box.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "merge": "Optional volumes to merge in (otherwise the other volumes of the first input)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "merge_group": "Volumes to flatten in.",
+   "method": "How they combine.",
+   "clamp_boundary": "Volumes contribute nothing outside their own box.",
+   "dest_add": "Added to the destination value before the operation.",
+   "dest_mul": "Multiplies the destination value before the operation.",
+   "src_add": "Added to the source value before the operation.",
+   "src_mul": "Multiplies the source value before the operation.",
+   "post_add": "Added to the result.",
+   "post_mul": "Multiplies the result.",
+   "clamp_min": "Lowest value.",
+   "use_min": "Clamp below.",
+   "clamp_max": "Highest value.",
+   "use_max": "Clamp above."
+  }
+ },
+ "PCG_VolumeOpticalFlow": {
+  "summary": "Estimates the displacement field between two volumes.",
+  "description": "The displacement from each source voxel to the matching goal values (Horn–Schunck with warping, coarse to fine over Pyramid Levels scaled by Pyramid Scale, Iterations per level, displacement blurred by Blurring Window Radius, box or Gaussian; Approximation Window Radius pre-smooths the images). Outputs <source>.x / .y / .z in world units.",
+  "inputs": {
+   "source": "Source volumes.",
+   "goal": "Goal volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Source volumes.",
+   "goal_group": "Goal volumes.",
+   "tolerance": "Differences below this give no motion.",
+   "blur_radius": "Blur of the displacement per iteration.",
+   "gaussian": "Gaussian instead of box blur.",
+   "levels": "Pyramid levels.",
+   "pyramid_scale": "Size ratio between levels.",
+   "iterations": "Iterations per level.",
+   "approx_radius": "Pre-smoothing of the volumes."
+  }
+ },
+ "PCG_VolumePatch": {
+  "summary": "Fills a masked region of a volume seamlessly from another volume.",
+  "description": "Fills the masked region (Mask ≥ Cutoff) of the background with the foreground's features while matching the background on the region's border (Poisson: ∇²u = ∇²foreground inside, u = background outside). Use Foreground as Laplacian: the foreground already is the Laplacian.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "background": "Volume whose masked region is filled.",
+   "foreground": "Volume that supplies the detail.",
+   "mask": "Mask volume.",
+   "cutoff": "Mask values at or above this are filled.",
+   "foreground_is_laplacian": "The foreground already is a Laplacian.",
+   "iterations": "Solver iterations."
+  }
+ },
+ "PCG_VolumeRamp": {
+  "summary": "Remaps volume values through a scalar or color ramp.",
+  "description": "Remaps the volumes: Source Min / Max -> 0..1 (clamped) -> the scalar ramp -> Dest Min / Max, or through a colour ramp into three volumes <name>.x / .y / .z (New Name \"Cd\" gives Cd.x / .y / .z).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "new_name": "New name (with a color ramp, .x .y .z are appended).",
+   "src_min": "Input range.",
+   "dest_min": "Output range.",
+   "use_color": "Use the color ramp (three output volumes).",
+   "ramp": "Scalar ramp.",
+   "color_ramp": "Color ramp."
+  }
+ },
+ "PCG_VolumeRasterizeCurve": {
+  "summary": "Turns curves into density, color or SDF volumes.",
+  "description": "Curves as tubes of radius width / 2 × stroke_pressure (pscale when width is missing): Mask = density (smooth from 1 on the axis to 0 at the tube surface), Color = density + a vector Cd volume, SDF = union of the tubes. Fade lowers the density along the stroke, Flow Rate scales it.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "output": "Mask (density), Color (density + Cd) or SDF.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "density_scale": "Multiplies the density.",
+   "fade": "Density falloff along the stroke.",
+   "flow_rate": "Density strength.",
+   "name": "Name of the output volume."
+  }
+ },
+ "PCG_VolumeRasterizeParticles": {
+  "summary": "Splats points into volumes with filter kernels.",
+  "description": "Each point adds kernel(|x − p| / r) × coverage to density (Gaussian / Box / Cubic Spline), r = max(pscale × Particle Scale, Minimum Filter Size voxels); listed attributes become coverage-weighted averages. Into the first input's volumes when given (same names), else a new grid at Voxel Size.",
+  "inputs": {
+   "points": "Points.",
+   "destination": "Optional destination volumes; without them a new grid is made."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "point_group": "Points to use (empty = all).",
+   "filter": "Splat kernel.",
+   "coverage_attribute": "Point attribute with the coverage (empty = 1).",
+   "coverage_scale": "Multiplies the coverage.",
+   "particle_scale": "Multiplies pscale.",
+   "min_filter": "Smallest kernel radius in voxels.",
+   "attributes": "Point attributes averaged into same-named volumes.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples)."
+  }
+ },
+ "PCG_VolumeRasterizePoints": {
+  "summary": "Turns points into soft spheres of density in volumes.",
+  "description": "Points as spheres of pscale + Exterior Pad: density 1 inside Solid Ratio × r, falling to 0 at r (linear or smooth), × Density Scale × point density; Merge Method maximum / add; optional noise; listed attributes into same-named volumes. Into the first input's volumes or a new grid.",
+  "inputs": {
+   "points": "Points.",
+   "destination": "Optional destination volumes; without them a new grid is made."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "point_group": "Points to use (empty = all).",
+   "density_scale": "Multiplies the density.",
+   "solid_ratio": "Fraction of the radius at full density.",
+   "smooth": "Smooth falloff instead of linear.",
+   "exterior_pad": "Added to every radius.",
+   "attributes": "Point attributes averaged into same-named volumes.",
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "merge_method": "How overlapping points combine.",
+   "noise_amp": "Noise strength (0 = none).",
+   "noise_size": "Noise size.",
+   "rand_seed": "Random seed."
+  }
+ },
+ "PCG_VolumeReduce": {
+  "summary": "Reduces each volume to one number (maximum, average, sum, ...).",
+  "description": "One number per volume (maximum, minimum, average, sum, median at Percentile, RMS, sums and extremes of absolutes, sum of squares; active voxels only for VDBs), optionally × voxel length / area / volume; stored as a detail attribute, a prim attribute, or the volume itself becomes constant.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result.",
+   "report": "JSON report (counts and other details)."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "reduction": "How the voxels reduce to one number.",
+   "percentile": "Percentile for Median.",
+   "scale_by": "Multiply the result by voxel length, area or volume.",
+   "store": "Where the result goes.",
+   "attribute": "Attribute name (empty = the reduction's name)."
+  }
+ },
+ "PCG_VolumeResize": {
+  "summary": "Changes the bounds of volumes without resampling.",
+  "description": "New bounds on the same voxel lattice (no filtering): the second input's bounds or Size / Center, Replace / Intersect / Union with the current box, Voxel Padding; new voxels repeat the edge (streak). Keep Data off: an empty volume. Limit Resolution caps each axis.",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "combine": "Replace the bounds, or intersect / union them with the current ones.",
+   "size_x": "Size of the box.",
+   "center_x": "Centre of the box.",
+   "padding_x": "Voxels added on each side.",
+   "keep_data": "Keep the values (off: an empty volume).",
+   "max_res": "Largest resolution per axis.",
+   "limit_res": "Cap the resolution."
+  }
+ },
+ "PCG_VolumeSlice": {
+  "summary": "Cuts a plane through volumes as a mesh, points or a thin volume.",
+  "description": "A plane through the volumes (XY / YZ / ZX; relative offset −1..1 or a world position + offset; snap to voxels) as a mesh or points with the volumes' values in one attribute (one component per volume), or as thin volumes. Visualize writes Cd through a ramp over the Visualization Range (several volumes -> RGB).",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "method": "Output as a mesh, points or thin volumes.",
+   "plane": "Slice plane.",
+   "relative": "Position relative to the volume (−1 .. 1).",
+   "position_x": "World position of the slice (absolute mode).",
+   "offset": "Offset of the plane.",
+   "snap": "Snap the plane to voxel samples.",
+   "attribute": "Attribute name for the values.",
+   "visualize": "Color by value.",
+   "vis_min": "Value range of the colors.",
+   "ramp": "Color ramp (empty = a default spectrum).",
+   "keep": "Keep the incoming geometry in the output."
+  }
+ },
+ "PCG_VolumeSplice": {
+  "summary": "Joins volumes of the same name into one larger volume.",
+  "description": "Same-named volumes on the same voxel lattice are joined into one volume covering them all; where they overlap the voxel comes from the volume whose centre is nearest. Delete Original Volumes.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "delete_original": "Delete the source volumes."
+  }
+ },
+ "PCG_VolumeStamp": {
+  "summary": "Copies volumes onto points and composites them into a destination.",
+  "description": "The volumes of the third input (matched to the destination by name) are placed on every point of the second input (translated to P, scaled by pscale, rotated by orient) and merged into the destination (maximum / add / minimum / copy / average).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "points": "Points.",
+   "stamps": "Volumes to stamp onto the points."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Destination volumes.",
+   "point_group": "Points to use (empty = all).",
+   "merge_method": "How stamps combine with the destination."
+  }
+ },
+ "PCG_VolumeTrail": {
+  "summary": "Traces streamlines from points through a velocity field.",
+  "description": "A polyline per point through the velocity of the second input (a vector volume or vel.x / .y / .z), RK2: Trail Length in seconds (time) or path length (distance), × traillen; a fixed Number of Steps or CFL-limited steps (CFL × voxel size, at most Max Steps). Visualize: Cd from the speed (Detect Range).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "velocity": "Velocity volume(s): a vector volume or vel.x / vel.y / vel.z."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "point_group": "Points to use (empty = all).",
+   "vel_name": "Name of the velocity volume (empty = the first vector volume, or three scalar volumes vel.x / vel.y / vel.z).",
+   "method": "Trail length in time or in distance.",
+   "length": "Trail length.",
+   "cfl": "Step size as a fraction of the voxel size.",
+   "use_cfl": "Adapt the step size to the velocity.",
+   "steps": "Number of steps.",
+   "max_steps": "Most steps per trail.",
+   "keep": "Keep the incoming geometry in the output.",
+   "visualize": "Color by speed.",
+   "detect_range": "Find the top speed automatically.",
+   "maximum": "Speed for the top color (or a multiplier).",
+   "ramp": "Color ramp."
+  }
+ },
+ "PCG_VolumeVelocity": {
+  "summary": "Adds uniform, vortex, curl-noise and point velocities to a velocity volume.",
+  "description": "Adds to the selected velocity volume (a vector volume, or the first three scalar ones): a uniform velocity, a vortex (centre, axis, angular velocity, radius), divergence-free curl noise (scale, swirl size, grain, offset, attenuation, turbulence octaves) and velocity extrapolated from the second input's points; optionally masked by a third-input volume (expansion, comparison, cutoff).",
+  "inputs": {
+   "geo": "Geometry containing the volumes.",
+   "points": "Points.",
+   "mask": "Optional volume used as a mask."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "group": "Which volumes to process: empty for all, numbers for the n-th volume, or names (wildcards, ^ to exclude) matched against the name attribute.",
+   "uniform": "Add a constant velocity.",
+   "constant_x": "The constant velocity.",
+   "vortex": "Add a vortex.",
+   "center_x": "Vortex centre.",
+   "direction_x": "Vortex axis.",
+   "angular": "Speed one unit from the axis.",
+   "vortex_radius": "Limit the vortex to this radius (0 = everywhere).",
+   "curl": "Add curl noise.",
+   "curl_scale": "Curl noise strength.",
+   "swirl_size": "Size of the largest swirls.",
+   "grain": "Strength of each smaller octave.",
+   "curl_offset_x": "Noise offset.",
+   "attenuation": "Contrast of the octaves.",
+   "turbulence": "Number of octaves.",
+   "rand_seed": "Random seed.",
+   "point_velocity": "Add velocity from the second input's points.",
+   "attribute": "Point velocity attribute.",
+   "point_scale": "Multiplies the point velocity.",
+   "extrap_dist": "Reach of each point.",
+   "apply_mask": "Zero the velocity outside a mask.",
+   "mask_group": "Mask volume (third input).",
+   "expansion": "Grow the mask by this distance.",
+   "comparison": "Which mask values are kept.",
+   "cutoff": "Threshold."
+  }
+ },
+ "PCG_VolumeVelocityFromCurves": {
+  "summary": "Builds a velocity volume from the tangents of nearby curves.",
+  "description": "Each voxel averages the tangents of curve segments within the lookup radius (constant, or the distance to the N-th nearest curve × multiplier), weighted by (1 − d / R)² × an optional prim weight attribute; optionally smoothed. The grid comes from a reference volume (third input), or the curves' bounds (and the surface's, second input) at Voxel Size.",
+  "inputs": {
+   "curves": "Curves.",
+   "surface": "Optional surface geometry.",
+   "reference": "Optional reference geometry (see the parameters for what it is used for)."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "radius_mode": "Fixed radius, or the distance to the N-th nearest curve.",
+   "radius": "Lookup radius.",
+   "min_curves": "N for the automatic radius.",
+   "radius_mult": "Multiplies the radius.",
+   "smooth": "Smooth the velocities.",
+   "voxel_radius": "Smoothing radius in voxels.",
+   "blur_iters": "Smoothing passes.",
+   "use_weight": "Weight curves by an attribute.",
+   "weight_attribute": "Prim attribute with the weight.",
+   "name": "Name of the velocity volume."
+  }
+ },
+ "PCG_VolumeVelocityFromSurface": {
+  "summary": "Builds a velocity field inside a closed surface from a divergence attribute.",
+  "description": "Flow inside a closed surface driven by its divergence attribute (point or prim): sources near the surface, ∇²p = divergence inside with zero flux through the surface, v = ∇p -- the flow leaves high-divergence regions for low ones. Optional collision SDF output.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "voxel_size": "Edge length of a voxel in world units (the spacing of the grid samples).",
+   "ext_band": "Band around the surface.",
+   "iterations": "Pressure solver iterations.",
+   "divergence_attribute": "Point or prim attribute with the divergence.",
+   "name": "Name of the velocity volume.",
+   "collision": "Also output the surface SDF.",
+   "collision_name": "Name of the collision volume."
+  }
+ },
+ "PCG_VolumeVisualization": {
+  "summary": "Sets how the viewport draws volumes: smoke, rainbow, iso surface or invisible.",
+  "description": "How the viewport draws the volumes: Smoke (ray-marched; density = optical thickness per unit length × Density Scale, self-shadowing × Shadow Scale, Shadow Color), Rainbow, Iso Surface (at Iso Value, closed at the grid boundary) or Invisible. Density / Diffuse / Emission fields by name; a scalar diffuse field goes through the ramp (clamped / periodic), a vector one is RGB; Minimum / Maximum remap the fields. Writes volvis_* detail attributes; the geometry is unchanged.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "The result."
+  },
+  "params": {
+   "mode": "How the volumes are drawn.",
+   "range_min": "Values in this range map to 0..1 (density and scalar fields).",
+   "density_scale": "Multiplies the density (opacity).",
+   "shadow_scale": "Multiplies the density for self-shadowing.",
+   "density_field": "Volumes that are drawn (empty = all scalar volumes).",
+   "diffuse_field": "Volume(s) used as color (one scalar through the ramp, three scalars or a vector as RGB).",
+   "color_r": "Color of lit smoke.",
+   "shadow_color_r": "Color of the shadows (its complement scales the shadowing per channel).",
+   "ramp_mode": "How a scalar diffuse field maps to color.",
+   "ramp": "Color ramp for the diffuse field.",
+   "emit_field": "Volume used as emission.",
+   "emit_scale": "Emission strength.",
+   "emit_color_r": "Emission color.",
+   "iso": "Value of the iso surface in Iso Surface mode.",
+   "max_res": "Most voxels per axis sent to the viewport."
+  }
+ }
+}

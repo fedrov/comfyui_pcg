@@ -1,0 +1,1322 @@
+{
+ "last_node_id": 25,
+ "last_link_id": 23,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    360,
+    560
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "title": "Brick wall PBR (read me first)",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "A complete set of tileable brick wall textures using only COP nodes. 2048², seamless on all sides.\n\n① Noise: a Perlin fractal for brick surface relief and dirt (detail), Crystal Noise for cracks (pits); both are periodic only in u, so Retile's seamless mode cross-fades them to seamless in both directions.\n\n② Tile Pattern makes the bricks (4 × 10, offset 0.5) and brings a set of helper layers: a per-brick random number pattern_rand, pixel distance to the brick edge pattern_edge, bevel height pattern_height. A COP Wrangle combines them into height: brick-edge distance plus noise perturbation, then thresholded = chipped edges and corners.\n\n③ Height → normal / AO / curvature (all with Tile on, sampling periodically at the borders, so no discontinuity at the seams). The second Wrangle picks a brick colour by each brick's random number (10% dark over-fired bricks), brightens worn convex edges, multiplies by AO, and outputs roughness along the way.\n\n④ Light lights it with normal + height (with shadows) to check the look, Tile 2×2 checks it is seamless. On the right each map is saved separately; the normal is exported in signed mode (-1..1 → 0..1)."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "PCG_COPNoise",
+   "pos": [
+    0,
+    604
+   ],
+   "size": [
+    360,
+    1338
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPNoise"
+   },
+   "widgets_values": [
+    2048,
+    2048,
+    "perlin",
+    "standard",
+    8.0,
+    6,
+    2.0,
+    0.5,
+    1.0,
+    0.0,
+    1,
+    false,
+    0.0,
+    0.0,
+    0.0,
+    "detail",
+    1,
+    "auto",
+    0.0,
+    0.0,
+    0,
+    "euclidean",
+    1.0,
+    false,
+    false,
+    false,
+    0.5,
+    0.5,
+    1.0,
+    1.0,
+    false,
+    0.0,
+    false,
+    1.0
+   ],
+   "title": "Brick relief / dirt"
+  },
+  {
+   "id": 3,
+   "type": "PCG_COPNoiseExtra",
+   "pos": [
+    0,
+    1986
+   ],
+   "size": [
+    360,
+    1058
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPNoiseExtra"
+   },
+   "widgets_values": [
+    "crystal",
+    48.0,
+    "0 0 0",
+    3,
+    0.8,
+    0.7,
+    1.0,
+    2.0,
+    0.0,
+    30.0,
+    2,
+    "",
+    0.5,
+    0.2,
+    false,
+    3,
+    "pits",
+    512,
+    512,
+    "auto",
+    "euclidean",
+    1.0,
+    "phasor_wave",
+    "sine",
+    1.0,
+    0.0,
+    false,
+    false,
+    0.5,
+    0.5,
+    1.0,
+    1.0,
+    false,
+    0.0,
+    false,
+    1.0
+   ],
+   "title": "Cracks"
+  },
+  {
+   "id": 4,
+   "type": "PCG_COPRetile",
+   "pos": [
+    420,
+    0
+   ],
+   "size": [
+    360,
+    510
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPRetile"
+   },
+   "widgets_values": [
+    "detail pits",
+    "seamless",
+    "4 4",
+    true,
+    false,
+    0.25,
+    0
+   ],
+   "title": "Make seamless both ways"
+  },
+  {
+   "id": 5,
+   "type": "PCG_COPPattern",
+   "pos": [
+    420,
+    554
+   ],
+   "size": [
+    360,
+    704
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPPattern"
+   },
+   "widgets_values": [
+    "tile",
+    "4 10",
+    0.5,
+    0.018,
+    0.12,
+    1.0,
+    "plain",
+    0.8,
+    "julia",
+    "-0.8 0.156",
+    "0 0",
+    1.0,
+    100,
+    "3 5",
+    "-",
+    1.5,
+    "",
+    true,
+    5,
+    "pattern",
+    512,
+    512,
+    "offset",
+    6,
+    "pixel_lines",
+    1.0,
+    1.0,
+    0.1,
+    0.05,
+    "euclidean",
+    "grid",
+    1.0,
+    0,
+    "hue",
+    "0.85 0.85 0.85",
+    "0.6 0.6 0.6",
+    true,
+    1.0,
+    "0.08 0.08 0.08",
+    "text",
+    "letters",
+    0.32,
+    "uniform",
+    "0.05 0.05 0.05",
+    "1 1 1",
+    false,
+    0.8,
+    ""
+   ],
+   "title": "Bricks (4 × 10, offset)"
+  },
+  {
+   "id": 6,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    840,
+    0
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "d = @detail - 0.5\n# pixel distance to the brick edge plus noise perturbation; below the threshold counts as chipped off\nchip = smoothstep(3.0, 12.0, @pattern_edge + d * 36)\n@brick = chip\n# Crystal Noise cell borders = cracks (pits is close to 0 on the borders), only on about a third of the bricks\n# and fading out across each of those, so cracked bricks read as weathered rather than tiled\ncracked = smoothstep(0.5, 0.7, frac(@pattern_rand * 7.31)) * smoothstep(0.3, 0.5, @detail)\nface = @pattern_height * (0.85 + 0.15 * @pattern_rand) + d * 0.12 - (1 - @pits) * 0.03 * cracked\nmortar = 0.08 + d * 0.05\n@height = lerp(mortar, face, chip)",
+    0,
+    "{}",
+    0
+   ],
+   "title": "Height + chipped edges"
+  },
+  {
+   "id": 7,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    840,
+    570
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "height",
+    0.03,
+    1.0,
+    "central",
+    true,
+    "N",
+    true
+   ]
+  },
+  {
+   "id": 8,
+   "type": "PCG_COPHeightToAO",
+   "pos": [
+    840,
+    1268
+   ],
+   "size": [
+    360,
+    764
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToAO"
+   },
+   "widgets_values": [
+    "height",
+    0.03,
+    1.0,
+    24.0,
+    8,
+    8,
+    1.0,
+    true,
+    "ao",
+    true
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PCG_COPCurvature",
+   "pos": [
+    1260,
+    0
+   ],
+   "size": [
+    360,
+    653
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPCurvature"
+   },
+   "widgets_values": [
+    "height",
+    0.03,
+    1.0,
+    "mean",
+    true,
+    0.002,
+    "curvature",
+    true
+   ]
+  },
+  {
+   "id": 10,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    1260,
+    697
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "r = @pattern_rand\nd = @detail - 0.5\nbrick = lerp(set(0.50, 0.20, 0.13), set(0.70, 0.36, 0.22), r)\nbrick = where(r > 0.88, set(0.28, 0.14, 0.10), brick)   # 10% over-fired bricks\nbrick = brick * (0.9 + d * 0.5)\nbrick = brick + set(0.12, 0.10, 0.08) * clamp(@curvature, 0, 1)   # brighten worn convex edges\nmortar = set(0.60, 0.58, 0.54) * (0.9 + d * 0.4)\n@albedo = lerp(mortar, brick, @brick) * lerp(0.55, 1.0, @ao)\n@roughness = lerp(0.95, 0.72 + d * 0.3, @brick)",
+    0,
+    "{}",
+    0
+   ],
+   "title": "Albedo + roughness"
+  },
+  {
+   "id": 11,
+   "type": "PCG_COPLight",
+   "pos": [
+    1260,
+    1267
+   ],
+   "size": [
+    360,
+    899
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      10,
+      14,
+      16,
+      18,
+      20,
+      22
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPLight"
+   },
+   "widgets_values": [
+    "N",
+    "albedo",
+    "height",
+    "directional",
+    135.0,
+    58.0,
+    "0.5 0.5",
+    0.5,
+    "1 1 1",
+    1.0,
+    0.3,
+    0.15,
+    32.0,
+    true,
+    0.03,
+    1.0,
+    "lit"
+   ],
+   "title": "Light to check the look"
+  },
+  {
+   "id": 12,
+   "type": "PCG_COPTile",
+   "pos": [
+    1260,
+    2210
+   ],
+   "size": [
+    360,
+    510
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPTile"
+   },
+   "widgets_values": [
+    2,
+    2,
+    false,
+    false
+   ],
+   "title": "2×2 seamless check"
+  },
+  {
+   "id": 13,
+   "type": "PCG_COPResize",
+   "pos": [
+    1260,
+    2764
+   ],
+   "size": [
+    360,
+    485
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPResize"
+   },
+   "widgets_values": [
+    2048,
+    2048,
+    "clamp"
+   ],
+   "title": "2×2 at half size (2048²)"
+  },
+  {
+   "id": 14,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    0
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "lit",
+    "clamp",
+    "mask"
+   ],
+   "title": "Tiled preview"
+  },
+  {
+   "id": 15,
+   "type": "PreviewImage",
+   "pos": [
+    1680,
+    209
+   ],
+   "size": [
+    520,
+    540
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Lit 2×2"
+  },
+  {
+   "id": 16,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    793
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "albedo",
+    "clamp",
+    "mask"
+   ],
+   "title": "Export albedo"
+  },
+  {
+   "id": 17,
+   "type": "SaveImage",
+   "pos": [
+    1680,
+    1002
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 15
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/brick_albedo"
+   ],
+   "title": "albedo"
+  },
+  {
+   "id": 18,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    1566
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 16
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "N",
+    "signed",
+    "mask"
+   ],
+   "title": "Export normal"
+  },
+  {
+   "id": 19,
+   "type": "SaveImage",
+   "pos": [
+    1680,
+    1775
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/brick_normal"
+   ],
+   "title": "normal"
+  },
+  {
+   "id": 20,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    2339
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "roughness",
+    "clamp",
+    "mask"
+   ],
+   "title": "Export roughness"
+  },
+  {
+   "id": 21,
+   "type": "SaveImage",
+   "pos": [
+    1680,
+    2548
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 19
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/brick_roughness"
+   ],
+   "title": "roughness"
+  },
+  {
+   "id": 22,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    3112
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "height",
+    "clamp",
+    "mask"
+   ],
+   "title": "Export height"
+  },
+  {
+   "id": 23,
+   "type": "SaveImage",
+   "pos": [
+    1680,
+    3321
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 21
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/brick_height"
+   ],
+   "title": "height"
+  },
+  {
+   "id": 24,
+   "type": "PCG_COPExport",
+   "pos": [
+    1680,
+    3885
+   ],
+   "size": [
+    520,
+    165
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 22
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      23
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPExport"
+   },
+   "widgets_values": [
+    "ao",
+    "clamp",
+    "mask"
+   ],
+   "title": "Export ao"
+  },
+  {
+   "id": 25,
+   "type": "SaveImage",
+   "pos": [
+    1680,
+    4094
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 23
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "pcg/brick_ao"
+   ],
+   "title": "ao"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   2,
+   3,
+   0,
+   4,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   3,
+   4,
+   0,
+   5,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   5,
+   6,
+   0,
+   7,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   6,
+   7,
+   0,
+   8,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   7,
+   8,
+   0,
+   9,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   8,
+   9,
+   0,
+   10,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   9,
+   10,
+   0,
+   11,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   10,
+   11,
+   0,
+   12,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   11,
+   12,
+   0,
+   13,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   12,
+   13,
+   0,
+   14,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   13,
+   14,
+   0,
+   15,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   11,
+   0,
+   16,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   15,
+   16,
+   0,
+   17,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   11,
+   0,
+   18,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   17,
+   18,
+   0,
+   19,
+   0,
+   "IMAGE"
+  ],
+  [
+   18,
+   11,
+   0,
+   20,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   19,
+   20,
+   0,
+   21,
+   0,
+   "IMAGE"
+  ],
+  [
+   20,
+   11,
+   0,
+   22,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   21,
+   22,
+   0,
+   23,
+   0,
+   "IMAGE"
+  ],
+  [
+   22,
+   11,
+   0,
+   24,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   23,
+   24,
+   0,
+   25,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    40,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}

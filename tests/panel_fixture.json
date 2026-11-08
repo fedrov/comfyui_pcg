@@ -1,0 +1,8089 @@
+{
+"conds": [
+[
+"{ mode != constant }",
+[
+[
+[
+"mode",
+"!=",
+"constant"
+]
+]
+]
+],
+[
+"{ a == x b != \"y z\" } { c >= 1 }",
+[
+[
+[
+"a",
+"==",
+"x"
+],
+[
+"b",
+"!=",
+"y z"
+]
+],
+[
+[
+"c",
+">=",
+"1"
+]
+]
+]
+],
+[
+"{a==1}{b<2}",
+[
+[
+[
+"a",
+"==",
+"1"
+]
+],
+[
+[
+"b",
+"<",
+"2"
+]
+]
+]
+],
+[
+"{ t == 1 }",
+[
+[
+[
+"t",
+"==",
+"1"
+]
+]
+]
+],
+[
+"{ x <= -0.5 }",
+[
+[
+[
+"x",
+"<=",
+"-0.5"
+]
+]
+]
+],
+[
+"{ s == '' }",
+[
+[
+[
+"s",
+"==",
+""
+]
+]
+]
+]
+],
+"cond_bad": [
+"{ a == }",
+"a == 1",
+"{ a == 1",
+"{ a ~ 1 }",
+"{}",
+"{ a == 1 { b == 2 } }"
+],
+"evals": [
+[
+"{ mode != constant }",
+{
+"mode": "constant"
+},
+false
+],
+[
+"{ mode != constant }",
+{
+"mode": "ramp"
+},
+true
+],
+[
+"{ a == 1 b == 0 }",
+{
+"a": true,
+"b": false
+},
+true
+],
+[
+"{ a == 1 b == 0 }",
+{
+"a": true,
+"b": true
+},
+false
+],
+[
+"{ a == 1 } { b == 1 }",
+{
+"a": false,
+"b": true
+},
+true
+],
+[
+"{ x == 0 }",
+{
+"x": 0.0
+},
+true
+],
+[
+"{ x > 2 }",
+{
+"x": 10
+},
+true
+],
+[
+"{ x < 2 }",
+{
+"x": 10
+},
+false
+],
+[
+"{ s == '' }",
+{
+"s": ""
+},
+true
+],
+[
+"{ s == '' }",
+{
+"s": "grp"
+},
+false
+],
+[
+"{ k == 8 }",
+{
+"k": "8"
+},
+true
+],
+[
+"{ s == '' }",
+{
+"s": "0"
+},
+false
+]
+],
+"ramps": [
+[
+"0:0,0,1 0.5:0,1,0 1:1,0,0",
+3,
+[
+{
+"p": 0.0,
+"v": [
+0.0,
+0.0,
+1.0
+]
+},
+{
+"p": 0.5,
+"v": [
+0.0,
+1.0,
+0.0
+]
+},
+{
+"p": 1.0,
+"v": [
+1.0,
+0.0,
+0.0
+]
+}
+]
+],
+[
+"0:0  0.5:0.25  1:1",
+1,
+[
+{
+"p": 0.0,
+"v": [
+0.0
+]
+},
+{
+"p": 0.5,
+"v": [
+0.25
+]
+},
+{
+"p": 1.0,
+"v": [
+1.0
+]
+}
+]
+],
+[
+"1:1 0:0",
+1,
+[
+{
+"p": 0.0,
+"v": [
+0.0
+]
+},
+{
+"p": 1.0,
+"v": [
+1.0
+]
+}
+]
+],
+[
+"0:0.3",
+3,
+[
+{
+"p": 0.0,
+"v": [
+0.3,
+0.3,
+0.3
+]
+}
+]
+],
+[
+"0:0 0:1 1:2",
+1,
+[
+{
+"p": 0.0,
+"v": [
+0.0
+]
+},
+{
+"p": 1.0,
+"v": [
+2.0
+]
+}
+]
+],
+[
+"0.3:0 0.8:1",
+1,
+[
+{
+"p": 0.3,
+"v": [
+0.0
+]
+},
+{
+"p": 0.8,
+"v": [
+1.0
+]
+}
+]
+]
+],
+"ramp_bad": [
+[
+"",
+1
+],
+[
+"0-1",
+1
+],
+[
+"0:a",
+1
+],
+[
+"0:1,2",
+3
+],
+[
+"x:1",
+1
+]
+],
+"samples": [
+[
+"0:0,0,1 0.5:0,1,0 1:1,0,0",
+3,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.2,
+0.8
+],
+[
+0.0,
+0.5,
+0.5
+],
+[
+0.0,
+1.0,
+0.0
+],
+[
+0.3999999999999999,
+0.6000000000000001,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+]
+]
+],
+[
+"0:0,0,1 0.5:0,1,0 1:1,0,0",
+3,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.10400000000000002,
+0.896
+],
+[
+0.0,
+0.5,
+0.5
+],
+[
+0.0,
+1.0,
+0.0
+],
+[
+0.35199999999999987,
+0.6480000000000001,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+]
+]
+],
+[
+"0:0,0,1 0.5:0,1,0 1:1,0,0",
+3,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+0.0,
+1.0
+],
+[
+0.0,
+1.0,
+0.0
+],
+[
+0.0,
+1.0,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+],
+[
+1.0,
+0.0,
+0.0
+]
+]
+],
+[
+"0:0  0.5:0.25  1:1",
+1,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.05
+],
+[
+0.125
+],
+[
+0.25
+],
+[
+0.5499999999999999
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"0:0  0.5:0.25  1:1",
+1,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.026000000000000006
+],
+[
+0.125
+],
+[
+0.25
+],
+[
+0.5139999999999999
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"0:0  0.5:0.25  1:1",
+1,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.25
+],
+[
+0.25
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"1:1 0:0",
+1,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.1
+],
+[
+0.25
+],
+[
+0.5
+],
+[
+0.7
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"1:1 0:0",
+1,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.028000000000000004
+],
+[
+0.15625
+],
+[
+0.5
+],
+[
+0.7839999999999999
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"1:1 0:0",
+1,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"0:0.3",
+3,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+]
+]
+],
+[
+"0:0.3",
+3,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+]
+]
+],
+[
+"0:0.3",
+3,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+],
+[
+0.3,
+0.3,
+0.3
+]
+]
+],
+[
+"0:0 0:1 1:2",
+1,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.2
+],
+[
+0.5
+],
+[
+1.0
+],
+[
+1.4
+],
+[
+2.0
+],
+[
+2.0
+]
+]
+],
+[
+"0:0 0:1 1:2",
+1,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.05600000000000001
+],
+[
+0.3125
+],
+[
+1.0
+],
+[
+1.5679999999999998
+],
+[
+2.0
+],
+[
+2.0
+]
+]
+],
+[
+"0:0 0:1 1:2",
+1,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+2.0
+],
+[
+2.0
+]
+]
+],
+[
+"0.3:0 0.8:1",
+1,
+"linear",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.4
+],
+[
+0.7999999999999999
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"0.3:0 0.8:1",
+1,
+"smooth",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.3520000000000001
+],
+[
+0.8959999999999999
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+],
+[
+"0.3:0 0.8:1",
+1,
+"constant",
+[
+-0.2,
+0.0,
+0.1,
+0.25,
+0.5,
+0.7,
+1.0,
+1.3
+],
+[
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+0.0
+],
+[
+1.0
+],
+[
+1.0
+]
+]
+]
+],
+"nodes": {
+"PCG_Color": {
+"name": "PCG_Color",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"attribute_class": [
+[
+"point",
+"prim",
+"vertex"
+],
+{
+"pcg_ui": {
+"label": "Class",
+"menu": {
+"point": "Point",
+"prim": "Primitive",
+"vertex": "Vertex"
+},
+"_node": {
+"order": [
+"group",
+"attribute_class",
+"mode",
+"r",
+"rand_seed",
+"attribute",
+"auto_range",
+"in_min",
+"in_max",
+"ramp",
+"hue_shift",
+"saturation",
+"value",
+"random_hue",
+"random_saturation",
+"random_value",
+"name"
+]
+}
+}
+}
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group"
+}
+}
+],
+"mode": [
+[
+"constant",
+"random",
+"random_by_attribute",
+"ramp_by_attribute",
+"adjust"
+],
+{
+"pcg_ui": {
+"label": "Color Type",
+"menu": {
+"constant": "Constant",
+"random": "Random",
+"random_by_attribute": "Random from Attribute",
+"ramp_by_attribute": "Ramp from Attribute",
+"adjust": "Adjust (HSV)"
+}
+}
+}
+],
+"r": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 100,
+"step": 0.01,
+"pcg_ui": {
+"label": "R",
+"row": {
+"kind": "color",
+"members": [
+"r",
+"g",
+"b"
+],
+"label": "Color"
+},
+"hide": "{ mode != constant }"
+}
+}
+],
+"g": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 100,
+"step": 0.01,
+"pcg_ui": {
+"label": "G",
+"in_row": "r"
+}
+}
+],
+"b": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 100,
+"step": 0.01,
+"pcg_ui": {
+"label": "B",
+"in_row": "r"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483647,
+"pcg_ui": {
+"label": "Seed",
+"hide": "{ mode == constant } { mode == ramp_by_attribute }"
+}
+}
+],
+"attribute": [
+"STRING",
+{
+"default": "",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"hide": "{ mode == constant } { mode == random }",
+"help": "In Adjust mode, giving an attribute randomizes per piece (same offset within a piece)"
+}
+}
+],
+"ramp": [
+"STRING",
+{
+"default": "0:0,0,1 0.5:0,1,0 1:1,0,0",
+"pcg_ui": {
+"label": "Attribute Ramp",
+"kind": "ramp",
+"ramp": {
+"comps": 3,
+"interp": "ramp_mode"
+},
+"hide": "{ mode != ramp_by_attribute }"
+}
+}
+],
+"ramp_mode": [
+[
+"linear",
+"smooth",
+"constant"
+],
+{
+"pcg_ui": {
+"label": "Ramp Mode",
+"menu": {
+"linear": "Linear",
+"smooth": "Smooth",
+"constant": "Constant"
+},
+"in_ramp": "ramp"
+}
+}
+],
+"auto_range": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Compute Range",
+"sep": true,
+"hide": "{ mode != ramp_by_attribute }"
+}
+}
+],
+"in_min": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "In Min",
+"row": {
+"kind": "vector",
+"members": [
+"in_min",
+"in_max"
+],
+"label": "Range"
+},
+"hide": "{ mode != ramp_by_attribute }",
+"disable": "{ auto_range == 1 }"
+}
+}
+],
+"in_max": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "In Max",
+"in_row": "in_min"
+}
+}
+],
+"hue_shift": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -360,
+"max": 360,
+"step": 1.0,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Hue Shift",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"saturation": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 10,
+"step": 0.01,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Saturation",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"value": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 10,
+"step": 0.01,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Value",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"random_hue": [
+"FLOAT",
+{
+"default": 0.0,
+"min": 0,
+"max": 360,
+"step": 1.0,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Random Hue",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"random_saturation": [
+"FLOAT",
+{
+"default": 0.0,
+"min": 0,
+"max": 1,
+"step": 0.01,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Random Saturation",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"random_value": [
+"FLOAT",
+{
+"default": 0.0,
+"min": 0,
+"max": 1,
+"step": 0.01,
+"section": "Adjust",
+"pcg_ui": {
+"label": "Random Value",
+"section": "Adjust",
+"hide": "{ mode != adjust }"
+}
+}
+],
+"name": [
+"STRING",
+{
+"default": "Cd",
+"pcg_ui": {
+"label": "Output Attribute",
+"sep": true
+}
+}
+]
+}
+}
+},
+"PCG_Scatter": {
+"name": "PCG_Scatter",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Only scatter on these faces; empty = all",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"folder": "Density",
+"_node": {
+"order": [
+"group",
+"generate",
+"force_total_count",
+"count",
+"density_scale",
+"use_density",
+"density_attribute",
+"area_attribute",
+"texture_uv_attribute",
+"count_per_prim_attribute",
+"rand_seed",
+"use_prim_seed",
+"prim_seed_attribute",
+"randomize_order",
+"use_max_points",
+"max_points",
+"use_relax",
+"relax_iterations",
+"use_geometric_normals",
+"scale_radii_by",
+"use_max_relax_radius",
+"max_relax_radius",
+"use_out_attribs",
+"sourceprim_attribute",
+"uv_attribute",
+"normal_attribute",
+"interpolate_attributes",
+"use_out_density",
+"out_density_name",
+"use_out_radius",
+"out_radius_name",
+"use_out_id",
+"out_id_name",
+"out_texture_space",
+"point_attributes",
+"vertex_attributes",
+"primitive_attributes",
+"detail_attributes",
+"detail_as_detail"
+]
+}
+}
+}
+],
+"force_total_count": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Force Total Count",
+"folder": "Density",
+"hide": "{ generate == count_per_primitive }",
+"in_toggle": "count"
+}
+}
+],
+"count": [
+"INT",
+{
+"default": 1000,
+"min": 0,
+"max": 4194304,
+"pcg_ui": {
+"label": "Force Total Count",
+"folder": "Density",
+"toggle": "force_total_count",
+"hide": "{ generate == count_per_primitive }"
+}
+}
+],
+"density_scale": [
+"FLOAT",
+{
+"default": 10.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.1,
+"pcg_ui": {
+"label": "Density Scale",
+"folder": "Density",
+"disable": "{ force_total_count == 1 }",
+"hide": "{ generate == count_per_primitive }",
+"help": "Point count = Density Scale × weighted total area; not used while Force Total Count is on"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483648,
+"pcg_ui": {
+"label": "Global Seed",
+"folder": "Density",
+"sep": true
+}
+}
+],
+"randomize_order": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Randomize Point Order",
+"folder": "Density"
+}
+}
+],
+"use_density": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Density Attributes",
+"section_gate": true,
+"pcg_ui": {
+"label": "Density Attributes",
+"section": "Density Attributes",
+"gate": true,
+"folder": "Density"
+}
+}
+],
+"density_attribute": [
+"STRING",
+{
+"default": "density",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"section": "Density Attributes",
+"pcg_ui": {
+"label": "Density Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"section": "Density Attributes",
+"folder": "Density",
+"disable": "{ use_density == 0 } { generate == in_texture_space }"
+}
+}
+],
+"area_attribute": [
+"STRING",
+{
+"default": "",
+"tooltip": "used in place of the prim's geometric area",
+"name_kind": "attrib",
+"name_cls": "prim",
+"section": "Density Attributes",
+"pcg_ui": {
+"label": "Override Primitive Area",
+"kind": "names",
+"names": [
+"attrib",
+"prim"
+],
+"section": "Density Attributes",
+"folder": "Density",
+"disable": "{ use_density == 0 } { generate == in_texture_space }"
+}
+}
+],
+"use_max_points": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Max Point Limit",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Max Points",
+"folder": "Density",
+"hide": "{ generate == count_per_primitive }",
+"in_toggle": "max_points"
+}
+}
+],
+"max_points": [
+"INT",
+{
+"default": 1000000,
+"min": 0,
+"max": 16777216,
+"section": "Max Point Limit",
+"pcg_ui": {
+"label": "Max Point Limit",
+"folder": "Density",
+"toggle": "use_max_points",
+"hide": "{ generate == count_per_primitive }"
+}
+}
+],
+"use_prim_seed": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Per-Prim Seed",
+"section_gate": true,
+"pcg_ui": {
+"label": "Primitive Seed",
+"section": "Per-Prim Seed",
+"gate": true,
+"folder": "Density"
+}
+}
+],
+"prim_seed_attribute": [
+"STRING",
+{
+"default": "name",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "prim",
+"section": "Per-Prim Seed",
+"pcg_ui": {
+"label": "Primitive Seed Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"prim"
+],
+"section": "Per-Prim Seed",
+"folder": "Density",
+"disable": "{ use_prim_seed == 0 } { generate == in_texture_space }"
+}
+}
+],
+"use_relax": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Relax",
+"section_gate": true,
+"pcg_ui": {
+"label": "Relax Points",
+"section": "Relax",
+"gate": true,
+"folder": "Relax"
+}
+}
+],
+"relax_iterations": [
+"INT",
+{
+"default": 10,
+"min": 0,
+"max": 200,
+"section": "Relax",
+"pcg_ui": {
+"label": "Relax Iterations",
+"section": "Relax",
+"folder": "Relax",
+"disable": "{ use_relax == 0 }"
+}
+}
+],
+"scale_radii_by": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 100.0,
+"step": 0.01,
+"section": "Relax",
+"pcg_ui": {
+"label": "Scale Radii by",
+"section": "Relax",
+"folder": "Relax",
+"disable": "{ use_relax == 0 }"
+}
+}
+],
+"use_max_relax_radius": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Relax",
+"pcg_ui": {
+"label": "Use Max Relax Radius",
+"section": "Relax",
+"folder": "Relax",
+"in_toggle": "max_relax_radius"
+}
+}
+],
+"max_relax_radius": [
+"FLOAT",
+{
+"default": 10.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Relax",
+"pcg_ui": {
+"label": "Max Relax Radius",
+"section": "Relax",
+"toggle": "use_max_relax_radius",
+"folder": "Relax",
+"disable": "{ use_relax == 0 }"
+}
+}
+],
+"use_geometric_normals": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Relax",
+"pcg_ui": {
+"label": "Use Geometric Normals",
+"section": "Relax",
+"folder": "Relax",
+"help": "Output N uses the geometric normal of the containing triangle, not the interpolated source point normal N; independent of whether Relax is on. Without N on the source, the geometric normal is used anyway"
+}
+}
+],
+"use_out_attribs": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output Attributes",
+"section_gate": true,
+"pcg_ui": {
+"label": "Output Attributes",
+"section": "Output Attributes",
+"gate": true,
+"folder": "Output Attributes"
+}
+}
+],
+"normal_attribute": [
+"STRING",
+{
+"default": "N",
+"section": "Output Attributes",
+"pcg_ui": {
+"label": "Normal Attribute",
+"section": "Output Attributes",
+"folder": "Output Attributes",
+"disable": "{ use_out_attribs == 0 }"
+}
+}
+],
+"sourceprim_attribute": [
+"STRING",
+{
+"default": "sourceprim",
+"section": "Output Attributes",
+"pcg_ui": {
+"label": "Prim Num Attribute",
+"section": "Output Attributes",
+"folder": "Output Attributes",
+"disable": "{ use_out_attribs == 0 }"
+}
+}
+],
+"uv_attribute": [
+"STRING",
+{
+"default": "sourceprimuv",
+"section": "Output Attributes",
+"pcg_ui": {
+"label": "Prim UVW Attribute",
+"section": "Output Attributes",
+"folder": "Output Attributes",
+"disable": "{ use_out_attribs == 0 }"
+}
+}
+],
+"interpolate_attributes": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output Attributes",
+"pcg_ui": {
+"label": "Interpolate Source Attributes",
+"section": "Output Attributes",
+"folder": "Output Attributes",
+"disable": "{ use_out_attribs == 0 }",
+"help": "Interpolates the source's point attributes onto the scattered points (vertex attributes are not governed by this toggle; see Vertex Attributes on the Attributes tab)"
+}
+}
+],
+"generate": [
+[
+"by_density",
+"count_per_primitive",
+"in_texture_space"
+],
+{
+"pcg_ui": {
+"label": "Generate",
+"menu": {
+"by_density": "By Density",
+"count_per_primitive": "Count per Primitive",
+"in_texture_space": "In Texture Space"
+},
+"folder": "Density",
+"help": "Scatter on Voxels Independently is not implemented: this node does not scatter into volumes"
+}
+}
+],
+"count_per_prim_attribute": [
+"STRING",
+{
+"default": "1",
+"tooltip": "An integer, or the name of an integer prim attribute (Count per Primitive)",
+"pcg_ui": {
+"label": "Count per Prim Attribute",
+"folder": "Density",
+"hide": "{ generate != count_per_primitive }"
+}
+}
+],
+"texture_uv_attribute": [
+"STRING",
+{
+"default": "uv",
+"tooltip": "uv used by Density Texture / In Texture Space",
+"name_kind": "attrib",
+"name_cls": "vertex",
+"pcg_ui": {
+"label": "UV Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"vertex"
+],
+"folder": "Density",
+"help": "uv used by Density Texture, In Texture Space and texture-space output"
+}
+}
+],
+"use_out_density": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Use Out Density",
+"folder": "Output Attributes",
+"sep": true,
+"in_toggle": "out_density_name"
+}
+}
+],
+"out_density_name": [
+"STRING",
+{
+"default": "density",
+"pcg_ui": {
+"label": "Output Density Attribute",
+"folder": "Output Attributes",
+"toggle": "use_out_density"
+}
+}
+],
+"use_out_radius": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Use Out Radius",
+"folder": "Output Attributes",
+"in_toggle": "out_radius_name"
+}
+}
+],
+"out_radius_name": [
+"STRING",
+{
+"default": "pscale",
+"pcg_ui": {
+"label": "Output Radius Attribute",
+"folder": "Output Attributes",
+"toggle": "use_out_radius",
+"help": "0.537/√density, clamped to Max Relax Radius when that is on"
+}
+}
+],
+"use_out_id": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Use Out ID",
+"folder": "Output Attributes",
+"in_toggle": "out_id_name"
+}
+}
+],
+"out_id_name": [
+"STRING",
+{
+"default": "id",
+"pcg_ui": {
+"label": "Output ID Attribute",
+"folder": "Output Attributes",
+"toggle": "use_out_id"
+}
+}
+],
+"out_texture_space": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Output Radius and Density in Texture Space",
+"folder": "Output Attributes",
+"disable": "{ use_out_density == 0 use_out_radius == 0 }"
+}
+}
+],
+"point_attributes": [
+"STRING",
+{
+"default": "*",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Point Attributes",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"folder": "Attributes",
+"disable": "{ use_out_attribs == 0 } { interpolate_attributes == 0 }"
+}
+}
+],
+"vertex_attributes": [
+"STRING",
+{
+"default": "*",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "vertex",
+"pcg_ui": {
+"label": "Vertex Attributes",
+"kind": "names",
+"names": [
+"attrib",
+"vertex"
+],
+"folder": "Attributes"
+}
+}
+],
+"primitive_attributes": [
+"STRING",
+{
+"default": "",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "prim",
+"pcg_ui": {
+"label": "Primitive Attributes",
+"kind": "names",
+"names": [
+"attrib",
+"prim"
+],
+"folder": "Attributes"
+}
+}
+],
+"detail_attributes": [
+"STRING",
+{
+"default": "",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "detail",
+"pcg_ui": {
+"label": "Detail Attributes",
+"kind": "names",
+"names": [
+"attrib",
+"detail"
+],
+"folder": "Attributes"
+}
+}
+],
+"detail_as_detail": [
+"STRING",
+{
+"default": "",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "detail",
+"pcg_ui": {
+"label": "Detail as Detail",
+"kind": "names",
+"names": [
+"attrib",
+"detail"
+],
+"folder": "Attributes"
+}
+}
+]
+},
+"optional": {
+"density_texture": [
+"COPIMAGE"
+]
+},
+"hidden": {
+"unique_id": [
+"U",
+"N"
+]
+}
+}
+},
+"PCG_COPPattern": {
+"name": "PCG_COPPattern",
+"input": {
+"required": {
+"kind": [
+[
+"checker",
+"tile",
+"cell",
+"uv_grid",
+"julia",
+"chladni",
+"knit",
+"weave"
+],
+{
+"pcg_ui": {
+"label": "Pattern Type",
+"menu": {
+"checker": "Checkerboard",
+"tile": "Tile Pattern",
+"cell": "Cell Pattern",
+"uv_grid": "UV Grid",
+"julia": "Julia Fractal",
+"chladni": "Chladni Cymatics",
+"knit": "Knit",
+"weave": "Weave"
+},
+"_node": {
+"order": [
+"kind",
+"counts",
+"gap",
+"rand_seed",
+"bond",
+"header_interval",
+"offset",
+"bevel",
+"jitter",
+"lattice",
+"cell_metric",
+"density",
+"density_seed",
+"weave",
+"weave_layer",
+"thread_width",
+"separate_widths",
+"weft_width",
+"fractal",
+"c",
+"center",
+"zoom",
+"iterations",
+"modes",
+"sign",
+"chladni_output",
+"line_width",
+"threshold",
+"smoothing_width",
+"amplitude",
+"amplitude_ratio",
+"tile_coloring",
+"tile_color1",
+"tile_color2",
+"outlines",
+"outline_width",
+"outline_color",
+"labels",
+"marker_type",
+"text_mode",
+"font",
+"marker_size",
+"marker_coloring",
+"marker_color",
+"marker_color2",
+"out_layer",
+"resolution_x",
+"resolution_y"
+]
+}
+}
+}
+],
+"counts": [
+"STRING",
+{
+"default": "8 8",
+"pcg_ui": {
+"label": "Tile Count",
+"kind": "vecstr",
+"comps": 2,
+"hide": "{ kind == julia } { kind == chladni }"
+}
+}
+],
+"offset": [
+"FLOAT",
+{
+"default": 0.5,
+"min": -4,
+"max": 4,
+"step": 0.05,
+"section": "Tile",
+"pcg_ui": {
+"label": "Row Offset",
+"section": "Tile",
+"hide": "{ kind != tile }",
+"disable": "{ bond != offset }"
+}
+}
+],
+"gap": [
+"FLOAT",
+{
+"default": 0.05,
+"min": 0,
+"max": 1,
+"step": 0.005,
+"section": "Tile",
+"pcg_ui": {
+"label": "Gap",
+"hide": "{ kind != tile kind != cell }"
+}
+}
+],
+"bevel": [
+"FLOAT",
+{
+"default": 0.1,
+"min": 0,
+"max": 1,
+"step": 0.005,
+"section": "Tile",
+"pcg_ui": {
+"label": "Bevel",
+"section": "Tile",
+"hide": "{ kind != tile }"
+}
+}
+],
+"jitter": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 1,
+"step": 0.01,
+"section": "Cell",
+"pcg_ui": {
+"label": "Jitter",
+"section": "Cell",
+"hide": "{ kind != cell }"
+}
+}
+],
+"weave": [
+[
+"plain",
+"twill",
+"satin",
+"custom"
+],
+{
+"section": "Weave",
+"pcg_ui": {
+"label": "Weave Type",
+"menu": {
+"plain": "Plain (Checkerboard)",
+"twill": "Twill 2/2",
+"satin": "Satin (5-Harness)",
+"custom": "Custom (Pattern Layer)"
+},
+"section": "Weave",
+"hide": "{ kind != weave }"
+}
+}
+],
+"thread_width": [
+"FLOAT",
+{
+"default": 0.8,
+"min": 0.05,
+"max": 1,
+"step": 0.01,
+"section": "Weave",
+"pcg_ui": {
+"label": "Thread Width",
+"section": "Weave",
+"hide": "{ kind != weave }",
+"help": "With Separate on, only controls the warp (vertical); 1 − line width = gap"
+}
+}
+],
+"fractal": [
+[
+"julia",
+"mandelbrot"
+],
+{
+"section": "Julia",
+"pcg_ui": {
+"label": "Fractal Type",
+"menu": {
+"julia": "Julia",
+"mandelbrot": "Mandelbrot"
+},
+"section": "Julia",
+"hide": "{ kind != julia }"
+}
+}
+],
+"c": [
+"STRING",
+{
+"default": "-0.8 0.156",
+"section": "Julia",
+"pcg_ui": {
+"label": "Julia Constant",
+"kind": "vecstr",
+"comps": 2,
+"section": "Julia",
+"hide": "{ kind != julia } { fractal == mandelbrot }"
+}
+}
+],
+"center": [
+"STRING",
+{
+"default": "0 0",
+"section": "Julia",
+"pcg_ui": {
+"label": "Center",
+"kind": "vecstr",
+"comps": 2,
+"section": "Julia",
+"hide": "{ kind != julia }"
+}
+}
+],
+"zoom": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000000.0,
+"step": 0.1,
+"section": "Julia",
+"pcg_ui": {
+"label": "Zoom",
+"section": "Julia",
+"hide": "{ kind != julia }"
+}
+}
+],
+"iterations": [
+"INT",
+{
+"default": 100,
+"min": 1,
+"max": 5000,
+"section": "Julia",
+"pcg_ui": {
+"label": "Max Iterations",
+"section": "Julia",
+"hide": "{ kind != julia }"
+}
+}
+],
+"modes": [
+"STRING",
+{
+"default": "3 5",
+"section": "Chladni",
+"pcg_ui": {
+"label": "Modes (n m)",
+"kind": "vecstr",
+"comps": 2,
+"section": "Chladni",
+"hide": "{ kind != chladni }"
+}
+}
+],
+"sign": [
+[
+"-",
+"+"
+],
+{
+"section": "Chladni",
+"pcg_ui": {
+"label": "Sign",
+"menu": {
+"-": "Minus (−)",
+"+": "Plus (+)"
+},
+"section": "Chladni",
+"hide": "{ kind != chladni }"
+}
+}
+],
+"line_width": [
+"FLOAT",
+{
+"default": 1.5,
+"min": 0.1,
+"max": 64,
+"step": 0.1,
+"section": "Chladni",
+"pcg_ui": {
+"label": "Line Width",
+"section": "Chladni",
+"hide": "{ kind != chladni }",
+"disable": "{ chladni_output != pixel_lines }",
+"help": "Pixels"
+}
+}
+],
+"font": [
+"STRING",
+{
+"default": "",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Font",
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 } { marker_type != text }"
+}
+}
+],
+"labels": [
+"BOOLEAN",
+{
+"default": true,
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Draw Markers",
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483647,
+"pcg_ui": {
+"label": "Seed",
+"hide": "{ kind == checker } { kind == uv_grid } { kind == julia } { kind == chladni }"
+}
+}
+],
+"out_layer": [
+"STRING",
+{
+"default": "pattern",
+"pcg_ui": {
+"label": "Output Layer",
+"sep": true
+}
+}
+],
+"resolution_x": [
+"INT",
+{
+"default": 512,
+"min": 1,
+"max": 16384,
+"pcg_ui": {
+"label": "Resolution X",
+"row": {
+"kind": "vector",
+"members": [
+"resolution_x",
+"resolution_y"
+],
+"label": "Resolution"
+},
+"help": "Used when no cop is wired; with a cop wired, follows its resolution"
+}
+}
+],
+"resolution_y": [
+"INT",
+{
+"default": 512,
+"min": 1,
+"max": 16384,
+"pcg_ui": {
+"label": "Resolution Y",
+"in_row": "resolution_x"
+}
+}
+],
+"bond": [
+[
+"offset",
+"stack",
+"stretcher",
+"header",
+"flemish",
+"english",
+"american"
+],
+{
+"section": "Tile",
+"pcg_ui": {
+"label": "Bond",
+"menu": {
+"offset": "Row Offset (Custom)",
+"stack": "Stack Bond",
+"stretcher": "Stretcher Bond",
+"header": "Header Bond",
+"flemish": "Flemish Bond",
+"english": "English Bond",
+"american": "American Bond"
+},
+"section": "Tile",
+"hide": "{ kind != tile }"
+}
+}
+],
+"header_interval": [
+"INT",
+{
+"default": 6,
+"min": 1,
+"max": 1000,
+"section": "Tile",
+"pcg_ui": {
+"label": "Header Interval",
+"section": "Tile",
+"hide": "{ kind != tile } { bond != american }",
+"help": "One header course every this many rows"
+}
+}
+],
+"chladni_output": [
+[
+"pixel_lines",
+"nodal_lines",
+"absolute",
+"signed"
+],
+{
+"section": "Chladni",
+"pcg_ui": {
+"label": "Output Mode",
+"menu": {
+"pixel_lines": "Nodal Lines (Pixel Width)",
+"nodal_lines": "Nodal Lines (Threshold)",
+"absolute": "Absolute Value",
+"signed": "Signed Value"
+},
+"section": "Chladni",
+"hide": "{ kind != chladni }"
+}
+}
+],
+"amplitude": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -10000.0,
+"max": 10000.0,
+"step": 0.01,
+"section": "Chladni",
+"pcg_ui": {
+"label": "Amplitude",
+"section": "Chladni",
+"hide": "{ kind != chladni }"
+}
+}
+],
+"amplitude_ratio": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -10000.0,
+"max": 10000.0,
+"step": 0.01,
+"section": "Chladni",
+"pcg_ui": {
+"label": "Amplitude Ratio",
+"section": "Chladni",
+"hide": "{ kind != chladni }",
+"help": "Weight of wave b relative to wave a; 1 = the original formula"
+}
+}
+],
+"threshold": [
+"FLOAT",
+{
+"default": 0.1,
+"min": 0.0,
+"max": 10000.0,
+"step": 0.005,
+"section": "Chladni",
+"pcg_ui": {
+"label": "Threshold",
+"section": "Chladni",
+"hide": "{ kind != chladni }",
+"disable": "{ chladni_output != nodal_lines }"
+}
+}
+],
+"smoothing_width": [
+"FLOAT",
+{
+"default": 0.05,
+"min": 0.0,
+"max": 10000.0,
+"step": 0.005,
+"section": "Chladni",
+"pcg_ui": {
+"label": "Smoothing Width",
+"section": "Chladni",
+"hide": "{ kind != chladni }",
+"disable": "{ chladni_output != nodal_lines }"
+}
+}
+],
+"cell_metric": [
+[
+"euclidean",
+"manhattan",
+"chebyshev"
+],
+{
+"section": "Cell",
+"pcg_ui": {
+"label": "Metric",
+"menu": {
+"euclidean": "Euclidean",
+"manhattan": "Manhattan",
+"chebyshev": "Chebyshev"
+},
+"section": "Cell",
+"hide": "{ kind != cell }"
+}
+}
+],
+"lattice": [
+[
+"grid",
+"hexagonal"
+],
+{
+"section": "Cell",
+"pcg_ui": {
+"label": "Lattice Type",
+"menu": {
+"grid": "Grid",
+"hexagonal": "Hexagonal"
+},
+"section": "Cell",
+"hide": "{ kind != cell }"
+}
+}
+],
+"density": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"section": "Cell",
+"pcg_ui": {
+"label": "Density",
+"section": "Cell",
+"hide": "{ kind != cell }",
+"help": "Cells whose random number ≥ Density are culled (mask set to 0); 1 = keep all"
+}
+}
+],
+"density_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483647,
+"section": "Cell",
+"pcg_ui": {
+"label": "Density Seed",
+"section": "Cell",
+"hide": "{ kind != cell }",
+"disable": "{ density >= 1 }"
+}
+}
+],
+"tile_coloring": [
+[
+"hue",
+"uniform",
+"checker",
+"gradient"
+],
+{
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Tile Coloring Mode",
+"menu": {
+"hue": "Hue (Columns) + Value Checker",
+"uniform": "Uniform",
+"checker": "Checker",
+"gradient": "Gradient"
+},
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }"
+}
+}
+],
+"tile_color1": [
+"STRING",
+{
+"default": "0.85 0.85 0.85",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Tile Color 1",
+"kind": "colorstr",
+"comps": 3,
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ tile_coloring == hue }"
+}
+}
+],
+"tile_color2": [
+"STRING",
+{
+"default": "0.6 0.6 0.6",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Tile Color 2",
+"kind": "colorstr",
+"comps": 3,
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ tile_coloring == hue } { tile_coloring == uniform }"
+}
+}
+],
+"outlines": [
+"BOOLEAN",
+{
+"default": true,
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Add Tile Outlines",
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }"
+}
+}
+],
+"outline_width": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1000.0,
+"step": 0.1,
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Outline Width",
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ outlines == 0 }",
+"help": "Pixels"
+}
+}
+],
+"outline_color": [
+"STRING",
+{
+"default": "0.08 0.08 0.08",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Outline Color",
+"kind": "colorstr",
+"comps": 3,
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ outlines == 0 }"
+}
+}
+],
+"marker_type": [
+[
+"text",
+"cross",
+"arrow"
+],
+{
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Marker Type",
+"menu": {
+"text": "Text",
+"cross": "Cross",
+"arrow": "Arrow"
+},
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 }"
+}
+}
+],
+"text_mode": [
+[
+"letters",
+"coordinates"
+],
+{
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Text Mode",
+"menu": {
+"letters": "Letters & Numbers",
+"coordinates": "Coordinates"
+},
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 } { marker_type != text }"
+}
+}
+],
+"marker_size": [
+"FLOAT",
+{
+"default": 0.32,
+"min": 0.0,
+"max": 10.0,
+"step": 0.01,
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Marker Size",
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 }",
+"help": "Relative to the cell's short side"
+}
+}
+],
+"marker_coloring": [
+[
+"uniform",
+"checker",
+"gradient"
+],
+{
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Marker Coloring Mode",
+"menu": {
+"uniform": "Uniform",
+"checker": "Checker",
+"gradient": "Gradient"
+},
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 }"
+}
+}
+],
+"marker_color": [
+"STRING",
+{
+"default": "0.05 0.05 0.05",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Marker Color 1",
+"kind": "colorstr",
+"comps": 3,
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 }"
+}
+}
+],
+"marker_color2": [
+"STRING",
+{
+"default": "1 1 1",
+"section": "UV Grid",
+"pcg_ui": {
+"label": "Marker Color 2",
+"kind": "colorstr",
+"comps": 3,
+"section": "UV Grid",
+"hide": "{ kind != uv_grid }",
+"disable": "{ labels == 0 } { marker_coloring == uniform }"
+}
+}
+],
+"separate_widths": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Weave",
+"pcg_ui": {
+"label": "Separate Row / Column Widths",
+"section": "Weave",
+"hide": "{ kind != weave }"
+}
+}
+],
+"weft_width": [
+"FLOAT",
+{
+"default": 0.8,
+"min": 0.05,
+"max": 1,
+"step": 0.01,
+"section": "Weave",
+"pcg_ui": {
+"label": "Weft (Row) Width",
+"section": "Weave",
+"hide": "{ kind != weave }",
+"disable": "{ separate_widths == 0 }"
+}
+}
+],
+"weave_layer": [
+"STRING",
+{
+"default": "",
+"section": "Weave",
+"pcg_ui": {
+"label": "Pattern Layer",
+"section": "Weave",
+"hide": "{ kind != weave }",
+"disable": "{ weave != custom }",
+"help": "A layer on the input cop; center of each crossing > 0.5 = warp on top"
+}
+}
+]
+},
+"optional": {
+"cop": [
+"COPIMAGE"
+]
+},
+"hidden": {
+"unique_id": [
+"U",
+"N"
+]
+}
+}
+},
+"PCG_AttribNoise": {
+"name": "PCG_AttribNoise",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"_node": {
+"order": [
+"group",
+"blend",
+"blend_attribute",
+"attribute_type",
+"attribute_names",
+"use_x",
+"use_y",
+"use_z",
+"attribute_class",
+"noise_along_vector",
+"vector_attribute",
+"range_values",
+"operation",
+"amplitude",
+"min_value",
+"max_value",
+"middle_value",
+"range_length",
+"use_remap_ramp",
+"remap_ramp",
+"ramp_mode",
+"use_value_correction",
+"bias",
+"gain",
+"gamma",
+"contrast",
+"use_clamp_min",
+"clamp_min",
+"use_clamp_max",
+"clamp_max",
+"make_unit_length",
+"recompute_normals",
+"post_absolute",
+"post_invert",
+"use_normalize",
+"normalize_min",
+"normalize_max",
+"noise_type",
+"location_attribute",
+"element_size_x",
+"element_size_y",
+"element_size_z",
+"offset_x",
+"offset_y",
+"offset_z",
+"rand_seed",
+"use_vexpression",
+"vexpression",
+"fractal",
+"octaves",
+"lacunarity",
+"roughness",
+"fractal_offset",
+"warp",
+"warp_element_size",
+"warp_octaves",
+"use_animation",
+"noise_time",
+"time_element_size"
+]
+}
+}
+}
+],
+"attribute_class": [
+[
+"point",
+"vertex",
+"prim",
+"detail"
+],
+{
+"pcg_ui": {
+"label": "Attribute Class",
+"menu": {
+"point": "Point",
+"vertex": "Vertex",
+"prim": "Primitive",
+"detail": "Detail"
+}
+}
+}
+],
+"attribute_names": [
+"STRING",
+{
+"default": "P",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Attribute Names",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+]
+}
+}
+],
+"use_x": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Component Scope X"
+}
+}
+],
+"use_y": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Component Scope Y"
+}
+}
+],
+"use_z": [
+"BOOLEAN",
+{
+"default": true,
+"pcg_ui": {
+"label": "Component Scope Z"
+}
+}
+],
+"noise_along_vector": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Noise Along Vector",
+"sep": true
+}
+}
+],
+"vector_attribute": [
+"STRING",
+{
+"default": "N",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Vector Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"disable": "{ noise_along_vector == 0 }"
+}
+}
+],
+"blend": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Blend"
+}
+}
+],
+"operation": [
+[
+"add",
+"subtract",
+"multiply",
+"set",
+"set_initial",
+"minimum",
+"maximum"
+],
+{
+"section": "Noise Value",
+"pcg_ui": {
+"label": "Operation",
+"menu": {
+"add": "Add",
+"subtract": "Subtract",
+"multiply": "Multiply",
+"set": "Set Always",
+"set_initial": "Set Initial",
+"minimum": "Minimum",
+"maximum": "Maximum"
+},
+"folder": "Noise Value"
+}
+}
+],
+"range_values": [
+[
+"zero_centered",
+"zero_to_one",
+"one_centered",
+"negative",
+"min_max",
+"min_range",
+"middle_range"
+],
+{
+"section": "Noise Value",
+"pcg_ui": {
+"label": "Range Values",
+"menu": {
+"zero_centered": "Zero Centered",
+"zero_to_one": "Positive",
+"one_centered": "One Centered",
+"negative": "Negative",
+"min_max": "Min/Max",
+"min_range": "Min + Range Length",
+"middle_range": "Middle ± Range Length"
+},
+"folder": "Noise Value"
+}
+}
+],
+"amplitude": [
+"FLOAT",
+{
+"default": 0.25,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Value",
+"pcg_ui": {
+"label": "Amplitude",
+"folder": "Noise Value",
+"hide": "{ range_values == min_max } { range_values == min_range } { range_values == middle_range }"
+}
+}
+],
+"use_value_correction": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Value Correction",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable Bias / Gain",
+"section": "Value Correction",
+"folder": "Noise Value",
+"sep": true
+}
+}
+],
+"bias": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.001,
+"max": 0.999,
+"step": 0.01,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Bias",
+"section": "Value Correction",
+"folder": "Noise Value",
+"disable": "{ use_value_correction == 0 }"
+}
+}
+],
+"gain": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.001,
+"max": 0.999,
+"step": 0.01,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Gain",
+"section": "Value Correction",
+"folder": "Noise Value",
+"disable": "{ use_value_correction == 0 }"
+}
+}
+],
+"use_remap_ramp": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Value Correction",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable Remap Ramp",
+"section": "Value Correction",
+"folder": "Noise Value"
+}
+}
+],
+"remap_ramp": [
+"STRING",
+{
+"default": "0:0  0.5:0.25  1:1",
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Remap Ramp",
+"kind": "ramp",
+"ramp": {
+"comps": 1,
+"interp": "ramp_mode"
+},
+"section": "Value Correction",
+"folder": "Noise Value",
+"disable": "{ use_remap_ramp == 0 }"
+}
+}
+],
+"ramp_mode": [
+[
+"linear",
+"smooth",
+"constant"
+],
+{
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Ramp Mode",
+"menu": {
+"linear": "Linear",
+"smooth": "Smooth",
+"constant": "Constant"
+},
+"section": "Value Correction",
+"in_ramp": "remap_ramp",
+"folder": "Noise Value"
+}
+}
+],
+"use_clamp_min": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Use Clamp Min",
+"section": "Post-Process",
+"folder": "Noise Value",
+"in_toggle": "clamp_min"
+}
+}
+],
+"clamp_min": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Minimum",
+"section": "Post-Process",
+"toggle": "use_clamp_min",
+"folder": "Noise Value"
+}
+}
+],
+"use_clamp_max": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Use Clamp Max",
+"section": "Post-Process",
+"folder": "Noise Value",
+"in_toggle": "clamp_max"
+}
+}
+],
+"clamp_max": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Value Correction",
+"pcg_ui": {
+"label": "Maximum",
+"section": "Post-Process",
+"toggle": "use_clamp_max",
+"folder": "Noise Value"
+}
+}
+],
+"noise_type": [
+[
+"value",
+"perlin",
+"simplex",
+"worley",
+"worley_f2f1",
+"manhattan",
+"manhattan_f2f1",
+"chebyshev",
+"chebyshev_f2f1"
+],
+{
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Noise Type",
+"menu": {
+"value": "Value",
+"perlin": "Perlin",
+"simplex": "Simplex",
+"worley": "Worley Cellular F1",
+"worley_f2f1": "Worley Cellular F2-F1",
+"manhattan": "Manhattan Cellular F1",
+"manhattan_f2f1": "Manhattan Cellular F2-F1",
+"chebyshev": "Chebyshev Cellular F1",
+"chebyshev_f2f1": "Chebyshev Cellular F2-F1"
+},
+"folder": "Noise Pattern"
+}
+}
+],
+"location_attribute": [
+"STRING",
+{
+"default": "P",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Location Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"folder": "Noise Pattern"
+}
+}
+],
+"element_size_x": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Element Size X",
+"row": {
+"kind": "vector",
+"members": [
+"element_size_x",
+"element_size_y",
+"element_size_z"
+],
+"label": "Element Size"
+},
+"folder": "Noise Pattern"
+}
+}
+],
+"element_size_y": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Element Size Y",
+"folder": "Noise Pattern",
+"in_row": "element_size_x"
+}
+}
+],
+"element_size_z": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Element Size Z",
+"folder": "Noise Pattern",
+"in_row": "element_size_x"
+}
+}
+],
+"offset_x": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Offset X",
+"row": {
+"kind": "vector",
+"members": [
+"offset_x",
+"offset_y",
+"offset_z"
+],
+"label": "Offset"
+},
+"folder": "Noise Pattern"
+}
+}
+],
+"offset_y": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Offset Y",
+"folder": "Noise Pattern",
+"in_row": "offset_x"
+}
+}
+],
+"offset_z": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Offset Z",
+"folder": "Noise Pattern",
+"in_row": "offset_x"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483648,
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "Seed",
+"folder": "Noise Pattern"
+}
+}
+],
+"use_vexpression": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Noise Pattern",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Vexpression",
+"section": "Use VEXpression",
+"gate": true,
+"folder": "Noise Pattern"
+}
+}
+],
+"vexpression": [
+"STRING",
+{
+"default": "set(0, @P.y * 0.1, 0)",
+"code_hl": true,
+"tooltip": "Compute one vector per element and add it to Offset",
+"section": "Noise Pattern",
+"pcg_ui": {
+"label": "VEXpression",
+"kind": "code",
+"section": "Use VEXpression",
+"folder": "Noise Pattern"
+}
+}
+],
+"use_animation": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Animation",
+"section_gate": true,
+"pcg_ui": {
+"label": "Animate Noise",
+"section": "Animation",
+"gate": true,
+"folder": "Animation"
+}
+}
+],
+"noise_time": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Animation",
+"pcg_ui": {
+"label": "Time",
+"section": "Animation",
+"folder": "Animation"
+}
+}
+],
+"time_element_size": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Animation",
+"pcg_ui": {
+"label": "Pulse Duration",
+"section": "Animation",
+"folder": "Animation"
+}
+}
+],
+"fractal": [
+[
+"none",
+"standard",
+"terrain",
+"hybrid_terrain"
+],
+{
+"section": "Fractal",
+"pcg_ui": {
+"label": "Fractal Type",
+"menu": {
+"none": "None",
+"standard": "Standard",
+"terrain": "Terrain",
+"hybrid_terrain": "Hybrid Terrain"
+},
+"section": "Fractal",
+"folder": "Noise Pattern"
+}
+}
+],
+"octaves": [
+"INT",
+{
+"default": 3,
+"min": 1,
+"max": 16,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Max Octaves",
+"section": "Fractal",
+"folder": "Noise Pattern",
+"hide": "{ fractal == none }"
+}
+}
+],
+"lacunarity": [
+"FLOAT",
+{
+"default": 2.0,
+"min": 1.0,
+"max": 16.0,
+"step": 0.01,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Lacunarity",
+"section": "Fractal",
+"folder": "Noise Pattern",
+"hide": "{ fractal == none }"
+}
+}
+],
+"roughness": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Roughness",
+"section": "Fractal",
+"folder": "Noise Pattern",
+"hide": "{ fractal == none }"
+}
+}
+],
+"fractal_offset": [
+"FLOAT",
+{
+"default": 0.7,
+"min": -4.0,
+"max": 4.0,
+"step": 0.01,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Terrain Offset",
+"section": "Fractal",
+"folder": "Noise Pattern",
+"hide": "{ fractal == none } { fractal == standard }"
+}
+}
+],
+"warp": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Warping",
+"pcg_ui": {
+"label": "Warp Distance",
+"section": "Warping",
+"folder": "Noise Pattern",
+"help": "0 = no distortion; the two parameters below only take effect when it is non-zero"
+}
+}
+],
+"warp_element_size": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Warping",
+"pcg_ui": {
+"label": "Warp Element Size",
+"section": "Warping",
+"folder": "Noise Pattern"
+}
+}
+],
+"warp_octaves": [
+"INT",
+{
+"default": 1,
+"min": 1,
+"max": 8,
+"section": "Warping",
+"pcg_ui": {
+"label": "Warp Octaves",
+"section": "Warping",
+"folder": "Noise Pattern"
+}
+}
+],
+"post_absolute": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post-Process",
+"pcg_ui": {
+"label": "Absolute Value",
+"section": "Post-Process",
+"folder": "Noise Value",
+"sep": true
+}
+}
+],
+"post_invert": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post-Process",
+"pcg_ui": {
+"label": "Invert",
+"section": "Post-Process",
+"folder": "Noise Value"
+}
+}
+],
+"use_normalize": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post-Process",
+"pcg_ui": {
+"label": "Normalize",
+"section": "Post-Process",
+"folder": "Noise Value",
+"sep": true
+}
+}
+],
+"normalize_min": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Post-Process",
+"pcg_ui": {
+"label": "Normalize Min",
+"section": "Post-Process",
+"folder": "Noise Value",
+"row": {
+"kind": "vector",
+"members": [
+"normalize_min",
+"normalize_max"
+],
+"label": "Normalize Range"
+},
+"disable": "{ use_normalize == 0 }"
+}
+}
+],
+"normalize_max": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Post-Process",
+"pcg_ui": {
+"label": "Normalize Max",
+"section": "Post-Process",
+"folder": "Noise Value",
+"in_row": "normalize_min"
+}
+}
+]
+},
+"optional": {
+"blend_attribute": [
+"STRING",
+{
+"default": "",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Blend Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"help": "When non-empty, used per element as Blend (the constant above no longer applies)"
+}
+}
+],
+"attribute_type": [
+[
+"auto",
+"float",
+"vector"
+],
+{
+"pcg_ui": {
+"label": "Attribute Type",
+"menu": {
+"auto": "Auto (from Attribute)",
+"float": "Float",
+"vector": "Vector"
+}
+}
+}
+],
+"min_value": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Min Value",
+"folder": "Noise Value",
+"hide": "{ range_values != min_max range_values != min_range }"
+}
+}
+],
+"max_value": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Max Value",
+"folder": "Noise Value",
+"hide": "{ range_values != min_max }"
+}
+}
+],
+"middle_value": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Middle Value",
+"folder": "Noise Value",
+"hide": "{ range_values != middle_range }"
+}
+}
+],
+"range_length": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Range Length",
+"folder": "Noise Value",
+"hide": "{ range_values != min_range range_values != middle_range }",
+"help": "Middle ± Range Length is the full width (unlike Attribute Adjust's half width)"
+}
+}
+],
+"gamma": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.001,
+"max": 100.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Gamma",
+"folder": "Noise Value",
+"section": "Value Correction"
+}
+}
+],
+"contrast": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 100.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Contrast",
+"folder": "Noise Value",
+"section": "Value Correction"
+}
+}
+],
+"make_unit_length": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Make Vectors Unit Length",
+"folder": "Noise Value",
+"sep": true
+}
+}
+],
+"recompute_normals": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Recompute Normals",
+"folder": "Noise Value"
+}
+}
+]
+}
+}
+},
+"PCG_GroupCreate": {
+"name": "PCG_GroupCreate",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"name": [
+"STRING",
+{
+"default": "group1",
+"pcg_ui": {
+"label": "Group Name",
+"_node": {
+"order": [
+"name",
+"cls",
+"merge",
+"base",
+"use_bbox",
+"sx",
+"cx",
+"bbox_partial",
+"use_normal",
+"dir_x",
+"spread",
+"both_dirs",
+"use_edges",
+"edge_combine",
+"use_angle",
+"min_angle",
+"max_angle",
+"unshared",
+"use_random",
+"rand_seed",
+"percent"
+]
+}
+}
+}
+],
+"cls": [
+[
+"point",
+"prim",
+"vertex"
+],
+{
+"pcg_ui": {
+"label": "Group Type",
+"menu": {
+"point": "Points",
+"prim": "Primitives",
+"vertex": "Vertices"
+}
+}
+}
+],
+"merge": [
+[
+"replace",
+"union",
+"intersect",
+"subtract"
+],
+{
+"pcg_ui": {
+"label": "Initial Merge",
+"menu": {
+"replace": "Replace Existing",
+"union": "Union with Existing",
+"intersect": "Intersect with Existing",
+"subtract": "Subtract from Existing"
+},
+"help": "How to merge with an existing group of the same name; with no such group, all behave like Replace"
+}
+}
+],
+"base": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Starting set; empty = select all",
+"is_group": true,
+"pcg_ui": {
+"label": "Base Group",
+"kind": "group",
+"folder": "Base Group",
+"help": "Starting set, empty = unrestricted (starts from the empty set when only Include by Edges is on); the Keep tabs intersect with it, Include by Edges is unioned in last"
+}
+}
+],
+"use_bbox": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Bounding Region",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable",
+"section": "Bounding Region",
+"gate": true,
+"folder": "Keep in Bounding Regions"
+}
+}
+],
+"cx": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Cx",
+"section": "Bounding Region",
+"row": {
+"kind": "vector",
+"members": [
+"cx",
+"cy",
+"cz"
+],
+"label": "Center"
+},
+"folder": "Keep in Bounding Regions"
+}
+}
+],
+"cy": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Cy",
+"section": "Bounding Region",
+"folder": "Keep in Bounding Regions",
+"in_row": "cx"
+}
+}
+],
+"cz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Cz",
+"section": "Bounding Region",
+"folder": "Keep in Bounding Regions",
+"in_row": "cx"
+}
+}
+],
+"sx": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Scale",
+"section": "Bounding Region",
+"row": {
+"kind": "vector",
+"members": [
+"sx",
+"sy",
+"sz"
+],
+"label": "Size"
+},
+"folder": "Keep in Bounding Regions"
+}
+}
+],
+"sy": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Sy",
+"section": "Bounding Region",
+"folder": "Keep in Bounding Regions",
+"in_row": "sx"
+}
+}
+],
+"sz": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Sz",
+"section": "Bounding Region",
+"folder": "Keep in Bounding Regions",
+"in_row": "sx"
+}
+}
+],
+"bbox_partial": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Bounding Region",
+"pcg_ui": {
+"label": "Include Partially Contained Entities",
+"section": "Bounding Region",
+"folder": "Keep in Bounding Regions",
+"hide": "{ cls == point }",
+"help": "A primitive / vertex counts if any one of its points is inside the box (off: all points must be inside)"
+}
+}
+],
+"use_normal": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Normals",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable",
+"section": "Normals",
+"gate": true,
+"folder": "Keep by Normals"
+}
+}
+],
+"dir_x": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Normals",
+"pcg_ui": {
+"label": "Direction X",
+"section": "Normals",
+"row": {
+"kind": "vector",
+"members": [
+"dir_x",
+"dir_y",
+"dir_z"
+],
+"label": "Direction"
+},
+"folder": "Keep by Normals"
+}
+}
+],
+"dir_y": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Normals",
+"pcg_ui": {
+"label": "Direction Y",
+"section": "Normals",
+"folder": "Keep by Normals",
+"in_row": "dir_x"
+}
+}
+],
+"dir_z": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Normals",
+"pcg_ui": {
+"label": "Direction Z",
+"section": "Normals",
+"folder": "Keep by Normals",
+"in_row": "dir_x"
+}
+}
+],
+"spread": [
+"FLOAT",
+{
+"default": 180.0,
+"min": 0.0,
+"max": 180.0,
+"step": 1.0,
+"section": "Normals",
+"pcg_ui": {
+"label": "Spread Angle",
+"section": "Normals",
+"folder": "Keep by Normals",
+"help": "180 = include all"
+}
+}
+],
+"both_dirs": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Normals",
+"pcg_ui": {
+"label": "Include Normals Matching Opposite Direction",
+"section": "Normals",
+"folder": "Keep by Normals"
+}
+}
+],
+"use_edges": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Edges",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable",
+"section": "Edges",
+"gate": true,
+"folder": "Include by Edges"
+}
+}
+],
+"edge_combine": [
+[
+"include",
+"keep"
+],
+{
+"section": "Edges",
+"pcg_ui": {
+"label": "Combine",
+"menu": {
+"include": "Include (Union)",
+"keep": "Keep (Intersect)"
+},
+"section": "Edges",
+"folder": "Include by Edges",
+"help": "Include works as in Houdini: edges picked by the edge rules join the group regardless of other tabs; Keep is an extra of this plugin, intersected with the previous result"
+}
+}
+],
+"unshared": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Edges",
+"pcg_ui": {
+"label": "Unshared Edges",
+"section": "Edges",
+"folder": "Include by Edges",
+"help": "Boundary edges (only one adjacent primitive); unioned with the angle rule"
+}
+}
+],
+"min_angle": [
+"FLOAT",
+{
+"default": 20.0,
+"min": 0.0,
+"max": 180.0,
+"step": 1.0,
+"section": "Edges",
+"pcg_ui": {
+"label": "Min Edge Angle",
+"section": "Edges",
+"folder": "Include by Edges",
+"disable": "{ use_angle == 0 }"
+}
+}
+],
+"max_angle": [
+"FLOAT",
+{
+"default": 180.0,
+"min": 0.0,
+"max": 180.0,
+"step": 1.0,
+"section": "Edges",
+"pcg_ui": {
+"label": "Max Edge Angle",
+"section": "Edges",
+"folder": "Include by Edges",
+"disable": "{ use_angle == 0 }"
+}
+}
+],
+"use_random": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Random",
+"section_gate": true,
+"pcg_ui": {
+"label": "Enable",
+"section": "Random",
+"gate": true,
+"folder": "Keep by Random Chance"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483648,
+"section": "Random",
+"pcg_ui": {
+"label": "Global Seed",
+"section": "Random",
+"folder": "Keep by Random Chance"
+}
+}
+],
+"percent": [
+"FLOAT",
+{
+"default": 50.0,
+"min": 0.0,
+"max": 100.0,
+"step": 1.0,
+"section": "Random",
+"pcg_ui": {
+"label": "Percent",
+"section": "Random",
+"folder": "Keep by Random Chance"
+}
+}
+],
+"use_angle": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Edges",
+"pcg_ui": {
+"label": "Edge Angle",
+"section": "Edges",
+"folder": "Include by Edges",
+"help": "Edges whose adjacent primitives' normals differ by Min ~ Max degrees; selected independently of Unshared, then unioned"
+}
+}
+]
+}
+}
+},
+"PCG_COPNoise": {
+"name": "PCG_COPNoise",
+"input": {
+"required": {
+"resolution_x": [
+"INT",
+{
+"default": 512,
+"min": 1,
+"max": 16384,
+"pcg_ui": {
+"label": "Resolution X",
+"row": {
+"kind": "vector",
+"members": [
+"resolution_x",
+"resolution_y"
+],
+"label": "Resolution"
+},
+"_node": {
+"order": [
+"resolution_x",
+"resolution_y",
+"channels",
+"layer",
+"amplitude",
+"bias",
+"noise_type",
+"metric",
+"jitter",
+"frequency",
+"offset_x",
+"offset_y",
+"offset_z",
+"tile_u",
+"tile_v",
+"rand_seed",
+"time_scale",
+"time",
+"loop_frames",
+"fractal",
+"octaves",
+"lacunarity",
+"roughness",
+"fold",
+"complement",
+"pp_bias",
+"gain",
+"gamma",
+"contrast",
+"use_clamp_min",
+"clamp_min",
+"use_clamp_max",
+"clamp_max",
+"device"
+]
+}
+}
+}
+],
+"resolution_y": [
+"INT",
+{
+"default": 512,
+"min": 1,
+"max": 16384,
+"pcg_ui": {
+"label": "Resolution Y",
+"in_row": "resolution_x"
+}
+}
+],
+"noise_type": [
+[
+"value",
+"perlin",
+"simplex",
+"worley",
+"worley_f2f1",
+"white",
+"torus"
+],
+{
+"pcg_ui": {
+"label": "Noise Type",
+"menu": {
+"value": "Value",
+"perlin": "Perlin",
+"simplex": "Simplex",
+"worley": "Worley Cellular F1",
+"worley_f2f1": "Worley Cellular F2-F1",
+"white": "White (Random)",
+"torus": "Torus"
+},
+"section": "Pattern"
+}
+}
+],
+"fractal": [
+[
+"none",
+"standard",
+"terrain",
+"hybrid_terrain"
+],
+{
+"pcg_ui": {
+"label": "Fractal Type",
+"menu": {
+"none": "None",
+"standard": "Standard",
+"terrain": "Terrain",
+"hybrid_terrain": "Hybrid Terrain"
+},
+"section": "Fractal"
+}
+}
+],
+"frequency": [
+"FLOAT",
+{
+"default": 4.0,
+"min": 0.0,
+"max": 100000.0,
+"step": 0.1,
+"pcg_ui": {
+"label": "Frequency",
+"section": "Pattern",
+"help": "uv × Frequency; the reciprocal of Houdini's Element Size"
+}
+}
+],
+"octaves": [
+"INT",
+{
+"default": 3,
+"min": 1,
+"max": 16,
+"pcg_ui": {
+"label": "Max Octaves",
+"section": "Fractal",
+"hide": "{ fractal == none }"
+}
+}
+],
+"lacunarity": [
+"FLOAT",
+{
+"default": 2.0,
+"min": 0.0,
+"max": 16.0,
+"step": 0.05,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Lacunarity",
+"section": "Fractal",
+"hide": "{ fractal == none }"
+}
+}
+],
+"roughness": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"section": "Fractal",
+"pcg_ui": {
+"label": "Roughness",
+"section": "Fractal",
+"hide": "{ fractal == none }"
+}
+}
+],
+"amplitude": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Amplitude",
+"section": "Range"
+}
+}
+],
+"bias": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Center",
+"section": "Range",
+"help": "Constant added to the result (Center in Houdini's Range section)"
+}
+}
+],
+"channels": [
+"INT",
+{
+"default": 1,
+"min": 1,
+"max": 4,
+"pcg_ui": {
+"label": "Channels",
+"help": "1~4; each channel gets a different seed (seed + k×7919)"
+}
+}
+],
+"tile_u": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Tile U",
+"section": "Pattern",
+"disable": "{ noise_type == torus }",
+"help": "Seamless in u; cannot be on together with Loop Frames > 0"
+}
+}
+],
+"offset_x": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.05,
+"section": "Offset",
+"pcg_ui": {
+"label": "Offset X",
+"section": "Pattern",
+"row": {
+"kind": "vector",
+"members": [
+"offset_x",
+"offset_y",
+"offset_z"
+],
+"label": "Offset"
+}
+}
+}
+],
+"offset_y": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.05,
+"section": "Offset",
+"pcg_ui": {
+"label": "Offset Y",
+"section": "Pattern",
+"in_row": "offset_x"
+}
+}
+],
+"offset_z": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.05,
+"section": "Offset",
+"pcg_ui": {
+"label": "Offset Z",
+"section": "Pattern",
+"in_row": "offset_x"
+}
+}
+],
+"layer": [
+"STRING",
+{
+"default": "C",
+"pcg_ui": {
+"label": "Output Layer"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483648,
+"pcg_ui": {
+"label": "Seed",
+"section": "Pattern"
+}
+}
+],
+"device": [
+[
+"auto",
+"cpu",
+"cuda",
+"numpy",
+"exact"
+],
+{
+"tooltip": "auto=GPU only with CUDA and pixel count >= 256²; exact=numpy float64, bit-identical to the geometry side but slowest",
+"pcg_ui": {
+"label": "Device",
+"menu": {
+"auto": "Auto",
+"cpu": "CPU",
+"cuda": "CUDA",
+"numpy": "NumPy",
+"exact": "Exact (float64)"
+},
+"sep": true
+}
+}
+],
+"time_scale": [
+"FLOAT",
+{
+"default": 0.0,
+"min": 0.0,
+"max": 10000.0,
+"step": 0.01,
+"section": "Time",
+"section_gate": true,
+"pcg_ui": {
+"label": "Time Scale",
+"section": "Time",
+"gate": true,
+"help": "Goes 4D (animated) only when > 0; 0 = static, Time / Loop Frames have no effect"
+}
+}
+],
+"time": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 1.0,
+"section": "Time",
+"pcg_ui": {
+"label": "Time",
+"section": "Time",
+"disable": "{ time_scale == 0 }"
+}
+}
+],
+"loop_frames": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 65536,
+"section": "Time",
+"pcg_ui": {
+"label": "Loop Length (Frames)",
+"section": "Time",
+"disable": "{ time_scale == 0 }"
+}
+}
+],
+"metric": [
+[
+"euclidean",
+"manhattan",
+"chebyshev"
+],
+{
+"section": "Pattern",
+"pcg_ui": {
+"label": "Metric",
+"menu": {
+"euclidean": "Euclidean",
+"manhattan": "Manhattan",
+"chebyshev": "Chebyshev"
+},
+"section": "Pattern",
+"hide": "{ noise_type != worley noise_type != worley_f2f1 }"
+}
+}
+],
+"jitter": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 2.0,
+"step": 0.01,
+"section": "Pattern",
+"pcg_ui": {
+"label": "Jitter",
+"section": "Pattern",
+"hide": "{ noise_type != worley noise_type != worley_f2f1 }",
+"help": "0 = regular grid; > 1 runs outside the search range (Houdini warns too)"
+}
+}
+],
+"tile_v": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Tile V",
+"disable": "{ noise_type == torus }",
+"help": "On together with Tile U = seamless in both directions (4D flat torus); Torus has it built in"
+}
+}
+],
+"fold": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Fold",
+"section": "Post Processing",
+"sep": true
+}
+}
+],
+"complement": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Complement",
+"section": "Post Processing"
+}
+}
+],
+"pp_bias": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Bias",
+"section": "Post Processing",
+"help": "Perlin bias; 0.5 = no change; < 0.5 pulls toward 0, > 0.5 pulls toward 1"
+}
+}
+],
+"gain": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0.0,
+"max": 1.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Gain",
+"section": "Post Processing",
+"help": "Perlin gain; 0.5 = no change"
+}
+}
+],
+"gamma": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.001,
+"max": 100.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Gamma",
+"section": "Post Processing",
+"help": "x^γ: > 1 darkens (per the Houdini noise docs)"
+}
+}
+],
+"contrast": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -100.0,
+"max": 100.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Contrast",
+"section": "Post Processing",
+"help": "scale around 0.5"
+}
+}
+],
+"use_clamp_min": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Use Clamp Min",
+"section": "Post Processing",
+"in_toggle": "clamp_min"
+}
+}
+],
+"clamp_min": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Clamp Minimum",
+"section": "Post Processing",
+"toggle": "use_clamp_min"
+}
+}
+],
+"use_clamp_max": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Use Clamp Max",
+"section": "Post Processing",
+"in_toggle": "clamp_max"
+}
+}
+],
+"clamp_max": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -100000.0,
+"max": 100000.0,
+"step": 0.01,
+"section": "Post Processing",
+"pcg_ui": {
+"label": "Clamp Maximum",
+"section": "Post Processing",
+"toggle": "use_clamp_max"
+}
+}
+]
+},
+"hidden": {
+"unique_id": [
+"U",
+"N"
+]
+}
+}
+},
+"PCG_Transform": {
+"name": "PCG_Transform",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"tx": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Translate",
+"row": {
+"kind": "vector",
+"members": [
+"tx",
+"ty",
+"tz"
+],
+"label": "Translate"
+},
+"sep": true,
+"_node": {
+"order": [
+"group",
+"xform_order",
+"rotate_order",
+"tx",
+"rx",
+"sx",
+"shear_xy",
+"uniform_scale",
+"px",
+"prx",
+"invert"
+]
+}
+}
+}
+],
+"ty": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Ty",
+"in_row": "tx"
+}
+}
+],
+"tz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Tz",
+"in_row": "tx"
+}
+}
+],
+"rx": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Rotate",
+"row": {
+"kind": "vector",
+"members": [
+"rx",
+"ry",
+"rz"
+],
+"label": "Rotate"
+},
+"help": "In degrees; the three angles are applied in Rotate Order"
+}
+}
+],
+"ry": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Ry",
+"in_row": "rx"
+}
+}
+],
+"rz": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Rz",
+"in_row": "rx"
+}
+}
+],
+"sx": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Scale",
+"row": {
+"kind": "vector",
+"members": [
+"sx",
+"sy",
+"sz"
+],
+"label": "Scale"
+}
+}
+}
+],
+"sy": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Sy",
+"in_row": "sx"
+}
+}
+],
+"sz": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Sz",
+"in_row": "sx"
+}
+}
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"help": "Group Type is fixed to Guess: first tried as a point group / point attribute expression; if nothing matches on points, as a primitive group (takes those primitives' points)"
+}
+}
+],
+"rotate_order": [
+[
+"xyz",
+"xzy",
+"yxz",
+"yzx",
+"zxy",
+"zyx"
+],
+{
+"tooltip": "Rotation order: xyz = X first, then Y, then Z (Houdini default)",
+"pcg_ui": {
+"label": "Rotate Order",
+"menu": {
+"xyz": "Rx Ry Rz",
+"xzy": "Rx Rz Ry",
+"yxz": "Ry Rx Rz",
+"yzx": "Ry Rz Rx",
+"zxy": "Rz Rx Ry",
+"zyx": "Rz Ry Rx"
+}
+}
+}
+],
+"xform_order": [
+[
+"srt",
+"str",
+"rst",
+"rts",
+"tsr",
+"trs"
+],
+{
+"pcg_ui": {
+"label": "Transform Order",
+"menu": {
+"srt": "Scale Rot Trans",
+"str": "Scale Trans Rot",
+"rst": "Rot Scale Trans",
+"rts": "Rot Trans Scale",
+"tsr": "Trans Scale Rot",
+"trs": "Trans Rot Scale"
+},
+"help": "Applied left to right"
+}
+}
+],
+"shear_xy": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Shear Xy",
+"row": {
+"kind": "vector",
+"label": "Shear",
+"members": [
+"shear_xy",
+"shear_xz",
+"shear_yz"
+]
+},
+"help": "XY / XZ / YZ: x += xy·y + xz·z, y += yz·z (applied right after scale)"
+}
+}
+],
+"shear_xz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Shear Xz",
+"in_row": "shear_xy"
+}
+}
+],
+"shear_yz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Shear Yz",
+"in_row": "shear_xy"
+}
+}
+],
+"uniform_scale": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Uniform Scale"
+}
+}
+],
+"px": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Px",
+"row": {
+"kind": "vector",
+"members": [
+"px",
+"py",
+"pz"
+],
+"label": "Pivot Translate"
+},
+"sep": true,
+"help": "Scale / rotate happen around this point"
+}
+}
+],
+"py": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Py",
+"in_row": "px"
+}
+}
+],
+"pz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Pz",
+"in_row": "px"
+}
+}
+],
+"prx": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Prx",
+"row": {
+"kind": "vector",
+"members": [
+"prx",
+"pry",
+"prz"
+],
+"label": "Pivot Rotate"
+},
+"help": "Scale / rotate happen in a frame rotated by these angles"
+}
+}
+],
+"pry": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Pry",
+"in_row": "prx"
+}
+}
+],
+"prz": [
+"FLOAT",
+{
+"default": 0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Prz",
+"in_row": "prx"
+}
+}
+],
+"invert": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Invert Transformation",
+"sep": true
+}
+}
+]
+}
+}
+},
+"PCG_PolyExtrude": {
+"name": "PCG_PolyExtrude",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"folder": "Extrusion",
+"_node": {
+"order": [
+"group",
+"divide_into",
+"extrusion_mode",
+"use_direction",
+"dir_x",
+"dir_y",
+"dir_z",
+"distance",
+"inset",
+"twist",
+"divisions",
+"use_spine",
+"up_x",
+"up_y",
+"up_z",
+"transform_front",
+"front_tx",
+"front_ty",
+"front_tz",
+"front_rotate",
+"front_scale",
+"use_output",
+"output_front",
+"front_group",
+"output_back",
+"back_group",
+"output_side",
+"side_group",
+"front_seam_group",
+"back_seam_group",
+"preserve_groups",
+"limit_insetting",
+"use_common_limit",
+"add_vertex_normals",
+"cusp_angle",
+"use_local",
+"distance_attrib",
+"inset_attrib",
+"side_uv",
+"uv_style"
+]
+}
+}
+}
+],
+"divide_into": [
+[
+"connected",
+"individual"
+],
+{
+"pcg_ui": {
+"label": "Divide Into",
+"menu": {
+"connected": "Connected Components",
+"individual": "Individual Elements"
+},
+"folder": "Extrusion"
+}
+}
+],
+"distance": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -100000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Distance",
+"folder": "Extrusion",
+"help": "Not used when a spine is wired and External Spine is on; the length comes from the spine"
+}
+}
+],
+"inset": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -100000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Inset",
+"folder": "Extrusion"
+}
+}
+],
+"twist": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"pcg_ui": {
+"label": "Twist",
+"folder": "Extrusion",
+"help": "No effect when a spine is wired and External Spine is on"
+}
+}
+],
+"divisions": [
+"INT",
+{
+"default": 1,
+"min": 1,
+"max": 512,
+"pcg_ui": {
+"label": "Divisions",
+"folder": "Extrusion"
+}
+}
+],
+"use_direction": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Direction",
+"section_gate": true,
+"pcg_ui": {
+"label": "Specified Direction",
+"section": "Direction",
+"gate": true,
+"folder": "Extrusion",
+"help": "Off: along the primitive normal (Houdini's Primitive Normal); on: all points move in the same direction"
+}
+}
+],
+"dir_x": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Direction",
+"pcg_ui": {
+"label": "Direction X",
+"section": "Direction",
+"row": {
+"kind": "vector",
+"members": [
+"dir_x",
+"dir_y",
+"dir_z"
+],
+"label": "Direction"
+},
+"folder": "Extrusion",
+"disable": "{ use_direction == 0 }"
+}
+}
+],
+"dir_y": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Direction",
+"pcg_ui": {
+"label": "Direction Y",
+"section": "Direction",
+"in_row": "dir_x"
+}
+}
+],
+"dir_z": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Direction",
+"pcg_ui": {
+"label": "Direction Z",
+"section": "Direction",
+"in_row": "dir_x"
+}
+}
+],
+"use_spine": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Spine",
+"section_gate": true,
+"pcg_ui": {
+"label": "External Spine",
+"section": "Spine",
+"gate": true,
+"folder": "Extrusion",
+"help": "Sweeps along the spine only when on and a curve is wired into the spine input; otherwise a straight extrude"
+}
+}
+],
+"up_x": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Spine",
+"pcg_ui": {
+"label": "Up X",
+"section": "Spine",
+"row": {
+"kind": "vector",
+"members": [
+"up_x",
+"up_y",
+"up_z"
+],
+"label": "Up Vector"
+},
+"folder": "Extrusion",
+"disable": "{ use_spine == 0 }"
+}
+}
+],
+"up_y": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Spine",
+"pcg_ui": {
+"label": "Up Y",
+"section": "Spine",
+"in_row": "up_x"
+}
+}
+],
+"up_z": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Spine",
+"pcg_ui": {
+"label": "Up Z",
+"section": "Spine",
+"in_row": "up_x"
+}
+}
+],
+"use_local": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Local Control",
+"section_gate": true,
+"pcg_ui": {
+"label": "Local Attributes",
+"section": "Local Control",
+"gate": true,
+"folder": "Local Control"
+}
+}
+],
+"distance_attrib": [
+"STRING",
+{
+"default": "",
+"section": "Local Control",
+"pcg_ui": {
+"label": "Distance Scale",
+"section": "Local Control",
+"folder": "Local Control",
+"disable": "{ use_local == 0 }",
+"help": "Point (or primitive) attribute, multiplies Distance per point; not used in external spine mode"
+}
+}
+],
+"inset_attrib": [
+"STRING",
+{
+"default": "",
+"section": "Local Control",
+"pcg_ui": {
+"label": "Inset Scale",
+"section": "Local Control",
+"folder": "Local Control",
+"disable": "{ use_local == 0 }"
+}
+}
+],
+"limit_insetting": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Insetting",
+"section_gate": true,
+"pcg_ui": {
+"label": "Limit Insetting",
+"section": "Insetting",
+"gate": true,
+"folder": "Output Geometry and Groups"
+}
+}
+],
+"use_common_limit": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Insetting",
+"pcg_ui": {
+"label": "Common Limit",
+"section": "Insetting",
+"folder": "Output Geometry and Groups",
+"disable": "{ limit_insetting == 0 }"
+}
+}
+],
+"transform_front": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Front Transform",
+"section_gate": true,
+"pcg_ui": {
+"label": "Transform Extruded Front",
+"section": "Front Transform",
+"gate": true,
+"folder": "Extrusion"
+}
+}
+],
+"front_tx": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Front Transform",
+"pcg_ui": {
+"label": "Front Tx",
+"section": "Front Transform",
+"row": {
+"kind": "vector",
+"members": [
+"front_tx",
+"front_ty",
+"front_tz"
+],
+"label": "Translate"
+},
+"folder": "Extrusion",
+"disable": "{ transform_front == 0 }"
+}
+}
+],
+"front_ty": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Front Transform",
+"pcg_ui": {
+"label": "Front Ty",
+"section": "Front Transform",
+"in_row": "front_tx"
+}
+}
+],
+"front_tz": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Front Transform",
+"pcg_ui": {
+"label": "Front Tz",
+"section": "Front Transform",
+"in_row": "front_tx"
+}
+}
+],
+"front_rotate": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -3600,
+"max": 3600,
+"step": 1.0,
+"section": "Front Transform",
+"pcg_ui": {
+"label": "Rotate",
+"section": "Front Transform",
+"folder": "Extrusion",
+"disable": "{ transform_front == 0 }",
+"help": "Rotation around the extrusion direction (degrees)"
+}
+}
+],
+"front_scale": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Front Transform",
+"pcg_ui": {
+"label": "Scale",
+"section": "Front Transform",
+"folder": "Extrusion",
+"disable": "{ transform_front == 0 }",
+"help": "Uniform scale about the front centroid"
+}
+}
+],
+"use_output": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output",
+"section_gate": true,
+"pcg_ui": {
+"label": "Output Geometry and Groups",
+"section": "Output",
+"gate": true,
+"folder": "Output Geometry and Groups",
+"help": "Off = this section uses defaults: outputs front + sides, groups extrudeFront / extrudeSide"
+}
+}
+],
+"output_front": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output",
+"pcg_ui": {
+"label": "Output Front",
+"section": "Output",
+"folder": "Output Geometry and Groups"
+}
+}
+],
+"output_back": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Output",
+"pcg_ui": {
+"label": "Output Back",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"sep": true
+}
+}
+],
+"output_side": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output",
+"pcg_ui": {
+"label": "Output Side",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"sep": true
+}
+}
+],
+"front_group": [
+"STRING",
+{
+"default": "extrudeFront",
+"section": "Output",
+"pcg_ui": {
+"label": "Front Group",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"disable": "{ output_front == 0 }"
+}
+}
+],
+"back_group": [
+"STRING",
+{
+"default": "extrudeBack",
+"section": "Output",
+"pcg_ui": {
+"label": "Back Group",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"disable": "{ output_back == 0 }"
+}
+}
+],
+"side_group": [
+"STRING",
+{
+"default": "extrudeSide",
+"section": "Output",
+"pcg_ui": {
+"label": "Side Group",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"disable": "{ output_side == 0 }"
+}
+}
+],
+"front_seam_group": [
+"STRING",
+{
+"default": "",
+"section": "Output",
+"pcg_ui": {
+"label": "Front Seam Group",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"sep": true,
+"help": "The ring of points where the sides meet the front; empty = not output"
+}
+}
+],
+"back_seam_group": [
+"STRING",
+{
+"default": "",
+"section": "Output",
+"pcg_ui": {
+"label": "Back Seam Group",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"help": "The ring of points where the sides meet the back; empty = not output"
+}
+}
+],
+"preserve_groups": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Output",
+"pcg_ui": {
+"label": "Preserve Groups",
+"section": "Output",
+"folder": "Output Geometry and Groups",
+"sep": true
+}
+}
+],
+"add_vertex_normals": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Normals",
+"section_gate": true,
+"pcg_ui": {
+"label": "Add Vertex Normals",
+"section": "Normals",
+"gate": true,
+"folder": "Output Geometry and Groups"
+}
+}
+],
+"cusp_angle": [
+"FLOAT",
+{
+"default": 60.0,
+"min": 0.0,
+"max": 180.0,
+"step": 1.0,
+"section": "Normals",
+"pcg_ui": {
+"label": "Cusp Angle",
+"section": "Normals",
+"folder": "Output Geometry and Groups",
+"disable": "{ add_vertex_normals == 0 }"
+}
+}
+],
+"side_uv": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Texture",
+"section_gate": true,
+"pcg_ui": {
+"label": "Generate Unwrapped Texture Coordinates for Sides",
+"section": "Texture",
+"gate": true,
+"folder": "UVs"
+}
+}
+],
+"uv_style": [
+[
+"proportional",
+"uniform"
+],
+{
+"section": "Texture",
+"pcg_ui": {
+"label": "Style",
+"menu": {
+"proportional": "Proportional",
+"uniform": "Uniform"
+},
+"section": "Texture",
+"folder": "UVs",
+"disable": "{ side_uv == 0 }"
+}
+}
+],
+"extrusion_mode": [
+[
+"prim_edge_normal",
+"point_normal"
+],
+{
+"pcg_ui": {
+"label": "Extrusion Mode",
+"menu": {
+"prim_edge_normal": "Primitive/Edge Normal",
+"point_normal": "Point Normal"
+},
+"folder": "Extrusion",
+"help": "Point Normal: each point moves along its own point normal (N attribute, computed if missing); no effect when Direction is on or a Spine is wired"
+}
+}
+]
+},
+"optional": {
+"spine": [
+"GEOMETRY"
+]
+}
+}
+},
+"PCG_COPLight": {
+"name": "PCG_COPLight",
+"input": {
+"required": {
+"cop": [
+"COPIMAGE"
+],
+"normal_layer": [
+"STRING",
+{
+"default": "N",
+"pcg_ui": {
+"label": "Normal Layer",
+"_node": {
+"order": [
+"normal_layer",
+"albedo_layer",
+"light_type",
+"azimuth",
+"elevation",
+"position",
+"light_height",
+"color",
+"intensity",
+"ambient",
+"specular",
+"shininess",
+"shadows",
+"height_layer",
+"strength",
+"world_size",
+"out_layer"
+]
+}
+}
+}
+],
+"albedo_layer": [
+"STRING",
+{
+"default": "",
+"pcg_ui": {
+"label": "Albedo Layer",
+"help": "Empty = white"
+}
+}
+],
+"height_layer": [
+"STRING",
+{
+"default": "",
+"pcg_ui": {
+"label": "Height Layer",
+"section": "Shadows",
+"disable": "{ shadows == 0 }"
+}
+}
+],
+"light_type": [
+[
+"directional",
+"point"
+],
+{
+"pcg_ui": {
+"label": "Light Type",
+"menu": {
+"directional": "Directional",
+"point": "Point"
+},
+"section": "Light"
+}
+}
+],
+"azimuth": [
+"FLOAT",
+{
+"default": 135.0,
+"min": -360,
+"max": 360,
+"step": 1,
+"pcg_ui": {
+"label": "Azimuth",
+"section": "Light",
+"hide": "{ light_type != directional }"
+}
+}
+],
+"elevation": [
+"FLOAT",
+{
+"default": 45.0,
+"min": 0,
+"max": 90,
+"step": 1,
+"pcg_ui": {
+"label": "Elevation",
+"section": "Light",
+"hide": "{ light_type != directional }"
+}
+}
+],
+"position": [
+"STRING",
+{
+"default": "0.5 0.5",
+"pcg_ui": {
+"label": "Light Position",
+"kind": "vecstr",
+"comps": 2,
+"section": "Light",
+"hide": "{ light_type != point }"
+}
+}
+],
+"light_height": [
+"FLOAT",
+{
+"default": 0.5,
+"min": 0,
+"max": 100,
+"step": 0.01,
+"pcg_ui": {
+"label": "Light Height",
+"section": "Light",
+"hide": "{ light_type != point }"
+}
+}
+],
+"color": [
+"STRING",
+{
+"default": "1 1 1",
+"pcg_ui": {
+"label": "Light Color",
+"kind": "colorstr",
+"comps": 3,
+"section": "Light"
+}
+}
+],
+"intensity": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Intensity",
+"section": "Light"
+}
+}
+],
+"ambient": [
+"FLOAT",
+{
+"default": 0.1,
+"min": 0,
+"max": 10,
+"step": 0.01,
+"pcg_ui": {
+"label": "Ambient",
+"section": "Light"
+}
+}
+],
+"specular": [
+"FLOAT",
+{
+"default": 0.0,
+"min": 0,
+"max": 100,
+"step": 0.01,
+"pcg_ui": {
+"label": "Specular",
+"section": "Material"
+}
+}
+],
+"shininess": [
+"FLOAT",
+{
+"default": 32.0,
+"min": 1,
+"max": 4096,
+"step": 1,
+"pcg_ui": {
+"label": "Exponent",
+"section": "Material",
+"disable": "{ specular == 0 }"
+}
+}
+],
+"shadows": [
+"BOOLEAN",
+{
+"default": false,
+"pcg_ui": {
+"label": "Shadows",
+"section": "Shadows",
+"gate": true,
+"help": "Shadows require a Height Layer; Directional uses Height to Shadow, Point marches pixel by pixel from each pixel toward the light"
+}
+}
+],
+"strength": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"pcg_ui": {
+"label": "Height Scale",
+"section": "Shadows",
+"disable": "{ shadows == 0 }"
+}
+}
+],
+"world_size": [
+"FLOAT",
+{
+"default": 1.0,
+"min": 1e-06,
+"max": 1000000000.0,
+"step": 0.1,
+"pcg_ui": {
+"label": "World Size",
+"section": "Shadows",
+"disable": "{ shadows == 0 }"
+}
+}
+],
+"out_layer": [
+"STRING",
+{
+"default": "lit",
+"pcg_ui": {
+"label": "Output Layer",
+"sep": true
+}
+}
+]
+},
+"hidden": {
+"unique_id": [
+"U",
+"N"
+]
+}
+}
+},
+"PCG_Add": {
+"name": "PCG_Add",
+"input": {
+"required": {
+"points": [
+"STRING",
+{
+"multiline": true,
+"default": "",
+"tooltip": "One new point per line: x y z (commas work too); lines starting with # are comments",
+"pcg_ui": {
+"label": "Points",
+"kind": "text",
+"folder": "Points",
+"help": "One new point per line: x y z; appended after the existing points",
+"_node": {
+"order": [
+"keep_points",
+"points",
+"use_pattern",
+"pattern",
+"pattern_closed",
+"use_group",
+"group",
+"group_mode",
+"group_n",
+"group_closed",
+"use_attribute",
+"attribute",
+"attribute_closed",
+"use_remove",
+"remove_repeated",
+"remove_unused"
+]
+}
+}
+}
+],
+"keep_points": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Delete Geometry",
+"section_gate": true,
+"pcg_ui": {
+"label": "Delete Geometry But Keep the Points",
+"folder": "Points"
+}
+}
+],
+"use_pattern": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Polygons by Pattern",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Pattern",
+"section": "Polygons by Pattern",
+"gate": true,
+"folder": "Polygons"
+}
+}
+],
+"pattern": [
+"STRING",
+{
+"multiline": true,
+"default": "0-3",
+"tooltip": "One polygon per line: 0-3 / 5 2 7 / 0-20:3; negative numbers count from the end",
+"section": "Polygons by Pattern",
+"pcg_ui": {
+"label": "Pattern",
+"kind": "text",
+"section": "Polygons by Pattern",
+"folder": "Polygons"
+}
+}
+],
+"pattern_closed": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Polygons by Pattern",
+"pcg_ui": {
+"label": "Closed",
+"section": "Polygons by Pattern",
+"folder": "Polygons"
+}
+}
+],
+"use_group": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Polygons by Group",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Group",
+"section": "Polygons by Group",
+"gate": true,
+"folder": "Polygons"
+}
+}
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Points to connect; empty = all",
+"is_group": true,
+"section": "Polygons by Group",
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"section": "Polygons by Group",
+"folder": "Polygons"
+}
+}
+],
+"group_mode": [
+[
+"all_points",
+"groups_of_n",
+"every_nth",
+"each_point"
+],
+{
+"section": "Polygons by Group",
+"pcg_ui": {
+"label": "Add",
+"menu": {
+"all_points": "All Points",
+"groups_of_n": "Groups of N Points",
+"every_nth": "Skip Every Nth Point",
+"each_point": "Each Point Separately"
+},
+"section": "Polygons by Group",
+"folder": "Polygons"
+}
+}
+],
+"group_n": [
+"INT",
+{
+"default": 2,
+"min": 1,
+"max": 1048576,
+"section": "Polygons by Group",
+"pcg_ui": {
+"label": "N",
+"section": "Polygons by Group",
+"folder": "Polygons",
+"hide": "{ group_mode == all_points } { group_mode == each_point }"
+}
+}
+],
+"group_closed": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Polygons by Group",
+"pcg_ui": {
+"label": "Closed",
+"section": "Polygons by Group",
+"folder": "Polygons"
+}
+}
+],
+"use_attribute": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Polygons by Attribute",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Attribute",
+"section": "Polygons by Attribute",
+"gate": true,
+"folder": "Polygons"
+}
+}
+],
+"attribute": [
+"STRING",
+{
+"default": "class",
+"tooltip": "points with the same value are connected into one",
+"name_kind": "attrib",
+"name_cls": "point",
+"section": "Polygons by Attribute",
+"pcg_ui": {
+"label": "Attribute Name",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"section": "Polygons by Attribute",
+"folder": "Polygons"
+}
+}
+],
+"attribute_closed": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Polygons by Attribute",
+"pcg_ui": {
+"label": "Closed",
+"section": "Polygons by Attribute",
+"folder": "Polygons"
+}
+}
+],
+"use_remove": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Remove",
+"section_gate": true,
+"pcg_ui": {
+"label": "Use Remove",
+"section": "Remove",
+"gate": true,
+"folder": "Polygons"
+}
+}
+],
+"remove_repeated": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Remove",
+"pcg_ui": {
+"label": "Remove Repeated Points",
+"section": "Remove",
+"folder": "Polygons"
+}
+}
+],
+"remove_unused": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Remove",
+"pcg_ui": {
+"label": "Remove Unused Points",
+"section": "Remove",
+"folder": "Polygons"
+}
+}
+]
+},
+"optional": {
+"geo": [
+"GEOMETRY"
+]
+}
+}
+},
+"PCG_Measure": {
+"name": "PCG_Measure",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group",
+"_node": {
+"order": [
+"group",
+"element_type",
+"measurement",
+"accumulate",
+"position_attribute",
+"color_attribute",
+"use_min",
+"min_value",
+"use_max",
+"max_value",
+"use_width",
+"width",
+"width_mode",
+"center",
+"color_ramp",
+"custom_ramp",
+"ramp_mode",
+"attribute_name",
+"total_attribute",
+"range_group",
+"bake_range",
+"remap_min",
+"remap_max"
+]
+}
+}
+}
+],
+"element_type": [
+[
+"primitives",
+"points"
+],
+{
+"pcg_ui": {
+"label": "Element Type",
+"menu": {
+"primitives": "Primitives",
+"points": "Points"
+}
+}
+}
+],
+"measurement": [
+[
+"area",
+"perimeter",
+"volume",
+"curvature",
+"gaussian_curvature"
+],
+{
+"pcg_ui": {
+"label": "Measure",
+"menu": {
+"area": "Area",
+"perimeter": "Perimeter / Length",
+"volume": "Volume",
+"curvature": "Curvature (Mean)",
+"gaussian_curvature": "Curvature (Gaussian)"
+},
+"folder": "Measurement",
+"help": "Perimeter / Volume only work with Primitives"
+}
+}
+],
+"accumulate": [
+[
+"per_element",
+"total"
+],
+{
+"pcg_ui": {
+"label": "Accumulate",
+"menu": {
+"per_element": "Per Element",
+"total": "Throughout"
+},
+"folder": "Measurement"
+}
+}
+],
+"position_attribute": [
+"STRING",
+{
+"default": "P",
+"tooltip": "",
+"name_kind": "attrib",
+"name_cls": "point",
+"pcg_ui": {
+"label": "Position Attribute",
+"kind": "names",
+"names": [
+"attrib",
+"point"
+],
+"folder": "Measurement"
+}
+}
+],
+"use_min": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Use Min",
+"folder": "Visualized Range",
+"sep": true,
+"in_toggle": "min_value"
+}
+}
+],
+"min_value": [
+"FLOAT",
+{
+"default": -1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Minimum",
+"folder": "Visualized Range",
+"toggle": "use_min"
+}
+}
+],
+"use_max": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Use Max",
+"folder": "Visualized Range",
+"in_toggle": "max_value"
+}
+}
+],
+"max_value": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Maximum",
+"folder": "Visualized Range",
+"toggle": "use_max"
+}
+}
+],
+"use_width": [
+"BOOLEAN",
+{
+"default": true,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Use Width",
+"folder": "Visualized Range",
+"in_toggle": "width"
+}
+}
+],
+"width": [
+"FLOAT",
+{
+"default": 6.0,
+"min": 0.0,
+"max": 1000000.0,
+"step": 0.1,
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Width",
+"toggle": "use_width",
+"folder": "Visualized Range",
+"disable": "{ use_min == 1 use_max == 1 }"
+}
+}
+],
+"width_mode": [
+[
+"mad",
+"stddev",
+"absolute"
+],
+{
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Width Multiplier",
+"menu": {
+"mad": "x MAD",
+"stddev": "x SD",
+"absolute": "x 1.0"
+},
+"folder": "Visualized Range",
+"disable": "{ use_width == 0 } { use_min == 1 use_max == 1 }"
+}
+}
+],
+"center": [
+[
+"median",
+"mean",
+"zero"
+],
+{
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Center",
+"menu": {
+"median": "Median",
+"mean": "Mean",
+"zero": "Fixed (0)"
+},
+"folder": "Visualized Range",
+"disable": "{ use_width == 0 } { use_min == 1 use_max == 1 }"
+}
+}
+],
+"color_ramp": [
+[
+"blue_white_red",
+"grayscale",
+"heat",
+"custom"
+],
+{
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Color Ramp",
+"menu": {
+"blue_white_red": "Blue-White-Red",
+"grayscale": "Grayscale",
+"heat": "Heat",
+"custom": "Custom"
+},
+"folder": "Visualized Range",
+"sep": true
+}
+}
+],
+"custom_ramp": [
+"STRING",
+{
+"default": "0:0,0,0.5  0.5:0.9,0.9,0.9  1:0.8,0,0",
+"tooltip": "Used when color_ramp is custom. position:r,g,b",
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Custom Ramp",
+"kind": "ramp",
+"ramp": {
+"comps": 3
+},
+"folder": "Visualized Range",
+"hide": "{ color_ramp != custom }"
+}
+}
+],
+"ramp_mode": [
+[
+"linear",
+"smooth",
+"constant"
+],
+{
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Ramp Interpolation",
+"menu": {
+"linear": "Linear",
+"smooth": "Smooth",
+"constant": "Constant"
+},
+"folder": "Visualized Range"
+}
+}
+],
+"color_attribute": [
+"STRING",
+{
+"default": "",
+"section": "Visualized Range",
+"pcg_ui": {
+"label": "Color Attribute",
+"folder": "Visualized Range",
+"help": "Colors by the range and color ramp below only when a name is given"
+}
+}
+],
+"attribute_name": [
+"STRING",
+{
+"default": "area",
+"section": "Output",
+"pcg_ui": {
+"label": "Attribute Name",
+"folder": "Output",
+"help": "Empty = default name based on Measure"
+}
+}
+],
+"total_attribute": [
+"STRING",
+{
+"default": "",
+"section": "Output",
+"pcg_ui": {
+"label": "Total Attribute Name",
+"folder": "Output"
+}
+}
+],
+"range_group": [
+"STRING",
+{
+"default": "",
+"section": "Output",
+"pcg_ui": {
+"label": "Range Group",
+"folder": "Output"
+}
+}
+],
+"bake_range": [
+"BOOLEAN",
+{
+"default": false,
+"section": "Output",
+"pcg_ui": {
+"label": "Bake Visualized Range Into Output",
+"folder": "Output",
+"sep": true
+}
+}
+],
+"remap_min": [
+"FLOAT",
+{
+"default": 0.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Output",
+"pcg_ui": {
+"label": "Remap Min",
+"folder": "Output",
+"row": {
+"kind": "vector",
+"members": [
+"remap_min",
+"remap_max"
+],
+"label": "Remap Range"
+},
+"disable": "{ bake_range == 0 }"
+}
+}
+],
+"remap_max": [
+"FLOAT",
+{
+"default": 1.0,
+"min": -1000000.0,
+"max": 1000000.0,
+"step": 0.01,
+"section": "Output",
+"pcg_ui": {
+"label": "Remap Max",
+"folder": "Output",
+"in_row": "remap_min"
+}
+}
+]
+}
+}
+},
+"PCG_Wrangle": {
+"name": "PCG_Wrangle",
+"input": {
+"required": {
+"geo": [
+"GEOMETRY"
+],
+"run_over": [
+[
+"point",
+"prim",
+"vertex",
+"detail"
+],
+{
+"pcg_ui": {
+"label": "Run Over",
+"menu": {
+"point": "Point",
+"prim": "Primitive",
+"vertex": "Vertex",
+"detail": "Detail"
+},
+"_node": {}
+}
+}
+],
+"code": [
+"STRING",
+{
+"multiline": true,
+"code_hl": true,
+"default": "@P.y = sin(length(@P) * 0.5) * 2.0",
+"pcg_ui": {
+"label": "Code",
+"kind": "code"
+}
+}
+],
+"group": [
+"STRING",
+{
+"default": "",
+"multiline": false,
+"tooltip": "Empty = all; accepts group names / indices / 0-10:2 / @P.y > 0",
+"is_group": true,
+"pcg_ui": {
+"label": "Group",
+"kind": "group"
+}
+}
+],
+"rand_seed": [
+"INT",
+{
+"default": 0,
+"min": 0,
+"max": 2147483648,
+"pcg_ui": {
+"label": "Seed"
+}
+}
+],
+"ch_params": [
+"STRING",
+{
+"default": "{}",
+"ch_store": true,
+"pcg_ui": {
+"label": "Ch Params",
+"kind": "code"
+}
+}
+]
+},
+"optional": {
+"geo1": [
+"GEOMETRY"
+],
+"geo2": [
+"GEOMETRY"
+],
+"geo3": [
+"GEOMETRY"
+]
+}
+}
+}
+},
+"models": {
+"PCG_Color": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"attribute_class",
+"mode",
+"r",
+"rand_seed",
+"attribute",
+"auto_range",
+"in_min",
+"ramp"
+]
+},
+{
+"section": "Adjust",
+"gate": null,
+"items": [
+"hue_shift",
+"saturation",
+"value",
+"random_hue",
+"random_saturation",
+"random_value"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"name"
+]
+}
+],
+"tabs": []
+},
+"PCG_Scatter": {
+"top": [],
+"tabs": [
+{
+"name": "Density",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"generate",
+"count",
+"density_scale"
+]
+},
+{
+"section": "Density Attributes",
+"gate": "use_density",
+"items": [
+"density_attribute",
+"area_attribute"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"texture_uv_attribute",
+"count_per_prim_attribute",
+"rand_seed"
+]
+},
+{
+"section": "Per-Prim Seed",
+"gate": "use_prim_seed",
+"items": [
+"prim_seed_attribute"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"randomize_order",
+"max_points"
+]
+}
+]
+},
+{
+"name": "Relax",
+"blocks": [
+{
+"section": "Relax",
+"gate": "use_relax",
+"items": [
+"relax_iterations",
+"use_geometric_normals",
+"scale_radii_by",
+"max_relax_radius"
+]
+}
+]
+},
+{
+"name": "Output Attributes",
+"blocks": [
+{
+"section": "Output Attributes",
+"gate": "use_out_attribs",
+"items": [
+"sourceprim_attribute",
+"uv_attribute",
+"normal_attribute",
+"interpolate_attributes"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"out_density_name",
+"out_radius_name",
+"out_id_name",
+"out_texture_space"
+]
+}
+]
+},
+{
+"name": "Attributes",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"point_attributes",
+"vertex_attributes",
+"primitive_attributes",
+"detail_attributes",
+"detail_as_detail"
+]
+}
+]
+}
+]
+},
+"PCG_COPPattern": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"kind",
+"counts",
+"gap",
+"rand_seed"
+]
+},
+{
+"section": "Tile",
+"gate": null,
+"items": [
+"bond",
+"header_interval",
+"offset",
+"bevel"
+]
+},
+{
+"section": "Cell",
+"gate": null,
+"items": [
+"jitter",
+"lattice",
+"cell_metric",
+"density",
+"density_seed"
+]
+},
+{
+"section": "Weave",
+"gate": null,
+"items": [
+"weave",
+"weave_layer",
+"thread_width",
+"separate_widths",
+"weft_width"
+]
+},
+{
+"section": "Julia",
+"gate": null,
+"items": [
+"fractal",
+"c",
+"center",
+"zoom",
+"iterations"
+]
+},
+{
+"section": "Chladni",
+"gate": null,
+"items": [
+"modes",
+"sign",
+"chladni_output",
+"line_width",
+"threshold",
+"smoothing_width",
+"amplitude",
+"amplitude_ratio"
+]
+},
+{
+"section": "UV Grid",
+"gate": null,
+"items": [
+"tile_coloring",
+"tile_color1",
+"tile_color2",
+"outlines",
+"outline_width",
+"outline_color",
+"labels",
+"marker_type",
+"text_mode",
+"font",
+"marker_size",
+"marker_coloring",
+"marker_color",
+"marker_color2"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"out_layer",
+"resolution_x"
+]
+}
+],
+"tabs": []
+},
+"PCG_AttribNoise": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"blend",
+"blend_attribute",
+"attribute_type",
+"attribute_names",
+"use_x",
+"use_y",
+"use_z",
+"attribute_class",
+"noise_along_vector",
+"vector_attribute"
+]
+}
+],
+"tabs": [
+{
+"name": "Noise Value",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"range_values",
+"operation",
+"amplitude",
+"min_value",
+"max_value",
+"middle_value",
+"range_length"
+]
+},
+{
+"section": "Value Correction",
+"gate": null,
+"items": [
+"use_remap_ramp",
+"remap_ramp",
+"use_value_correction",
+"bias",
+"gain",
+"gamma",
+"contrast"
+]
+},
+{
+"section": "Post-Process",
+"gate": null,
+"items": [
+"clamp_min",
+"clamp_max"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"make_unit_length",
+"recompute_normals"
+]
+},
+{
+"section": "Post-Process",
+"gate": null,
+"items": [
+"post_absolute",
+"post_invert",
+"use_normalize",
+"normalize_min"
+]
+}
+]
+},
+{
+"name": "Noise Pattern",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"noise_type",
+"location_attribute",
+"element_size_x",
+"offset_x",
+"rand_seed"
+]
+},
+{
+"section": "Use VEXpression",
+"gate": "use_vexpression",
+"items": [
+"vexpression"
+]
+},
+{
+"section": "Fractal",
+"gate": null,
+"items": [
+"fractal",
+"octaves",
+"lacunarity",
+"roughness",
+"fractal_offset"
+]
+},
+{
+"section": "Warping",
+"gate": null,
+"items": [
+"warp",
+"warp_element_size",
+"warp_octaves"
+]
+}
+]
+},
+{
+"name": "Animation",
+"blocks": [
+{
+"section": "Animation",
+"gate": "use_animation",
+"items": [
+"noise_time",
+"time_element_size"
+]
+}
+]
+}
+]
+},
+"PCG_GroupCreate": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"name",
+"cls",
+"merge"
+]
+}
+],
+"tabs": [
+{
+"name": "Base Group",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"base"
+]
+}
+]
+},
+{
+"name": "Keep in Bounding Regions",
+"blocks": [
+{
+"section": "Bounding Region",
+"gate": "use_bbox",
+"items": [
+"sx",
+"cx",
+"bbox_partial"
+]
+}
+]
+},
+{
+"name": "Keep by Normals",
+"blocks": [
+{
+"section": "Normals",
+"gate": "use_normal",
+"items": [
+"dir_x",
+"spread",
+"both_dirs"
+]
+}
+]
+},
+{
+"name": "Include by Edges",
+"blocks": [
+{
+"section": "Edges",
+"gate": "use_edges",
+"items": [
+"edge_combine",
+"use_angle",
+"min_angle",
+"max_angle",
+"unshared"
+]
+}
+]
+},
+{
+"name": "Keep by Random Chance",
+"blocks": [
+{
+"section": "Random",
+"gate": "use_random",
+"items": [
+"rand_seed",
+"percent"
+]
+}
+]
+}
+]
+},
+"PCG_COPNoise": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"resolution_x",
+"channels",
+"layer"
+]
+},
+{
+"section": "Range",
+"gate": null,
+"items": [
+"amplitude",
+"bias"
+]
+},
+{
+"section": "Pattern",
+"gate": null,
+"items": [
+"noise_type",
+"metric",
+"jitter",
+"frequency",
+"offset_x",
+"tile_u"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"tile_v"
+]
+},
+{
+"section": "Pattern",
+"gate": null,
+"items": [
+"rand_seed"
+]
+},
+{
+"section": "Time",
+"gate": null,
+"items": [
+"time_scale",
+"time",
+"loop_frames"
+]
+},
+{
+"section": "Fractal",
+"gate": null,
+"items": [
+"fractal",
+"octaves",
+"lacunarity",
+"roughness"
+]
+},
+{
+"section": "Post Processing",
+"gate": null,
+"items": [
+"fold",
+"complement",
+"pp_bias",
+"gain",
+"gamma",
+"contrast",
+"clamp_min",
+"clamp_max"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"device"
+]
+}
+],
+"tabs": []
+},
+"PCG_Transform": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"xform_order",
+"rotate_order",
+"tx",
+"rx",
+"sx",
+"shear_xy",
+"uniform_scale",
+"px",
+"prx",
+"invert"
+]
+}
+],
+"tabs": []
+},
+"PCG_PolyExtrude": {
+"top": [],
+"tabs": [
+{
+"name": "Extrusion",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"divide_into",
+"extrusion_mode"
+]
+},
+{
+"section": "Direction",
+"gate": "use_direction",
+"items": [
+"dir_x"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"distance",
+"inset",
+"twist",
+"divisions"
+]
+},
+{
+"section": "Spine",
+"gate": "use_spine",
+"items": [
+"up_x"
+]
+},
+{
+"section": "Front Transform",
+"gate": "transform_front",
+"items": [
+"front_tx",
+"front_rotate",
+"front_scale"
+]
+}
+]
+},
+{
+"name": "Output Geometry and Groups",
+"blocks": [
+{
+"section": "Output",
+"gate": "use_output",
+"items": [
+"output_front",
+"front_group",
+"output_back",
+"back_group",
+"output_side",
+"side_group",
+"front_seam_group",
+"back_seam_group",
+"preserve_groups"
+]
+},
+{
+"section": "Insetting",
+"gate": "limit_insetting",
+"items": [
+"use_common_limit"
+]
+},
+{
+"section": "Normals",
+"gate": "add_vertex_normals",
+"items": [
+"cusp_angle"
+]
+}
+]
+},
+{
+"name": "Local Control",
+"blocks": [
+{
+"section": "Local Control",
+"gate": "use_local",
+"items": [
+"distance_attrib",
+"inset_attrib"
+]
+}
+]
+},
+{
+"name": "UVs",
+"blocks": [
+{
+"section": "Texture",
+"gate": "side_uv",
+"items": [
+"uv_style"
+]
+}
+]
+}
+]
+},
+"PCG_COPLight": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"normal_layer",
+"albedo_layer"
+]
+},
+{
+"section": "Light",
+"gate": null,
+"items": [
+"light_type",
+"azimuth",
+"elevation",
+"position",
+"light_height",
+"color",
+"intensity",
+"ambient"
+]
+},
+{
+"section": "Material",
+"gate": null,
+"items": [
+"specular",
+"shininess"
+]
+},
+{
+"section": "Shadows",
+"gate": "shadows",
+"items": [
+"height_layer",
+"strength",
+"world_size"
+]
+},
+{
+"section": null,
+"gate": null,
+"items": [
+"out_layer"
+]
+}
+],
+"tabs": []
+},
+"PCG_Add": {
+"top": [],
+"tabs": [
+{
+"name": "Points",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"keep_points",
+"points"
+]
+}
+]
+},
+{
+"name": "Polygons",
+"blocks": [
+{
+"section": "Polygons by Pattern",
+"gate": "use_pattern",
+"items": [
+"pattern",
+"pattern_closed"
+]
+},
+{
+"section": "Polygons by Group",
+"gate": "use_group",
+"items": [
+"group",
+"group_mode",
+"group_n",
+"group_closed"
+]
+},
+{
+"section": "Polygons by Attribute",
+"gate": "use_attribute",
+"items": [
+"attribute",
+"attribute_closed"
+]
+},
+{
+"section": "Remove",
+"gate": "use_remove",
+"items": [
+"remove_repeated",
+"remove_unused"
+]
+}
+]
+}
+]
+},
+"PCG_Measure": {
+"top": [
+{
+"section": null,
+"gate": null,
+"items": [
+"group",
+"element_type"
+]
+}
+],
+"tabs": [
+{
+"name": "Measurement",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"measurement",
+"accumulate",
+"position_attribute"
+]
+}
+]
+},
+{
+"name": "Visualized Range",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"color_attribute",
+"min_value",
+"max_value",
+"width",
+"width_mode",
+"center",
+"color_ramp",
+"custom_ramp",
+"ramp_mode"
+]
+}
+]
+},
+{
+"name": "Output",
+"blocks": [
+{
+"section": null,
+"gate": null,
+"items": [
+"attribute_name",
+"total_attribute",
+"range_group",
+"bake_range",
+"remap_min"
+]
+}
+]
+}
+]
+}
+},
+"applies": {
+"PCG_Color": true,
+"PCG_Scatter": true,
+"PCG_COPPattern": true,
+"PCG_AttribNoise": true,
+"PCG_GroupCreate": true,
+"PCG_COPNoise": true,
+"PCG_Transform": true,
+"PCG_PolyExtrude": true,
+"PCG_COPLight": true,
+"PCG_Add": true,
+"PCG_Measure": true,
+"PCG_Wrangle": false
+},
+"glyphs": [
+3,
+3,
+6,
+8,
+8,
+12,
+8,
+4,
+4,
+4,
+6,
+8,
+3,
+6,
+3,
+4,
+8,
+5,
+7,
+7,
+8,
+7,
+7,
+7,
+7,
+7,
+3,
+4,
+8,
+8,
+8,
+6,
+12,
+8,
+8,
+9,
+9,
+7,
+7,
+9,
+9,
+3,
+7,
+8,
+7,
+11,
+9,
+9,
+8,
+9,
+8,
+8,
+8,
+9,
+8,
+12,
+8,
+8,
+8,
+4,
+3,
+4,
+6,
+5,
+4,
+7,
+7,
+7,
+7,
+7,
+4,
+7,
+7,
+3,
+3,
+7,
+3,
+11,
+7,
+7,
+7,
+7,
+5,
+6,
+4,
+7,
+7,
+10,
+7,
+7,
+7,
+5,
+4,
+5,
+8
+],
+"widths": {
+"Projectile Properties": 116,
+"Delete Geometry But Keep the Points": 210,
+"Randomize Point Order": 132,
+"中文": 26.8,
+"a~b": 22
+}
+}

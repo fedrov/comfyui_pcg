@@ -1,0 +1,6 @@
+numpy>=1.24
+trimesh>=4.0          # glb/obj import/export, subdivision
+scipy>=1.10           # VDB / volume nodes (distance transforms, labelling, filters); ComfyUI already ships it
+# Optional -- only a few nodes need these; they raise an error with the exact pip command when missing:
+# manifold3d>=2.3     # Boolean / Boolean Fracture
+# fonttools>=4.0      # Font

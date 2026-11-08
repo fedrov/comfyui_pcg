@@ -1,0 +1,845 @@
+{
+ "PCG_Add": {
+  "summary": "Creates points from typed coordinates, connects points into polygons, or strips a mesh down to its points.",
+  "description": "Covers the three jobs of Houdini's Add SOP, all of which change point/primitive membership rather than positions: creating points, wiring points into polygons or polylines, and discarding primitives while keeping the points.\n\nOperations run in Houdini's order: *Delete Geometry But Keep the Points*, then append the new points, then build polygons, then the cleanup. New points are appended after the existing ones, so every polygon-building method can reference both input points and new points by number. With no input connected the node is a pure generator.\n\nThe panel differs from Houdini in one way: points and polygons are not multiparms. Points are typed into a multiline text box, one per line (`x y z`, separated by spaces, commas or semicolons; lines may contain `#` comments; two numbers imply `z = 0`, a fourth number is ignored). Polygons by pattern are also one per line. Point-number lists keep their order and repeats, because winding matters: `3 1 2` and `1 2 3` are different faces. Out-of-range point numbers raise an error rather than being skipped. Primitives with fewer than three corners are always created open.",
+  "inputs": {
+   "geo": "Optional geometry to add to. Leave unconnected to generate geometry from scratch."
+  },
+  "outputs": {
+   "geo": "The input with the new points and polygons added."
+  },
+  "params": {
+   "keep_points": "Deletes all primitives of the input but keeps every point with its point attributes and groups. Vertex and primitive attributes disappear with the primitives.",
+   "points": "New points, one per line as `x y z`. They are appended after the existing points.",
+   "use_pattern": "Enables creating polygons from explicit point-number lists.",
+   "pattern": "One polygon per line, as a list of point numbers. Supports single numbers, closed ranges (`0-9`), ranges with a step (`0-20:3`) and negative numbers counted from the end. Order and repeats are preserved. Text after `#` is a comment.",
+   "pattern_closed": "Makes the polygons from the pattern closed faces. When off they are open polylines.",
+   "use_group": "Enables creating polygons from a point group.",
+   "group": "Point group pattern. The selected points, in point-number order, are the source of the polygons.",
+   "group_mode": "How the selected points are split into polygons. *All Points* makes one polygon from the whole group; *Groups of N Points* cuts the list into consecutive chunks of N; *Skip Every Nth Point* takes points 0, N, 2N... of the group as one polygon; *Each Point Separately* makes one single-point primitive per point.",
+   "group_n": "The N used by *Groups of N Points* and *Skip Every Nth Point*.",
+   "group_closed": "Makes the polygons from the group closed. When off they are open polylines.",
+   "use_attribute": "Enables creating polygons from a point attribute.",
+   "attribute": "Name of a scalar or string point attribute. Points sharing the same value are connected, in point-number order, into one primitive per distinct value (sorted by value). Vector attributes are rejected.",
+   "attribute_closed": "Makes the polygons from the attribute closed. When off they are open polylines.",
+   "use_remove": "Enables the cleanup options below.",
+   "remove_repeated": "Removes a vertex when it refers to the same point as the previous vertex of the same primitive (including the wrap-around of closed primitives).",
+   "remove_unused": "Deletes points that no primitive references."
+  },
+  "houdini_notes": "Points and polygons are entered as multiline text instead of multiparm blocks, because ComfyUI cannot add or remove widgets dynamically without breaking saved workflows."
+ },
+ "PCG_BallisticPath": {
+  "summary": "Fires a projectile from each point and outputs its trajectory as a polyline.",
+  "description": "Each selected point becomes the start of a ballistic trajectory under constant gravity with optional linear air drag (an analytic solution, not a simulation). The result is one open polyline per point, sampled at a fixed number of points.\n\nIn the *Free* launch method the initial velocity comes from a vector point attribute and the path runs for the given life. The two *Targeted* methods take points from the second input as targets, paired with the launch points by point number, and solve for the initial velocity: either for a given flight time, or for a given launch elevation angle. Launch points whose target is missing or cannot be reached with that angle are skipped and counted in the report.\n\nOptionally the path is cut where it falls below a ground height measured along gravity, or at its first hit on the collision geometry (found by ray casting the path segments and refining the hit within the segment). The output carries the source point attributes on every path point, plus `time` and `v` (velocity) on points and `srcpoint` on primitives. The `report` output counts paths, unreachable targets, ground hits and collision hits.",
+  "inputs": {
+   "geo": "Launch points. Each selected point starts one path.",
+   "targets": "Target points for the two Targeted launch methods, paired with the launch points by point number. Not used by the Free method.",
+   "collision": "Optional geometry that terminates a path at its first hit."
+  },
+  "outputs": {
+   "geo": "The trajectory polylines.",
+   "report": "Text summary: number of paths, unreachable targets, ground hits and collision hits."
+  },
+  "params": {
+   "group": "Point group pattern selecting which points launch a projectile. Empty means all points.",
+   "mode": "*Free* uses the velocity attribute; *Targeted: Life* solves the initial velocity so the projectile reaches its target after the given flight time; *Targeted: Initial Angle* fixes the launch elevation angle and solves speed and flight time to reach the target (unreachable targets are skipped).",
+   "v_attribute": "Name of the vector point attribute holding the initial velocity.",
+   "duration": "Length of the flight in seconds for the Free method (a ground or collision hit can shorten it).",
+   "flight_time": "Time in seconds the projectile takes to reach its target. Must be greater than zero.",
+   "launch_angle": "Elevation angle in degrees above the horizontal plane (perpendicular to gravity) used to solve for the launch velocity.",
+   "drag": "Linear air drag coefficient. Zero gives a pure parabola.",
+   "gravity_x": "Gravity acceleration vector. It also defines the horizontal plane and the ground direction, so it must not be zero.",
+   "samples": "Number of points on each path. Houdini derives this from FPS times duration; here you set it directly.",
+   "ground_height": "Height along the gravity direction below which the path is cut; the end point lands exactly on this height. Only used when Ground is on.",
+   "ground": "Cuts each path where it crosses the ground height."
+  },
+  "houdini_notes": "The number of path points is set directly (Points per Path) instead of FPS times life. Air drag is linear and solved analytically.",
+  "tips": [
+   "With collision connected, the path is cut at the first hit even when Ground is off."
+  ]
+ },
+ "PCG_BlendShapes": {
+  "summary": "Blends point attributes between a base shape and up to four same-topology target shapes.",
+  "description": "Mixes the listed point attributes (default `P N`) of geometries that share the same topology. *Additive* computes `base + sum(w_i * (target_i - base))`, so weights may go outside 0..1 and several shapes can be stacked. *Sequential* uses one Blend value that travels base, target 1, target 2, and so on; 1.5 is halfway between target 1 and target 2. Slots are counted by number, so an unconnected slot holds the previous shape.\n\nIf `N` is blended it is renormalized afterwards. Points can be matched by point number or by an `id` point attribute, which allows shapes whose point order has been shuffled.",
+  "inputs": {
+   "base": "Base shape. Provides the topology and every attribute that is not blended.",
+   "target1": "First target shape.",
+   "target2": "Optional second target shape.",
+   "target3": "Optional third target shape.",
+   "target4": "Optional fourth target shape."
+  },
+  "outputs": {
+   "geo": "The base shape with the blended attributes.",
+   "report": "Text summary of the blend."
+  },
+  "params": {
+   "mode": "*Additive (Differencing)* adds weighted offsets from the base per target. *Sequential Blend* walks through the shapes in order with a single Blend value.",
+   "weight1": "Weight of target 1 (Additive mode). May be negative or above 1.",
+   "weight2": "Weight of target 2 (Additive mode). Has no effect when target2 is not connected.",
+   "weight3": "Weight of target 3 (Additive mode). Has no effect when target3 is not connected.",
+   "weight4": "Weight of target 4 (Additive mode). Has no effect when target4 is not connected.",
+   "blend": "Position along the shape sequence (Sequential mode): 0 is the base, 1 is target 1, 1.5 is halfway between targets 1 and 2. An empty slot holds the previous shape.",
+   "attributes": "Space-separated list of point attributes to blend. `N` is renormalized after blending.",
+   "match": "How points of the targets are paired with the base: by point number, or by the value of the `id` point attribute so point order does not need to agree."
+  }
+ },
+ "PCG_Box": {
+  "summary": "Creates a box as polygons or as a lattice of points.",
+  "description": "Generates an axis-aligned box of the given size, then applies the rotation and uniform scale around its center. With *Axis Divisions* of 2 on each axis every face is one quad, as in Houdini; larger values add points along that axis.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated box."
+  },
+  "params": {
+   "prim_type": "*Polygon* builds the faces. *Points* outputs only the lattice points on the shell, with no faces.",
+   "size_x": "Box size along X, Y and Z.",
+   "cx": "Center of the box.",
+   "rx": "Rotation of the box in degrees (X, Y, Z).",
+   "uniform_scale": "Scale applied to the whole box in addition to Size.",
+   "div_x": "Number of points along each axis (X, Y, Z). 2 means one quad per face, matching Houdini."
+  }
+ },
+ "PCG_Bulge": {
+  "summary": "Pushes points outward inside the influence of a magnet geometry to create a bulge.",
+  "description": "The second input acts as a magnet. With *Points* magnets every magnet point has a spherical influence of radius `pscale * Radius`; with *Surface* magnets the influence is based on the distance to the magnet surface. Points of the first input inside the influence are displaced by `Magnitude * weight`, where the weight comes from the falloff ramp. The displacement runs along the point normal or directly away from the magnet.\n\nNormals are recomputed afterwards when the input has `N`. The falloff weight can optionally be written to a point attribute.",
+  "inputs": {
+   "geo": "Geometry to deform.",
+   "magnet": "Geometry whose points (as spheres) or surface define the influence."
+  },
+  "outputs": {
+   "geo": "The deformed geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are deformed. Empty means all points.",
+   "magnitude": "Displacement distance at full weight. Negative values pull points inward.",
+   "direction": "*Along Normal* moves points along their `N`; *Away from Magnet* moves them radially away from the magnet.",
+   "magnet_type": "*Points (Spheres)* gives every magnet point a spherical influence; *Surface* measures the distance to the magnet's surface.",
+   "radius": "Radius of the influence. With point magnets it is multiplied by `pscale` when that option is on.",
+   "use_pscale": "Multiplies the radius by each magnet point's `pscale`. Only applies to point magnets.",
+   "ramp": "Falloff curve given as space-separated `position:value` pairs. The curve is evaluated at `1 - distance/radius`, so position 1 is at the magnet and position 0 at the edge of the radius; the default `0:0  1:1` is full weight at the magnet fading to zero.",
+   "ramp_mode": "Interpolation between ramp keys: smooth, linear or constant steps.",
+   "update_normals": "Recomputes `N` after deforming. Has an effect only when the input has `N`.",
+   "weight_attribute": "Name of a point attribute to receive the falloff weight. Empty means nothing is written."
+  }
+ },
+ "PCG_Circle": {
+  "summary": "Creates a circle, ellipse or arc as a polygon or a curve.",
+  "description": "Generates a circle with two radii (so ellipses are possible) lying in the chosen plane, then applies an optional Euler rotation, the uniform scale and the center offset. Circles are often used as Sweep cross sections or PolyExtrude inputs, which is why the output winding can be reversed: with the wrong direction all normals point inward.\n\nThe arc options turn the circle into an arc: an open arc, a closed arc (arc plus a chord), or a sliced arc (arc plus two radii back to the center, a pie slice).",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated circle or arc."
+  },
+  "params": {
+   "prim_type": "Output type: a polygon, a NURBS curve or a Bezier curve.",
+   "orientation": "The plane the circle lies in before the rotation is applied.",
+   "reverse": "Reverses the winding direction of the output.",
+   "radius_x": "Radii along the two axes of the plane. Different values give an ellipse.",
+   "cx": "Center of the circle.",
+   "use_rotate": "Enables the Rotate parameter.",
+   "rx": "Euler rotation in degrees applied after the orientation.",
+   "uniform_scale": "Uniform scale applied to the whole circle.",
+   "divisions": "Number of points around the circle. Curve output is converted from this polygon.",
+   "use_spline": "Enables the Order parameter for curve output. When off, curves use order 4.",
+   "order": "Order of the NURBS or Bezier curve. Used only when Use Spline is on and the primitive type is a curve.",
+   "use_arc": "Turns the circle into an arc.",
+   "arc_type": "*Open Arc* is a plain open curve; *Closed Arc* closes it with a chord; *Sliced Arc* closes it with two radii through the center.",
+   "arc_start": "Start and end angle of the arc in degrees."
+  }
+ },
+ "PCG_CrossSectionSurface": {
+  "summary": "Builds a smooth Gordon surface through a net of section and guide curves.",
+  "description": "Weaves the *sections* curves and the optional *guides* curves into a net and builds a Gordon surface: the two curve families are each lofted, the results are added, and the tensor-product interpolation at the intersections is subtracted. The surface passes exactly through every curve in the net. Without guides it is simply a loft along the sections.\n\nIf the curves are closed the surface is closed in that direction. The output is a quad mesh with a point `uv` attribute.",
+  "inputs": {
+   "sections": "Curves forming the first family (cross sections).",
+   "guides": "Optional curves crossing the sections. Without them the node lofts along the sections."
+  },
+  "outputs": {
+   "geo": "The quad mesh surface.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting which curves of the sections input are used.",
+   "interpolation": "*Cubic (Catmull-Rom)* gives a smooth surface; *Linear* interpolates piecewise linearly.",
+   "divisions_s": "Subdivisions of the output. The first value is per segment along a section; the second is per segment between sections."
+  },
+  "houdini_notes": "Different from the Houdini node: this one resamples and interpolates a Gordon surface from two curve families. The node 'Cross Section Surface · Houdini' follows Houdini's behaviour of connecting existing points."
+ },
+ "PCG_CrossSectionSurfaceHou": {
+  "summary": "Skins a surface through cross-section curves using their existing points, like Houdini's Cross Section Surface.",
+  "description": "Follows Houdini's behaviour: like a Sweep with only cross sections. Each cross-section curve is one row of the grid and its c-th point is column c. The surface is built from the existing points of the curves, with no resampling or interpolation, so all cross sections must have the same number of points (otherwise the node errors). If the cross sections are closed the result is a tube; with *Close Implicit Backbone Curve* the last section also connects back to the first.\n\n*Surface Type* chooses what is built over the grid: points, rows, columns, both, quads or several triangulations. End caps can be a single polygon, a grid (hemisphere, cone or dish shaped via Scale and Roundness) or, for closed backbones, a side polygon. Single Polygon and Grid caps need closed cross sections and an open backbone; Side Single Polygon needs a closed backbone and open cross sections.\n\nUVs can be computed with the same switches as Houdini (length weighting, normalization, seamless wrapping, flipping, scaling); on polygon output they are stored on vertices. Row/column numbers and the cross-section number can be written to attributes whose names you set; an empty name writes nothing.",
+  "inputs": {
+   "geo": "Curves to use as cross sections, in primitive order."
+  },
+  "outputs": {
+   "geo": "The skinned surface, plus end caps if requested.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "reverse_cross_sections": "Reverses the point order of the cross sections, which flips the surface orientation.",
+   "end_cap_type": "*None* leaves the ends open. *Single Polygon* closes each end with one n-gon. *Grid* fills each end with a grid that can be domed or dished. *Side Single Polygon* caps the open seam of a closed backbone.",
+   "cap_divisions": "Number of divisions of the grid end caps.",
+   "triangular_poles": "Uses triangles at the pole of the grid cap instead of quads.",
+   "end_cap_scale": "How far the pole of the cap is lifted out, as a multiple of the bounding-circle radius of the end section. Negative values dish the cap inward.",
+   "end_cap_roundness": "0 gives a pointed cone, 1 a round quarter-circle profile; negative values reverse the curvature.",
+   "end_caps_group": "Name of the primitive group created for the end caps. Empty means no group is made.",
+   "unique_seam_vertices": "Gives closed row or column curves an extra vertex at the seam so that u = 0 and u = 1 are separate. Only available for Rows, Columns and Rows and Columns surface types.",
+   "swap_rows_cols": "Swaps the roles of rows and columns, so the cross sections become columns.",
+   "close_backbone": "Connects the last cross section back to the first, closing the surface along the backbone.",
+   "override_uvs": "When off, an existing point attribute `uv` on open cross sections is carried over for U instead of being recomputed.",
+   "length_weighted_uvs": "Spaces the computed UVs by curve length instead of evenly by point index.",
+   "normalize_u": "Normalizes the computed U coordinates to 0..1.",
+   "normalize_v": "Normalizes the computed V coordinates to 0..1.",
+   "wrap_u": "Rounds the computed U range so it wraps seamlessly. Unavailable when U is normalized.",
+   "wrap_v": "Rounds the computed V range so it wraps seamlessly. Unavailable when V is normalized.",
+   "use_max_length": "Uses the longest cross section as the common length for proportional UV scale. Only applies when U is normalized and V is not.",
+   "flip_u": "Flips the computed U coordinates.",
+   "uv_scale_u": "Scale applied to the computed U and V coordinates.",
+   "point_row_attrib": "Name of a point attribute that receives the row number. Empty means not written.",
+   "point_col_attrib": "Name of a point attribute that receives the column number. Empty means not written.",
+   "prim_row_attrib": "Name of a primitive attribute that receives the row number. Empty means not written.",
+   "prim_col_attrib": "Name of a primitive attribute that receives the column number. Empty means not written.",
+   "cross_section_num_attrib": "Name of an attribute that receives the number of the cross section. Empty means not written.",
+   "group": "Primitive group pattern selecting which curves are used as cross sections. Empty means all.",
+   "surface_type": "What to build over the grid of points: only points, row curves, column curves, both, or a quad or triangle mesh. The triangle options differ in how each quad is split (alternating or reversed diagonals).",
+   "compute_uvs": "Computes UV coordinates for the surface. The other UV options apply only when this is on.",
+   "from_cross_sections": "Attribute pattern naming which attributes to copy from the cross sections. Point attributes are taken from the source points; primitive attributes from the cross section of that row."
+  },
+  "houdini_notes": "Matches the Houdini node. The separate node *Cross Section Surface (PCG)* is a different algorithm (Gordon surface with resampling and interpolation)."
+ },
+ "PCG_Deform": {
+  "summary": "Twists, bends, tapers, squashes or shears points along a chosen axis.",
+  "description": "A purely per-point position function: topology and attributes are untouched, so it can be chained freely. For each point a normalized parameter `t` along the primary axis is computed, and the deformation amount is a function of `t`.\n\nOutside the capture region (t < 0 or t > 1) the deformation continues rigidly: for Bend the extra length is carried along the end tangent, so that part stays straight and keeps its length instead of collapsing onto the end plane. Bend is numerically stable for tiny angles (it is written in a sinc form), and zero Angle / Scale 1 / Shear 0 give exactly the identity. *Squash and Stretch* preserves volume within the region: the axis is multiplied by Scale and the other directions by 1/sqrt(Scale).\n\nThe secondary axis (Up) decides which way a bend goes and which way a shear pushes; when it is parallel to the primary axis another direction is chosen automatically. Normals, if present, are corrected with the inverse transpose of a finite-difference Jacobian rather than recomputed, so curves and point clouds work and hard edges are preserved.",
+  "inputs": {
+   "geo": "Geometry to deform."
+  },
+  "outputs": {
+   "geo": "The deformed geometry."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are deformed. Empty means all points.",
+   "op": "*Twist* rotates slices around the axis, *Bend* curves the axis, *Linear Taper* scales the cross section along the axis, *Squash and Stretch* scales along the axis with a volume-preserving compensation, *Shear* offsets points sideways proportional to position along the axis.",
+   "axis": "Primary axis along which the deformation is applied.",
+   "up_x": "Secondary axis direction: the direction in which Bend curves and Shear pushes. Switches automatically if parallel to the primary axis.",
+   "pivot_x": "A point the deformation axis passes through. Its component along the primary axis has no effect, because the capture range is in absolute coordinates.",
+   "angle": "Twist or bend angle in degrees, across the capture region.",
+   "amount": "For Linear Taper, the scale at the end of the region; for Squash and Stretch, the scale along the axis (cross directions get 1/sqrt).",
+   "shear_b": "Shear displacement at the end of the region, along the secondary direction (first value) and the third direction (second value).",
+   "use_range": "Limits the deformation to the capture range below. When off, the range is the actual extent of the selected points along the axis.",
+   "range_start": "Start and end of the capture region as absolute coordinates on the primary axis.",
+   "normals": "*Transform (Jacobian)* corrects the normals for the deformation; *Leave Unchanged* does not touch them."
+  },
+  "houdini_notes": "Combines the Twist and Bend SOPs and adds taper, squash and shear in one node."
+ },
+ "PCG_DeltaMush": {
+  "summary": "Smooths a deformed mesh while restoring the fine detail of its rest shape.",
+  "description": "Takes the deformed geometry and a rest version with the same topology. Both are smoothed; the detail lost by smoothing the rest shape is recorded in a local frame on the smoothed surface and reapplied to the smoothed deformed shape. Local damage from the deformation is smoothed away, while the detail returns as it looked in the rest pose. For rigid motion of the whole mesh the result equals the deformed input exactly.\n\nA point attribute can be used as a mask to control how much of the correction each point receives.",
+  "inputs": {
+   "geo": "The deformed geometry.",
+   "rest": "The same geometry before deformation. Must have the same topology."
+  },
+  "outputs": {
+   "geo": "The mushed geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "iterations": "Number of smoothing iterations. More iterations remove more of the deformation artifacts.",
+   "step": "Step size of each smoothing iteration, from 0 (no movement) to 1.",
+   "pin_boundary": "Keeps points on open borders fixed while smoothing.",
+   "mask_attribute": "Point attribute giving, per point, how much of the correction to use. Empty means 1 everywhere."
+  }
+ },
+ "PCG_DisplaceFromMap": {
+  "summary": "Displaces points along their normal or a fixed vector using values sampled from an image at the point UVs.",
+  "description": "Samples one channel of a COP layer at each point's UV and moves the point by `(value - Midpoint) * Amount` along the direction. This is the standard height-map or displacement-map workflow. Midpoint is the value that causes no movement: 0 for height maps whose lowest value is 0, 0.5 for displacement maps where 0.5 means flat.\n\nThe node does not recompute normals, so `N` is out of date after displacement. Append a Facet (or another normal-computing node) downstream if you need correct shading or further normal-based displacement. As with Attribute from Map, the image is read as numbers, so enable the sRGB decode when the data was stored as sRGB.",
+  "inputs": {
+   "geo": "Geometry to displace. Needs UVs.",
+   "cop": "Image to sample."
+  },
+  "outputs": {
+   "geo": "The displaced geometry."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are displaced. Empty means all points.",
+   "layer": "Name of the image layer to sample.",
+   "channel": "Index of the channel of the layer to use as the scalar value.",
+   "decode": "Color space conversion applied to the sampled value. Height data is normally *None*; use *sRGB to Linear* for values stored as sRGB.",
+   "filter": "*Bilinear* interpolates between texels; *Closest* uses the nearest texel.",
+   "border": "Behavior for UVs outside 0..1: repeat the edge pixels, wrap around, or read black.",
+   "amount": "Displacement distance for a sampled value one unit above Midpoint.",
+   "midpoint": "Sampled value that produces no displacement.",
+   "direction": "*Along Normal* uses the normal attribute; *Fixed Vector* uses one direction for all points.",
+   "dir_x": "The fixed displacement direction.",
+   "normal_attrib": "Name of the normal attribute. If the geometry does not have it, normals are computed on the fly (and not written back).",
+   "uv_attrib": "Name of the UV attribute.",
+   "uv_from": "Where the UVs are read from. *Auto* picks vertex UVs when present, otherwise point UVs.",
+   "uv_scale_u": "Scale applied to the UVs before sampling (U, V).",
+   "uv_offset_u": "Offset added to the UVs before sampling (U, V)."
+  }
+ },
+ "PCG_ExtractSilhouette": {
+  "summary": "Extracts the silhouette of a mesh as projected outlines or as a contour on the surface.",
+  "description": "*Projected Outline* projects the geometry along Direction onto the plane through Origin and computes the exact boundary of the projected area (candidate silhouette edges are intersected and clipped, and segments are kept based on coverage on both sides). The result is closed polylines, with outer loops counter-clockwise and holes clockwise, carrying the primitive attributes `hole` and `area`.\n\n*Contour on Mesh* finds the boundary of the front-facing region on the mesh itself and leaves it in 3D.",
+  "inputs": {
+   "geo": "Mesh to take the silhouette of."
+  },
+  "outputs": {
+   "geo": "The silhouette curves.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Primitive group pattern limiting which primitives take part. Empty means all.",
+   "mode": "*Projected Outline* flattens onto a plane; *Contour on Mesh* stays on the surface in 3D.",
+   "direction_x": "Viewing direction.",
+   "origin_x": "A point on the projection plane (Projected Outline only).",
+   "simplify": "Removes points lying on a straight line between their neighbors (Projected Outline only).",
+   "include_boundary": "Also includes unshared edges (open mesh borders) in the contour (Contour on Mesh only)."
+  }
+ },
+ "PCG_Font": {
+  "summary": "Creates text geometry from a TrueType or OpenType font as outlines, faces or extruded solids.",
+  "description": "Reads vector glyph outlines from a ttf, otf or ttc font file and builds the text in the XY plane facing +Z. *Outline* gives closed contours (with a `hole` primitive attribute), *Faces* fills them with a constrained Delaunay triangulation that keeps holes, and *Extruded* adds a back face and side walls to make a watertight solid. Primitives carry `char`, `char_index` and `line` attributes.\n\nThe Font field accepts a path, a file name (e.g. `arial`, `msyh`) or a family name; empty uses arial or DejaVuSans. Characters missing from the main font are looked up in the fallback fonts in order. Size is the em height.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The text geometry.",
+   "report": "Text summary of the operation, including font resolution."
+  },
+  "params": {
+   "mode": "*Outline* is closed contours only; *Faces* is a filled flat mesh; *Extruded* is a closed solid with front, back and side walls.",
+   "font": "Font path, file name or family name. Empty uses arial or DejaVuSans.",
+   "text": "The text to generate. Line breaks start new lines.",
+   "halign": "Horizontal alignment of the lines relative to the origin.",
+   "valign": "Vertical alignment relative to the origin: at the baseline of the first line, or the top, center or bottom of the text block.",
+   "size": "Font size, the em height.",
+   "tracking": "Extra spacing between characters.",
+   "line_spacing": "Multiplier for the distance between lines.",
+   "curve_segments": "Number of line segments each quadratic or cubic Bezier segment of the glyph outline is split into (Houdini's Level of Detail).",
+   "depth": "Extrusion depth. Only used in Extruded mode.",
+   "fallback": "Space-separated font names tried in order for characters the main font lacks."
+  }
+ },
+ "PCG_Fractal": {
+  "summary": "Roughens a surface by midpoint displacement.",
+  "description": "Each division level subdivides linearly, and only the points newly created in that level are pushed randomly along the normal (or a fixed vector) by up to `Scale * Roughness^level`. The first level therefore moves most and each following level moves less, which gives a fractal-looking surface.\n\nWith *Fixed Boundary* the new points on open borders are not moved, so adjacent tiles stay seamless.",
+  "inputs": {
+   "geo": "Surface to roughen."
+  },
+  "outputs": {
+   "geo": "The subdivided, displaced surface.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "divisions": "Number of subdivision levels.",
+   "roughness": "Factor by which the displacement of each level is multiplied relative to the previous one.",
+   "scale": "Maximum displacement of the first level.",
+   "rand_seed": "Seed of the random displacement.",
+   "fixed_boundary": "Does not move new points on open borders.",
+   "direction": "*Use Normals* displaces along the surface normal; *Fixed Vector* uses a single direction.",
+   "vector_x": "The fixed displacement direction."
+  }
+ },
+ "PCG_Grid": {
+  "summary": "Creates a flat grid of points, polygons or lines.",
+  "description": "Generates a rectangular grid in the chosen plane, then rotates and translates it. *Rows* and *Columns* count points, not cells, as in Houdini, so 21 x 21 gives 20 x 20 quads. Connectivity selects between quads, two triangle layouts, lines along rows and/or columns, or points only.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated grid."
+  },
+  "params": {
+   "connectivity": "*Rows* and *Columns* make one polyline per row or column; *Alternating Triangles* flips the diagonal from cell to cell; *Points* outputs only points.",
+   "plane": "The plane in which the grid lies before rotation.",
+   "size_x": "Grid size. The first value is the column direction and the second the row direction: X / Z on the ZX plane, X / Y on the XY plane, Z / Y on the YZ plane.",
+   "center_x": "Center of the grid.",
+   "rx": "Rotation in degrees (X, Y, Z).",
+   "rows": "Number of points in the row direction (not cells).",
+   "cols": "Number of points in the column direction (not cells)."
+  }
+ },
+ "PCG_IsoOffset": {
+  "summary": "Converts geometry to an offset isosurface, an SDF volume or a fog volume.",
+  "description": "Samples the distance to the input geometry on a grid and outputs the isosurface at the given offset, or the field as a volume. *Ray Intersect* computes an exact signed distance (sign from pseudo-normals and flood fill, not rays); *Minimum* gives an unsigned distance; the other modes use point clouds or implicit boxes and spheres.\n\nThe grid is defined by the sampling options and the bounds, which are the bounding box of the input, the bounding box of the optional bound input, or user values. Note that division counts are grid points; in Houdini they are voxels.",
+  "inputs": {
+   "geo": "Geometry to offset.",
+   "bound": "Optional geometry whose bounding box defines the sampling bounds."
+  },
+  "outputs": {
+   "geo": "The isosurface mesh or the volume."
+  },
+  "params": {
+   "output": "*Iso Surface* outputs a polygon surface; *Fog Volume* and *SDF Volume* output a volume.",
+   "mode": "How distance is computed. *Ray Intersect*: exact signed distance. *Minimum*: unsigned distance. *Point Cloud*: treats the input as points. *Implicit Box* / *Implicit Sphere*: uses a box or sphere as the implicit shape.",
+   "name": "Name of the output volume. Not used for polygon output.",
+   "uniform_sampling": "How the grid resolution is chosen: a number of grid points along the longest or a specific axis, a voxel size, or separate counts for each axis.",
+   "uniform_divs": "Number of grid points along the axis chosen by Uniform Sampling (not voxels).",
+   "divs_x": "Number of grid points along X, Y and Z for non-uniform sampling.",
+   "div_size": "Voxel edge length for sampling by size.",
+   "override_bounds": "Uses the Minimum and Maximum Bound instead of the bounds of the input. Use the bound input otherwise if connected.",
+   "min_x": "Lower corner of the overridden bounds.",
+   "max_x": "Upper corner of the overridden bounds.",
+   "pad_bounds": "Grows the bounds so the offset surface is not clipped.",
+   "offset": "Distance of the isosurface from the input; positive grows outward.",
+   "invert_sign": "Flips the sign of the field, swapping inside and outside."
+  },
+  "houdini_notes": "Division counts are numbers of grid points rather than voxels. The Convert node's volume SDF and fog modes are unchanged and separate."
+ },
+ "PCG_IsoSurface": {
+  "summary": "Extracts a polygon surface or volume from an implicit function evaluated on a grid.",
+  "description": "Evaluates the implicit function (wrangle syntax: `@P`, `@P.x`; `$X $Y $Z` are also accepted) at the grid points of the bounding box and extracts the surface where the function equals the Iso Value, using surface nets (quads, positive outside and negative inside). *Project to Isosurface* then refines each vertex onto the true isosurface with Newton iterations along the numerical gradient, and *Compute Normals* writes `N` from the gradient. The volume output outputs the sampled field directly.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The extracted surface or volume.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "expression": "The implicit function. Surfaces appear where it equals the Iso Value; positive values are outside.",
+   "iso": "The value of the function that defines the surface.",
+   "bound_min_x": "Lower corner of the box in which the function is evaluated.",
+   "bound_max_x": "Upper corner of the evaluation box.",
+   "divisions_x": "Number of grid divisions along X, Y and Z. Higher values give more detail and more cost.",
+   "output": "*Polygons* extracts a quad mesh; *Volume* outputs the sampled field.",
+   "project": "Moves vertices onto the exact isosurface using Newton iteration on the numerical gradient.",
+   "normals": "Writes `N` from the gradient of the function."
+  }
+ },
+ "PCG_LSystem": {
+  "summary": "Grows a branching structure by rewriting a premise string with rules and drawing it with a 3D turtle.",
+  "description": "The premise is rewritten for the given number of generations using the rules, then the resulting string is interpreted by a 3D turtle to produce lines. Rules are one per line, e.g. `F=F[+F]F[-F]F`. Writing several rules for the same character and prefixing each with a weight in parentheses makes them stochastic.\n\nTurtle symbols: `F` draws a line, `f` moves without drawing, `+` `-` turn left/right, `&` `^` pitch down/up, `\\` `/` roll, `|` turns around, `[` `]` open and close a branch, `!` makes the line thinner, `\"` makes it shorter, and `J K L M` place leaf points. Leaf points are added to the point group `leaves` and carry `N`, `up`, `orient` and `name`.\n\nPoints carry `width`, `generation` (the generation in which the segment appeared) and `depth`. If the rewritten string grows beyond Max Symbols the node raises an error instead of truncating.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The branch curves and leaf points.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "generations": "How many times the rules are applied to the premise.",
+   "step": "Length of an `F` step.",
+   "step_scale": "Factor by which the step length is multiplied by each `\"` symbol.",
+   "width": "Initial line thickness, written to the `width` attribute.",
+   "width_scale": "Factor by which the thickness is multiplied by each `!` symbol.",
+   "angle": "Turning angle in degrees used by the turn, pitch and roll symbols.",
+   "angle_variance": "Maximum random offset in degrees added to every turn.",
+   "gravity": "Bends branches downward; larger values make them droop more.",
+   "rand_seed": "Seed for stochastic rules and angle variance.",
+   "max_symbols": "Upper limit on the rewritten string length; exceeding it is an error.",
+   "premise": "The starting string.",
+   "rules": "One rewrite rule per line in the form `X=replacement`. Several rules for the same character with a leading `(weight)` are chosen randomly in proportion to their weights."
+  }
+ },
+ "PCG_Lattice": {
+  "summary": "Deforms geometry with a lattice using free-form deformation.",
+  "description": "The geometry follows a control lattice that you move. Rest positions come from the `rest` attribute stored on the lattice points (as created by Lattice From Bound), or from the optional rest_lattice input.\n\n*Trilinear* is local: each point only looks at the 8 control points of the cell it is in. *Bezier* is a global Sederberg-Parry Bernstein volume, smooth everywhere and well suited to large shape changes with 2 to 4 cells. Both have linear precision: when the whole lattice undergoes an affine transform, the geometry transforms exactly the same way. Normals are corrected with the inverse transpose Jacobian.",
+  "inputs": {
+   "geo": "Geometry to deform.",
+   "lattice": "The moved (deformed) control lattice.",
+   "rest_lattice": "Optional lattice in the rest state. When missing, the `rest` attribute of the lattice is used."
+  },
+  "outputs": {
+   "geo": "The deformed geometry."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are deformed. Empty means all points.",
+   "interpolation": "*Trilinear (Local)* uses only the surrounding cell; *Bezier (Global)* uses all control points for a smoother result.",
+   "outside": "What happens to points outside the rest lattice: *Deform (Extrapolate)* continues the deformation, *Keep Unchanged* leaves them in place."
+  }
+ },
+ "PCG_LatticeFromBound": {
+  "summary": "Creates a grid of control points around the bounding box of the input, for use with Lattice.",
+  "description": "Places `(nx+1)(ny+1)(nz+1)` control points on the bounding box of the input (connected with grid lines for easy viewing), each with a `rest` attribute. Move the points with any nodes, then connect the result to the lattice input of the Lattice node. Do not delete or merge points, since their order defines the lattice.",
+  "inputs": {
+   "geo": "Geometry whose bounding box defines the lattice."
+  },
+  "outputs": {
+   "lattice": "The control lattice points with `rest` positions."
+  },
+  "params": {
+   "divisions_x": "Number of cells along each axis. Control points are `(nx+1)(ny+1)(nz+1)`.",
+   "padding": "Expands the bounding box on every side before the lattice is built."
+  }
+ },
+ "PCG_Line": {
+  "summary": "Creates a straight line with evenly spaced points.",
+  "description": "Generates a polyline starting at Origin, running along Direction for the given Length, with the given number of points.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated line."
+  },
+  "params": {
+   "origin_x": "Start point of the line.",
+   "dx": "Direction of the line.",
+   "length": "Length of the line.",
+   "points": "Number of points on the line, at least 2."
+  }
+ },
+ "PCG_Magnet": {
+  "summary": "Transforms points inside the influence of a magnet geometry, weighted by falloff.",
+  "description": "The influence region works as in Bulge: each magnet point is a sphere of radius `pscale * Radius`, or the distance to the magnet surface is used. Points inside are transformed by the Translate, Rotate and Scale parameters scaled by the weight: translation multiplied by the weight, rotation angle multiplied by the weight, and scale interpolated from 1 to the scale value. The transform is applied around the magnet centroid, the origin or a custom pivot. Interpolation is applied to the parameters, not to the result, so a rotation does not collapse the radius.",
+  "inputs": {
+   "geo": "Geometry to deform.",
+   "magnet": "Geometry that defines the influence region."
+  },
+  "outputs": {
+   "geo": "The deformed geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are deformed. Empty means all points.",
+   "translate_x": "Translation at full weight.",
+   "rotate_x": "Rotation in degrees at full weight; the applied angle is multiplied by the weight.",
+   "scale_x": "Scale at full weight; the applied scale is interpolated from 1 with the weight.",
+   "pivot_mode": "Center of the rotation and scale: the centroid of the magnet, the world origin, or a custom point.",
+   "pivot_x": "Custom pivot position.",
+   "magnet_type": "*Points (Spheres)* gives every magnet point a spherical influence; *Surface* uses the distance to the magnet's surface.",
+   "radius": "Radius of the influence. With point magnets it is multiplied by `pscale` when that option is on.",
+   "use_pscale": "Multiplies the radius by each magnet point's `pscale`. Only applies to point magnets.",
+   "ramp": "Falloff curve given as space-separated `position:value` pairs. The curve is evaluated at `1 - distance/radius`, so position 1 is at the magnet and position 0 at the edge of the radius; the default `0:0  1:1` is full weight at the magnet fading to zero.",
+   "ramp_mode": "Interpolation between ramp keys: smooth, linear or constant steps.",
+   "weight_attribute": "Name of a point attribute to receive the weight. Empty means nothing is written."
+  }
+ },
+ "PCG_PlatonicSolids": {
+  "summary": "Creates a Platonic solid or a soccer ball.",
+  "description": "Generates a tetrahedron, cube, octahedron, dodecahedron, icosahedron or soccer ball (truncated icosahedron) with outward-facing faces and shared points (watertight). Radius is the circumscribed sphere radius. The primitive attribute `sides` stores the number of edges of each face (on the soccer ball, 5 for the black patches and 6 for the white ones). The octahedron and dodecahedron are built as duals, and the soccer ball by truncating the icosahedron at one third of each edge.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated solid."
+  },
+  "params": {
+   "solid": "Which solid to create.",
+   "center_x": "Center of the solid.",
+   "radius": "Radius of the circumscribed sphere."
+  }
+ },
+ "PCG_PointDeform": {
+  "summary": "Deforms high-resolution geometry using the motion of a low-resolution point cloud.",
+  "description": "`rest` holds the original positions of the low-res points and `deformed` the deformed positions (same point count and order). Each point of the input geometry is weighted against its nearest Max Points low-res points; the kernel radius is the distance to the (k+1)-th nearest point so weights stay continuous when neighbors change.\n\nIn *Rigid* mode the local rigid transform of every low-res point is estimated (Kabsch) and blended, so a pure rotation of the low-res cloud rotates the high-res geometry exactly and normals rotate with it. *Translate Only* blends just the displacements: cheaper, but it distorts under rotation.",
+  "inputs": {
+   "geo": "High-resolution geometry to deform.",
+   "rest": "Low-resolution points in their original state.",
+   "deformed": "The same low-resolution points after deformation. Must match rest in count and order."
+  },
+  "outputs": {
+   "geo": "The deformed geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Point group pattern limiting which points are deformed. Empty means all points.",
+   "max_points": "Number of nearest low-res points that influence each point.",
+   "mode": "*Rigid (Local Frames)* blends local rigid transforms (rotates correctly); *Translate Only* blends displacement vectors only."
+  }
+ },
+ "PCG_PolyLoft": {
+  "summary": "Connects existing curves into a surface or lines using their own points.",
+  "description": "No points are created. *Faces* builds surfaces between adjacent curves: quads when the curves have the same number of points, otherwise triangles zippered by arc length. *Cross Lines* connects the i-th point of each curve into lines across the curves, and *Grid Lines* produces those lines plus the original curves. *Wrap Last to First* also connects the last curve to the first.",
+  "inputs": {
+   "geo": "Curves to loft between, in primitive order."
+  },
+  "outputs": {
+   "geo": "The lofted surface or lines.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting the curves to use. Empty means all.",
+   "form": "*Faces* creates polygons between the curves; *Cross Lines* creates polylines across them; *Grid Lines* creates a net of cross lines and original curves.",
+   "wrap": "Connects the last curve back to the first.",
+   "keep_original": "Keeps the input curves in the output alongside the new primitives. Not used by Grid Lines, which always includes them."
+  }
+ },
+ "PCG_Revolve": {
+  "summary": "Spins a profile curve around an axis to create a surface of revolution.",
+  "description": "A full 360 degree revolution does not duplicate the first column of points. Profile points lying on the axis are placed only once, so a half circle becomes a sphere with a single point at each pole and triangles there, with no zero-area faces. A closed profile gives a torus-like surface. For partial revolutions, *End Caps* closes the profile at the ends. A profile drawn from bottom to top on the positive side of the axis produces outward normals; use Reverse Normals otherwise.\n\nWhen a UV attribute name is given, `uv` is written with u as the fraction of the angle swept and v as the fraction of the profile arc length.",
+  "inputs": {
+   "geo": "Profile curves to revolve."
+  },
+  "outputs": {
+   "geo": "The surface of revolution."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting which curves are revolved. Empty means all.",
+   "surface": "Builds the surface from quads or from triangles.",
+   "origin_x": "A point on the revolution axis.",
+   "axis_x": "Direction of the revolution axis.",
+   "start_angle": "Start and end angle of the revolution in degrees. 0 to 360 is a full turn.",
+   "divisions": "Number of divisions around the axis.",
+   "end_caps": "Closes the ends of the surface. Only has an effect when the revolution is less than 360 degrees and the profile is closed.",
+   "reverse": "Flips the surface normals.",
+   "uv_attribute": "Name of the UV attribute to write. Empty means no UVs are written."
+  }
+ },
+ "PCG_Skin": {
+  "summary": "Skins a surface across a set of cross-section curves.",
+  "description": "Cross sections are sorted by primitive number and a strip of faces is built between each adjacent pair; if the sections themselves are closed the surface also closes around in the U direction. Output can be polygons or a NURBS surface.\n\nUnlike Houdini, which errors when the sections have different point counts, *Auto Resample* (on by default) aligns them automatically, since sections often come from different sources. Turn it off for Houdini's strict behaviour.",
+  "inputs": {
+   "geo": "Cross-section curves."
+  },
+  "outputs": {
+   "geo": "The skinned surface."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting which curves take part. Empty means all.",
+   "output": "Polygon mesh or NURBS surface.",
+   "connectivity": "Builds the polygon surface from quads or triangles.",
+   "v_wrap": "Connects the last section back to the first.",
+   "keep_primitives": "Keeps the input curves in the output.",
+   "auto_resample": "Resamples sections with different point counts so they line up. Houdini would raise an error.",
+   "resample_to": "Point count to resample to. 0 uses the point count of the section that has the most points.",
+   "use_nurbs_opts": "Enables the V Order parameter for NURBS output.",
+   "v_order": "Order of the NURBS surface in the V direction (across sections).",
+   "use_every_n": "Skin only every Nth section instead of all of them.",
+   "every_n": "Use every Nth section."
+  },
+  "houdini_notes": "Auto Resample is an addition: Houdini requires all sections to have the same number of points."
+ },
+ "PCG_SoftPeak": {
+  "summary": "Pushes a group of points along their normals, with nearby points following by a soft falloff.",
+  "description": "The points in Group are the handle: each is pushed along its normal by Distance. Other points within Soft Radius follow, weighted by a falloff computed with the same soft selection as Soft Transform (straight-line distance, distance along edges, or number of edge steps). Normals are computed on the fly if the input has none.\n\nWith the *Attribute* metric there is no handle group: distances come from a point attribute, and Group only restricts which points may move (empty means all points). With *Translate Along Lead Normal* each point moves along the normal of its nearest handle point rather than its own, which pushes out a translated block instead of a mushroom shape.",
+  "inputs": {
+   "geo": "Geometry to deform."
+  },
+  "outputs": {
+   "geo": "The deformed geometry.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "The points that are pushed (the handle). With the Attribute metric it can be left empty to allow all points to move.",
+   "mask_attribute": "Name of the point attribute used as a mask when Use Mask is on.",
+   "use_mask": "Scales the displacement by the value of the mask attribute (0 means no movement, 1 full movement).",
+   "distance": "Distance to push along the point normal.",
+   "radius": "Radius of the soft region around the handle.",
+   "metric": "How distance to the handle is measured. *Radius*: straight-line distance (works on point clouds but spreads across gaps). *Edge Steps*: number of edge hops. *Edge*: distance along edges (needs connectivity). *Attribute*: distance read from a point attribute. *Radius with Connectivity* is straight-line distance but only for points connected to the handle by a path of edges inside the radius.",
+   "distance_attribute": "Name of the point attribute holding the distance when the metric is Attribute.",
+   "apply_rolloff": "On: the attribute is treated as a raw distance and attenuated by the soft type within the radius. Off: the attribute value is used directly as the weight.",
+   "lead_point_attribute": "Integer point attribute holding for each point the number of its lead (handle) point, or -1 for itself. Used with the Attribute metric and Translate Along Lead Normal.",
+   "translate_along_lead_normal": "Moves each point along the normal of its nearest handle point instead of its own normal.",
+   "soft_type": "Falloff shape. *Ramp (PCG)* uses the Soft Falloff curve; *Linear*, *Quadratic* and *Cubic* are fixed shapes (Cubic can have its end tangents set); *Metaball* uses a metaball kernel.",
+   "tangent_far": "Tangent angles in degrees for the Cubic falloff: the first value acts at the far end of the radius, the second at the handle. With both at 0 it is a smoothstep.",
+   "kernel": "Metaball kernel function.",
+   "ramp": "Falloff curve given as space-separated `position:value` pairs. The curve is evaluated at `1 - distance/radius`, so position 1 is at the handle and position 0 at the edge of the radius.",
+   "ramp_mode": "Interpolation between ramp keys: smooth, linear or constant steps.",
+   "update_normals": "Recomputes `N` after deforming. Has an effect only when the input has `N`.",
+   "weight_attribute": "Name of a point attribute to receive the falloff weight. Empty means nothing is written."
+  }
+ },
+ "PCG_SoftTransform": {
+  "summary": "Transforms a group of points and lets nearby points follow with a soft falloff.",
+  "description": "Houdini's soft-selection drag as a reproducible node. The Group is the handle: weight 1 inside it, falling off with distance to 0 at Soft Radius. An empty group selects all points, which makes the node an ordinary transform.\n\nThe parameters are interpolated, not the result. Blending `P` with the transformed `P` by the weight is wrong for rotation, because the point travels along a chord and the radius shrinks (by almost 30% at weight 0.5 in a test case). Here each point builds its own matrix from `angle * w`, `translation * w`, `lerp(1, scale, w)` and `shear * w`, so rotation radius is preserved. Pivot Rotate orients the pivot's frame and is not weighted.\n\nThe distance metric decides how the falloff spreads. Straight-line distance works on point clouds but leaks through gaps (a separate piece across a gap is also affected); the edge-based metrics only spread across connected geometry. By default the pivot is the centroid of the handle group.",
+  "inputs": {
+   "geo": "Geometry to transform."
+  },
+  "outputs": {
+   "geo": "The transformed geometry."
+  },
+  "params": {
+   "group": "The handle points, with weight 1. Empty means all points, so the node is a plain transform.",
+   "xform_order": "Order in which scale, rotate and translate are applied.",
+   "rotate_order": "Order of the X, Y, Z rotations.",
+   "tx": "Translation at full weight; the applied amount is multiplied by the weight.",
+   "rx": "Rotation in degrees at full weight; the applied angle is multiplied by the weight.",
+   "sx": "Scale at full weight; the applied scale is interpolated from 1 with the weight.",
+   "shear_xy": "Shear at full weight (XY, XZ, YZ); multiplied by the weight.",
+   "use_group_center": "Uses the centroid of the handle group as the pivot.",
+   "pivot_x": "Pivot position when not using the group centroid.",
+   "prx": "Orientation of the pivot's frame, in degrees. It is not weighted.",
+   "normals": "How normals are handled. *Transform (Jacobian)* corrects them for the deformation; *Leave Unchanged* does nothing; *Recompute Point Normals* recomputes point normals for all points when the input has `N`; *Recompute Affected Normals* recomputes only the moved points.",
+   "preserve_normal_length": "Keeps the original length of the normals when transforming by Jacobian. Otherwise they are normalized.",
+   "radius": "Radius of the soft region around the handle.",
+   "metric": "How distance to the handle is measured. *Radius*: straight-line distance. *Edge Steps*: number of edge hops. *Edge*: distance along edges. *Attribute*: distance read from a point attribute (no handle, Group only restricts which points may move). *Radius with Connectivity*: straight-line distance, but only for points connected to the handle by a path of edges inside the radius.",
+   "distance_attribute": "Name of the point attribute holding the distance when the metric is Attribute.",
+   "apply_rolloff": "On: the attribute is treated as a raw distance and attenuated by the soft type within the radius. Off: the attribute value is used directly as the weight.",
+   "soft_type": "Falloff shape. *Ramp (PCG)* uses the Soft Falloff curve; *Linear*, *Quadratic* and *Cubic* are fixed shapes; *Metaball* uses a metaball kernel.",
+   "tangent_far": "Tangent angles in degrees for the Cubic falloff: the first value acts at the far end of the radius, the second at the handle. With both at 0 it is a smoothstep.",
+   "kernel": "Metaball kernel function.",
+   "falloff_ramp": "Falloff curve given as space-separated `position:value` pairs. The curve is evaluated at `1 - distance/radius`, so position 1 is at the handle and position 0 at the edge of the radius.",
+   "ramp_mode": "Interpolation between ramp keys: smooth, linear or constant steps.",
+   "falloff_attribute": "Name of a point attribute to receive the falloff weight. Empty means nothing is written."
+  }
+ },
+ "PCG_Sphere": {
+  "summary": "Creates a sphere as a latitude/longitude mesh or a subdivided icosahedron.",
+  "description": "*Polygon Mesh* is a UV sphere with Rows by Columns points and a single point at each pole. *Polygon* is a subdivided icosahedron, whose triangles are uniform in size and which has no poles; each edge is split into Frequency segments for `20 * f^2` triangles. Radii can differ per axis for ellipsoids.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated sphere."
+  },
+  "params": {
+   "prim_type": "*Polygon Mesh* is a latitude/longitude sphere; *Polygon* is a subdivided icosahedron.",
+   "radius_x": "Radius along X, Y and Z.",
+   "center_x": "Center of the sphere.",
+   "rx": "Rotation in degrees (X, Y, Z).",
+   "radius": "Uniform scale applied to the radii.",
+   "orientation": "The axis the poles point along.",
+   "frequency": "Number of segments per icosahedron edge, giving `20 * f^2` triangles.",
+   "rows": "Number of points in the latitude direction, including the two poles.",
+   "cols": "Number of points around the equator."
+  }
+ },
+ "PCG_Spherify": {
+  "summary": "Pushes the selected points onto a sphere.",
+  "description": "Computes `P' = lerp(P, C + normalize(P - C) * R, Amount)`. With Radius 0 the radius is the average distance of the selected points to the center, which changes volume least; the center defaults to the centroid of the selected points. Amount 0 is exactly the identity and amount 1 puts all points on the sphere.\n\nUse it with Group to spherify only part of a shape.",
+  "inputs": {
+   "geo": "Geometry to deform."
+  },
+  "outputs": {
+   "geo": "The deformed geometry."
+  },
+  "params": {
+   "group": "Point group pattern selecting the points to deform. Empty means all points.",
+   "amount": "Blend between the original position (0) and the sphere (1). Values outside 0..1 extrapolate.",
+   "radius": "Radius of the sphere. 0 uses the average distance from the selected points to the center.",
+   "use_center": "Uses the Center parameter. When off, the centroid of the selected points is used.",
+   "center_x": "Center of the sphere.",
+   "normals": "*Transform by Jacobian* corrects the normals; *Don't Update* leaves them."
+  }
+ },
+ "PCG_Sweep": {
+  "summary": "Sweeps a cross section along backbone curves to make tubes, ribbons or custom profiles.",
+  "description": "Each backbone curve gets a frame using rotation-minimizing frames, so the section does not twist at bends. The cross section's plane comes from its own principal axis, so sections from Circle, Carve and other nodes work whatever plane they were drawn in. Sections are either built in (round tube, square tube, ribbon) or taken from the second input.\n\nAt turns the section is stretched by `1/cos(half turn angle)` so the tube keeps its apparent thickness; Max Stretch limits this at sharp corners. Scale can vary from start to end of the curve and can follow the point `pscale`; rotation options add roll and twisting. Output can be faces, lines (rows or columns) or points. Rows, columns and points have no end caps.",
+  "inputs": {
+   "backbone": "Curves to sweep along.",
+   "cross": "Optional cross-section curves, used when Surface Shape is *Second Input Cross Sections*."
+  },
+  "outputs": {
+   "geo": "The swept surface."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting which backbone curves are swept. Empty means all.",
+   "shape": "Cross-section shape. *Second Input Cross Sections* uses a curve from the cross input; the other options are built in.",
+   "surface_type": "What to build: faces (quads, triangles, alternating triangles), rows (one polyline loop per cross section), columns (polylines along the backbone), both, or points only.",
+   "cols": "Number of points around a round tube.",
+   "radius": "Radius of the built-in section. Also used as a fallback round tube when Second Input is selected but no cross section is connected.",
+   "end_caps": "Closes the ends of the tube.",
+   "end_cap_type": "*Single Polygon* is one n-gon per end. *Grid* fills the end with a quad grid; it needs an even number of section points, otherwise it falls back to a single polygon.",
+   "cap_group": "Name of the primitive group that receives the end cap polygons.",
+   "use_scale": "Enables the scale options.",
+   "scale_start": "Scale at the start and at the end of each backbone, interpolated by arc length.",
+   "use_pscale": "Multiplies the scale by the `pscale` point attribute of the backbone. This option is only read when Use Scale is on; with Use Scale off, `pscale` is always applied.",
+   "use_rotation": "Enables the rotation options.",
+   "up_x": "Up vector used to orient the first frame. Needs Use Rotation.",
+   "roll": "Rotates the cross section around the backbone, in degrees.",
+   "full_twists": "Number of complete turns the section makes from start to end.",
+   "partial_twist": "Additional twist from start to end, in degrees.",
+   "use_cross_opts": "Enables the cross section options.",
+   "cross_group": "Primitive group pattern selecting which curve of the cross input to use (the first in the group). Needs Use Cross Opts.",
+   "reverse_cross": "Reverses the point order of the cross section, flipping the face orientation. Needs Use Cross Opts.",
+   "stretch_around_turns": "Stretches the section at turns so the thickness looks constant. Without it the inside of a bend is pinched.",
+   "max_stretch": "Upper limit of the stretch factor at sharp turns.",
+   "use_uv": "Writes UV coordinates.",
+   "uv_attrib": "Name of the UV attribute."
+  },
+  "houdini_notes": "Also covers the uses of PolyWire and Wireframe (round-tube sweep of curves).",
+  "tips": [
+   "A circle created with the Circle node makes a good second-input cross section; use Reverse Cross Sections if the faces point inward."
+  ]
+ },
+ "PCG_TopoTransfer": {
+  "summary": "Fits the wiring of one mesh onto the shape of another.",
+  "description": "Moves the points of `geo` onto the surface of `target` while keeping the original topology. First the meshes are aligned: with a similarity transform from landmark pairs when enough are available, otherwise by bounding box. Then it iterates: project the points onto the target surface and smooth the displacement field. The smoothing fades out over the iterations and the last iteration is a pure projection, so all points end on the target, the point density is preserved and faces do not flip.\n\nLandmarks are an integer point attribute present on both meshes; points with equal values (0 or greater) are paired, and paired points are pinned in every iteration.",
+  "inputs": {
+   "geo": "The mesh whose topology is kept.",
+   "target": "The mesh whose shape is matched."
+  },
+  "outputs": {
+   "geo": "The input topology fitted onto the target shape.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "landmark_attribute": "Name of the integer point attribute on both meshes that pairs points. Equal values of 0 or more form a pair, and pairs are pinned every iteration.",
+   "prealign": "Aligns the mesh to the target before iterating: with a similarity transform when there are at least 3 landmark pairs, otherwise by bounding box.",
+   "iterations": "Number of project-and-smooth iterations.",
+   "smoothing": "Number of smoothing passes on the displacement field per iteration at the start; this decreases linearly to 0 by the last iteration, which is a pure projection.",
+   "stiffness": "Strength of each smoothing pass, from 0 to 1. Has no effect when Smoothing Steps is 0."
+  }
+ },
+ "PCG_Torus": {
+  "summary": "Creates a torus.",
+  "description": "Rows is the number of segments around the cross section and Columns the number of segments around the main circle. Both directions are periodic, so no duplicate end points are created (a duplicated ring would produce zero-area quads and undefined normals at the seam). This differs from Grid and Tube, where Rows/Columns count points rather than segments. The torus comes with periodic `uv`.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated torus."
+  },
+  "params": {
+   "plane": "The plane the main circle lies in.",
+   "radius": "Radius of the main circle (first value) and of the cross section (second value).",
+   "rows": "Number of segments around the cross section (not points).",
+   "cols": "Number of segments around the main circle.",
+   "center_x": "Center of the torus."
+  }
+ },
+ "PCG_TransformPieces": {
+  "summary": "Moves pieces of a fragmented geometry onto the matching points of a template, such as RBD output or a skeleton.",
+  "description": "The input is split into pieces by the `name` attribute (primitive attribute first, point attribute if the primitive one does not exist). Each piece is transformed by the instance attributes of the template point with the same name: `P`, `orient`, `N` + `up`, `scale`, `pscale`, `pivot` and `transform`, interpreted as in Copy to Points. Pieces without a matching template point are left alone and listed in the report.\n\nWith a rest input, the piece transform is the template composed with the inverse of the rest (for RBD exports and bones). Without it, the piece is first centered and then placed on the template point.",
+  "inputs": {
+   "geo": "The pieces to move.",
+   "template": "Points carrying the transform of each piece (position, orientation, scale...).",
+   "rest": "Optional points describing the rest transform of each piece. The piece transform becomes template times inverse rest."
+  },
+  "outputs": {
+   "geo": "The transformed pieces.",
+   "report": "Text summary, including pieces that found no template point."
+  },
+  "params": {
+   "attribute_mode": "*Match by Attribute* pairs a piece with the template point that has the same attribute value. *Index by Attribute* treats an integer attribute value as the template point number.",
+   "piece_attribute": "Name of the attribute that identifies pieces. It is read from primitives first, then from points.",
+   "invert_transformation": "Applies the inverse of the transform, moving pieces from the template back to their rest placement.",
+   "center_pieces": "Without a rest input, moves the center of each piece to the origin before transforming. Turn off for Houdini's behavior.",
+   "attributes_to_transform": "Space-separated attributes transformed along with `P`. An attribute named `N` is transformed as a normal; other three-component attributes as vectors. `P` is always transformed.",
+   "copy_template_attributes": "Copies attributes and groups from the template points onto the pieces.",
+   "attributes_to_copy": "Pattern of template attributes to copy.",
+   "groups_to_copy": "Pattern of template groups to copy."
+  },
+  "houdini_notes": "*Center Pieces* is an addition: when no rest input is connected, each piece is centered at the origin first. Turn it off to get Houdini's behavior."
+ },
+ "PCG_Tube": {
+  "summary": "Creates a tube, cylinder or cone with optional end caps.",
+  "description": "A tube along the chosen axis with separate bottom and top radii (a cone when one is zero). The radius scale multiplies both. Rows and Columns count points: rows along the height and columns around the circumference.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The generated tube."
+  },
+  "params": {
+   "orientation": "The axis the tube runs along.",
+   "caps": "Closes the ends with caps.",
+   "center_x": "Center of the tube.",
+   "rx": "Rotation in degrees (X, Y, Z).",
+   "radius1": "Radius at the bottom end (first value) and at the top end (second value).",
+   "radius_scale": "Scale applied to both radii.",
+   "height": "Length of the tube along its axis.",
+   "rows": "Number of points along the height.",
+   "cols": "Number of points around the circumference."
+  }
+ },
+ "PCG_Volume": {
+  "summary": "Creates a constant-value volume.",
+  "description": "Generates a volume sampled on a grid whose first and last grid points sit on the corners of the box. If the optional bound input is connected, its bounding box (expanded by Bounds Padding) defines the extent instead of Center and Size. A positive Voxel Size computes the resolution as extent divided by voxel size (voxels are cubes); otherwise Resolution is used. *Fog Volume* marks the field as a density (positive inside); when off it is an SDF.",
+  "inputs": {
+   "bound": "Optional geometry whose bounding box defines the extent."
+  },
+  "outputs": {
+   "geo": "The generated volume."
+  },
+  "params": {
+   "name": "Name of the volume.",
+   "value": "Value every voxel is initialized to.",
+   "fog": "Marks the volume as a fog (density) field. When off it is an SDF.",
+   "center_x": "Center of the volume. Not used when the bound input is connected.",
+   "size_x": "Size of the volume. Not used when the bound input is connected.",
+   "voxel_size": "Edge length of the cubic voxels. When greater than 0 the resolution follows from it and Resolution is ignored.",
+   "res_x": "Number of grid points along X, Y and Z.",
+   "padding": "Expands the bounding box of the bound input on all sides. Only used when bound is connected."
+  }
+ },
+ "PCG_Curve": {
+  "summary": "A curve drawn in the viewport, like Houdini's Curve SOP.",
+  "description": "Select the node and draw in the viewport: click to add points, drag points to move them, Ctrl + click a segment to insert a point, Delete over a point to remove it, and click the first point to close the curve. Points land on the displayed geometry when the click hits it, otherwise on a construction plane (see [Drawing curves](../concepts/viewing-and-export.md#drawing-curves)).\n\nThe points are stored as text in **Points**, one `x, y, z` per line, so the curve is saved with the workflow and can be edited by hand. Houdini's coordinate style `x,y,z x,y,z` on one line and `;` as a separator are also accepted; missing components are 0.\n\nWith fewer than two points the output is just the point (or nothing). **Close Curve** needs at least three points.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The curve."
+  },
+  "params": {
+   "points": "The curve's points, one `x, y, z` per line. Written by the viewport drawing tool.",
+   "prim_type": "*Polygon*: a polyline, or a closed polygon with Close Curve. *NURBS*: the points are control points of a clamped uniform NURBS curve. *Bezier*: the points are control points of a piecewise Bezier curve; if their number does not fit whole segments they are resampled by chord length, as in Convert.",
+   "closed": "Close the curve. For NURBS and Bezier the curve returns to its first point (the knot vector stays clamped, it is not made periodic).",
+   "order": "Order of the NURBS / Bezier curve (4 = cubic), clamped to the number of points.",
+   "reverse": "Reverse the point order."
+  },
+  "houdini_notes": "Covers Curve SOP's drawing, moving, inserting, deleting and closing, with Polygon, NURBS and Bezier primitive types. Tangent handles, per-point weights, the Bezier sub-modes (corner / smooth) and editing several curves in one node are not implemented. The points are kept as text in a parameter, like the old Curve SOP's Coordinates."
+ }
+}

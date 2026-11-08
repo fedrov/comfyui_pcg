@@ -1,0 +1,925 @@
+{
+ "PCG_PointSplit": {
+  "summary": "Splits points whose vertices carry different values of a vertex attribute into separate points.",
+  "description": "When several vertices share one point but disagree on a vertex attribute (a UV seam, a hard edge in `N`), the point is duplicated so that each distinct value gets its own point. Values are compared with a chained tolerance rather than by bucketing, so values that are within `tolerance` of each other through a chain of neighbours end up on the same point.\n\nWith an empty attribute name every vertex becomes its own point. With **Promote** on, the vertex attribute is also written as a point attribute of the same name on the new points.",
+  "inputs": {
+   "geo": "Geometry whose points should be split."
+  },
+  "outputs": {
+   "geo": "Geometry with the split points.",
+   "report": "Text summary of what was split."
+  },
+  "params": {
+   "group": "Group pattern limiting which points are split. Empty means all.",
+   "attribute": "Vertex attribute that decides the split. Leave empty to split every vertex into an independent point.",
+   "tolerance": "Two values closer than this are considered equal and stay on the same point.",
+   "promote": "Also write the split vertex attribute as a point attribute of the same name."
+  },
+  "houdini_notes": "Corresponds to Houdini's Split Points / Point Split behaviour for vertex attributes."
+ },
+ "PCG_PolyBevel": {
+  "summary": "Bevels edges of polygon geometry with an optional rounded, chamfered, solid or crease profile.",
+  "description": "Every polygon adjacent to a beveled edge is shrunk away from that edge, then the gaps are bridged: faces become inset polygons, edges become bridge strips, and points become n-gons around the original point. New points are moved off the original edge into their faces, so the result is a true edge bevel and not a vertex cut.\n\nThe selected edges are interior manifold edges whose two sides are both selected. **Group Type** decides how `group` is interpreted: an edge group directly, or primitives or points from which the edges are derived. **Ignore Flat Edges** skips edges whose two faces meet at less than **Maximum Normal Angle**.\n\nOutput groups mark the generated fillet polygons and, optionally, the edges between the bevel faces and the shrunk faces.\n\nAttributes and groups are carried over: new points copy the point attributes and point groups of the original point they come from, every new face takes the primitive attributes and groups of the face it was cut from (fillet strips from one adjacent face, corner patches from one face around the corner), and vertex attributes such as `uv` are copied from the corner of that face at the same original point. Detail attributes are kept.",
+  "inputs": {
+   "geo": "Polygon geometry to bevel."
+  },
+  "outputs": {
+   "geo": "Beveled geometry."
+  },
+  "params": {
+   "group": "Group pattern selecting what to bevel; its meaning depends on Group Type. Empty means all edges.",
+   "group_type": "How `group` is read. Guess from Group infers the class from the group name.",
+   "ignore_flat": "Skip edges whose adjacent faces are nearly coplanar (see Maximum Normal Angle).",
+   "max_normal_angle": "Edges whose two face normals differ by less than this angle (degrees) are not beveled.",
+   "distance": "Bevel width, measured along the faces from the original edge.",
+   "distance_scaling": "No Scaling uses Distance as is. Scale by Attribute multiplies it by a point attribute.",
+   "scale_attribute": "Point attribute that scales Distance per point.",
+   "limit_distance": "Clamp the distance to half of the shortest neighbouring edge at the ends of the beveled edge, a simplified version of Houdini's Collisions and Limits.",
+   "use_fillet": "Off produces a single-segment chamfer.",
+   "shape": "Round: curved profile. Chamfer: straight cut. Solid: one flat face per edge. Crease: the shape is unchanged and only a protective loop of edges is added on each side of the edge. None: faces are only pulled back, no bevel faces are created.",
+   "convexity": "Bulge of the Round profile: 1 is an outward arc, 0 is flat, -1 is an inward arc.",
+   "divisions": "Number of segments across the bevel.",
+   "use_out_groups": "Write the output groups below.",
+   "point_fillet_group": "Name of the polygon group holding the faces created at beveled points.",
+   "edge_fillet_group": "Name of the polygon group holding the faces created along beveled edges.",
+   "offset_group": "Name of an edge group holding the edges between the bevel faces and the pulled-back faces. Leave empty to not write it."
+  },
+  "houdini_notes": "Follows Houdini's PolyBevel, including the None shape, Ignore Flat Edges, Scale by Attribute (default `pscale`), Convexity and Offset Group. Distance limiting is the simplified half-shortest-neighbour-edge rule, not the full Collisions and Limits options."
+ },
+ "PCG_PolyBridge": {
+  "summary": "Builds a surface of polygons between two loops of edges, such as a tunnel or handle.",
+  "description": "**Source** and **Destination** are either primitive groups or point groups. For primitives that are faces, their outer boundary is used (and the faces are deleted if **Remove Source and Destination Faces** is on); for open curves the curve itself is used. Point groups describe the boundary of a hole.\n\nIf both loops have the same number of points the bridge is made of quads; otherwise triangles are zipped by arc length. The start points are aligned automatically and **Twist** shifts the pairing by a number of points. The bridge has **Divisions** segments, interpolated linearly or with Hermite curves that leave along the cap normals (handle versus tunnel direction is detected automatically).\n\nFace orientation is made consistent with neighbouring faces, so the result stays watertight after punching a tunnel. New polygons go to the output group.",
+  "inputs": {
+   "geo": "Geometry containing both loops."
+  },
+  "outputs": {
+   "geo": "Geometry with the bridge added.",
+   "report": "Text summary of the bridge."
+  },
+  "params": {
+   "source_group": "Group pattern for the source loop (primitives or points).",
+   "dest_group": "Group pattern for the destination loop (primitives or points).",
+   "divisions": "Number of segments along the bridge.",
+   "twist": "Shifts the start of the pairing by this many points for closed loops. Has no effect on open curves.",
+   "flip_direction": "Reverse the order of the destination loop before pairing.",
+   "interpolation": "Linear connects matching points with straight lines. Hermite leaves each loop along its cap normal.",
+   "magnitude": "Strength of the Hermite tangents. Negative values flip them.",
+   "remove_caps": "Delete the source and destination faces after bridging.",
+   "reverse_normals": "Flip the winding of the generated polygons.",
+   "output_group": "Name of the primitive group holding the new polygons."
+  }
+ },
+ "PCG_PolyDoctor": {
+  "summary": "Detects and optionally repairs common polygon problems, writing validity flags.",
+  "description": "Each check has its own mode. Ignore skips the check, Mark only flags the problem, Repair fixes it and flags what was changed. Checks cover ill-formed polygons, polygons with five or more edges, non-convex polygons, overlapping polygons (optionally in pairs), polygons with locally small areas, non-uniform polygons, globally and locally small edges, disconnected points and non-manifold points.\n\nPolygons that fail a check get `valid_poly = 0` and points get `valid_pt = 0`; polygons or points that were fixed get `repaired_poly = 1` or `repaired_pt = 1`. Attribute names are configurable and a group for each attribute can be created. Repairs run for at most **Max Passes** rounds.\n\n**Self-Intersecting Polygons** (mark only) flags polygons that pass through other polygons of the same mesh, found with Intersection Analysis on the repaired result; faces that share a point are not tested against each other.",
+  "inputs": {
+   "geo": "Polygon geometry to inspect."
+  },
+  "outputs": {
+   "geo": "Geometry with flags, and repairs applied where requested.",
+   "report": "Text report of the problems found and repaired."
+  },
+  "params": {
+   "max_passes": "Maximum number of repair rounds.",
+   "ill_formed": "Polygons that are degenerate or invalid.",
+   "five_plus": "Polygons with five or more edges.",
+   "non_convex": "Non-convex polygons.",
+   "overlapping": "Polygons that overlap other polygons.",
+   "pair_overlaps": "Also detect pairs of overlapping polygons.",
+   "local_area": "Polygons whose area is small compared to the largest edge-sharing neighbour.",
+   "local_area_threshold": "A polygon is flagged when its area is below this fraction of its largest neighbour's area (0.1 = one tenth).",
+   "non_uniform": "Polygons with an uneven shape. This check can only mark.",
+   "uniformity_threshold": "Isoperimetric quotient 4*pi*A / perimeter^2 (a circle is 1); polygons below this are non-uniform.",
+   "global_edges": "Edges that are short relative to the whole geometry.",
+   "global_edge_threshold": "Edges shorter than this fraction of the bounding box diagonal are flagged.",
+   "local_edges": "Edges that are short relative to the longest edge of a polygon containing them.",
+   "local_edge_threshold": "An edge is flagged when it is shorter than this fraction of the longest edge in a polygon that contains it.",
+   "disconnected": "Points not used by any primitive.",
+   "nonmanifold": "Points where the surface is non-manifold.",
+   "valid_poly": "Name of the primitive attribute set to 0 on invalid polygons.",
+   "repaired_poly": "Name of the primitive attribute set to 1 on repaired polygons.",
+   "valid_pt": "Name of the point attribute set to 0 on invalid points.",
+   "repaired_pt": "Name of the point attribute set to 1 on modified points.",
+   "create_groups": "Also create a group for each attribute, named with a `_grp` suffix.",
+   "self_intersecting": "Mark polygons that pass through other polygons of the mesh (Ignore / Mark)."
+  },
+  "houdini_notes": "Partial implementation of PolyDoctor. Non-Uniform Polygons can only be marked. For general cleanup, PCG_Clean remains available."
+ },
+ "PCG_PolyExpand2D": {
+  "summary": "Offsets a planar curve network inward and outward by a constant distance.",
+  "description": "Produces offset curves (or the surface between input and offset) for a planar network of curves. Rather than just pushing each edge, the node builds mitered offsets that may self-intersect and then cuts away every part whose midpoint is closer than **Offset** to the input. What remains matches a straight-skeleton offset, with no event queue and therefore no degenerate-event ordering problems.\n\nInside and outside come from the faces of the input itself: the input is treated as a planar graph (welded, split at intersections, traversed by angle). Bounded faces offset inward give *inside*; the unbounded face offset inward expands outward and gives *outside*. A tree-shaped network has no bounded face, so it only has an outside loop around the whole network.\n\nOpen curve ends get a square cap extended by Offset along the tangent. A flat cap would lie at distance 0 and be trimmed away, breaking the loop. With **Split Offset Curves to Omit End Caps** the three cap segments are removed and two lines along the sides remain.",
+  "inputs": {
+   "geo": "Planar curve network."
+  },
+  "outputs": {
+   "geo": "Offset curves or surfaces."
+  },
+  "params": {
+   "group": "Group pattern limiting which primitives are offset. Empty means all.",
+   "positions_2d": "How the 2D plane is chosen. Fit Plane fits a plane to the points; Select Projection Plane uses the origin and normal below.",
+   "plane_origin_x": "Point on the projection plane (used with Select Projection Plane).",
+   "plane_distance": "Moves the plane along its normal. It is also read in Fit Plane mode.",
+   "plane_normal_x": "Normal of the projection plane (used with Select Projection Plane).",
+   "output": "Offset Curves outputs only the offset lines. Offset Surfaces also fills the band between input and offset lines with triangles (road network to road surface).",
+   "offset": "Offset distance.",
+   "divisions": "When greater than 1, outputs rings at evenly spaced distances up to Offset.",
+   "side_determination": "How results are classified as inside or outside. Simple Reachability uses the face group the offset belongs to; Winding Number tests against the winding number of the input.",
+   "output_inside": "Keep results that lie inside bounded faces of the input.",
+   "output_outside": "Keep results that lie outside, around the unbounded face.",
+   "keep_input_geometry": "Merge the input back into the output.",
+   "split_offset_curves_to_omit_end_caps": "Remove the cap segments at open curve ends, leaving two side lines.",
+   "create_output_groups": "Write the inside and outside groups.",
+   "inside_group": "Name of the group for inside results.",
+   "outside_group": "Name of the group for outside results.",
+   "edge_distance_attribute": "If set, writes the offset distance of each result curve or triangle to a point attribute of this name. Leave empty to not write it.",
+   "edge_speed_attribute": "Name of a primitive or point attribute that scales the offset speed of each input edge (point attributes are averaged over the edge ends). Leave empty for uniform speed.",
+   "coincidence_tolerance": "Points closer than this are welded when the input is turned into a planar graph.",
+   "parallelism_tolerance": "Tolerance used when intersecting edges and treating adjacent edges as parallel.",
+   "on_failure": "What to do if the skeleton construction fails: raise an error, keep the input with a warning, or output nothing.",
+   "recompute_point_normals": "Recompute `N` on the result. Only relevant when Keep Input Geometry merges input with faces back in."
+  },
+  "houdini_notes": "Does not implement a straight skeleton with an event queue. It trims a self-intersecting mitered offset by distance to the input, which gives the straight-skeleton offset without degenerate-event ordering problems."
+ },
+ "PCG_PolyFill": {
+  "summary": "Closes open boundary loops with new polygons.",
+  "description": "Clip, Blast and Delete leave openings, while volume computation, booleans and Voronoi fracture all want closed geometry. PolyFill finds the boundary loops of the input and caps each one.\n\nThe winding of the new face is the reverse of the boundary half-edges, so the cap normal agrees with the neighbouring faces. Fill modes: **Single Polygon** covers the hole with one n-gon (no points added; best for planar holes), **Triangle Fan** adds a point at the hole centre and fans triangles (use it for non-planar holes, where an n-gon would twist), **Triangles** ear-clips without adding points and handles concave holes, **Quadrilateral Fan** adds a centre point and makes one quad per two boundary edges (an odd count leaves one triangle), **Quadrilaterals** folds the loop into two chains and joins them quad by quad without new points (like a single polygon it suits convex, roughly flat holes), and **Quadrilateral Grid** treats the loop as the four sides of a patch and fills it with a Coons-interpolated quad grid. If the edge count is odd, the grid mode falls back to Quadrilaterals.",
+  "inputs": {
+   "geo": "Geometry with open boundaries."
+  },
+  "outputs": {
+   "geo": "Geometry with the holes filled."
+  },
+  "params": {
+   "mode": "How each hole is filled; see the description for the six modes.",
+   "max_sides": "0 fills every hole. A positive value fills only holes with at most that many boundary edges, which closes small holes without sealing a deliberately open model.",
+   "planar_tolerance": "-1 ignores planarity. A value of 0 or more fills only holes that are flat to within that tolerance.",
+   "output_group": "Name of a primitive group that receives the new polygons. Leave empty to not write one."
+  }
+ },
+ "PCG_PolyPath": {
+  "summary": "Joins polylines whose end points touch into the longest possible curves, without creating any edges.",
+  "description": "Resample, Carve, Sweep and PolyExpand2D all work per primitive, so a curve has to be one primitive for them to know what \"along the curve\" means. Upstream nodes often deliver many fragments (a Clip, or Convert Line output, or several merged lines whose ends coincide but are different points). PolyPath chains them into longer primitives.\n\nIt never creates an edge: only end points that already coincide are connected, the shape is unchanged, and only the assignment of points to primitives changes. (Join, in contrast, forces connections and adds straight segments where ends do not meet.)\n\nEach input polyline is an atomic unit and only its two end points take part in connections. A long polyline that another line happens to cross in the middle is therefore kept whole, which differs from Houdini's PolyPath. Polylines that are already broken have to be split with Dissolve or Blast first.\n\nFaces and closed primitives are not touched; they pass through unchanged. When two end points are within **Point Tolerance** but not the same point, the one that comes first is kept and positions are not averaged, so the geometry does not move. Use Fuse first if you want both to move.",
+  "inputs": {
+   "geo": "Geometry containing the polylines to join."
+  },
+  "outputs": {
+   "geo": "Geometry with chained polylines."
+  },
+  "params": {
+   "group": "Group pattern selecting which primitives take part. Empty means all.",
+   "tolerance": "0 only joins ends that are the same point. A positive value also joins ends within this distance, keeping the first point encountered.",
+   "junction": "What to do where three or more lines meet at one end point. Split at Junctions stops there (Houdini's behaviour, most conservative). Continue Straightest continues along the line that turns least, limited by Max Turn Angle (the choice for road networks). Continue Any joins in an arbitrary order.",
+   "max_angle": "Largest turn, in degrees, that Continue Straightest accepts at a junction. It only applies at junctions: where just two lines meet they are always joined.",
+   "match_attribute": "Primitive attribute that must be equal on two lines for them to be joined (for example road class). Leave empty for no restriction.",
+   "close_loops": "When a chain returns to its start, close it into a closed curve.",
+   "prim_attribs": "Keep First gives the joined primitive the attributes of the first piece. Drop removes primitive attributes.",
+   "remove_unused_points": "Delete points no longer referenced by any primitive."
+  },
+  "houdini_notes": "Houdini's PolyPath breaks inputs into edges and re-chains them, which splits a long polyline where another line happens to cross it. This node treats each polyline as a unit and only connects end points."
+ },
+ "PCG_PolyReduce": {
+  "summary": "Reduces triangle or point count with quadric error edge collapse.",
+  "description": "Implements Garland-Heckbert quadric error metric (QEM) edge collapse. Each point carries a 4x4 quadric (the area-weighted sum of squared distances to its planes); collapsing an edge adds the two quadrics, so error accumulates over successive collapses and the node does not keep eating the same spot.\n\nThe input is triangulated first and the output is always triangles (there is no Preserve Quads). **Boundaries** is usually the most important value: without it QEM happily eats away the border of flat meshes. Crease edges work through the same mechanism with their own weight. **Soft Points** add a cost for moving away from the original position, and **Hard Edges** lock both of their end points.\n\nWith **Preserve UVs** only half-edge collapses are performed, points on UV seams and hard edges are locked, and vertex attributes are rewritten along the way, so an LOD shares the textures of the original. This node is the only greedy serial algorithm in the plugin; reduction cannot be computed as one batch.",
+  "inputs": {
+   "geo": "Mesh to reduce."
+  },
+  "outputs": {
+   "geo": "Reduced triangle mesh."
+  },
+  "params": {
+   "group": "Group pattern limiting the reduction to part of the mesh. Empty means all.",
+   "target": "The input is triangulated first. The two triangle options count triangles; the two point options count points. Percentage options use Percent to Keep, count options use Number to Keep.",
+   "keep_percent": "Percentage of triangles or points to keep.",
+   "target_count": "Number of triangles or points to keep.",
+   "max_normal_flip": "A collapse is rejected if it would rotate a face normal by more than this angle (degrees).",
+   "position": "Where the merged point is placed. Optimal minimises the quadric error, Midpoint uses the middle of the edge, Original Points keeps one of the end points. Forced to Original Points when Preserve UVs is on.",
+   "preserve_uvs": "Half-edge collapses only; locks points on UV seams and hard edges and rewrites vertex attributes, so LODs share the original textures.",
+   "boundary_weight": "How strongly open boundaries resist collapse. 0 lets the border erode, and a flat grid reduced hard collapses to a thin strip; around 4 keeps the area intact.",
+   "lock_boundary": "Never move or remove points on open boundaries.",
+   "lock_group": "Group pattern of points that are never changed.",
+   "hard_edges": "Edge group whose end points are all locked.",
+   "soft_points": "Group pattern of points that get an extra cost for moving from their original position.",
+   "soft_weight": "Strength of the cost applied to Soft Points.",
+   "crease_group": "Edge group of soft crease edges that are protected by extra constraint planes.",
+   "crease_weight": "Strength of the protection on Soft Edges. High values make crease edges very expensive to collapse."
+  },
+  "houdini_notes": "The output is always triangles; Houdini's Preserve Quads is not implemented."
+ },
+ "PCG_PolySpline": {
+  "summary": "Converts polylines into smooth spline curves sampled as polylines.",
+  "description": "Each selected curve is interpreted as control points of the chosen **Spline Type** and sampled with **Sample Divisions** samples per span. Catmull-Rom passes through the points, with an Alpha that selects uniform, centripetal or chordal parametrisation; BSpline approximates (C2, does not pass through interior points); Interpolating (C2) passes through the points and is C2, solving a tridiagonal system for the control points; Bezier and Degree 2 Bezier take the points as control points, three (or two) per segment with shared end points; Cardinal passes through the points with tangents scaled by CV Tension; Linear gives straight segments.\n\nOpen curves pass through both end points. Numeric point attributes are interpolated with the same weights as `P`.\n\nA Division Method other than Standard resamples the result afterwards with equal arc length or equal distance along one axis.",
+  "inputs": {
+   "geo": "Geometry with the polylines to smooth."
+  },
+  "outputs": {
+   "geo": "Smoothed curves.",
+   "report": "Text summary of how many curves were processed."
+  },
+  "params": {
+   "group": "Group pattern selecting the curves. Empty means all.",
+   "basis": "Spline type; see the description.",
+   "close": "Off and On force open or closed (closing needs at least three points). If polygon does follows each primitive's own closed flag.",
+   "division_method": "Standard keeps the sample divisions as they are. The other methods resample the spline: Even Length uses equal chord lengths between neighbouring points, Even X/Y/Z uses equal distance along that axis.",
+   "segment_length": "Target length for the resampling. 0 means use Output Divisions instead.",
+   "output_divisions": "Number of output segments for the resampling when Segment Length is 0. If both are 0 no resampling happens.",
+   "divisions": "Number of samples evaluated per span of the spline.",
+   "first_cv_count": "How many times the first control point is repeated before the spline is evaluated.",
+   "last_cv_count": "How many times the last control point is repeated before the spline is evaluated.",
+   "tension": "Cardinal tension: 0 is a uniform Catmull-Rom, 1 gives zero tangents.",
+   "alpha": "Catmull-Rom parametrisation: 0 uniform, 0.5 centripetal, 1 chordal."
+  },
+  "houdini_notes": "Alpha is an addition to Houdini. Houdini's Special Bezier and Special Smooth Bezier types are not implemented."
+ },
+ "PCG_Primitive": {
+  "summary": "Transforms each selected primitive around its own center and offsets it along its normal.",
+  "description": "Every selected primitive is translated, rotated and scaled around its own center (shifted by **Pivot**), then moved along its own normal by **Normal Offset**. If **Scale Attribute** names a primitive attribute, the scale is multiplied by it. **Unshare Points** first separates the points of the selected primitives; without that, a shared point would be pulled by whichever primitive is processed last.\n\nThe Attributes section can add or remove `Cd` and `Alpha` on the selected primitives. The curve and surface section closes or opens polygons and polylines, and applies the same vertex operations as the Reverse node (reverse, swap UV, shift).",
+  "inputs": {
+   "geo": "Geometry whose primitives should be transformed."
+  },
+  "outputs": {
+   "geo": "Geometry with transformed primitives."
+  },
+  "params": {
+   "group": "Group pattern selecting the primitives. Empty means all.",
+   "xform_order": "Order in which scale, rotate and translate are applied, read left to right.",
+   "rotate_order": "Order of the three axis rotations.",
+   "translate_x": "Translation of each primitive.",
+   "rotate_x": "Rotation in degrees.",
+   "scale_x": "Non-uniform scale around the primitive center.",
+   "shear_xy": "Shear values XY, XZ and YZ: x += xy*y + xz*z, y += yz*z. Applied immediately after scaling.",
+   "pivot_x": "Pivot of the rotation and scale, relative to each primitive's own center. 0 is the center.",
+   "uniform_scale": "Extra scale factor applied to all axes.",
+   "scale_attribute": "Primitive attribute that multiplies the scale. Leave empty to not use one.",
+   "normal_offset": "Distance to move each primitive along its own normal.",
+   "unshare_points": "Split the selected primitives' points from their neighbours before transforming.",
+   "color_mode": "Add writes the primitive attribute `Cd` on the selected primitives; Remove deletes it.",
+   "color_r": "Color written when Color is Add.",
+   "alpha_mode": "Add writes the primitive attribute `Alpha` on the selected primitives; Remove deletes it.",
+   "alpha": "Alpha value written when Alpha is Add.",
+   "close_u": "Open or close polygons and polylines. Houdini's two Unroll options are not implemented.",
+   "vertex_op": "Vertex order operation, same implementation as the Reverse node.",
+   "u_offset": "Shift amount in U. Only meaningful for NURBS or Bezier surfaces (grids).",
+   "v_offset": "Shift amount in V. Only meaningful for NURBS or Bezier surfaces (grids)."
+  },
+  "houdini_notes": "Transform Order, Rotate Order, Shear and Pivot are provided as in Houdini's Primitive SOP; the Unroll options of Close U are not implemented."
+ },
+ "PCG_PrimitiveSplit": {
+  "summary": "Splits shared points so that primitives with different attribute values no longer share them.",
+  "description": "Primitives whose primitive attribute values differ by more than **Tolerance** (strings are compared for equality) stop sharing points: a point shared by several kinds of primitives is duplicated, one copy per kind. Primitives outside `group` form one class of their own and keep sharing points among themselves.",
+  "inputs": {
+   "geo": "Geometry with shared points."
+  },
+  "outputs": {
+   "geo": "Geometry with points split per attribute class.",
+   "report": "Text summary of the split."
+  },
+  "params": {
+   "group": "Group pattern limiting which primitives are split by attribute. Empty means all.",
+   "attribute": "Primitive attribute that decides the classes.",
+   "tolerance": "Numeric differences larger than this separate primitives. Strings are compared for equality."
+  }
+ },
+ "PCG_PolyExtrude": {
+  "summary": "Extrudes polygons along their normals, a fixed direction or a spine curve, with inset, twist and divisions.",
+  "description": "Extrudes the selected primitives and creates front, back and side polygons. **Divide Into** decides what counts as one region: Connected Components extrudes touching selected faces together, so side walls appear only where the two sides of an edge belong to different regions; Individual Elements extrudes every face on its own.\n\nInset uses angle-bisector miters scaled by 1/sin(half angle), so every edge moves in by the same perpendicular distance. **Limit Insetting** clamps the inset before edges flip.\n\nIf the `spine` input is connected and **External Spine** is on, the faces are swept along the spine curve using a rotation-minimising frame, initialised per region from the face's own axis, so there is no spurious twist between face orientation and the spine's normal plane. Distance and Twist are then ignored; the spine decides the length.\n\nGroups: front, back and side polygons can be written to groups. Upstream groups are inherited by the front and back faces only, not by the side walls, which are new geometry.",
+  "inputs": {
+   "geo": "Geometry with the polygons to extrude.",
+   "spine": "Optional curve to sweep along. Used only when External Spine is on; otherwise the extrusion is straight."
+  },
+  "outputs": {
+   "geo": "Extruded geometry."
+  },
+  "params": {
+   "group": "Group pattern selecting the primitives to extrude. Empty means all.",
+   "divide_into": "Connected Components treats touching selected faces as one region; Individual Elements extrudes each face separately.",
+   "extrusion_mode": "Primitive/Edge Normal moves along face normals. Point Normal moves each point along its own point normal (`N`, computed if missing). Has no effect when Specified Direction is on or a spine is used.",
+   "use_direction": "Off extrudes along the face normal (Houdini's Primitive Normal). On moves all points along the same direction.",
+   "dir_x": "Extrusion direction used when Specified Direction is on.",
+   "distance": "Extrusion length. Not used when a spine is applied.",
+   "inset": "Moves the extruded front inward (negative values outward) by this perpendicular distance.",
+   "twist": "Rotates the front around the extrusion direction, in degrees, progressively over the divisions. Not used when a spine is applied.",
+   "divisions": "Number of segments along the extrusion; each gives a ring of side polygons.",
+   "use_spine": "Sweep along the connected spine curve. Without a connected curve the extrusion stays straight.",
+   "up_x": "Up vector used to orient the frame along the spine.",
+   "transform_front": "Apply an extra transform to the extruded front.",
+   "front_tx": "Translation of the front.",
+   "front_rotate": "Rotation of the front around the extrusion direction, in degrees.",
+   "front_scale": "Uniform scale of the front, around its centroid.",
+   "use_output": "Off uses the defaults of this section: output front and sides, with group names `extrudeFront` and `extrudeSide`.",
+   "output_front": "Keep the front polygons.",
+   "front_group": "Group name for the front polygons.",
+   "output_back": "Keep the original (back) polygons.",
+   "back_group": "Group name for the back polygons.",
+   "output_side": "Create side wall polygons.",
+   "side_group": "Group name for the side polygons.",
+   "front_seam_group": "Point group of the loop where the side walls meet the front. Leave empty to not write it.",
+   "back_seam_group": "Point group of the loop where the side walls meet the back. Leave empty to not write it.",
+   "preserve_groups": "Front and back faces inherit the upstream groups. Side walls do not.",
+   "limit_insetting": "Clamp the inset so edges cannot flip.",
+   "use_common_limit": "Use one limit (the smallest over all regions) for everything. Off limits each region separately.",
+   "add_vertex_normals": "Compute vertex normals on the result, split at the Cusp Angle.",
+   "cusp_angle": "Angle in degrees above which vertex normals are split.",
+   "use_local": "Scale distance and inset per point or primitive with attributes.",
+   "distance_attrib": "Point or primitive attribute that multiplies Distance per element. Not used in external spine mode.",
+   "inset_attrib": "Attribute that multiplies Inset per element.",
+   "side_uv": "Generate unwrapped UV coordinates on the side walls: u along the accumulated boundary length, v along the extrusion.",
+   "uv_style": "Proportional uses real edge lengths for u. Uniform gives each wall segment a unit-length span."
+  }
+ },
+ "PCG_Ray": {
+  "summary": "Projects points onto collision geometry by ray casting or by nearest surface point.",
+  "description": "Typically used to drop scattered points onto terrain, or to shrink a shell onto a model. **Project Rays** casts each point along a direction (or its normal) and finds the intersection; **Minimum Distance** finds the closest surface point.\n\nPoints that miss are left where they are. Use **Hit Group** to let downstream nodes decide whether to delete or keep them. Hit information can be written to point attributes (distance, primitive number, UV, position, normal), and point attributes of the collision geometry can be transferred by nearest-vertex lookup. If the collision geometry has its own `N`, the hit normal is interpolated from it; otherwise the face normal is used.",
+  "inputs": {
+   "geo": "Geometry whose points are projected.",
+   "collision": "Geometry to project onto."
+  },
+  "outputs": {
+   "geo": "Geometry with moved points and optional hit attributes."
+  },
+  "params": {
+   "group": "Group pattern of points that take part. Empty means all.",
+   "method": "Minimum Distance snaps to the closest point on the surface. Project Rays casts rays along a direction.",
+   "use_point_normals": "Use each point's `N` attribute as the ray direction. Errors if `N` is missing.",
+   "direction_x": "Ray direction when point normals are not used.",
+   "reverse": "Flip the ray direction.",
+   "both_directions": "Also accept hits behind the point. The closer of the front and back hits wins (the farther one with Intersect Farthest Surface); the stored distance is negative for a hit behind the point.",
+   "intersect_farthest": "Use the farthest hit along the ray instead of the nearest.",
+   "max_distance": "0 means unlimited. Otherwise it limits the search distance, which also speeds up nearest point queries considerably.",
+   "transform_points": "Move hit points to the hit position. Off leaves positions and only writes attributes and the group.",
+   "scale": "Fraction of the way to the hit position: 1 moves all the way, 0.5 halfway.",
+   "lift": "Extra offset along the hit normal after moving.",
+   "hit_group": "Name of a point group to which points that hit are added. Leave empty to not write it.",
+   "distance_attribute": "Point attribute for the hit distance. In Project Rays it is signed: hits behind the point are negative.",
+   "hitprim_attribute": "Point attribute for the number of the hit primitive (-1 on miss).",
+   "hituv_attribute": "Point attribute for the hit's barycentric coordinates.",
+   "hitpos_attribute": "Point attribute for the hit position (the original position on a miss).",
+   "normal_attribute": "Point attribute for the hit normal.",
+   "transfer_attributes": "Pattern of collision point attributes to copy to the hit points, taken from the nearest corner of the hit triangle."
+  }
+ },
+ "PCG_Refine": {
+  "summary": "Inserts, removes or subdivides points along curves at parametric positions.",
+  "description": "Unlike Resample, which discards the original points, Refine only inserts points between existing ones. Existing points, attributes and numbering stay untouched and new points are always appended at the end, so unselected primitives keep their vertex lists and shared points on meshes are not split apart.\n\nOperations: **Refine** inserts a point at First U and/or Second U; **Subdivide** divides the range between First U and Second U into U Divisions parts; **Unrefine** removes points whose removal barely changes the shape (a Douglas-Peucker test with Tolerance).\n\n**Parameter Space** decides how u is measured: by vertex index (uniform domain) or by arc length. These differ a lot on curves with uneven point spacing.",
+  "inputs": {
+   "geo": "Geometry with curves to refine."
+  },
+  "outputs": {
+   "geo": "Geometry with points inserted or removed."
+  },
+  "params": {
+   "group": "Group pattern of curve primitives to refine. Empty means all.",
+   "mode": "Refine inserts points, Unrefine removes redundant points, Subdivide divides a parameter range evenly.",
+   "first_u": "First parametric position, 0 to 1.",
+   "use_first_u": "Enable the First U position.",
+   "second_u": "Second parametric position, 0 to 1.",
+   "use_second_u": "Enable the Second U position.",
+   "spacing": "Uniform Domain measures u by vertex index; Uniform Arc Length measures it by arc length.",
+   "u_divisions": "Number of parts the range is divided into (Subdivide only).",
+   "nurb_count_u": "Number of coincident points inserted at each position (the knot multiplicity of a spline). Refine only.",
+   "tolerance": "Maximum shape deviation allowed when removing a point (Unrefine only)."
+  },
+  "houdini_notes": "The V direction is not implemented because polygon meshes have no global (u,v) parameterisation. Knot insertion on spline primitives is not implemented either; convert the spline first, otherwise the node reports an error."
+ },
+ "PCG_Remesh": {
+  "summary": "Rebuilds a triangle mesh with uniform, isotropic triangles of a target edge length.",
+  "description": "Isotropic remeshing after Botsch and Kobbelt (2004). Each iteration splits long edges, collapses short ones, flips edges to equalise valence, applies tangential smoothing and projects the points back onto the original surface. If Target Size is 0 or less, the average edge length of the input is used. Hard edges (dihedral angle above **Hard Edge Angle**) and boundaries (with **Keep Boundary**) are preserved, so the corners and edges of a cube survive.\n\nPoint, primitive and vertex attributes are interpolated from the nearest original triangle. UV seams are not preserved; re-unwrap afterwards if you need UVs. The report lists the number of splits, collapses and flips and the fraction of edges within the target range.\n\nWith a `group`, only those faces are remeshed and the rest is left untouched.",
+  "inputs": {
+   "geo": "Triangle mesh to remesh."
+  },
+  "outputs": {
+   "geo": "Remeshed geometry.",
+   "report": "Text report of the split, collapse and flip counts and the edge length statistics."
+  },
+  "params": {
+   "group": "Group pattern of faces to remesh. Empty means all.",
+   "hard_edges": "Edge group of edges that may be split but always stay in the output.",
+   "hard_points": "Point group of points that stay in the output (they are not moved or collapsed).",
+   "uv_seams": "Harden treats UV island borders as hard edges.",
+   "uv_attribute": "Name of the UV attribute used to find the seams.",
+   "iterations": "Number of split / collapse / flip / smooth rounds.",
+   "relax": "Strength of the tangential smoothing.",
+   "detach": "Off: new points split on the border to the unselected faces are also inserted into those neighbouring faces, so both sides share the points. On: the remeshed part is detached from the rest.",
+   "target_length": "Desired edge length. 0 means use the average edge length of the input.",
+   "feature_angle": "Dihedral angle in degrees above which an edge is hard. A value of 180 or more disables hard edge detection.",
+   "keep_boundary": "Preserve open boundaries.",
+   "transfer_attributes": "Interpolate attributes from the original mesh onto the new one.",
+   "out_hard_edges": "Name of the output edge group holding the hard edges (including boundaries and seams). Leave empty to not write it.",
+   "smooth_features": "When on, a hard edge or boundary that is split gets its new point on a smooth curve through the neighbouring feature points (four-point subdivision) instead of on the straight segment, so a coarse curved rim becomes round as it is refined. Corners and turns of 60 degrees or more stay sharp. Off (default) keeps new points on the original edges, as Houdini does. Interface edges of a partial remesh are never curved."
+  },
+  "houdini_notes": "Hard Edge Angle at 180 or more (disabling hard edges) and the Keep Boundary switch are extensions; Houdini always keeps boundaries. Edge Lengths = Adaptive is not implemented. Smooth Feature Lines is an extension."
+ },
+ "PCG_RemeshToGrid": {
+  "summary": "Rebuilds a surface as a closed all-quad mesh from a voxelised signed distance field.",
+  "description": "Computes an exact SDF on cubic voxels aligned to multiples of Voxel Size, then extracts a closed all-quad mesh using surface nets. **Project to Surface** moves the points back onto the original surface; **Smooth Iterations** runs tangential relaxation (re-projecting after every round when projection is on). Point attributes are carried over by barycentric interpolation at the nearest point.\n\nSharp edges are rounded; use Remesh if you need to keep creases.",
+  "inputs": {
+   "geo": "Surface to rebuild."
+  },
+  "outputs": {
+   "geo": "All-quad closed mesh.",
+   "report": "Text summary of the result."
+  },
+  "params": {
+   "group": "Group pattern of primitives that are used. Empty means all.",
+   "voxel_size": "Edge length of the cubic voxels, which sets the quad size.",
+   "project": "Project points back onto the original surface.",
+   "smooth": "Number of tangential relaxation rounds. Without Project the points are not projected back and may drift slightly off the original surface.",
+   "smooth_strength": "Strength of each relaxation round.",
+   "transfer_attributes": "Carry point attributes over from the input."
+  }
+ },
+ "PCG_Resample": {
+  "summary": "Resamples curves into evenly spaced points by length or segment count.",
+  "description": "Resamples curves with equal-length segments, or equal steps along one axis. NURBS and Bezier curves are evaluated on the curve itself before sampling, not measured on the control polygon, since the two can differ greatly. Closed polygons are sampled all the way around (including the closing edge) and stay closed.\n\n**Limit By** replaces Houdini's two switches: *Maximum Segment Length* samples by **Length** (optionally capped by Maximum Segments); *Segment Count* produces exactly **Segments** segments. With **Allow Primitive Attributes to Override Parameters** the primitive attributes `segment_length` and `num_segments` replace Length and Segments; values of 0 or less turn off the respective switch.\n\nOptional output attributes record the curve parameter, distance along the curve, tangent and curve number.",
+  "inputs": {
+   "geo": "Geometry with curves to resample."
+  },
+  "outputs": {
+   "geo": "Resampled curves."
+  },
+  "params": {
+   "group": "Group pattern of primitives to resample. Empty means all.",
+   "maintain_prim_order": "Off places the resampled curves after the unselected primitives.",
+   "resample_by_edge": "Resample each polygon edge on its own, keeping all corners. Only for straight-edged polygons.",
+   "measure_method": "Even Length uses equal lengths. Even X/Y/Z uses equal steps along that axis.",
+   "measure": "Along Arc keeps the curve length between samples equal. Along Chord keeps the straight-line distance between samples equal.",
+   "treat_polygons_as": "Straight Edges samples the polygon as drawn. Subdivision Curves treats points as control points, pulling the curve inside. Interpolating Curves passes through every point. The density for the curved options is Samples per Span.",
+   "method": "Maximum Segment Length samples by length; Segment Count produces an exact number of segments.",
+   "length": "Maximum length of each segment.",
+   "max_segments": "If the length-based count would exceed this, exactly this many segments are used instead.",
+   "use_max_segments": "Enable the Maximum Segments cap.",
+   "segments": "Exact number of segments.",
+   "attrib_override": "Let the primitive attributes `segment_length` and `num_segments` override Length and Segments. Values of 0 or less disable the corresponding switch.",
+   "even_last_segment": "Round the segment count, then divide the total length evenly so all segments are equally long. Off steps strictly by Length and leaves a shorter last segment.",
+   "maintain_last_vertex": "When segments are not evened, keep the original end point of the curve even if the leftover tail is shorter than one step.",
+   "randomize_first": "Make the first segment's length Length times a random number (seeded by the primitive number).",
+   "create_only_points": "Output only points, no curves.",
+   "subdivide_later": "Output polygon curves whose points are the control points of a subdivision curve, intended to be subdivided later.",
+   "use_spline_opts": "Enable Samples per Span.",
+   "spline_samples": "Density used to evaluate NURBS and Bezier curves before sampling, and when Treat Polygons As densifies.",
+   "use_out_attribs": "Write the output attributes below.",
+   "curveu_attrib": "Point attribute for the normalised position along the curve (0 to 1).",
+   "distance_attrib": "Point attribute for the arc-length distance along the curve.",
+   "tangent_attrib": "Point attribute for the unit tangent.",
+   "curvenum_attrib": "Point attribute for the number of the source curve."
+  }
+ },
+ "PCG_Reverse": {
+  "summary": "Reorders the vertices of primitives: reverse, swap U/V or shift.",
+  "description": "Every operation is turned into a corner permutation per primitive, and then the vertex-to-point map, all vertex attributes and vertex groups are reordered together. A simple reversal and U/V surface operations follow the same path, so no kind of data is left behind.\n\nReverse V and Swap UV are only meaningful on NURBS or Bezier surfaces; polygons have no V direction.",
+  "inputs": {
+   "geo": "Geometry whose primitives should be reordered."
+  },
+  "outputs": {
+   "geo": "Geometry with reordered vertices."
+  },
+  "params": {
+   "group": "Group pattern of primitives. Empty means all.",
+   "mode": "Vertex operation. Reverse flips the winding (and so the normal of polygons).",
+   "use_shift": "Enable the offsets. When off, the offsets are treated as 0.",
+   "u_offset": "Shift in U, in vertices.",
+   "v_offset": "Shift in V. Only meaningful on NURBS or Bezier surfaces (grids)."
+  },
+  "houdini_notes": "Enable Shift is an addition; Houdini has no such switch."
+ },
+ "PCG_Shrinkwrap": {
+  "summary": "Wraps geometry in a single closed manifold shell by rolling a sphere over it from outside.",
+  "description": "A sphere of the given **Wrap Radius** rolls over the geometry from the outside; the boundary of the region it cannot reach becomes the shell. Gaps, holes and grooves narrower than twice the radius are bridged, wider concavities are followed. Open meshes, loose pieces and interpenetrating parts all end up in one closed manifold surface. A radius approaching infinity gives the convex hull.\n\n**Offset** pushes the whole shell outward. With **Project to Surface** the points that touch the input are snapped onto it exactly (and added to the point group `contact`); **Smooth Iterations** applies tangential relaxation. Accuracy is one voxel (Voxel Size, aligned to world coordinates).",
+  "inputs": {
+   "geo": "Geometry to wrap."
+  },
+  "outputs": {
+   "geo": "Closed shell around the input.",
+   "report": "Text summary of the result."
+  },
+  "params": {
+   "group": "Group pattern of primitives to wrap. Empty means all.",
+   "voxel_size": "Voxel size of the working grid; also the accuracy of the result.",
+   "radius": "Radius of the rolling sphere. Gaps narrower than twice this are bridged; larger values approach the convex hull.",
+   "offset": "Pushes the shell outward by this distance. It cannot exceed the radius.",
+   "project": "Snap points that touch the input exactly onto its surface. These points go to the group `contact`.",
+   "smooth": "Number of tangential relaxation rounds.",
+   "smooth_strength": "Strength of each relaxation round."
+  }
+ },
+ "PCG_Smooth": {
+  "summary": "Applies Laplacian smoothing to points and other attributes.",
+  "description": "Each iteration moves every point towards the (weighted) centroid of its neighbours by **Strength**, which is a per-iteration step, unlike Houdini's Strength. Border points are pinned by default; otherwise an open mesh shrinks inwards with every pass.\n\nThe weights depend on **Method**: Uniform weights all neighbours equally; Scale-Dominant weights by 1/edge length, which preserves relative edge lengths; Curvature-Dominant uses cotangent weights, which move points almost only along the normal. **Attributes** lists the attributes to smooth (point and vertex float attributes, space separated, wildcards allowed); `P` is the default.",
+  "inputs": {
+   "geo": "Geometry to smooth."
+  },
+  "outputs": {
+   "geo": "Smoothed geometry."
+  },
+  "params": {
+   "group": "Group pattern of points that are smoothed. Empty means all.",
+   "pin_boundary": "Keep points on open borders (unshared edges) fixed.",
+   "pin_group_boundary": "Also pin the outer rim of the selection: selected points with at least one unselected neighbour. With Pin Border Points on as well this matches Houdini's Group Boundary.",
+   "constrained_points": "Group pattern of extra points that are never moved.",
+   "attributes": "Space-separated names or wildcards of the attributes to smooth.",
+   "weight_attribute": "Point attribute giving a per-point multiplier for Strength.",
+   "use_weight_attribute": "Enable the weight attribute. The product with Strength is clamped to the range 0 to 1.",
+   "method": "Weighting scheme for neighbours; see the description.",
+   "strength": "Step size per iteration, 0 to 1.",
+   "iterations": "Number of smoothing rounds.",
+   "recompute_normals": "Recompute `N` on affected points and vertices when P was smoothed but N was not."
+  },
+  "houdini_notes": "Strength is a per-iteration step and there is an Iterations count, unlike Houdini's Smooth. Filter Quality is not implemented."
+ },
+ "PCG_Sort": {
+  "summary": "Reorders points and primitives by position, attribute, expression or other criteria without changing the shape.",
+  "description": "Only point and primitive numbers change; the geometry stays the same. Because numbering changes, everything that refers to numbers is remapped together: vertex lists, all kinds of groups, edge groups (stored as point pairs) and per-primitive side channels.\n\nThe point and primitive sorts are independent. *Circular (Around Axis)* sorts by angle around an axis (right-hand rule); it turns a scattered ring of points into a correct polygon ring, where X/Y/Z sorting only gives a zigzag.\n\nThe switches at the bottom (Enable ...) are not in Houdini. When off, the corresponding section's parameters are treated as their defaults.",
+  "inputs": {
+   "geo": "Geometry to reorder."
+  },
+  "outputs": {
+   "geo": "Geometry with new point and primitive numbering."
+  },
+  "params": {
+   "point_sort": "How points are ordered. X/Y/Z sort by that coordinate; Reverse reverses the order; Random shuffles with a seed; Shift rotates the order by an offset; Proximity orders by distance to a point; Along Vector by projection onto a vector; By Attribute and By Expression by a value; By Spatial Locality keeps spatial neighbours close in the numbering; Circular sorts by angle around an axis.",
+   "rand_seed": "Seed for the random point sort.",
+   "offset": "Number of positions to shift the point order by.",
+   "axis_x": "Direction vector for Along Vector, or the rotation axis for Circular.",
+   "use_center": "Specify the center of the Circular sort. Off uses the default center.",
+   "center_x": "Center for the Circular point sort.",
+   "target_x": "Position that Proximity measures distance to.",
+   "point_attrib": "Point attribute used for the attribute sort.",
+   "component": "Component of the attribute used as the sort key.",
+   "point_expr": "Expression evaluated per point and used as the sort key.",
+   "reverse_point_sort": "Reverse the result of the chosen point sort.",
+   "prim_sort": "How primitives are ordered; same options as the point sort, measured on primitive centers.",
+   "prim_rand_seed": "Seed for the random primitive sort.",
+   "prim_offset": "Number of positions to shift the primitive order by.",
+   "prim_axis_x": "Direction vector for Along Vector, or the rotation axis for Circular, for primitives.",
+   "prim_use_center": "Specify the center of the Circular primitive sort.",
+   "prim_center_x": "Center for the Circular primitive sort.",
+   "prim_target_x": "Position that Proximity measures distance to for primitives.",
+   "prim_attrib": "Primitive attribute used for the attribute sort.",
+   "prim_component": "Component of the attribute used as the sort key.",
+   "prim_expr": "Expression evaluated per primitive and used as the sort key.",
+   "reverse_prim_sort": "Reverse the result of the chosen primitive sort.",
+   "points_by_vertex_order": "First renumber points in the order in which their vertices appear in the primitives, then apply the Point Sort.",
+   "use_axis": "Enable the Vector and Center fields. Off treats them as their defaults.",
+   "use_target": "Enable the proximity point. Off treats it as the default.",
+   "use_key": "Enable the attribute and expression fields. Off treats them as their defaults.",
+   "use_rs": "Enable Seed and Offset. Off treats them as their defaults."
+  },
+  "houdini_notes": "The four Enable switches (vector/center, proximity point, attribute/expression, seed/offset) do not exist in Houdini."
+ },
+ "PCG_Split": {
+  "summary": "Splits geometry into the part in a group and the part outside it.",
+  "description": "Like Blast, but both halves are kept: the first output holds the group, the second everything else. It saves a Blast inside loops with the pattern \"selected get A, unselected get B, merge back\".",
+  "inputs": {
+   "geo": "Geometry to split."
+  },
+  "outputs": {
+   "inside": "Elements that are in the group.",
+   "outside": "Elements that are not in the group."
+  },
+  "params": {
+   "group": "Group pattern that defines the inside.",
+   "cls": "Whether the group refers to primitives or points."
+  }
+ },
+ "PCG_Subdivide": {
+  "summary": "Subdivides polygon meshes with Catmull-Clark, Loop or bilinear schemes.",
+  "description": "**Catmull-Clark** turns any polygon into one quad per corner; the limit surface is a B-spline, a good default for hard-surface rounding and high-to-low baking. **Loop** takes triangles only and splits each into four, which gives better results than Catmull-Clark on triangle meshes. **Bilinear** only cuts and does not smooth, so it adds density without changing shape (useful for displacing yourself afterwards).\n\n**Vertex Boundary Interpolation** follows OpenSubdiv: Edges and Corners makes borders crease curves with fixed corners; Edges Only lets corners follow the curve (and be worn away); None does not treat borders as creases and the whole surface shrinks inwards.\n\nCreases: the edge group and the auto-crease angle are infinitely sharp. A vertex attribute (default `creaseweight`) can supply fractional weights as in OpenSubdiv's semi-sharp creases: a weight of 1 or more is sharp for that level, between 0 and 1 blends, and the value drops by 1 per level.\n\nAttributes: point attributes follow the same rule as `P` (so `Cd` is smoothed), vertex attributes are interpolated linearly (as UVs should be) and primitive attributes are inherited from the source face.",
+  "inputs": {
+   "geo": "Mesh to subdivide."
+  },
+  "outputs": {
+   "geo": "Subdivided mesh."
+  },
+  "params": {
+   "group": "Group pattern of primitives to subdivide. Empty means all.",
+   "algorithm": "Subdivision scheme; see the description.",
+   "depth": "Number of subdivision levels. 0 leaves the mesh unchanged.",
+   "boundary": "How borders are treated. With Bilinear this does not change the shape and only affects the output crease group.",
+   "crease_group": "Edge group of edges that are infinitely sharp.",
+   "auto_crease_angle": "Edges whose dihedral angle exceeds this (degrees) are treated as creases automatically. -1 turns it off.",
+   "crease_attribute": "Vertex attribute holding fractional crease weights. Leave empty to not read one.",
+   "output_crease_group": "Name of an edge group to write the crease edges to. Leave empty to not write it."
+  }
+ },
+ "PCG_Switch": {
+  "summary": "Passes through one of up to eight inputs, chosen by index or expression, evaluating only the selected branch.",
+  "description": "The branch inputs are lazy: only the selected one is requested, so the other branches are not executed, just as unselected branches are not cooked in Houdini. That is what makes the node useful.\n\n**Select Input** accepts an expression as in Houdini: a plain index (`2`), a detail read from the control input (`detail(-1, \"type\", 0)`), a condition (`1 if detail(\"kind\") == \"drawer\" else 0`, `nprims() > 100`) or `ninputs() - 1` for the last input. `ctrl` is the equivalent of Houdini's Spare Input, which `-1` refers to. Expressions can only read from `ctrl`, not from the branches, since reading a branch would run the unselected ones too. Connect the data you want to test to `ctrl` separately.\n\nOnly connected branches are counted, as in Houdini: with input0 and input2 connected, index 1 selects input2. Out-of-range indices are clamped to the ends, or wrapped with **Wrap Out-of-Range Index**.",
+  "inputs": {
+   "ctrl": "Control input that expressions in Select Input read from (Houdini's Spare Input). Not passed through.",
+   "input0": "Branch 0.",
+   "input1": "Branch 1.",
+   "input2": "Branch 2.",
+   "input3": "Branch 3.",
+   "input4": "Branch 4.",
+   "input5": "Branch 5.",
+   "input6": "Branch 6.",
+   "input7": "Branch 7."
+  },
+  "outputs": {
+   "geo": "The selected input."
+  },
+  "params": {
+   "select_input": "Index (or expression) of the input to pass through, counting connected inputs only.",
+   "wrap": "Off clamps out-of-range indices to the first or last input. On wraps around (negative values count from the end)."
+  }
+ },
+ "PCG_SwitchIf": {
+  "summary": "Outputs one of two inputs depending on whether a set of tests passes.",
+  "description": "If the condition holds, `if_true` is output, otherwise `if_false` (an unconnected branch outputs empty geometry). **Tests** has one expression per line (lines starting with `#` are comments); **Merge Condition** decides whether all tests or any test has to pass, and **Invert Result** negates the outcome.\n\nAvailable functions include `npoints()`, `nprims()`, `detail(\"x\")`, `point(\"x\", i)`, `hasattrib(\"point\", \"Cd\")`, `hasgroup(\"prim\", \"top\")`, `ngroup(\"edge\", \"crease\")`, `attribmax(\"point\", \"P\", 1)`, `attribmin` and `attribmean`.\n\nTests read the `test` input; if it is not connected they read `if_true`. Unselected branches are not executed (lazy): with `test` connected only the selected branch runs. Without it, `if_true` must be evaluated first (the tests read it) and `if_false` runs only if the condition fails.",
+  "inputs": {
+   "test": "Geometry the tests read. Falls back to `if_true` if not connected.",
+   "if_true": "Geometry output when the condition holds.",
+   "if_false": "Geometry output when the condition fails. Empty geometry if not connected."
+  },
+  "outputs": {
+   "geo": "The selected branch.",
+   "result": "The outcome of the test (true or false).",
+   "report": "Text report of the tests and their results."
+  },
+  "params": {
+   "merge": "All Tests Pass requires every line to be true; Any Test Passes needs only one.",
+   "invert": "Negate the final result.",
+   "tests": "One test expression per line. Lines starting with `#` are comments."
+  }
+ },
+ "PCG_Transform": {
+  "summary": "Translates, rotates, scales and shears points with a Houdini-style transform and pivot.",
+  "description": "Applies one transform to the selected points. Transform Order sets the order of scale, rotate and translate, and Rotate Order the order of the three axis rotations. Scale and rotation happen around the pivot, in a coordinate system rotated by Pivot Rotate. Shear is applied immediately after scaling. **Invert Transformation** applies the inverse transform.\n\nThe group is always interpreted as Guess: first as a point group or point attribute expression, and if nothing matches on points, as a primitive group (using the points of those primitives).",
+  "inputs": {
+   "geo": "Geometry to transform."
+  },
+  "outputs": {
+   "geo": "Transformed geometry."
+  },
+  "params": {
+   "group": "Group pattern (guessed as points first, then primitives) selecting what to transform. Empty means all.",
+   "xform_order": "Order in which scale, rotate and translate are applied, read left to right.",
+   "rotate_order": "Order in which the three axis rotations are applied.",
+   "tx": "Translation.",
+   "rx": "Rotation in degrees; the three angles are applied in the Rotate Order.",
+   "sx": "Per-axis scale.",
+   "shear_xy": "Shear values XY, XZ and YZ: x += xy*y + xz*z, y += yz*z. Applied right after scaling.",
+   "uniform_scale": "Extra scale factor on all axes.",
+   "px": "Pivot point; scale and rotation happen around it.",
+   "prx": "Rotation in degrees of the pivot's coordinate system; scale and rotation are done in the frame rotated by this angle.",
+   "invert": "Apply the inverse of the transformation."
+  }
+ },
+ "PCG_TransformByAttrib": {
+  "summary": "Transforms geometry by matrix attributes, per detail, point or primitive.",
+  "description": "Reads a matrix attribute (9 values for a 3x3, 16 for a 4x4, read the same way as in Copy to Points) and applies it to the geometry. **Attribute Class** chooses one matrix for the whole detail, one per point, or one per primitive. **Invert Transform** uses the inverse matrix.\n\nNormals use the inverse transpose and are renormalised, vectors are multiplied by the 3x3 part only, and `orient` is multiplied by the rotation part.\n\nMatrices use Houdini's convention: points are row vectors, `p' = p * M`, and a 4x4 keeps its translation in the fourth row. A `transform` written in Houdini, or by Extract Transform, means the same here.",
+  "inputs": {
+   "geo": "Geometry to transform."
+  },
+  "outputs": {
+   "geo": "Transformed geometry.",
+   "report": "Text summary of what was transformed."
+  },
+  "params": {
+   "group": "Group pattern selecting what to transform. Empty means all.",
+   "attribute": "Name of the matrix attribute (3x3 or 4x4).",
+   "attribute_class": "Where the matrix lives: one on the detail, one per point or one per primitive.",
+   "invert": "Use the inverse of the matrix.",
+   "normals": "Pattern of normal attributes to transform (inverse transpose, renormalised).",
+   "vectors": "Pattern of vector attributes to transform with the 3x3 part only.",
+   "orient": "Also transform the `orient` quaternion attribute with the rotation part."
+  }
+ },
+ "PCG_Triangulate2D": {
+  "summary": "Builds a Delaunay or constrained Delaunay triangulation of points lying in a plane.",
+  "description": "Where PolyFill just caps a hole (with fans or ear clipping, giving ugly triangles), this node produces a good triangulation: Delaunay maximises the minimum angle, which is what finite elements, terrain and cloth meshes need.\n\nDelaunay is computed by lifting (x, y) to (x, y, x^2+y^2) and projecting the lower convex hull back, so the result is algebraically exact. Cocircular point sets (a square, a regular polygon) are handled separately, since any triangulation of cocircular points is Delaunay.\n\n**Constrain = Input Polygons** forces the input polygon edges to appear in the output, which is needed for concave outlines because plain Delaunay triangulates the convex hull. Inside and outside are decided by region depth parity (crossing a constrained edge adds one), so holes and nested islands work. **Max Circumradius** and **Max Edge Length** prune large triangles, which gives a concave hull from a point cloud.\n\nVertex and primitive attributes are not carried over, because the output triangles do not correspond to input vertices or faces. Point attributes and point groups are kept as they are.",
+  "inputs": {
+   "geo": "Points (and optionally polygons or edge groups for constraints)."
+  },
+  "outputs": {
+   "geo": "Triangulated geometry."
+  },
+  "params": {
+   "group": "Group pattern of points to triangulate. Empty means all.",
+   "plane": "Plane in which the points are triangulated. Fit Plane fits one to the points; XY, ZX and YZ use the axis planes; Specify Plane uses the origin and normal.",
+   "plane_origin_x": "Origin of the plane (for the plane modes other than Fit Plane).",
+   "plane_normal_x": "Normal of the plane when Specify Plane is chosen.",
+   "plane_distance": "Extra distance by which the plane is moved along its normal.",
+   "constrain": "None triangulates points only. Input Polygons makes the input polygon edges part of the triangulation. Edge Group uses the edges in the given group.",
+   "constrain_group": "Edge group of the constrained edges.",
+   "region": "Which triangles to keep relative to the constrained outline: all, only inside, only outside or neither.",
+   "max_circumradius": "0 disables pruning. Otherwise triangles with a larger circumradius are removed (concave hull).",
+   "max_edge_length": "0 disables pruning. Otherwise triangles with a longer longest edge are removed.",
+   "keep_input_geometry": "Merge the input geometry into the output.",
+   "border_group": "Name of an edge group for the boundary edges of the result. Leave empty to not write it.",
+   "constrained_group": "Name of an edge group for the constrained edges. Leave empty to not write it.",
+   "fuse_tolerance": "Points closer than this are treated as the same point.",
+   "hull_tolerance": "Tolerance of the internal convex hull. Keep it tiny, otherwise almost cocircular points can vanish from the triangulation.",
+   "on_failure": "What to do if triangulation fails: raise an error, keep the input with a warning, or output nothing."
+  }
+ },
+ "PCG_VolumeBlur": {
+  "summary": "Blurs volumes with a Gaussian or box filter, or reduces neighbourhoods with min, max, median and similar operators.",
+  "description": "The default **Reduction** is Filter, which runs a separable Gaussian (sigma = Radius / 2, converted per axis through voxel size so the blur is round in world space) or box filter, once per axis. The other reductions (Maximum, Minimum, Median, Sum, Root Mean Square and so on) operate on a box neighbourhood given by the radius.\n\nA blurred SDF is no longer a distance field. Follow it with the redistance mode of Volume Reshape SDF, or use Volume Smooth SDF instead.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "Geometry with blurred volumes."
+  },
+  "params": {
+   "volumes": "Volume names or numbers to process. Empty means all.",
+   "reduction": "Filter is the Gaussian or box blur; the others are Houdini's neighbourhood reductions.",
+   "mode": "Gaussian or box (mean value) filter.",
+   "use_voxel_radius": "Specify the radius in voxels instead of world units.",
+   "radius": "Blur radius in world units. For Gaussian, sigma is half of it; for other modes it is rounded to whole voxels using the voxel size.",
+   "voxel_radius_x": "Radius in voxels per axis.",
+   "iterations": "Number of passes.",
+   "override_border": "How values outside the volume are treated: use the volume's own border, a constant, repeat the volume, or streak the edge values.",
+   "border_value": "The constant used when Override Border is Constant.",
+   "enable_blending": "Mix the result with the original.",
+   "original_blend": "Weight of the original volume.",
+   "blurred_blend": "Weight of the blurred volume."
+  }
+ },
+ "PCG_VolumeMix": {
+  "summary": "Combines volumes of two inputs on the grid of the first, with arithmetic, blending or SDF boolean operations.",
+  "description": "B is sampled trilinearly in world space onto the voxel grid of A and then combined. The result lives on A's grid. Operations are add, subtract, multiply, divide, min/max, blend, copy, diff, invert, clamp, a user expression, and the SDF union, intersection and difference, plus smooth variants (Quilez polynomial smooth min; Smooth Width is a transition width in world units).\n\nEvery selected volume of A is mixed. Volumes in B are matched by name; if B holds only one volume, it is used for all; otherwise they are matched in order.\n\nPre-add/multiply values are applied to the destination (A) and source (B) before the operation, post-add/multiply after it, followed by optional clamping.",
+  "inputs": {
+   "geo_a": "Geometry with the destination volumes. The output grid is taken from here.",
+   "geo_b": "Geometry with the source volumes mixed into A."
+  },
+  "outputs": {
+   "geo": "Geometry with the mixed volumes.",
+   "report": "Text summary of the mix."
+  },
+  "params": {
+   "volume_a": "Names or numbers of volumes in A to mix. All matches are mixed.",
+   "volume_b": "Names or numbers of volumes in B. Matching names pair up; a single B volume pairs with all; otherwise pairing is in order.",
+   "operation": "Mix method. The SDF options expect signed distance fields. Blend interpolates by Blend, Copy replaces A with B, Diff takes the difference, Clamp clamps to Range and User evaluates Value.",
+   "range_min": "Range used by the Clamp operation (minimum and maximum).",
+   "factor": "Blend amount: 0 is A, 1 is B.",
+   "value": "Expression in Wrangle syntax. `@value` is A', `@value2` is B', also `@P`, `@ix @iy @iz`, and `@bb` / `@bb2` (0 to 1 position in the bounding box of A / B).",
+   "k": "Width of the smooth transition in world units.",
+   "dest_pre_add": "Value added to A before the operation.",
+   "dest_pre_mul": "Factor multiplying A before the operation.",
+   "src_pre_add": "Value added to B before the operation.",
+   "src_pre_mul": "Factor multiplying B before the operation.",
+   "post_add": "Value added to the result.",
+   "post_mul": "Factor multiplying the result.",
+   "clamp_min": "Lower clamp for the result.",
+   "use_clamp_min": "Enable the lower clamp.",
+   "clamp_max": "Upper clamp for the result.",
+   "use_clamp_max": "Enable the upper clamp."
+  }
+ },
+ "PCG_VolumeResample": {
+  "summary": "Changes the resolution of volumes while keeping their bounding box.",
+  "description": "The bounding box stays fixed. The new resolution is given directly, derived from a voxel size, or from a scale on the voxel count. New voxels are sampled from the old field with trilinear or nearest interpolation.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "Geometry with resampled volumes.",
+   "report": "Text summary of the new resolutions."
+  },
+  "params": {
+   "volumes": "Volume names or numbers to process. Empty means all.",
+   "mode": "Resolution gives the voxel counts per axis. Voxel Size derives them from a voxel edge length. Scale Voxel Count multiplies the current counts.",
+   "res_x": "Voxel count along X, Y and Z.",
+   "voxel_size": "Edge length of the new voxels.",
+   "scale": "Factor applied to the voxel count.",
+   "interpolation": "Trilinear gives a smooth field; Nearest keeps values unchanged, which suits masks and labels."
+  }
+ },
+ "PCG_VolumeReshapeSDF": {
+  "summary": "Dilates, erodes, opens, closes or redistances signed distance field volumes.",
+  "description": "Dilate computes f - d and erode f + d. Open (erode then dilate) removes protrusions thinner than 2d, and Close (dilate then erode) fills gaps narrower than 2d. Redistance only recomputes the distance, restoring |grad f| = 1 after blurring, mixing or wrangling: it extracts the zero isosurface, computes the exact distance to it and keeps the original sign.\n\nOnly meaningful for SDF volumes; fog volumes raise an error.",
+  "inputs": {
+   "geo": "Geometry containing SDF volumes."
+  },
+  "outputs": {
+   "geo": "Geometry with reshaped volumes."
+  },
+  "params": {
+   "volumes": "Volume names or numbers to process. Empty means all.",
+   "operation": "Dilate grows the surface, Erode shrinks it, Open and Close combine both, Redistance rebuilds the distances without moving the surface.",
+   "distance": "Offset distance in world units. Not used by Redistance."
+  }
+ },
+ "PCG_VolumeSmoothSDF": {
+  "summary": "Smooths SDF volumes with mean, median, mean curvature flow or Laplacian flow filters.",
+  "description": "Operations: Mean Value (box mean), Median Value (true box median), Mean Curvature Flow and Laplacian Flow. Filter Voxel Radius is measured in voxels. With **Alpha Mask**, the first volume of the second input is used as a 0 to 1 per-voxel blend weight (remapped by the cutoffs, optionally inverted).\n\nUnlike OpenVDB, distances are not recomputed in the narrow band after each iteration; for |grad f| = 1 follow with the redistance operation of Volume Reshape SDF. Trim is not implemented. Only SDF volumes are accepted; fog volumes raise an error.",
+  "inputs": {
+   "geo": "Geometry containing SDF volumes.",
+   "mask": "Optional geometry whose first volume is the blend mask."
+  },
+  "outputs": {
+   "geo": "Geometry with smoothed volumes."
+  },
+  "params": {
+   "volumes": "Volume names or numbers to process. Empty means all.",
+   "use_mask": "Blend between original and smoothed values using the first volume of the mask input as weight.",
+   "operation": "Smoothing filter.",
+   "filter_voxel_radius": "Filter radius in voxels (mean and median filters).",
+   "iterations": "Number of filter passes.",
+   "invert_mask": "Use 1 minus the mask.",
+   "min_mask_cutoff": "Mask value that maps to weight 0.",
+   "max_mask_cutoff": "Mask value that maps to weight 1."
+  },
+  "houdini_notes": "The narrow-band distance recomputation after each iteration is not done here; use Volume Reshape SDF with Redistance. Trim is not implemented."
+ },
+ "PCG_VolumeWrangle": {
+  "summary": "Runs wrangle code with each voxel as one element.",
+  "description": "Uses the same syntax as the Wrangle node, with every voxel acting as a point: `@P` is the voxel position in world space, `@value` is the voxel value (read/write) and `@ix`, `@iy`, `@iz` are the indices. `volsample(name_or_index, position)` samples another volume of the same geometry.\n\n`@value` reads as a one-dimensional array so it combines directly with `@P.x`; to multiply a vector by it, write `@P * @value[:, None]`.",
+  "inputs": {
+   "geo": "Geometry containing the volumes."
+  },
+  "outputs": {
+   "geo": "Geometry with the modified volumes.",
+   "report": "Text report of the run."
+  },
+  "params": {
+   "code": "Wrangle code run for each voxel.",
+   "volumes": "Volume names or numbers to process. Empty means all.",
+   "rand_seed": "Seed for random functions in the code.",
+   "ch_params": "Internal JSON text with the values of the node's custom parameters, read with `ch()`; `ch(\"name\")` in the code creates the parameter. It is maintained by the frontend; do not edit by hand."
+  }
+ },
+ "PCG_VoronoiCluster": {
+  "summary": "Groups Voronoi pieces into larger clusters and optionally glues each cluster into one piece.",
+  "description": "Pure Voronoi cuts look too regular: all pieces are convex and similar in size. Real breakage has big chunks, small chunks and debris, and the large chunks are concave. This node cuts finely and then glues neighbours back together: for example 200 pieces clustered into 12 groups gives big concave chunks with polygonal boundaries.\n\nGluing welds the points and then deletes pairs of faces whose point sets are identical (the internal walls between pieces of the same cluster, two back to back). Welding is required first because otherwise the two faces use different point numbers. The result stays watertight and the volume is preserved. The points that remain on the former walls become redundant vertices on the surface; follow with Dissolve (PCG) using Remove Inline Points to clean them.\n\nWith Merge Pieces off, only the cluster attribute is written.",
+  "inputs": {
+   "geo": "Geometry holding the Voronoi pieces, identified by the piece attribute.",
+   "points": "Seed points for the clusters (used when Cluster Seeds is Second Input Points)."
+  },
+  "outputs": {
+   "geo": "Clustered geometry."
+  },
+  "params": {
+   "mode": "Random Piece Centroids picks Cluster Count pieces at random as seeds. Second Input Points uses the points of the second input.",
+   "cluster_count": "Number of clusters.",
+   "rand_seed": "Seed for the random choice of cluster seeds.",
+   "piece_attribute": "Primitive attribute identifying the input pieces.",
+   "merge_pieces": "Glue each cluster into one piece. Off only writes the cluster attribute, without welding or removing internal walls.",
+   "fuse_tolerance": "Weld distance used when gluing.",
+   "cluster_attribute": "Primitive attribute that receives the cluster number.",
+   "name_attribute": "Primitive attribute that receives the name of each merged piece.",
+   "name_prefix": "Prefix of the merged piece names."
+  }
+ },
+ "PCG_VoronoiFracture": {
+  "summary": "Cuts geometry into pieces around seed points, with interior caps, piece names and attributes.",
+  "description": "Does not build a 3D Voronoi diagram. Being nearer to seed i than to seed j is a half-space, namely the side of the bisector plane of i and j facing i, so cell i is the input geometry intersected with the half-spaces of all other seeds. The node applies Clip plane by plane.\n\nPruning is exact: other seeds are processed in order of distance and cutting stops once half the distance to the next seed is at least the largest distance R from seed i to the current piece, since later planes cannot reach it. Caps are added after each cut, and only for loops lying on that cut plane. A closed input therefore gives watertight pieces with conserved volume, while an open input (such as a grid) stays open. The cap faces go to the Interior Group, so interior surfaces can be given their own material.\n\nAll pieces are merged into one output and told apart by the `name` and `piece` attributes; feed it to a For-Each Begin in piece mode to process them one at a time. Seeds come from the second input.",
+  "inputs": {
+   "geo": "Geometry to fracture.",
+   "points": "Seed points, one per piece."
+  },
+  "outputs": {
+   "geo": "All pieces merged into one geometry."
+  },
+  "params": {
+   "group": "Group pattern of primitives to fracture. Empty means all.",
+   "cap": "Create the interior surface on cut faces.",
+   "cap_mode": "How the cut loops are filled; same modes as PolyFill.",
+   "interior_group": "Name of the primitive group for the interior (cap) faces.",
+   "cap_tolerance": "Tolerance, relative to the bounding box size, for deciding that a loop lies on the cut plane.",
+   "name_attribute": "Primitive attribute that receives each piece's name.",
+   "name_mode": "Overwrite replaces existing names. Append adds to them.",
+   "fracture_namespace": "With Append, the new name is the old name + '-' + namespace + prefix + number.",
+   "name_prefix": "Prefix of the piece names; the piece number follows.",
+   "compute_interior_normals": "Compute normals on the interior faces.",
+   "interior_cusp_angle": "Cusp angle in degrees for the interior normals.",
+   "exterior_normals": "What to do with normals on the original surface: keep, recompute or not touch.",
+   "exterior_cusp_angle": "Cusp angle in degrees for recomputed exterior normals.",
+   "piece_attribute": "Primitive attribute that receives the piece number.",
+   "cell_point_attribute": "If set, writes the seed's point number in the second input to this primitive attribute.",
+   "clip_piece_attribute": "If set, cap faces store the number of the piece on the other side here; exterior faces get -1.",
+   "exterior_group": "Name of a primitive group for the faces that came from the original surface. Leave empty to not create it.",
+   "merge_groups": "Merge with groups that already exist instead of replacing them.",
+   "copy_cell_attributes": "Pattern of seed point attributes to copy to the pieces.",
+   "copy_to_points": "Copy those attributes to the points of each piece.",
+   "copy_to_prims": "Copy those attributes to the primitives of each piece.",
+   "cut_plane_offset": "Leaves a gap of this width between pieces, each side giving way by half.",
+   "connectivity_partition": "Splits pieces that fall into several disconnected parts. Overwrite renumbers all pieces; Maintain keeps the numbering.",
+   "max_pieces": "Upper limit on the number of pieces."
+  }
+ },
+ "PCG_VoronoiSplit": {
+  "summary": "Cuts a surface along the Voronoi cell borders of the cell points.",
+  "description": "Splits the surface on the bisector planes between cell points; the shape does not change, and faces lying entirely within one cell are untouched. With **Split Points** on every piece has its own points (truly separated); off, the two sides of a cut share points. The primitive attribute `cell` and the **Piece Attribute** (value `piece<k>`) are written. If **Cut Edge Group** has a name, the cut edges are written to that edge group.\n\nWith **Use Weight**, the cell points can be weighted by a point attribute, using either power distance or ratio.",
+  "inputs": {
+   "geo": "Surface to cut.",
+   "cell_points": "Points defining the Voronoi cells."
+  },
+  "outputs": {
+   "geo": "Cut geometry.",
+   "report": "Text summary of the cut."
+  },
+  "params": {
+   "group": "Group pattern of primitives to cut. Empty means all.",
+   "split_points": "On gives each piece its own points. Off lets the two sides of a cut share points.",
+   "offset": "Moves the cut plane along the line between two cell points (from the lower to the higher point number).",
+   "weight_attribute": "Point attribute of the cell points holding their weights.",
+   "use_weight": "Use weights for the cells.",
+   "method": "How weights act: Power Distance or Ratio.",
+   "piece_attribute": "Primitive attribute that receives the piece name (`piece<k>`).",
+   "cut_group": "Name of an edge group for the cut edges. Leave empty to not write it."
+  },
+  "houdini_notes": "Weight Attribute, Method and Offset follow Houdini's Voronoi Split."
+ }
+}

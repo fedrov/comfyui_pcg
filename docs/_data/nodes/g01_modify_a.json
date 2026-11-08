@@ -1,0 +1,866 @@
+{
+ "PCG_Blast": {
+  "summary": "Deletes the elements in a group, or keeps only those elements.",
+  "description": "Removes the points or primitives selected by the group pattern. With *Delete Non Selected* the selection is inverted and only the group is kept.",
+  "inputs": {
+   "geo": "Geometry to delete from."
+  },
+  "outputs": {
+   "geo": "Geometry with the selected (or non-selected) elements removed."
+  },
+  "params": {
+   "group": "Group pattern selecting the elements to delete. An empty pattern deletes nothing, even when *Delete Non Selected* is on.",
+   "cls": "Whether the group pattern refers to points or primitives.",
+   "keep_selected": "Inverts the operation: delete everything that is not in the group and keep the group."
+  }
+ },
+ "PCG_BlastByAttribute": {
+  "summary": "Deletes points or primitives by comparing a single-valued attribute against a threshold, range or band, or just groups the hits.",
+  "description": "Tests a scalar numeric attribute on each element and either deletes the elements that match or, with *Output = Group*, leaves the geometry intact and puts the matching elements into a new group.\n\nModes:\n- *Threshold*: matches elements whose value is strictly below the threshold (equal values stay).\n- *Range*: matches `min <= value <= max`.\n- *Width*: matches values inside `[center - width/2, center + width/2]`.\n\n*Invert* flips the match. Elements outside the *Group* are never tested, and *Invert* does not touch them either. Vector attributes are rejected with an error.",
+  "inputs": {
+   "geo": "Geometry to test."
+  },
+  "outputs": {
+   "geo": "Geometry with matching elements deleted, or the unchanged geometry plus the output group."
+  },
+  "params": {
+   "group": "Group pattern restricting which elements are tested. Empty means all elements of the chosen class.",
+   "cls": "Whether to test point or primitive attributes.",
+   "attribute": "Name of a single-valued numeric attribute.",
+   "output": "*Blast* deletes the matching elements. *Group* keeps the geometry and writes the matches to *Output Group*.",
+   "mode": "How the attribute value is compared: against one threshold, an inclusive min/max range, or a band given by center and width.",
+   "invert": "Inverts the match within the group, so the elements that would have matched are kept and the others are selected.",
+   "threshold": "Elements with a value strictly lower than this match; equal values do not.",
+   "min": "Lower bound of the inclusive matching range.",
+   "max": "Upper bound of the inclusive matching range.",
+   "center": "Center of the matching band.",
+   "width": "Total width of the band; elements within half of this distance from *Center* match.",
+   "output_group": "Name of the group created when *Output* is *Group*.",
+   "remove_unused_points": "After deleting primitives, also remove points no remaining primitive uses. Only relevant when running over primitives and deleting."
+  },
+  "houdini_notes": "The defaults of the numeric parameters are the plugin's own choice, since the SideFX documentation does not state them. Vector attributes are an error here."
+ },
+ "PCG_Boolean": {
+  "summary": "Combines two closed meshes with a union, intersection, subtraction, shatter or seam operation.",
+  "description": "Boolean operations on polygon meshes, backed by the `manifold3d` library rather than a hand-written implementation: robust booleans need exact predicates, coplanar handling, re-triangulation of intersection curves and winding-number classification, and a failure would crash on the user's model.\n\nBoth inputs must be **closed manifold meshes**. When they are not, the node reports the reason and where to look.\n\nWith *Detriangulate* on, adjacent triangles whose normals differ by less than *Coplanar Tolerance* are merged back into one polygon. Optional output groups mark where each piece of the result came from.\n\n*Shatter* outputs three pieces: A intersect B, A minus B and B minus A, sharing no points (separate them with connectivity). *Seam* outputs only the intersection curve as open polylines. A set treated as *Surface* is thickened into a closed shell by extruding it against its normals (the original faces stay in place), and after the operation only the faces lying on the original surface are kept.\n\nPoint, vertex and primitive attributes and groups of A and B are carried to the result. Each output triangle finds the input face it was cut from; floating-point point and vertex attributes are interpolated barycentrically inside that face, integer and string values and group membership come from the nearest corner, and primitive attributes and groups come from the face. An attribute that exists on only one input is 0 (or an empty string) on the other input's faces; when A and B use the same name with a different type or size, A's version is kept. Edge groups are not carried, because the edges are cut.",
+  "inputs": {
+   "a": "First operand (set A).",
+   "b": "Second operand (set B)."
+  },
+  "outputs": {
+   "geo": "Result of the Boolean operation."
+  },
+  "params": {
+   "treat_a": "Whether set A is treated as a solid volume or as a surface.",
+   "treat_b": "Whether set B is treated as a solid volume or as a surface.",
+   "operation": "Which Boolean operation to perform. *Shatter* outputs A∩B, A−B and B−A as three separate pieces; *Seam* outputs only the intersection curve as polylines.",
+   "direction": "For *Subtract*: A minus B, B minus A, or both results.",
+   "use_surface_opts": "Enables *Shell Thickness* for surface operands. When off, the default thickness 0.01 is used.",
+   "shell_thickness": "Thickness of the closed shell that a surface operand is extruded into against its normals so it can take part in the Boolean.",
+   "detriangulate": "Merge nearly coplanar adjacent triangles back into larger polygons.",
+   "coplanar_tolerance": "Adjacent triangles whose normals differ by less than this angle (degrees) are merged into one face.",
+   "use_out_groups": "Create primitive and edge groups describing where the result's faces came from.",
+   "a_inside_b": "Group of faces that come from A and are enclosed by B. Empty means the group is not created.",
+   "a_outside_b": "Group of faces that come from A and lie outside B.",
+   "b_inside_a": "Group of faces that come from B and are enclosed by A. In A minus B this is the ring of the cut.",
+   "b_outside_a": "Group of faces that come from B and lie outside A.",
+   "b_polys": "Group of all faces that come from B.",
+   "seam_group": "Edge group containing the intersection curve of A and B."
+  },
+  "houdini_notes": "The *B Polygons* output group does not exist on the Houdini node; it is an addition of this plugin. The node also stands in for part of Intersection Stitch."
+ },
+ "PCG_BooleanFracture": {
+  "summary": "Cuts the first input into separate pieces using the second input as the cutting geometry.",
+  "description": "The cutter splits the geometry into one piece per connected component. Each piece gets a name (a prefix plus a number, or appended to the existing name), a piece attribute, interior and exterior face groups, interior and exterior seam edge groups, optional groups for pieces and faces inside a solid cutter, and interior and exterior normals.\n\nWhen the cutter is treated as a *Surface*, each connected sheet is extruded along its average normal into a half-space and then used in the Boolean. The sheet must therefore pass entirely through the object and must not fold back along its average normal.\n\nThe backend is `manifold3d`, which requires closed manifold input. Point and vertex attributes are not carried over; primitive attributes and primitive groups are carried over from the source primitive.",
+  "inputs": {
+   "geo": "Geometry to fracture.",
+   "cutter": "Cutting geometry, interpreted according to *Treat Cutting Geometry As*."
+  },
+  "outputs": {
+   "geo": "The fractured pieces.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Group pattern restricting which primitives of the first input are fractured.",
+   "name_mode": "*Overwrite* replaces the `name` attribute with prefix plus piece number; *Append* adds the piece number to the existing name.",
+   "fracture_namespace": "Text inserted into the name when appending.",
+   "piece_prefix": "Prefix of the generated piece names.",
+   "compute_interior_normals": "Compute normals on the newly created interior (cut) faces.",
+   "interior_cusp_angle": "Cusp angle in degrees for the interior normals: edges sharper than this stay hard.",
+   "exterior_normals": "What to do with normals on the original outside faces: keep, recompute, or leave them alone.",
+   "exterior_cusp_angle": "Cusp angle in degrees used when recomputing exterior normals.",
+   "attribute_prefix": "Prefix added to the names of the attributes this node writes.",
+   "piece_attribute": "Name of the primitive attribute holding the piece index.",
+   "copy_cutter_attributes": "Primitive attributes of the cutter (wildcards allowed) that are copied onto the interior faces.",
+   "interior_group": "Name of the primitive group of faces created by the cut.",
+   "exterior_group": "Name of the primitive group of faces that were on the original outside.",
+   "merge_groups": "Merge the output groups with existing groups of the same name instead of replacing them.",
+   "interior_seams": "Name of the edge group along the border of the interior faces. Empty means not created.",
+   "exterior_seams": "Name of the edge group along the border of the exterior faces. Empty means not created.",
+   "pieces_inside": "Name of the group holding pieces that lie inside a solid cutter. Only used with a solid cutter.",
+   "surface_inside": "Name of the group holding faces that lie inside a solid cutter. Only used with a solid cutter.",
+   "treat_cutter": "*Surface* extrudes each connected cutter sheet into a half-space; *Solid* uses the cutter as a closed volume.",
+   "detriangulate": "Which polygons are merged back after triangulation: all, only the unchanged ones, or none."
+  },
+  "houdini_notes": "With a surface cutter, a sheet that only cuts partway into the object still severs it here, because the sheet is extruded into a half-space. In Houdini it would not."
+ },
+ "PCG_Bound": {
+  "summary": "Builds a bounding box, bounding sphere or minimum-volume oriented box around the geometry.",
+  "description": "Modes:\n- *Bounding Box*: axis-aligned box. Fastest, but it becomes very loose when the object is tilted. A thin rod tilted 45 degrees has an axis-aligned box about 11 times the volume of its oriented box.\n- *Bounding Sphere*: rotation invariant, cheap for coarse rejection. It starts from Ritter's algorithm, tightens it by moving toward the farthest point, and finally enlarges the radius so every point is covered.\n- *Oriented Bounding Box*: minimum-volume OBB. The optimum always has one face flush with a face of the convex hull, so only hull face normals are tried, each followed by a 2D rotating-calipers fit. Only hull vertices take part, so a 50,000 point cloud may need only a few dozen.\n\nThe output carries detail attributes `bound_center`, `bound_size`, `bound_rot` (3x3 matrix, row-major) and `bound_volume`. `bound_rot` can be used to straighten the object or align something else to it: its rows are the box axes, so in Houdini's row-vector convention it maps box-local directions to world space, and [Transform by Attribute (PCG)](modify.md#pcg-transformbyattrib) with Invert Transform (after moving `bound_center` to the origin) straightens the object.",
+  "inputs": {
+   "geo": "Geometry to enclose."
+  },
+  "outputs": {
+   "geo": "The bounding shape with the bound_* detail attributes."
+  },
+  "params": {
+   "group": "Group pattern restricting which points are bounded. Empty means all.",
+   "mode": "Type of bounding shape: axis-aligned box, sphere or oriented box.",
+   "uniform_padding": "Expands the shape outward by this amount on every side. Added to *Padding*.",
+   "padding_x": "Per-axis expansion on each side. For the sphere the largest of the three components is used; negative values do not shrink it.",
+   "divisions_x": "Number of points per axis on the generated box (minimum 2).",
+   "sphere_cols": "Number of columns of the generated sphere mesh.",
+   "sphere_rows": "Number of rows of the generated sphere mesh.",
+   "max_normals": "When the convex hull has more faces than this, only the largest faces' normals are tried, which gives an approximate optimum.",
+   "tolerance": "Tolerance used when computing the convex hull for the oriented box."
+  }
+ },
+ "PCG_Carve": {
+  "summary": "Cuts a curve at parametric positions or extracts points along it.",
+  "description": "Keeps or extracts a portion of a curve between two U positions. NURBS and Bezier curves are cut by knot insertion, so the result is still a curve of the same type (subdividing into a polyline would lose that and block further degree changes or carving). Polygons and polylines are interpolated linearly by vertex parameter, and the end points land exactly on the requested positions.\n\nIn *Cut* mode, enabling only *Second U* keeps the part from 0 to *Second U*, because the disabled end is the curve end point.\n\nBidirectional U/V carving of surfaces is not implemented.",
+  "inputs": {
+   "geo": "Curves to carve."
+  },
+  "outputs": {
+   "geo": "The carved curves or extracted points."
+  },
+  "params": {
+   "group": "Group pattern selecting the primitives to carve.",
+   "first_u": "Parametric position (0 to 1) of the first cut.",
+   "use_first_u": "Enables the first cut. When off, the curve start is used.",
+   "second_u": "Parametric position (0 to 1) of the second cut.",
+   "use_second_u": "Enables the second cut. When off, the curve end is used.",
+   "relative_arc_length": "Interprets U by arc length proportion instead of by vertex or knot parameter.",
+   "mode": "*Cut* keeps part of the curve. *Extract* produces one point at each enabled U position (the curve's isoparametric point).",
+   "use_keep": "Enables the keep options.",
+   "keep_inside": "Keep the part between the two U positions.",
+   "keep_outside": "Keep the parts before the first and after the second U position."
+  },
+  "houdini_notes": "Carving of surfaces in U/V is not implemented, only curves."
+ },
+ "PCG_CircleFromEdges": {
+  "summary": "Rearranges each closed edge loop in a group into a perfect circle.",
+  "description": "For every closed loop of the edge group, the center is the average of its points and the plane is defined by the loop's Newell normal. Point order along the loop is preserved. Open chains are skipped.\n\n*Even Spacing* distributes the points at equal angles, choosing the phase that moves the points the least. *Rotate* then turns the whole circle about its normal.",
+  "inputs": {
+   "geo": "Geometry containing the edge loops."
+  },
+  "outputs": {
+   "geo": "Geometry with the loops moved onto circles.",
+   "report": "Text summary, including skipped loops."
+  },
+  "params": {
+   "edges": "Edge group pattern. Each closed loop in it becomes a circle; open chains are skipped.",
+   "radius_mode": "How the circle radius is derived from the loop: average, minimum or maximum distance of its points from the center, or a custom value.",
+   "radius": "The circle radius when *Radius Type* is *Custom*.",
+   "even_spacing": "Distribute points at equal angles around the circle.",
+   "rotate": "Rotation of the circle about its own normal, in degrees."
+  }
+ },
+ "PCG_CircleSpline": {
+  "summary": "Creates a smooth curve through the input points by blending circular arcs fitted to each three neighbouring points.",
+  "description": "The arcs through each triple of adjacent points are blended pairwise with weight `w = sin^2(pi*t/2)`. The curve passes through every point, and at each point its tangent and curvature equal those of the circle through the previous, current and next points (G2). If all points lie on one circle the result is that circle; where three points are collinear it is a straight line. Each segment gets *Segment Divisions* samples and the other numeric point attributes are interpolated linearly along the segment.\n\n*Helix* fits a helix through each triple instead of a circle, with the axis chosen by *Helix Type*. A point string attribute `splinetype` (`circle` or `helix`) can override the type for the segment centered on that point. *Adjust by Pseudo-Arclength* keeps the point count but redistributes points evenly by arc length.",
+  "inputs": {
+   "geo": "Points (or curve points) to interpolate."
+  },
+  "outputs": {
+   "geo": "The generated curve.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Group pattern selecting the points to use.",
+   "spline_type": "Fit circles or helices through each three points.",
+   "override_with_attrib": "Reads the string point attribute `splinetype` (`circle` or `helix`) to decide the type of the segment centered on each point.",
+   "helix_type": "How the helix axis is chosen: directional, balanced or blended.",
+   "adjust_arclength": "Redistributes the points along the curve by approximate arc length without changing their number.",
+   "arclength_samples": "Number of samples used for the arc length estimate.",
+   "divisions": "Number of samples per segment between two adjacent points.",
+   "curveu_name": "Name of the output attribute holding the curve U parameter.",
+   "use_curveu": "Write the curve U attribute.",
+   "tangent_name": "Name of the output tangent attribute.",
+   "use_tangent": "Write the tangent attribute."
+  },
+  "houdini_notes": "Houdini's Hybrid and Ellipse spline types are not implemented, because their definitions are not documented."
+ },
+ "PCG_Clean": {
+  "summary": "Repairs a polygon mesh by fusing points, removing degenerate and duplicate faces, fixing non-manifold edges and orientation, and dropping small pieces.",
+  "description": "Runs a fixed sequence of steps: fuse points within the distance, remove degenerate primitives, remove duplicate faces (regardless of start vertex and winding), make manifold, consistently orient polygons, delete small pieces, remove unused points. The report output states how much each step changed.\n\nMake Manifold keeps the two largest faces on an edge shared by more than two faces and splits bow-tie points.",
+  "inputs": {
+   "geo": "Mesh to clean."
+  },
+  "outputs": {
+   "geo": "The cleaned mesh.",
+   "report": "Text report with the number of elements changed by each step."
+  },
+  "params": {
+   "fuse_distance": "Points closer than this distance are merged. 0 disables point merging.",
+   "remove_degenerate": "Remove degenerate primitives.",
+   "remove_duplicates": "Keep only one of several faces using the same set of points, regardless of start vertex and winding.",
+   "make_manifold": "For edges shared by more than two faces keep the two with the largest area, and split bow-tie points.",
+   "orient": "Make the winding of connected polygons consistent.",
+   "min_piece_prims": "Connected pieces with fewer primitives than this are deleted. 0 disables.",
+   "remove_unused": "Remove points that no primitive uses."
+  },
+  "houdini_notes": "Combines Clean with the repairs of PolyDoctor."
+ },
+ "PCG_Clip": {
+  "summary": "Cuts geometry with a plane and keeps the part below it, above it, or both.",
+  "description": "The plane passes through `origin + distance * direction` and has `direction` as its normal. With *Keep = All Primitives* both halves are kept and simply separated along the plane; feed the result into Connectivity or a For-Each loop to process each half on its own.\n\nWherever the plane cuts an edge a new point is created, and every attribute on it is interpolated from the two end points: position, normals, UVs, point groups and edge groups all carry over.\n\nConcave polygons are ear-clipped into triangles before cutting (Sutherland-Hodgman gives self-intersecting results on concave polygons), so cut concave faces come out as triangles. To get large faces back, follow with Divide using *Remove Shared Edges*. Primitives outside the group are passed through untouched.",
+  "inputs": {
+   "geo": "Geometry to cut."
+  },
+  "outputs": {
+   "geo": "The clipped geometry."
+  },
+  "params": {
+   "group": "Group pattern of primitives to cut. Primitives outside the group are kept unchanged.",
+   "clip_attribute": "Point attribute whose first three components define the position that is tested against the plane. The default `P` cuts by position; another attribute such as UV can be used instead.",
+   "keep": "Which side to keep. *Below* is the side behind the plane normal, *Above* the front side, *All* keeps both halves, split along the plane.",
+   "orient": "Define the plane with a direction (plus origin) or with a translate/rotate transform.",
+   "dir_x": "Normal of the clipping plane. Need not be normalized, but must not be zero.",
+   "translate_x": "A point on the plane (before *Distance* is applied) when oriented by transform.",
+   "rotate_x": "Rotation in degrees that turns (0,1,0) into the plane normal, applied in X, Y, Z order.",
+   "distance": "Offset of the plane along its normal.",
+   "snap_tolerance": "Points within this distance of the plane are first moved onto it, then the cut is made. Only points of cut primitives are moved. 0 disables snapping.",
+   "fill": "Closes the cut with new faces along the plane. With *Keep = All* each side gets its own cap.",
+   "split_connectivity": "With *Keep = All*, the upper and lower halves no longer share the points on the cut.",
+   "use_origin": "Enables a custom origin for the plane when oriented by direction.",
+   "origin_x": "Point the plane passes through (before *Distance* is applied).",
+   "use_out_groups": "Create the output groups below.",
+   "above_group": "Primitive group of the faces on the upper side after cutting.",
+   "below_group": "Primitive group of the faces on the lower side after cutting.",
+   "seam_group": "Edge group of the edges lying on the cut, handy for a following bevel or edge-to-primitive promotion.",
+   "clipped_group": "Primitive group of the remaining faces that were actually cut. Empty means not created.",
+   "fill_group": "Primitive group of the cap faces created by *Fill*. Empty means not created."
+  },
+  "houdini_notes": "The base normal (0,1,0) and the X-Y-Z rotation order for *Transform* orientation are not documented by SideFX; this node assumes them. Also covers the planar use of Knife.",
+  "tips": [
+   "Use *Keep = All Primitives* followed by Connectivity to cut an object apart and process each part individually."
+  ]
+ },
+ "PCG_Convert": {
+  "summary": "Converts primitives between polygon, polyline, point, NURBS, Bezier and volume representations.",
+  "description": "Changes the primitive type of the selected geometry. Splines are tessellated to polygons or polylines using the *Divisions* setting, and polygons can be fitted into NURBS or Bezier curves and surfaces. The volume targets rasterize the geometry into a signed-distance (SDF) or fog volume.\n\nNURBS support is limited to **uniform clamped knot vectors**; arbitrary non-uniform knots are not supported, because attributes here are fixed-size arrays and a per-primitive variable-length knot vector does not fit. Uniform clamped covers everything the Houdini Convert SOP produces.",
+  "inputs": {
+   "geo": "Geometry to convert."
+  },
+  "outputs": {
+   "geo": "The converted geometry."
+  },
+  "params": {
+   "group": "Group pattern selecting the primitives to convert.",
+   "convert_to": "Target representation.",
+   "use_tessellation": "Enables the *Divisions* setting; when off a default tessellation is used.",
+   "u_divs": "Number of subdivisions per span when converting splines to polygons. The second value (V) only matters for surfaces.",
+   "use_nurbs_opts": "Enables the NURBS/Bezier order and interpolation settings.",
+   "u_order": "Curve order (degree + 1) in U for NURBS and Bezier targets.",
+   "v_order": "Curve order in V for surface targets.",
+   "interpolate_through_hulls": "Make the resulting spline pass through the input points instead of using them as control points.",
+   "use_volume": "Enables the volume resolution, radius and padding settings.",
+   "vol_res_x": "Voxel resolution of the generated volume along each axis.",
+   "vol_radius": "Radius given to each point when producing a fog volume. 0 picks a value automatically from the point spacing.",
+   "vol_pad": "Extra space around the geometry bounds included in the volume.",
+   "iso": "Offset applied to the volume surface level when converting from volumes."
+  },
+  "houdini_notes": "NURBS are limited to uniform clamped knots. The volume options approximate parts of Convert VDB and VDB from Polygons."
+ },
+ "PCG_ConvexDecompose": {
+  "summary": "Splits a concave solid into a set of convex pieces (approximate convex decomposition).",
+  "description": "A convex hull only gives the outer skin of a shape, and for an L, a bowl or a chair that smooths away exactly what makes the shape. Physics engines handle convex bodies fast and concave ones slowly or not at all, hence the decomposition.\n\n**Concavity is measured by volume**: `1 - solid volume / hull volume`. It is exactly 0 for a convex piece and tells how much air the hull would add. (Defining it as the distance from the most concave point to the hull would let a negligible spike make the whole object look very concave.)\n\n**Each split minimizes the sum of the two child hull volumes.** Candidates are three axes times *Split Candidates* minus 1 positions; each is really cut and both hulls computed. By default the axes are those of the oriented bounding box, not the world axes; world axes cut a tilted L badly, and the OBB axes also make the result rotation covariant.\n\n**Max Pieces is a global budget, not a depth limit.** A heap ordered by absolute concave volume always splits the worst piece first. After each cut the pieces are split into connected components, so a cut across the opening of a U does not leave one piece whose hull fills the gap.\n\nOutput modes: *Convex Hulls* replaces each piece by its hull (what collision proxies need; total volume is at least the original). *Exact Pieces* keeps the cut solids, whose total volume equals the original exactly.\n\n**Max Hull Points** caps the vertex count of each hull for engine collision. 32 points (at most 60 triangles) usually stays within a few centimetres of a 2 m rock.",
+  "inputs": {
+   "geo": "Closed solid to decompose."
+  },
+  "outputs": {
+   "geo": "The convex pieces, tagged with the piece and name attributes."
+  },
+  "params": {
+   "mode": "*Convex Hulls* replaces each piece by its convex hull; *Exact Pieces* keeps the actual cut solids (volume is conserved).",
+   "max_concavity": "Residual concavity (1 - volume / hull volume) a piece is allowed to keep before it is split further.",
+   "max_pieces": "Global budget for the number of pieces.",
+   "resolution": "Number of candidate cut positions tried per axis.",
+   "split_axes": "Cut along the axes of the oriented bounding box, or along the world axes.",
+   "min_fraction": "Smallest fraction of the volume a piece may have; avoids slivers.",
+   "cap_mode": "How the cut faces are built in *Exact Pieces* mode: single n-gon, fan or triangles.",
+   "tolerance": "Geometric tolerance for the hull and cutting computations.",
+   "piece_attribute": "Name of the primitive attribute holding the piece index.",
+   "name_attribute": "Name of the primitive string attribute holding the piece name.",
+   "name_prefix": "Prefix of the piece names.",
+   "max_hull_points": "Vertex budget for each hull in *Convex Hulls* mode; 0 = no limit. Engines limit convex colliders (Unity rejects more than 255 triangles) and simulate small hulls faster. The points are chosen greedily, like a quickhull stopped early: start from a tetrahedron and keep adding the vertex farthest outside the current hull. The reduced hull uses a subset of the full hull's vertices, so it never grows; what it cuts off is at most the distance of the farthest vertex left out."
+  }
+ },
+ "PCG_ConvexHull": {
+  "summary": "Builds the 3D convex hull of the input points.",
+  "description": "Useful for collision proxies, for wrapping a point cloud into a solid, for the exact answer to how much space a set of points occupies, and as the basis of the oriented mode of Bound.\n\nThe algorithm is quickhull: each round takes the farthest outside point as a new vertex, deletes the faces visible from it and joins the horizon to it with new faces. Visible faces are found by flood-filling over adjacency from the starting face, not by scanning all faces, because a full scan can report a nearly coplanar far face as visible because of floating point noise and break the horizon into two loops.\n\nDegenerate input does not raise an error but drops a dimension: coplanar points give a polygon, collinear points a line segment, coincident points a single point.",
+  "inputs": {
+   "geo": "Points or geometry whose points are wrapped."
+  },
+  "outputs": {
+   "geo": "The convex hull."
+  },
+  "params": {
+   "group": "Group pattern selecting the points to wrap. Empty means all points.",
+   "merge_coplanar_faces": "Merge coplanar triangles into polygons (a cube becomes 6 quads, not 12 triangles). Turn it off when a pure triangle mesh is needed, e.g. for a collision proxy.",
+   "tolerance": "Distance beyond a face at which a point counts as outside. Points are stored as float32, so values near 1e-9 would treat quantization noise as real bulges and create zero-area slivers."
+  },
+  "houdini_notes": "Degenerate input (coplanar, collinear or coincident points) produces a polygon, line or point, where Houdini returns empty geometry."
+ },
+ "PCG_Crease": {
+  "summary": "Writes a fractional crease weight onto edges for later subdivision.",
+  "description": "Writes the weight into the vertex attribute `creaseweight` (or the attribute you name). For every selected edge, the half-edge start vertex on both sides of the edge is written. Subdivide reads this attribute for semi-sharp creases: with a weight of 1 or more the edge is sharp for that round, values between 0 and 1 blend, and the weight decreases by 1 each subdivision round.",
+  "inputs": {
+   "geo": "Geometry with edges to crease."
+  },
+  "outputs": {
+   "geo": "Geometry with the crease attribute set.",
+   "report": "Text summary of what was changed."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges.",
+   "mode": "How the weight combines with the existing value: set it, add to it, multiply it, or take the maximum.",
+   "weight": "The crease weight.",
+   "attribute": "Name of the vertex attribute that stores the weight. Subdivide reads it for semi-sharp creases."
+  }
+ },
+ "PCG_CurveIntersect": {
+  "summary": "Finds intersections between curves and outputs points, split curves, or Houdini-style cut and extract results.",
+  "description": "Intersects curves pairwise. With *Plane* set to XZ, XY or YZ the test is made on the projection onto that plane (a road network is intersected from above); *3D* requires two segments to actually come within *Tolerance* of each other.\n\nOutput modes:\n- *Intersection Points*: only the intersection points, carrying `prim_a`, `prim_b`, `u_a` and `u_b` (the two primitives and their curve parameters).\n- *Split Curves*: cuts the curves at the intersections, with the intersection points shared, so the result is a connected network that Find Shortest Path can walk directly. The intersection points go into *Point Group*.\n- *Cut* and *Extract* follow the Houdini Method semantics: intersect between the left curves (selected by *Group*) and the right curves (*Cutter Group*; they come from the second input *cutter*, or from the main geometry when it is not connected). *Cut* cuts both sides into segments and keeps the odd or even numbered ones as chosen; *Extract* outputs the intersection points (*Affect* chooses left, right or both, and *Keep Original* keeps the curves).",
+  "inputs": {
+   "geo": "Curves to intersect (the left side).",
+   "cutter": "Optional second set of curves for the right side of *Cut* and *Extract*. If not connected, the right curves are taken from the main geometry using *Cutter Group*."
+  },
+  "outputs": {
+   "geo": "Intersection points, split curves, or the cut/extract result depending on *Output*.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "group": "Group pattern selecting the curves to test (the left side for *Cut* and *Extract*).",
+   "cutter_group": "Group pattern selecting the right-side curves for *Cut* and *Extract*.",
+   "plane": "Projection plane for the test, or *3D* for a true 3D proximity test.",
+   "tolerance": "Maximum distance between two curves for them to count as intersecting.",
+   "find_all": "Find every intersection between a pair of curves. When off, only the closest one per pair is taken (it does not need to be within *Tolerance*).",
+   "self_intersect": "Also test each curve against itself.",
+   "output": "What to produce: points, split curves, or the Houdini-style *Cut* / *Extract* between a left and a right set.",
+   "point_group": "Name of the point group that receives the intersection points in *Split Curves* mode.",
+   "left_pieces": "Which of the pieces cut from the left curves to keep: all, odd-numbered, even-numbered or none.",
+   "right_pieces": "Which of the pieces cut from the right curves to keep: all, odd-numbered, even-numbered or none.",
+   "affect": "Which side the *Extract* result is applied to.",
+   "keep_original": "Keep the original curves in the *Extract* output."
+  }
+ },
+ "PCG_Delete": {
+  "summary": "Deletes points, primitives or edges chosen by group, number, bounding volume, normal, degeneracy, random chance or an expression.",
+  "description": "Where Blast deletes by group, Delete covers conditions a group pattern cannot express: every Nth element, everything outside a box, faces pointing away from a direction.\n\nThe filters combine as an **intersection**: `group AND number AND bounding volume AND normal AND expression`, and a disabled filter selects everything. So first pick an area with the group, then delete every third element in it; turning on another filter narrows the selection and never widens it.\n\nWith no filter enabled and an empty group the node **does nothing**, since treating an empty group as everything would wipe the whole geometry. When *Entity* is *Edges*, only the group is honoured and the filter sections below do not apply; the end points of the selected edges are deleted.",
+  "inputs": {
+   "geo": "Geometry to delete from."
+  },
+  "outputs": {
+   "geo": "Geometry with the selected elements removed."
+  },
+  "params": {
+   "group": "Group pattern, intersected with the filters below. With every filter off and the group empty nothing is deleted. For *Edges* this is an edge group.",
+   "entity": "Whether points, primitives or edges are deleted. For edges only the group is used.",
+   "operation": "*Delete Selected* removes the selection; *Delete Non-Selected* keeps only the selection.",
+   "keep_points": "When deleting primitives, keep their points in the geometry.",
+   "delete_unused_groups": "Remove groups that have no members left after the deletion.",
+   "use_number": "Enables the filter by element number.",
+   "number_mode": "*Every Nth* hits every Nth element starting at *Start*; *Range* takes the first N of every M within the range; *Pattern* uses a number pattern.",
+   "number_pattern": "Number pattern: `0 5 12`, `0-20`, `0-20:3`, `!3-5` or `*`.",
+   "number_start": "First element number of the filtered range.",
+   "number_end": "Last element number of the filtered range. -1 means up to the end.",
+   "select_num": "Take the first N (left value) of every M (right value) elements in the range.",
+   "number_step": "Starting from *Start*, every how many elements one is hit.",
+   "use_volume": "Enables the bounding volume filter.",
+   "volume_type": "Shape of the volume: box or sphere.",
+   "center_x": "Center of the bounding volume.",
+   "size_x": "Size of the bounding box along each axis.",
+   "radius": "Radius of the bounding sphere.",
+   "volume_invert": "Select the elements outside the volume instead of inside.",
+   "use_normal": "Enables the normal filter.",
+   "direction_x": "Direction the normals are compared against.",
+   "spread_angle": "Maximum angle in degrees between the element normal and *Direction* for it to be selected.",
+   "normal_attribute": "Attribute to take normals from. Empty: primitives use the computed face normal, points use `N`.",
+   "normal_invert": "Select the elements that do not point toward the direction.",
+   "use_degenerate": "Enables the degenerate primitive filter.",
+   "degenerate": "Select primitives that are degenerate (for example with repeated points).",
+   "zero_area": "Select primitives with area below the tolerance.",
+   "open_faces": "Also select open polylines whose perimeter is smaller than the tolerance.",
+   "degenerate_tolerance": "Tolerance for zero-area and open-face tests. Area is compared against its square, perimeter directly.",
+   "use_random": "Enables the random filter.",
+   "rand_seed": "Seed of the random choice.",
+   "seed_attribute": "Integer attribute used instead of the element number as the random input.",
+   "use_seed_attribute": "Use the seed attribute instead of the element number.",
+   "percent": "Percentage of elements selected, from 0 to 100.",
+   "use_expression": "Enables the expression filter.",
+   "expression": "Boolean expression using the group expression syntax, for example `@P.y > 0`."
+  },
+  "houdini_notes": "Intersection of all filters corresponds to the Houdini Delete SOP's behaviour of combining its selection tabs."
+ },
+ "PCG_Dissolve": {
+  "summary": "Removes selected edges and merges the faces on either side of them into one.",
+  "description": "This is the same machinery as Remove Shared Edges in Divide, with a different granularity: Divide works on a primitive group and merges all interior edges between the selected faces, while Dissolve works on an edge group and merges only the edges you picked.\n\nConnected selected edges are merged into one block in a single step instead of one by one, because merging one by one needs a topology rebuild each time and intermediate states may not be valid polygons. A block that does not yield a **single** boundary loop (it has holes) is left as it is, since a primitive can store only one vertex loop; the *Bridge* option decides what happens to such blocks.\n\n*Remove Inline Points* is on by default and is the easily overlooked half of Dissolve: after merging, the end points of a dissolved edge typically have only two edges left and are collinear, so the face count drops while the vertex count does not. The test uses an angle rather than exact collinearity, as computed edges are rarely exactly collinear.\n\nBoundary edges, which have only one face, are skipped, and their number is written to the detail attribute `dissolve_skipped`.",
+  "inputs": {
+   "geo": "Geometry with edges to dissolve."
+  },
+  "outputs": {
+   "geo": "Geometry with the faces merged."
+  },
+  "params": {
+   "edge_group": "Edge group to dissolve. Empty selects no edges, which with *Dissolve Non-Selected* means all edges are dissolved.",
+   "operation": "Dissolve the selected edges, or all edges except the selected.",
+   "recompute_normals": "Recompute normals on the class that already had `N`. Normals are not created where none existed.",
+   "remove_inline_points": "Remove points left on straight lines after the merge.",
+   "inline_tolerance": "Angle in degrees below which three points count as collinear.",
+   "delete_lone_points": "Delete points that no primitive uses after dissolving.",
+   "bridge": "What to do when a merged block has holes: leave the polygons unmerged, create bridged polygons, or delete them.",
+   "output_boundary_group": "Name of an edge group that receives the outer border of the merged faces. Empty means not created."
+  },
+  "houdini_notes": "The *Create Disjoint Polygons* bridge option is not implemented."
+ },
+ "PCG_Divide": {
+  "summary": "Triangulates or splits faces into convex polygons, cuts them into bricks, merges shared edges, or computes the dual.",
+  "description": "Triangulation is done carefully here: convex faces use a fan (linear time, and most faces are convex), concave faces use ear clipping. The Convert node's *Triangles* option is a plain fan, which gives triangles that reach outside the shape on concave n-gons, and concave n-gons are common in the output of Boolean, PolyBevel and Carve. Use this node when correct triangles are needed.\n\nWith *Maximum Edges* above 3, faces are first ear-clipped and then greedily merged back into convex polygons, only across diagonals and only when the result is still convex, so the covered area is unchanged.\n\n*Bricker Polygons* cuts faces with three sets of parallel planes spaced by *Brick Size*, handy for floors and window panes of buildings. Smooth Polygons is not implemented (use Subdivide).",
+  "inputs": {
+   "geo": "Geometry to divide."
+  },
+  "outputs": {
+   "geo": "The divided geometry."
+  },
+  "params": {
+   "group": "Group pattern of primitives to process.",
+   "convex_polygons": "Split faces into convex polygons.",
+   "max_edges": "Maximum number of edges of the resulting polygons. 3 gives triangles.",
+   "avoid_slivers": "Prefer triangulations that avoid thin sliver triangles. Applies when non-planar triangulation is on.",
+   "avoid_small_angles": "Prefer triangulations that avoid very small angles. Applies when non-planar triangulation is on.",
+   "triangulate_nonplanar": "Triangulate polygons that are not planar.",
+   "planar_tolerance": "Distance within which a polygon is considered planar.",
+   "brick_polygons": "Cut faces into bricks using planes spaced by the brick size.",
+   "brick_size_x": "Spacing of the cutting planes along each axis.",
+   "brick_offset_x": "Offset of the brick grid along each axis.",
+   "brick_angle_x": "Rotation of the brick grid in degrees about each axis.",
+   "brick_shared_edges": "Keep the points on cuts shared between neighbouring bricks.",
+   "remove_shared_edges": "Merge the primitives of the group by removing the edges between them.",
+   "compute_dual": "Replace the mesh with its dual: one point per face and one face per original point.",
+   "attributes_to_swap": "Attributes exchanged between the original and the dual elements. Wildcard pattern, default is everything except `P`."
+  },
+  "houdini_notes": "Smooth Polygons is not implemented; use the Subdivide node."
+ },
+ "PCG_EdgeCollapse": {
+  "summary": "Collapses each connected run of selected edges into a single point at the run's center.",
+  "description": "Edges in the group that are connected in a chain are collapsed into one point placed at the center of the chain's points. Afterwards duplicate corners and faces that can no longer stand are removed.",
+  "inputs": {
+   "geo": "Geometry with edges to collapse."
+  },
+  "outputs": {
+   "geo": "Geometry after the collapse.",
+   "report": "Text summary of what was changed."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges.",
+   "remove_degenerate": "Remove duplicate corners and faces that collapse to fewer than three corners."
+  }
+ },
+ "PCG_EdgeDivide": {
+  "summary": "Inserts points on selected edges and optionally connects them to split the faces.",
+  "description": "Inserting points and connecting them are two separate steps. Insertion is safe for any face; connecting has a unique answer only when exactly two edges of a face are cut, since otherwise there is no non-arbitrary choice for where a point should connect.\n\n- Face with 0 edges cut: unchanged.\n- Face with 2 edges cut and *Connect* on: split into *Cuts* + 1 pieces.\n- Any other case: points are inserted only and the face becomes an n-gon with more edges.\n\nCut positions can be given explicitly (`0.2 0.5 0.9`); otherwise the edge is divided evenly according to *Cuts*.",
+  "inputs": {
+   "geo": "Geometry with edges to divide."
+  },
+  "outputs": {
+   "geo": "Geometry with the new points and cuts."
+  },
+  "params": {
+   "edge_group": "Edge group pattern of the edges to divide.",
+   "cuts": "Number of evenly spaced points inserted on each edge. Ignored when *Cut Positions* is set.",
+   "cut_positions": "Custom parameter positions along the edge, separated by spaces, for example `0.25 0.5 0.75`. Empty divides evenly using *Cuts*.",
+   "connect": "When exactly two edges of a face are cut, join the new points with new edges and split the face.",
+   "output_edge_group": "Name of an edge group that receives the resulting edges. Empty means not created.",
+   "output_point_group": "Name of a point group that receives the inserted points. Empty means not created."
+  },
+  "houdini_notes": "For faces with three or more cut edges, Houdini fans the new points to the face center, which adds a point not on any edge. This node only inserts the points; use Divide afterwards to decide how to cut."
+ },
+ "PCG_EdgeEqualize": {
+  "summary": "Evens out edge lengths along edge chains, either by redistributing points along the polyline or by Houdini's target-length methods.",
+  "description": "Selected edges are strung into chains. With *Redistribute Along Curve* (this plugin's method) the points are redistributed into equal segments **along the original polyline**, so the shape and total length stay the same. Open chains keep their end points; for pure closed loops the phase that moves the points least is chosen; loops passing through a fork point keep the fork point pinned.\n\nThe other three methods follow Houdini: the target edge length is the average, longest or shortest of the selected edges, each edge is scaled about its midpoint, and shared points are averaged and iterated to convergence. The shape and the total length change.",
+  "inputs": {
+   "geo": "Geometry containing the edges."
+  },
+  "outputs": {
+   "geo": "Geometry with the points moved.",
+   "report": "Text summary of the operation."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges.",
+   "group_type": "How the group is interpreted (edges, points, primitives, or guessed). Only used by the three Houdini methods.",
+   "method": "*Redistribute* keeps the polyline shape and total length. The other methods make all selected edges one common length.",
+   "measure": "Whether the segments are equal in arc length along the polyline or in straight-line (chord) distance.",
+   "output_edge_group": "Name of an edge group that receives the processed edges. Empty means not written."
+  }
+ },
+ "PCG_EdgeStraighten": {
+  "summary": "Pulls each open chain of selected edges into a straight line, keeping its end points fixed.",
+  "description": "Each open chain in the edge group is straightened between its two end points. Closed loops are skipped, and the report states how many.",
+  "inputs": {
+   "geo": "Geometry containing the edge chains."
+  },
+  "outputs": {
+   "geo": "Geometry with straightened chains.",
+   "report": "Text summary, including the number of skipped loops."
+  },
+  "params": {
+   "edges": "Edge group pattern. Empty means all edges. Closed loops are skipped.",
+   "spacing": "How the points are placed on the line: *Preserve* keeps their relative arc-length proportions, *Equalize* spaces them evenly, *Project* projects them perpendicularly onto the line."
+  }
+ },
+ "PCG_Ends": {
+  "summary": "Closes, opens, unrolls or rolls curves.",
+  "description": "The `prim_closed` flag decides whether there is an edge between the last and first point. Many nodes (Resample, Carve, Sweep, PolyExpand2D) treat open and closed curves differently, and the upstream flag is often not what you need.\n\nThe four operations differ in whether the geometry changes:\n- *Close Straight*: flips the flag, adds one closing edge, so the shape changes.\n- *Open*: flips the flag, removes one edge, so the shape changes.\n- *Unroll with Shared Points*: closed to open, hanging the first point again on the end. The edge count and shape are unchanged, the only operation that merely changes the representation.\n- *Roll*: the inverse of unroll, turning an open curve with coinciding ends into a closed one with the duplicate point removed.\n\nUnroll is the most common: a closed loop has no starting point, so a resampler does not know where to start. After unrolling it is an ordinary open curve that looks identical; roll it back when done. Unroll followed by roll is an exact topological identity.\n\nPrimitives with two points are not closed, since that would create two coincident edges (a zero-area degenerate face that looks the same as before but breaks normals and area later). They are silently skipped.",
+  "inputs": {
+   "geo": "Curves to process."
+  },
+  "outputs": {
+   "geo": "The processed curves."
+  },
+  "params": {
+   "group": "Group pattern of the primitives to process.",
+   "op": "Operation to apply: close, open, unroll (closed to open with a repeated first point) or roll (undo of unroll).",
+   "tolerance": "For *Roll*: first and last points closer than this distance count as coincident even if they are different points."
+  }
+ },
+ "PCG_ExplodedView": {
+  "summary": "Moves fracture pieces apart from each other so cuts can be inspected.",
+  "description": "The output of Voronoi Fracture, Voronoi Cluster and Convex Decompose fits together seamlessly, so it looks as if nothing was cut. This node pushes the pieces apart.\n\nEvery piece undergoes a **rigid motion**: each piece is translated individually, so each piece's volume is unchanged. (Scaling the whole geometry about the center separates the pieces but scales each by the same factor, and its volume by the cube.)\n\nThe piece center is the **area-weighted** centroid, not the mean of the points. A mean would be biased by mesh density: a Voronoi cut face is one n-gon with few points, while the outer shell inherits the original tessellation with many.\n\nPieces come from a primitive attribute (`name`, `piece` or `cluster`, as written by the upstream nodes) or from connected components.",
+  "inputs": {
+   "geo": "Geometry made of fitted pieces."
+  },
+  "outputs": {
+   "geo": "Geometry with each piece moved away from the center."
+  },
+  "params": {
+   "piece_from": "Where the pieces are identified: from a primitive attribute or from connectivity.",
+   "piece_attribute": "Primitive attribute that identifies the pieces.",
+   "center": "The point pieces move away from: the centroid of all pieces, a specified point, or the center of the bounding box.",
+   "center_x": "Explosion center when *Specified Point* is chosen.",
+   "mode": "*Uniform* moves every piece by the same distance (good for thin shell layers); *Proportional* moves each piece in proportion to its distance from the center (an explosion look).",
+   "distance": "Movement distance. In *Proportional* mode it is a multiplier on the distance from the center.",
+   "relative_to_size": "Measure the distance relative to the longest side of the bounding box. In *Proportional* mode it only affects *Up Bias*.",
+   "up_bias": "Additional movement along +Y.",
+   "shrink": "Scales each piece about its own centroid. 1 leaves it unchanged; smaller values leave gaps between cut faces."
+  }
+ },
+ "PCG_ExtractTransform": {
+  "summary": "Computes the best-fit transform from a reference geometry to a deformed or moved copy of it.",
+  "description": "The two inputs must be the same geometry before and after (point numbers correspond one to one). The node solves for the best rigid (Kabsch), similarity (Umeyama, adds uniform scale), non-uniform scale or full affine transform.\n\nThe *point* output is an instance point (`P`, `orient`, `pscale`; `scale` for non-uniform; `transform` for affine or matrix output). Feeding it to Copy to Points with the reference as the source places the copy on the target. The *geo* output is the reference transformed directly. The report contains the residual RMS.\n\nWith *Use Piece Attribute*, the geometry is split by a primitive or point attribute and each piece gets its own transform and its own output point (carrying the attribute); the point is placed at the transformed piece center and the `pivot` is the weighted center of the reference piece. Pieces with too few points for the fit (fewer than 3, or 4 for affine) get a translation only. Without it, one transform is fitted to the whole geometry.",
+  "inputs": {
+   "reference": "The geometry before the transform.",
+   "target": "The same geometry after the transform; same point count and order."
+  },
+  "outputs": {
+   "point": "Instance point(s) carrying the transform.",
+   "geo": "The reference geometry moved by the fitted transform.",
+   "report": "Text report including the residual RMS."
+  },
+  "params": {
+   "piece_attribute": "Name of the attribute that splits the geometry into pieces.",
+   "use_piece_attribute": "Fit one transform per piece instead of one for the whole geometry.",
+   "attribute_class": "Whether the piece attribute is on primitives or points.",
+   "mode": "Type of transform to fit: rigid, rigid plus uniform scale, full affine, or rigid plus non-uniform scale.",
+   "output_attributes": "How the transform is written: standard instance attributes, a 3x3 matrix plus translation, or a 4x4 matrix. With *Standard*, the *Full Transform* mode still writes a 3x3 `transform` (shear is not split out). Matrices are written in Houdini's convention (row vectors, translation in the fourth row), so Copy to Points and Houdini read them the same way.",
+   "weight_attribute": "Point attribute on the reference used as a fit weight. Empty means equal weights.",
+   "distortion_attribute": "Name of the attribute that receives the residual RMS of each piece (distance from the transformed reference to the target).",
+   "compute_distortion": "Write the residual RMS to the attribute named in *Distortion Attribute* on each output point."
+  },
+  "houdini_notes": "The weight attribute does not exist on the Houdini node; it is an addition of this plugin."
+ },
+ "PCG_Facet": {
+  "summary": "Runs a fixed chain of topology cleanup and hard-edge options: unique points, consolidate, orient, cusp, inline and degenerate removal, normals.",
+  "description": "The enabled steps always run in Houdini's order, each consuming the result of the previous one:\n\n`unique points -> consolidate -> orient -> cusp -> remove inline -> remove degenerate -> normals`\n\nThe easy trap is that **orient has to precede cusp**. With inconsistent winding, adjacent face normals point opposite ways, the angle between them is always 180 degrees, and the whole geometry would be split into hard edges.\n\nCusp is not the same as the vertex mode of a Normal node. Normal only stores one normal per corner and leaves the geometry alone; Facet's cusp **actually splits the points**, so any point normal computed afterwards is hard. Use Facet for engine export, UV seams, or when downstream nodes must see the hard edges.\n\nThe group is a primitive group; primitives outside it are left exactly as they are (no winding change, no point splitting, no corner removal).",
+  "inputs": {
+   "geo": "Geometry to process."
+  },
+  "outputs": {
+   "geo": "The processed geometry."
+  },
+  "params": {
+   "group": "Primitive group pattern. Primitives outside the group are untouched.",
+   "unique_points": "Give every primitive its own copy of its points, so no points are shared.",
+   "consolidate_points": "Merge points that lie within *Distance* of each other.",
+   "consolidate_distance": "Distance within which points are merged.",
+   "orient_polygons": "Make the winding of adjacent polygons consistent.",
+   "cusp_polygons": "Split points along edges where adjacent faces meet at a sharper angle than *Cusp Angle*.",
+   "cusp_angle": "Angle in degrees between adjacent face normals above which the shared edge becomes hard.",
+   "remove_inline": "Remove points lying on a straight line between their neighbours.",
+   "inline_distance": "Distance tolerance for deciding a point is inline.",
+   "remove_degenerate": "Remove repeated points of primitives and primitives that collapse.",
+   "degenerate_distance": "Distance tolerance for the degenerate test.",
+   "remove_bad_prims": "Also delete primitives left with too few points after the removal.",
+   "post_normals": "Compute point normals after all other steps.",
+   "unit_normals": "Normalize the normals to unit length. Disabled when normals are computed by the previous option, since those are already unit."
+  }
+ },
+ "PCG_FractureDetail": {
+  "summary": "Adds noise to the cut (interior) faces of fracture pieces while keeping the pieces fitting together.",
+  "description": "Cut faces from a Voronoi fracture are perfectly flat and look fake. The difficulty is that the pieces must still fit back into the original shape and the outer silhouette must not change.\n\n**The displacement is a pure function of world position, not a push along normals.** Pieces A and B share a wall, each storing its own copy of the points at the same position but with opposite normals. A scalar pushed along normals would move the two copies in opposite directions and open a gap or interpenetrate. A vector noise depending only on world position gives both copies bit-identical displacement, so the wall stays shared and merely bends. The sum of all piece volumes is therefore unchanged.\n\n**The falloff is a pure function too.** The rim where the cut face meets the original surface is pinned so that the outer silhouette does not change. Falloff uses the Euclidean distance to the global point cloud of rim points rather than a graph distance along the surface, because graph distances can differ between the two copies of a shared wall and would tear it.\n\n*Divisions* first applies linear subdivision, since a cut face is typically one large n-gon and pushing its few points only tilts the plane. The whole piece is subdivided, since subdividing only the cut face would leave T-vertices on the border.\n\n*Triangulate Interior* (on by default) triangulates the cut faces by picking the fan apex as the vertex with the lexicographically smallest coordinates, so that both sides of a shared wall pick the same diagonals. Without this, a displaced non-planar wall can open a thin crack.\n\nBeveling is not part of this node: the cut faces are already a primitive group, so connect PolyBevel.",
+  "inputs": {
+   "geo": "Fractured pieces with the interior faces in a group."
+  },
+  "outputs": {
+   "geo": "Pieces with noise-displaced interior faces."
+  },
+  "params": {
+   "group": "Primitive group of the cut (interior) faces. Only these faces are displaced.",
+   "divisions": "Rounds of linear subdivision applied first to give the noise points to move.",
+   "triangulate_interior": "Triangulate the interior faces in a position-determined way so that both sides of a shared wall match and no cracks open.",
+   "amount": "Displacement amplitude.",
+   "frequency": "Noise frequency.",
+   "relative_to_size": "Interpret amplitude, frequency and falloff relative to the longest side of the bounding box.",
+   "falloff": "Distance from the outer rim over which the displacement fades out. 0 means no falloff.",
+   "falloff_mode": "Shape of the falloff curve.",
+   "noise_type": "Type of noise used for the displacement.",
+   "fractal": "Fractal layering mode of the noise.",
+   "octaves": "Number of noise layers.",
+   "lacunarity": "Frequency multiplier from one octave to the next.",
+   "roughness": "Amplitude multiplier from one octave to the next.",
+   "rand_seed": "Seed that offsets the noise."
+  }
+ },
+ "PCG_Fuse": {
+  "summary": "Snaps nearby points together (to each other, to a grid, or to a target) and optionally welds them into single points.",
+  "description": "Three stages: *Snap* decides which points count as the same and where they go, *Fuse* decides whether the topology is actually welded, and *Output* manages groups and normals.\n\nNear-point snapping does a real radius search (uniform grid hashing) and takes the transitive closure of the pairs, so chains of close points end up in one cluster regardless of grid cell borders, unlike a quantizing fuse.\n\nWhen the *target* input is connected, points in the group snap to points on the target. The two geometries are not merged; the target only provides the places to snap to. With *Modify Target* the roles swap and the modified target is output.\n\nThe position attribute can be a different 3-component attribute (for example a rest position), so that proximity is judged in another space. This is useful for cleanup after deformation.",
+  "inputs": {
+   "geo": "Geometry whose points are snapped and fused.",
+   "target": "Optional geometry whose points the group points snap to."
+  },
+  "outputs": {
+   "geo": "The snapped (and optionally welded) geometry."
+  },
+  "params": {
+   "group": "Point group pattern to snap. Empty means all points.",
+   "use_target": "Enables the target group settings.",
+   "target_group": "Point group pattern on the target input to snap to.",
+   "modify_target": "Snap the target's points to the input and output the changed target instead.",
+   "position_attribute": "3-component point attribute used to measure proximity. `P` by default.",
+   "snap_to": "*Near Points* snaps points within a radius; *Grid* snaps to a regular grid; *None* snaps nothing.",
+   "using": "Which point of a cluster is chosen as the representative: lowest number, closest, or highest number.",
+   "output_positions": "Where snapped points end up: the average of the cluster, the chosen representative's position, or unchanged.",
+   "use_snap_distance": "Use the fixed *Snap Distance*.",
+   "snap_distance": "Points closer than this are snapped together.",
+   "use_radius": "Use a per-point radius attribute as the snap distance basis.",
+   "radius_attribute": "Point attribute holding the radius. Not read when a target is connected.",
+   "use_match": "Only snap points whose match attribute satisfies the condition.",
+   "match_attribute": "Attribute compared between candidate points. Not read when a target is connected.",
+   "match_condition": "Snap only points whose attribute values are equal, or only those that are unequal.",
+   "match_tolerance": "Tolerance for comparing the attribute values.",
+   "use_grid": "Enables the grid settings.",
+   "grid_x": "Grid spacing along each axis.",
+   "grid_off_x": "Offset of the grid origin.",
+   "fuse_snapped_points": "Weld snapped points into one point. When off, they are moved but the topology is unchanged.",
+   "keep_fused_points": "Keep the points that were merged away as unused points instead of deleting them.",
+   "remove_repeated": "Remove repeated points within a primitive, and primitives left too small, after welding.",
+   "remove_degenerate_unused": "Also delete the points that became unused through this removal.",
+   "remove_all_unused": "Delete every point not used by a primitive.",
+   "use_output": "Enables the output options.",
+   "recompute_normals": "Recompute point normals if the geometry has `N`.",
+   "snapped_points_group": "Name of a point group for the points that were moved. Empty means not created.",
+   "snapped_to_group": "Name of a point group for the points that others snapped to. Empty means not created.",
+   "attributes_to_snap": "Point attributes (wildcards allowed) merged together with `P` using *Output Positions*."
+  }
+ },
+ "PCG_IntersectionAnalysis": {
+  "summary": "Places a point wherever triangles or polylines pass through each other and records their sources.",
+  "description": "With only the first input connected, it finds self-intersections; with both inputs it finds intersections between them. Each intersection gets a point carrying, for the two sources, the input number, primitive number and primitive UVW, each stored twice: `[primitive containing the edge, primitive of the triangle that is pierced]`. An attribute name left empty is not written. The input does not need to be a closed manifold.",
+  "inputs": {
+   "geo": "Geometry to test.",
+   "geo_b": "Optional second geometry. When connected, intersections are searched between the two inputs."
+  },
+  "outputs": {
+   "geo": "Points at the intersections.",
+   "report": "Text summary of the analysis."
+  },
+  "params": {
+   "group_a": "Group pattern restricting the primitives of the first input.",
+   "group_b": "Group pattern restricting the primitives of the second input. Only used when it is connected.",
+   "input_attribute": "Name of the integer attribute (two values) holding the input numbers. Empty means not written.",
+   "prim_attribute": "Name of the integer attribute (two values) holding the primitive numbers. Empty means not written.",
+   "uvw_attribute": "Name of the float attribute (six values: the UVW of the first primitive, then of the second) holding the primitive UVW. Empty means not written."
+  }
+ },
+ "PCG_Join": {
+  "summary": "Connects the selected polylines in order into one polyline, bridging gaps with straight segments.",
+  "description": "The order is primitive order. The typical use is to join separately made path pieces into one complete path, where the end points are not supposed to coincide and the connecting segments are exactly what you want. This bridging is the one difference from PolyPath.\n\n**Reverse To Fit** (on by default): before each primitive is appended, the end nearer the current tail is placed first. Houdini's Join does not do this, and without it a slightly inconsistent direction among the input primitives yields a zigzag that doubles back. That happens almost inevitably with Clip or Boolean output, as those do not guarantee consistent segment orientation. With it off, the result is strictly tail-to-head.\n\n**Tolerance** is not a weld radius but a measure of how near counts as already connected: a gap smaller than it is treated as the same point (no bridging segment, no zero-length edge), a larger gap gets a connecting segment.\n\n*Loop* joins the last segment back to the first start and outputs a closed primitive. *Partition Attribute* joins each group of a primitive attribute separately (for example one path per `name`).\n\nPrimitive attributes are taken from the first primitive of the chain, as in Houdini. Vertex attributes follow the corners, so when a line is reversed its UVs and widths are reversed with it; otherwise texture flow would flip at the seam.",
+  "inputs": {
+   "geo": "Polylines to join."
+  },
+  "outputs": {
+   "geo": "The joined polylines."
+  },
+  "params": {
+   "group": "Primitive group pattern selecting the polylines to join.",
+   "loop": "Close the result by joining the last segment back to the first point.",
+   "tolerance": "Gaps smaller than this count as already connected: no bridging segment is added.",
+   "reverse_to_fit": "Before each primitive is added, check which of its ends is nearer and reverse it if needed.",
+   "partition_attribute": "Primitive attribute whose values partition the primitives; each group is joined separately. Empty joins everything into one.",
+   "prim_attribs": "Whether the result takes the primitive attributes of the first primitive in the chain, or drops them.",
+   "remove_unused_points": "Delete the points that no primitive uses after joining."
+  }
+ },
+ "PCG_LoopCut": {
+  "summary": "Inserts a complete edge loop through quads, starting from seed edges.",
+  "description": "Works like the loop mode of PolySplit (Loop Cut or Insert Edge Loop in other packages). From a seed edge it enters the neighbouring **quad**, takes the opposite edge (two steps around the vertex loop), then crosses to the next quad, until it returns to the start or hits a boundary or a non-quad. The collected edges are cut like Edge Divide with connect on.\n\nA non-quad ends the loop: a triangle has no opposite edge, and a pentagon has two, so the loop is genuinely broken there (Blender and Maya behave the same).\n\nOne seed edge is enough; giving several on the same loop does not cut it twice.",
+  "inputs": {
+   "geo": "Mesh with quad loops."
+  },
+  "outputs": {
+   "geo": "Mesh with the loop(s) inserted."
+  },
+  "params": {
+   "edge_group": "Edge group pattern of seed edges. The loops start from these edges and run through quads.",
+   "cuts": "Number of evenly spaced loops inserted. Ignored when *Cut Positions* is set.",
+   "cut_positions": "Custom parameter positions along the edges, separated by spaces. When set, *Cuts* is ignored.",
+   "output_edge_group": "Name of an edge group that receives the new edges. Empty means not created.",
+   "output_point_group": "Name of a point group that receives the new points. Empty means not created."
+  }
+ },
+ "PCG_MatchAxis": {
+  "summary": "Rotates geometry by the smallest rotation that takes one axis direction onto another.",
+  "description": "Rotates *From Axis* onto *To Axis* with the minimal rotation, about the origin, the centroid or the bounding box center. If *Up From* and *Up To* are both non-zero, a further rotation about the main axis then also aligns the up vectors. The vector attributes `N`, `up`, `v` and `orient` are rotated along with the points.",
+  "inputs": {
+   "geo": "Geometry to rotate."
+  },
+  "outputs": {
+   "geo": "The rotated geometry."
+  },
+  "params": {
+   "group": "Group pattern of the points to rotate. Empty means all.",
+   "from_x": "Direction that is rotated onto *To Axis*.",
+   "to_x": "Direction that *From Axis* ends up pointing to.",
+   "pivot": "Point the rotation is performed about.",
+   "up_from_x": "Up vector before the rotation. Used only when both Up vectors are non-zero.",
+   "up_to_x": "Desired up vector after the rotation. Used only when both Up vectors are non-zero; the extra rotation about the main axis makes the up vectors line up."
+  }
+ },
+ "PCG_MatchSize": {
+  "summary": "Moves and scales geometry to fit a reference box, and can stash the transform so it can be undone later.",
+  "description": "The real use is less resizing than establishing a **recoverable canonical space**: match any model to a unit box, work in that space (cut, scatter, compute UVs), then send it back with the stashed transform. The Stash and Restore fields are as important as the alignment.\n\nIf the second input is connected, the geometry is aligned to its bounding box. Otherwise (or with *Location and Size*) the target position and size parameters define the box.\n\nWhen *Restore Attribute* names a detail attribute that actually exists on the geometry, the node **only restores**: it inverts the stored 4x4 matrix and applies it, ignoring all other parameters. As in Houdini, restoring and matching are two separate, mutually exclusive operations.",
+  "inputs": {
+   "geo": "Geometry to match.",
+   "target": "Optional reference geometry whose bounding box is the target."
+  },
+  "outputs": {
+   "geo": "The matched geometry."
+  },
+  "params": {
+   "justify_with": "*Input If Wired* aligns to the second input when it is connected and otherwise to the target position and size below. *Location and Size* always uses the values below.",
+   "use_group_bounds": "Measure the bounds of a group instead of the whole geometry.",
+   "group": "Group pattern whose bounds are used.",
+   "group_type": "Whether the group contains primitives or points.",
+   "target_px": "Anchor of the reference box. On an axis where Justify is Min or Max it is that edge, otherwise it is the center.",
+   "target_sx": "Size of the reference box along each axis.",
+   "translate": "Move the geometry to the reference box.",
+   "justify_x": "Which part of the geometry's bounding box (center, min or max) is placed on the reference, per axis. *None* leaves that axis alone.",
+   "justify_y": "As for X.",
+   "justify_z": "As for X.",
+   "use_justify_to": "Enables the Justify To settings.",
+   "to_x": "Which part of the reference box (same as the input justification, min, center or max) the geometry is aligned to.",
+   "to_y": "As for X.",
+   "to_z": "As for X.",
+   "offset_x": "Additional offset applied after the alignment.",
+   "scale_to_fit": "Scale the geometry so its bounding box matches the size of the reference box.",
+   "uniform_scale": "Scale equally on all axes so proportions are preserved.",
+   "use_xform": "Enables the stash and restore attributes.",
+   "restore_attribute": "Name of a detail attribute holding a stashed transform. If the geometry has it, only the inverse transform is applied and all other parameters are ignored. Empty means no restore.",
+   "stash_attribute": "Name of the detail attribute that receives the 4x4 matrix of the transform that was applied."
+  }
+ },
+ "PCG_Merge": {
+  "summary": "Combines up to six geometries into one.",
+  "description": "Concatenates the points and primitives of all connected inputs. Attributes and groups are the union across the inputs; where an input lacks an attribute its elements get zeros, and where it lacks a group its elements are simply not in the group. Empty inputs are ignored.",
+  "inputs": {
+   "geo1": "First geometry.",
+   "geo2": "Optional geometry.",
+   "geo3": "Optional geometry.",
+   "geo4": "Optional geometry.",
+   "geo5": "Optional geometry.",
+   "geo6": "Optional geometry."
+  },
+  "outputs": {
+   "geo": "The merged geometry."
+  },
+  "params": {}
+ },
+ "PCG_Mirror": {
+  "summary": "Mirrors geometry about a plane, optionally keeping the original and welding the seam.",
+  "description": "Three details matter and are handled here:\n\n1. **Mirroring flips orientation, so the winding is reversed.** A reflection has determinant -1; reflecting only positions leaves the mirrored half with inward normals (black in renders, culled, and negative volume). *Reverse Normals* does this.\n2. **Vector attributes are reflected, not copied.** Directions such as `N`, `v`, `up` and tangents must be reflected, while `Cd` and `uv` are copied as they are. There is no type system to tell them apart, so a name list is used and can be extended.\n3. **In append mode the seam is welded.** Without welding, the points sitting on the plane exist twice and the seam is a ring of doubled boundary edges, so topology is not closed and nodes that require closed meshes fail. Points close to the plane are first projected exactly onto it (floating point puts a point meant to be at x=0 at +-1e-8), then welded within *Snap Tolerance*.",
+  "inputs": {
+   "geo": "Geometry to mirror."
+  },
+  "outputs": {
+   "geo": "Mirrored geometry, or original plus mirrored geometry."
+  },
+  "params": {
+   "group": "Primitive group pattern to mirror. Empty means all.",
+   "operation": "*Mirror All* reflects all selected primitives. *Clip and Mirror* first cuts the geometry at the plane and mirrors the part on the kept side.",
+   "mode": "*Mirrored Only* outputs just the reflected copy; *Original + Mirrored* outputs both.",
+   "orient": "Define the plane by origin and normal, or by translate and rotate.",
+   "origin_x": "A point on the mirror plane.",
+   "normal_x": "Normal of the mirror plane.",
+   "translate_x": "A point on the mirror plane when oriented by transform.",
+   "rotate_x": "Rotation in degrees that turns (1,0,0) into the plane normal, applied in X, Y, Z order.",
+   "distance": "Offset of the plane along its normal.",
+   "reverse_normals": "Reverse the winding of the mirrored primitives. Turn off to keep their winding (faces pointing inward).",
+   "fuse_result": "Weld points on the mirror plane so that the two halves share them.",
+   "snap_tolerance": "Welding distance, relative to the longest side of the bounding box. Points close to the plane are first projected exactly onto it.",
+   "original_group": "Name of a primitive group for the original primitives. Empty means not created.",
+   "mirror_group": "Name of a primitive group for the mirrored primitives. Empty means not created.",
+   "vector_attributes": "Names of 3-component direction attributes that are reflected along with the geometry, separated by spaces."
+  }
+ },
+ "PCG_Peak": {
+  "summary": "Moves points along their normals by a distance.",
+  "description": "Pushing points by d along the point normal is **not** the same as growing the surface by d. A cube corner has normal (1,1,1)/sqrt(3); moving it by d shifts that corner only 0.577d along each face normal. Flat faces are no longer flat, the offset does not match the number entered, and a cube does not stay a cube. Houdini's Peak behaves the same way.\n\n**Miter Corners** multiplies the displacement by `1 / (n_point . n_face)`, using the smallest dot product over the adjacent faces. This is a miter: the corner lands at the intersection of the offset adjacent faces. A cube corner gets sqrt(3), the cube stays a cube, and its edge length grows by exactly 2d. At nearly tangent folds the factor explodes, so *Max Miter* caps it.\n\nExisting normals in `N` are used (upstream may have set a cusp angle or perturbed them); if there are none, they are computed but **not written back**. *Distance Attribute* gives each point its own factor, to combine with Attribute Fade or Attribute Noise.",
+  "inputs": {
+   "geo": "Geometry whose points are moved."
+  },
+  "outputs": {
+   "geo": "Geometry with displaced points."
+  },
+  "params": {
+   "group": "Point group pattern to move. Empty means all points.",
+   "distance": "Distance to move along the normal. Negative values move against it.",
+   "miter_corners": "Scale the displacement by the miter factor so that flat faces stay flat after the push.",
+   "max_miter": "Upper limit of the miter factor, to avoid blow-up at nearly tangent folds.",
+   "distance_attribute": "Point attribute multiplied into *Distance*. Empty means not used.",
+   "normal_attribute": "Attribute holding the normals to push along."
+  }
+ },
+ "PCG_PointJitter": {
+  "summary": "Adds random displacement to points.",
+  "description": "Each point moves in a random direction by at most *Scale* (further multiplied by the mask, `pscale` and the per-axis scales).\n\nThe random stream is keyed by the **ID attribute** when one is given, not by point number. If points are deleted upstream, sorted or fused, point numbers shift and a jitter keyed by number would change everywhere.\n\nThe displacement is uniform **inside a sphere**, not inside a cube. Taking three independent values in [-1,1] would make diagonals 1.73 times longer than the axes, a visible directionality on grid-like input. If you want directionality, use *Axis Scales*.",
+  "inputs": {
+   "geo": "Geometry whose points are jittered."
+  },
+  "outputs": {
+   "geo": "Geometry with jittered points."
+  },
+  "params": {
+   "group": "Point group pattern to jitter. Empty means all points.",
+   "mask": "Constant multiplier on the displacement, from 0 to 1.",
+   "mask_mode": "Whether the mask is only the constant above, or is also multiplied by a point attribute.",
+   "mask_attribute": "Point attribute multiplied into the displacement. Required when scaling by attribute.",
+   "id_attribute": "Point attribute used as the key of the random stream instead of the point number. Empty uses point numbers.",
+   "scale": "Maximum displacement distance.",
+   "axis_scale_x": "Per-axis multiplier of the displacement, for directional jitter.",
+   "rand_seed": "Seed of the random stream.",
+   "use_point_scale": "Also multiply the displacement by the point attribute `pscale` if present.",
+   "update_normals": "Recompute normals after the move if the geometry has them."
+  }
+ }
+}
