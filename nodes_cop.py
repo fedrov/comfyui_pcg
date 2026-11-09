@@ -2134,7 +2134,9 @@ class PCG_COPFlowAccumulation:
     always reaches an outlet (the four edges by default; with tile, the global lowest point; with a Base Layer only that).
     Then water is passed downstream by D8 (the single steepest neighbour; rivers are one-pixel-wide lines at 0° / 45° only), Rho8 (randomised
     D8, unbiased mean direction, randomness set by Rand Seed) or MFD (split among all lower neighbours by slope^Exponent,
-    sheet flow on slopes).
+    sheet flow on slopes). Across a filled lake the water follows the drowned valley: the lake's flat surface (a one-ulp
+    slope toward the spill point) would draw ruler-straight lines and hatching, so lake pixels drain along the lowest
+    original terrain under the water to the lake's exit instead.
 
     Output layers: flow = catchment area (resolution independent in channels), river = a river-network mask with a soft logarithmic transition around River Area,
     lake = how deep it was filled, flow_dir = downstream direction (u, v). Leave a layer name empty to skip it.

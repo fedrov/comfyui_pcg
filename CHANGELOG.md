@@ -55,6 +55,9 @@ All notable changes to this project are documented here. The format follows
 - The 3D viewport draws on demand instead of 60 times a second: idle viewports no longer use GPU / CPU.
 
 ### Fixed
+- **COP Flow Accumulation**: water crossing a filled lake no longer runs down the pit-filling epsilon slope,
+  which drew ruler-straight 0° / 45° lines and hatching across every lake and long filled valley floor. Lake pixels
+  now drain along the drowned valley (a second priority flood over the original terrain, from the lake's exit).
 - COP Noise: Tile U is greyed out for the Torus noise type again.
 - Removed unreachable leftover code in the geometry preview renderer and unused variables found by a lint pass.
 

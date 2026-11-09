@@ -1701,7 +1701,15 @@ _cop("COPContour", _smooth, layer_out="contour", interval=0.05)
 _cop("COPDerivative", _smooth, layer_out="C_magnitude", mode="magnitude")
 _cop("COPThermalErosion", _smooth, layer_out="debris", strength=3.0, iterations=120)
 _cop("COPStreamPower", _smooth, strength=3.0, iterations=200)
-_cop("COPFlowAccumulation", _smooth, layer_out="river")
+def _flow_view():
+    a = _smooth()
+    fa = g("COPFlowAccumulation", cop=a)
+    # rivers white, filled lakes grey (the river mask is 0 inside lakes)
+    out = g("COPWrangle", cop=fa, code="@view = max(@river, 0.3 * smoothstep(0.0, 0.004, @lake))")
+    return {"in": [a], "out": out, "layer_in": "C", "layer_out": "view"}
+
+
+cop_recipe("COPFlowAccumulation", _flow_view)
 _cop("COPFeather", _shape, layer_in="mask", layer_out="mask", width=18.0)
 _cop("COPEikonal", _shape, layer_in="mask", layer_out="arrival")
 cop_recipe("COPText", lambda: {"out": g("COPText", text="PCG", size=110, align="center",

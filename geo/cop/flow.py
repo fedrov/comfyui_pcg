@@ -30,7 +30,8 @@ neighbor it is raised to "one ulp above it" (math.nextafter). Result:
   · pits are filled flat and become lakes -- the `lake` layer = fill depth
   · **every non-outlet pixel has a strictly lower neighbor** (the one that flooded it), so
     steepest descent always finds a receiver and water always reaches an outlet. The same holds on flat lake surfaces (a one-ulp
-    slope points to the outlet)
+    slope points to the outlet). Flow accumulation does not route lake water down that slope, though: it would draw straight
+    0° / 45° lines across every lake. lake_routes sends it along the drowned valley instead
 
 The heap part is sequential and unavoidable: about 3-4 s at 1024^2 (pure Python). But it runs only **once** per run
 -- stream power's implicit scheme **never creates new pits** (proof in stream_power's notes),
@@ -269,6 +270,83 @@ def mfd(f, seed_mask, tile=False, exponent=1.1):
     return src, T[src, kk], wgt[src, kk]
 
 
+# ═══════════════════════════════════════════════════════════ Routing across lakes
+def lake_routes(f, h, seed_mask, tile=False):
+    """
+    Receivers for the pixels of filled lakes, following the **drowned valley** instead of the ε slope.
+
+    After Priority-Flood + ε a lake is flat up to a few ulp, and those ulp increase with breadth-first distance from the
+    spill point. Steepest descent on that surface walks Chebyshev rings: every lake turns into ruler-straight 0° / 45° lines
+    and parallel hatching, and a long filled valley floor into one straight diagonal. The water level says nothing about
+    where the water goes, so this ignores it and looks at the terrain under the water:
+
+      a second priority flood, restricted to lake pixels (f > h), starting from the lake's **exit pixels** (a lake pixel
+      with a strictly lower non-lake neighbour, which is its receiver) and always expanding the pixel with the lowest
+      **original** height h. Each pixel's receiver is the pixel that reached it.
+
+    The flood runs from the exit down the deepest channel to the bottom of the basin and then spreads up the sides, so
+    the tree drains every lake pixel down into the drowned thalweg and along it to the exit -- one channel through the
+    lake that bends with the valley, not a hatch of lines. The tree is rooted at the exits, so it has no cycles, and an
+    exit's receiver is strictly lower than it, so water still always reaches an outlet.
+
+    Returns (pixel flat indices, their receiver flat indices); empty if there are no lakes. numpy + a heap over lake pixels only.
+    """
+    f = np.asarray(f, np.float64)
+    h = np.asarray(h, np.float64)
+    H, W = f.shape
+    N = H * W
+    fl, hl = f.ravel(), h.ravel()
+    lake = (fl > hl) & ~np.asarray(seed_mask).ravel()
+    ids = np.flatnonzero(lake)
+    if not ids.size:
+        return ids, ids
+    # neighbour table of the lake pixels only: (8, n_lake), -1 outside the image
+    cy, cx = np.divmod(ids, W)
+    T = np.empty((8, ids.size), np.int64)
+    for k, (dx, dy) in enumerate(_DIRS):
+        ty, tx = cy + dy, cx + dx
+        if tile:
+            T[k] = (ty % H) * W + tx % W
+        else:
+            ok = (ty >= 0) & (ty < H) & (tx >= 0) & (tx < W)
+            T[k] = np.where(ok, ty * W + tx, -1)
+    Tc = np.maximum(T, 0)
+    dist = np.asarray(_DIST)[:, None]
+    # exits: steepest strictly lower non-lake neighbour
+    s = np.where((T >= 0) & ~lake[Tc] & (fl[Tc] < fl[ids]), (fl[ids] - fl[Tc]) / dist, -np.inf)
+    k = np.argmax(s, 0)
+    ex = np.isfinite(s[k, np.arange(ids.size)])
+    rcv = np.full(N, -1, np.int64)
+    rcv[ids[ex]] = T[k[ex], np.flatnonzero(ex)]
+    pos = np.full(N, -1, np.int64)
+    pos[ids] = np.arange(ids.size)
+    done = bytearray(ids.size)
+    heap = []
+    for i in np.flatnonzero(ex).tolist():
+        done[i] = 1
+        heap.append((hl[ids[i]], fl[ids[i]], i))
+    heapq.heapify(heap)
+    Tl = T.T.tolist()
+    posl = pos.tolist()
+    hll = hl.tolist()
+    fll = fl.tolist()
+    idl = ids.tolist()
+    push, pop = heapq.heappush, heapq.heappop
+    while heap:
+        _, _, i = pop(heap)
+        c = idl[i]
+        for n in Tl[i]:
+            if n < 0:
+                continue
+            j = posl[n]
+            if j < 0 or done[j]:
+                continue
+            done[j] = 1
+            rcv[n] = c
+            push(heap, (hll[n], fll[n], j))   # ties (dead-flat floors): the ε order, as before
+    return ids, rcv[ids]
+
+
 # ═══════════════════════════════════════════════════════════ Topological batches
 def schedule(N, src, dst):
     """
@@ -416,11 +494,24 @@ def flow_accumulation(img, layer=DEFAULT_LAYER, strength=1.0,
         rho = (np.random.default_rng(int(rand_seed)).random(N)
                if method == "rho8" else None)
         rcv, dist = d8(f, sm, tile, rho)
+        if fill:
+            li, lr = lake_routes(f, h, sm, tile)
+            rcv[li] = lr
         src = np.flatnonzero(rcv >= 0)
         dst = rcv[src]
         wts = np.ones(src.size)
     else:
         src, dst, wts = mfd(f, sm, tile, exponent)
+        if fill:
+            li, lr = lake_routes(f, h, sm, tile)
+            if li.size:
+                # lake pixels: one receiver along the drowned valley instead of sheet flow on the ε slope
+                inl = np.zeros(N, bool)
+                inl[li] = True
+                keep_ = ~inl[src]
+                src = np.concatenate([src[keep_], li])
+                dst = np.concatenate([dst[keep_], lr])
+                wts = np.concatenate([wts[keep_], np.ones(li.size)])
     rain = np.ones(N)
     rl = str(rain_layer).strip()
     if rl:

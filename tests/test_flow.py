@@ -368,6 +368,52 @@ check("  monotonically non-decreasing with catchment area", bool((np.diff(rv.rav
 check("  saturates to 1 / 0 at softness/2 orders of magnitude above / below",
       bool((rv[Ar >= 4 * tex * tex * 10 ** 0.25] == 1).all()
            and (rv[Ar <= 4 * tex * tex * 10 ** -0.25] == 0).all()))
+# Across a lake: water follows the drowned valley, not the ε slope of pit filling.
+# A V-shaped valley whose floor snakes (centre y = 64 + 18 sin(x / 14)) and drains to the left edge, dammed at x = 16:
+# behind the dam a winding lake ~90 px long. The ε slope (breadth-first distance to the spill point) sends the water
+# across the lake in straight lines; the drowned valley floor is the sine curve.
+nl_ = 128
+yy_, xx_ = np.mgrid[0:nl_, 0:nl_].astype(float)
+dv_ = yy_ - (64 + 18 * np.sin(xx_ / 14.0))
+hv = 0.001 * xx_ + 0.002 * np.abs(dv_) + 0.1 * (np.abs(xx_ - 16) < 1.5)
+smv = FL.seeds(hv.shape, False, None, hv)
+fv = FL.priority_fill(hv, smv)
+lkv = fv > hv
+
+
+def _acc(r):
+    s_ = np.flatnonzero(r >= 0)
+    return FL.accumulate(r.size, s_, r[s_], np.ones(s_.size), np.ones(r.size),
+                         FL.schedule(r.size, s_, r[s_])).reshape(hv.shape)
+
+
+def _off(A_):     # per lake column x = 30..99: how far the column's biggest flow is from the drowned valley floor
+    return [abs(dv_[np.argmax(np.where(lkv[:, c], A_[:, c], -1)), c]) for c in range(30, 100)]
+
+
+ov, _ = FL.flow_accumulation(himg(hv))
+offv = _off(L(ov, "flow")[..., 0])
+check("lake: the main channel follows the drowned valley floor (every column within 1 px of the sine centre)",
+      bool(lkv.sum() > 3000 and max(offv) <= 1.0), (int(lkv.sum()), round(max(offv), 2)))
+r_eps, _ = FL.d8(fv, smv)
+off_eps = _off(_acc(r_eps))
+check("  negative control: steepest descent on the ε slope cuts straight across (> 15 px off the floor somewhere)",
+      max(off_eps) > 15, round(max(off_eps), 1))
+li_, lr_ = FL.lake_routes(fv, hv, smv)
+check("  every lake pixel gets a receiver; water is conserved for D8, Rho8 and MFD",
+      bool(li_.size == lkv.sum() and (lr_ >= 0).all()) and all(
+          abs(FL.flow_accumulation(himg(hv), method=mt)[1]["outlet_total"] - 1.0) < 1e-9
+          for mt in ("d8", "rho8", "mfd")))
+rnd = np.random.default_rng(3).random((48, 48))
+for _ in range(3):
+    rnd = (rnd + np.roll(rnd, 1, 0) + np.roll(rnd, 1, 1)) / 3
+okr = True
+for mt in ("d8", "rho8", "mfd"):
+    for tl in (False, True):
+        _, rp_ = FL.flow_accumulation(himg(rnd), method=mt, tile=tl)
+        okr &= rp_["lake_pixels"] > 50 and abs(rp_["outlet_total"] - rp_["rain_total"]) < 1e-12
+check("  pitted noise (with and without tile): no cycle, water conserved, for all three methods", bool(okr))
+
 o4, _ = FL.flow_accumulation(himg(ramp), flow_layer="", river_layer="",
                              lake_layer="", dir_layer="flow_dir",
                              keep=False)
