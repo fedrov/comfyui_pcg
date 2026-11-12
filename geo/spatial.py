@@ -363,6 +363,8 @@ def tri_soup(geo, group=""):
     sel = resolve(geo, PRIM, group)
     if geo.nprims == 0 or not sel.any():
         return z3, np.zeros(0, np.int64), z3.copy()
+    if geo.nprims > _FAST_SOUP and group != "__soup_rest__":
+        return _tri_soup_fast(geo, sel)
     tmp = geo.copy()
     tmp.set(PRIM, "__srcprim__", np.arange(geo.nprims, dtype=np.int32),
             owned=True)
@@ -382,6 +384,56 @@ def tri_soup(geo, group=""):
             tri.get(PRIM, "__srcprim__")[idx, 0].astype(np.int64),
             (src_corner[corner, 0].reshape(-1, 3).astype(np.int32)
              if src_corner is not None else z3.copy()))
+
+
+# Above this many primitives the triangles and convex quads are cut directly (pcg125). Ear clipping through Divide
+# copies the geometry and its attributes and makes a dozen per-corner temporaries: on the 8-million-face terrain +
+# forest of the world example that alone peaked at 3 GB, more than everything else in the render together.
+_FAST_SOUP = 200000
+
+
+def _tri_soup_fast(geo, sel):
+    """tri_soup for big meshes: triangles as they are, convex quads as a fan; anything else goes through Divide."""
+    from .core import PRIM_POLY, POINT
+    sizes = geo.prim_sizes()
+    poly = sel & geo.prim_closed & (geo.prim_type == PRIM_POLY)
+    off = np.asarray(geo.prim_offset[:-1], np.int64)
+    vp = geo.vertex_point
+    t3 = np.nonzero(poly & (sizes == 3))[0]
+    q = np.nonzero(poly & (sizes == 4))[0]
+    rest = poly & (sizes > 4)
+    if len(q):
+        P = np.asarray(geo.get(POINT, "P"), np.float32)
+        convex = np.ones(len(q), bool)
+        step = 1 << 19                                            # in chunks: (n, 4, 3) temporaries add up
+        for s0 in range(0, len(q), step):
+            c = off[q[s0:s0 + step]][:, None] + np.arange(4)[None]
+            Q = P[vp[c]]                                          # (n, 4, 3)
+            e = np.roll(Q, -1, 1) - Q
+            cr = np.cross(e, np.roll(e, -1, 1))                   # turn at each corner
+            nrm = cr.sum(1, keepdims=True)
+            convex[s0:s0 + step] = ((cr * nrm).sum(-1) > 0).all(1)
+        del Q, e, cr, nrm, c
+        rest[q[~convex]] = True
+        q = q[convex]
+    c3 = off[t3][:, None] + np.arange(3)[None]
+    cq = off[q]
+    cor = np.concatenate([c3, np.stack([cq, cq + 1, cq + 2], 1), np.stack([cq, cq + 2, cq + 3], 1)]).astype(np.int32)
+    src = np.concatenate([t3, q, q]).astype(np.int64)
+    tri = vp[cor].astype(np.int32)
+    if rest.any():
+        # only those prims, in a small geometry of their own (Divide works on whole-geometry arrays)
+        ridx = np.nonzero(rest)[0]
+        sz = sizes[ridx].astype(np.int64)
+        rc = _gather_blocks(off[ridx], sz)                        # their corners in the original
+        tmp = type(geo)(geo.npoints)
+        tmp.set(POINT, "P", np.asarray(geo.get(POINT, "P")))
+        tmp.set_topology(vp[rc], np.concatenate([[0], np.cumsum(sz)]).astype(np.int32))
+        tmp.set_group(PRIM, "__soup_rest__", np.ones(len(ridx), bool))
+        t2, s2, c2 = tri_soup(tmp, "__soup_rest__")
+        s2, c2 = ridx[s2], rc[c2].astype(np.int32)
+        tri, src, cor = np.concatenate([tri, t2]), np.concatenate([src, s2]), np.concatenate([cor, c2])
+    return tri, src, cor
 
 
 def tri_verts(P, tri):

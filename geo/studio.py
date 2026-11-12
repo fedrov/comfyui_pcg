@@ -137,19 +137,22 @@ def sample_wrap(tex, uv):
 
 
 # ─────────────────────────────────────────────────────────────── helpers
-def _smooth_normals(geo, rast):
-    """Per-pixel normal: vertex N > point N > face normal."""
+def _smooth_normals(geo, rast, fn=None):
+    """Per-pixel normal (float32): vertex N > point N > face normal (fn: the face-normal image if already made)."""
     from . import render as R
     n = None
     if geo.has(VERTEX, "N"):
-        n = R._interp_corner(rast, np.asarray(geo.get(VERTEX, "N"), np.float64)[:, :3])
+        n = R._interp_corner(rast, np.asarray(geo.get(VERTEX, "N"), np.float32)[:, :3]).astype(np.float32)
     elif geo.has(POINT, "N"):
-        n = R._interp(rast, np.asarray(geo.get(POINT, "N"), np.float64)[:, :3])
-    fn = R._face_normals(geo, rast)
+        n = R._interp(rast, np.asarray(geo.get(POINT, "N"), np.float32)[:, :3]).astype(np.float32)
+    if fn is None:
+        fn = R._face_normals(geo, rast).astype(np.float32)
     if n is None:
-        return fn
+        return fn.copy()
     ln = np.linalg.norm(n, axis=-1, keepdims=True)
-    n = np.where(ln > 1e-8, n / np.maximum(ln, 1e-12), fn)
+    ok = ln[..., 0] > 1e-8
+    n[ok] /= ln[ok]
+    n[~ok] = fn[~ok]
     return n
 
 
@@ -197,11 +200,16 @@ def _ssao(P, N, valid, px_world, radius_world, samples=12):
     return np.where(valid, vis, 1.0)
 
 
-def _shadow(geo, P, N, valid, Ldir, center, radius, res=1536):
+def _shadow(geo, P, N, valid, Ldir, center, radius, res=1536, offset=None):
     """
     Shadow map from the key light (orthographic, framing the bounding sphere), 3x3 PCF. 1 = lit.
     N is the **geometric** (face) normal: receivers are pushed off the surface along it (normal-offset shadows),
     which removes acne on faces at grazing angles without the peter-panning a large depth bias gives.
+
+    offset (optional, per pixel, world units): a larger push for pixels on large faces. On a coarse mesh lit at a low
+    sun the faces just past the terminator are shadowed by their own neighbours, which draws the triangles as a
+    saw-tooth of dark blocks along every ridge (the "shadow terminator" problem); pushing by about half the face
+    size clears it. The push never goes below the 1.5 texels used without it.
     """
     from . import render as R
     eye = center + Ldir * radius * 3.0
@@ -245,7 +253,9 @@ def _shadow(geo, P, N, valid, Ldir, center, radius, res=1536):
         sel = (idx[0][s0:s0 + step], idx[1][s0:s0 + step])
         n = N[sel].astype(np.float64)
         ndl = n @ Ldir
-        p = P[sel] + n * (texel * 1.5) * np.where(ndl < 0, -1.0, 1.0)[:, None]
+        push = texel * 1.5 if offset is None else np.maximum(texel * 1.5, offset[sel].astype(np.float64))
+        p = P[sel] + n * (push * np.where(ndl < 0, -1.0, 1.0))[:, None] if offset is not None else \
+            P[sel] + n * (texel * 1.5) * np.where(ndl < 0, -1.0, 1.0)[:, None]
         sx, sy, z = R.project(cam, p)
         xi0 = np.round(sx).astype(np.int64)
         yi0 = np.round(sy).astype(np.int64)
@@ -275,7 +285,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     W, H = int(width) * k, int(height) * k
     # background: vertical gradient (display space)
     t = np.linspace(0.0, 1.0, H)[:, None, None]          # 0 = bottom row (rasterizer convention)
-    bg_top, bg_bot = np.array([0.30, 0.32, 0.35]), np.array([0.13, 0.135, 0.145])
+    bg_top, bg_bot = np.array([0.36, 0.38, 0.41]), np.array([0.17, 0.175, 0.185])
     img = np.broadcast_to((bg_bot + (bg_top - bg_bot) * t).astype(np.float32), (H, W, 3)).copy()
     if geo is None or geo.npoints == 0 or geo.nprims == 0:
         return _finish(img, k)
@@ -358,7 +368,19 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     sky, gnd = np.array([0.42, 0.48, 0.58]) * 0.75, np.array([0.20, 0.18, 0.16]) * 0.75
     L32 = Ldir.astype(np.float32)
     ndl = np.clip(N @ L32, 0.0, 1.0)
-    sh = _shadow(geo, P, FN, valid, Ldir, center, radius) if shadows else np.ones(m.shape)
+    # pcg125: the key is a softbox, not a point -- soft shadows that are crisp at contact and widen with distance
+    # (skylight.sun_shadow), from one 2048² depth map
+    from . import skylight as K
+    T = K.soup(geo)[1] if (shadows or ao) else None
+    sh = np.ones(m.shape, np.float32)
+    if shadows:
+        dmap, meta = K.depth_map(T, Ldir, center, radius * 1.05, 2048)
+        vi = np.nonzero(valid)
+        stp = 1 << 20
+        for s0 in range(0, len(vi[0]), stp):
+            sel = (vi[0][s0:s0 + stp], vi[1][s0:s0 + stp])
+            sh[sel] = K.sun_shadow(dmap, meta, P[sel], FN[sel], softness=0.07, max_px=48.0)
+        del dmap
     # shadow terminator: near the light's horizon a coarse mesh shadows its own facets in steps while the smooth
     # normal says "barely lit" -- fade the shadow in only where the facet clearly faces the light
     ndl_g = np.clip(FN @ L32, 0.0, 1.0)
@@ -370,6 +392,15 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
         sub = (slice(None, None, k), slice(None, None, k))
         occ = _ssao(P[sub].astype(np.float32), N[sub].astype(np.float32), valid[sub], px_world * k,
                     radius * 0.18)
+        # pcg125: large-scale occlusion from the dome of the studio (24 directions, each a depth map): how much of
+        # the surroundings a point can see. Screen-space AO only knows what is on screen and within its radius;
+        # this grounds the object (a soft pool of shade under and between things) and darkens deep creases
+        vs = valid[sub]
+        if vs.any():
+            _, dv = K.sky_dome(T, P[sub][vs], N[sub][vs], center, radius * 1.05, Ldir,
+                               lambda d_: np.ones((len(d_), 3)), np.zeros(3), k=24, res=384)
+            occ = occ ** 0.5
+            occ[vs] *= 0.3 + 0.7 * dv
         occ = np.repeat(np.repeat(occ, k, 0), k, 1)[:H, :W]
     else:
         occ = np.ones(m.shape, np.float32)
@@ -405,7 +436,9 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
             glit = linear_to_srgb(filmic((key * nd * sh[go][:, None] + ga * occ[go][:, None]) * EXPOSURE * 0.3))
             ratio = np.clip(glit / np.maximum(unlit, 1e-6), 0, 1)
             w = fw[s0:s0 + step][:, None]
-            img[go] = img[go] * (1 - w) + img[go] * (0.55 + 0.45 * ratio) * w
+            # the floor under the object is a pool of light (brighter than the backdrop it fades into), and the
+            # shadow / occlusion darkening is applied nearly in full so the object visibly stands on it
+            img[go] = img[go] * (1 - w) + np.minimum(img[go] * 1.45, 1.0) * (0.22 + 0.78 * ratio) * w
     return _finish(img, k)
 
 
@@ -465,7 +498,7 @@ def env_brdf(f0, rough, nv):
     return f0 * A[:, None] + B[:, None]
 
 
-def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal, env=None):
+def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal, env=None, spec_occ=None):
     """Metal-rough shading of the surface pixels (flat lists). -> (n, 3) linear. env: radiance function of the
     surroundings (default the studio); V is one direction (orthographic) or one per pixel (perspective)."""
     rough = np.clip(rough, 0.03, 1.0).astype(np.float64)
@@ -491,7 +524,7 @@ def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal, env=None):
     Rv = 2 * nv[:, None] * n - (V if per else V[None])
     Rv = Rv / np.linalg.norm(Rv, axis=1, keepdims=True)
     envr = env(Rv, rough, Ldir) if env is not None else env_radiance(Rv, rough, Ldir, V)
-    spec_env = env_brdf(f0, rough, nv) * envr * occ[:, None]
+    spec_env = env_brdf(f0, rough, nv) * envr * (occ if spec_occ is None else spec_occ)[:, None]
     shadowed = np.where(nl > 1e-6, lit / np.maximum(nl, 1e-6), 0.0)
     return (diff * (key * lit[:, None] + amb * occ[:, None])
             + spec_key * key * shadowed[:, None] + spec_env)
@@ -544,11 +577,18 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         return
     a = geo.get(PRIM, mattr)
     if a is not None and is_string(a):
-        pm = np.asarray(a)[:, 0][rast["src"][hit[idx]]]
+        # material per pixel as a small integer code (a string per pixel is hundreds of megabytes on a big frame):
+        # the names of the prims that are actually visible, numbered
+        pid = rast["src"][hit[idx]]
+        up, inv = np.unique(pid, return_inverse=True)
+        mats, code = np.unique(np.asarray(a)[up, 0].astype(str), return_inverse=True)
+        pm = code[inv].astype(np.int32)
+        del pid, up, inv, code
     else:
         if any("{material}" in v for v in tex.values()):
             raise ValueError(f"Textures use {{material}} but there is no string prim attribute '{mattr}'")
-        pm = np.full(len(idx[0]), "", object)
+        mats = np.array([""])
+        pm = np.zeros(len(idx[0]), np.int32)
     if geo.has(VERTEX, uvattr):
         uv = _masked_interp(rast, idx, np.asarray(geo.get(VERTEX, uvattr))[:, :2], True)
     elif geo.has(POINT, uvattr):
@@ -568,13 +608,18 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     del uvi, dimg
     frames = None
     cache = {}
-    for mat in sorted({str(x) for x in pm}):
-        sel = pm == mat
+    for mi, mat in enumerate(str(x) for x in mats):
+        sel = pm == mi
         tgt = (idx[0][sel], idx[1][sel])
         for slot, pattern in tex.items():
             path = pattern.replace("{material}", mat)
             key = (path, slot)
             if path.startswith("@"):
+                # a layer named per material ('@{material}_albedo') that the image does not have: like a missing
+                # file, those faces keep their Cd -- lets one image texture the terrain and leave the trees alone
+                if cop is not None and "{material}" in pattern and any(n_ not in cop for n_ in path[1:].split()):
+                    report["missing"].append(path)
+                    continue
                 if key not in cache:
                     cache[key] = mip_chain(_cop_texture(cop, path[1:], slot))
             else:

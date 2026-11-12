@@ -2,7 +2,7 @@
 
 Height field generation, erosion, masks and terrain tools.
 
-22 nodes.
+23 nodes.
 
 [Back to the reference index](README.md)
 
@@ -17,6 +17,7 @@ Height field generation, erosion, masks and terrain tools.
 - [COP Height to Shadow (PCG)](#pcg-copheighttoshadow) — Casts sun shadows over a height field, optionally with soft edges.
 - [COP HeightField Clip (PCG)](#pcg-cophfclip) — Clamps a height layer into a minimum/maximum range, optionally with a soft knee.
 - [COP HeightField Cutout by Object (PCG)](#pcg-cophfcutoutbyobject) — Carves the terrain down to the bottom of a geometry, fills it up to its top, or both.
+- [COP HeightField Erode (PCG)](#pcg-copheightfielderode) — Erodes a height layer with a grid water simulation (rain, flowing water, sediment transport) plus thermal slumping, and writes flow, water, sediment and debris masks.
 - [COP HeightField from Depth (PCG)](#pcg-copheightfieldfromdepth) — Turns a single image's depth into a top-down height field, so a picture of a landscape can feed the terrain chain.
 - [COP HeightField Hydraulic Erosion (PCG)](#pcg-cophydraulicerosion) — Erodes a height layer with simulated water droplets that carry and deposit sediment.
 - [COP HeightField Mask by Feature (PCG)](#pcg-copmaskbyfeature) — Builds a mask from terrain features: slope, direction, height, curvature and occlusion.
@@ -545,6 +546,100 @@ The height field lies in the xz plane, centered, with width `world_size`; world 
 
 ---
 
+### COP HeightField Erode (PCG)
+
+<a id="pcg-copheightfielderode"></a>
+
+`PCG_COPHeightfieldErode` · category `PCG/cop` · Houdini: HeightField Erode (COP)
+
+Erodes a height layer with a grid water simulation (rain, flowing water, sediment transport) plus thermal slumping, and writes flow, water, sediment and debris masks.
+
+![COP HeightField Erode (PCG): input and result](../images/nodes/PCG_COPHeightfieldErode.png)
+
+This is the model behind Houdini's HeightField Erode (Hydro). Every step, rain falls on every cell; water flows to the four neighbours through virtual pipes driven by the difference in terrain plus water height (Mei, Decaudin and Hu 2007); where it runs fast and deep it picks up material up to its carrying capacity (Capacity x slope x speed x depth), where it slows it deposits the excess; then part of it evaporates. Suspended sediment moves through the same pipes in the same proportion as the water, so material is conserved exactly. In the same step, slopes steeper than the Talus Angle slump: a fraction of the excess slides to the lower neighbours.
+
+All parameters are in cells (the pixel size) and steps, so slopes are true slopes and the Talus Angle is a real angle. The same values carve proportionally finer gullies at a higher resolution, which suits Houdini's erode, upres, erode workflow: a few hundred steps at low resolution for the big valleys, a Resize up, then fewer steps for the detail.
+
+Outputs: the eroded height, `flow` (where water ran: time-averaged speed times depth, normalized to 0-1, dendritic on slopes and solid in rivers), `water` (standing water at the end), `sediment` (net deposition by water: valley floors and fans), `debris` (net deposition by slumping: scree aprons, added onto an existing debris layer by default) and optionally `erosion` (net removal). Leave a name empty to skip an output.
+
+Water and sediment drain off the image edges unless Tile is on. The report gives the terrain volume before and after and the sediment carried off the edges, which balance exactly. Compute = auto uses CUDA when available (float32); numpy takes about 0.25 s per step at 1024x1024.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image containing the height layer. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the eroded height and the requested flow, water, sediment, debris and erosion layers. |
+| `report` | STRING | Text summary: steps and device, terrain volume before and after, sediment carried off the edges, water drained and left standing. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Height Layer `layer` | string | `C` | Layer holding the terrain height. |
+| Height Scale `strength` | float [-10000.0..10000.0] | 1 | Height Scale: height value times this is world height. Must not be 0. Output is divided back to height units. |
+| World Size `world_size` | float [1e-06..] | 1 | World width of the whole image; the pixel size (World Size / width) is the unit of every other parameter. |
+| Iterations `iterations` | int [0..] | 200 | Number of simulation steps. |
+| Rain `rain` | float [0.0..10.0] | 0.02 | Water added to every cell each step, in cells of depth. |
+| Evaporation `evaporation` | float [0.0..1.0] | 0.02 | Fraction of the water that evaporates each step. Higher values keep water in the channels and shorten rivers. |
+| Tileable (Wrap Edges) `tile` | toggle | off | Wrap the edges. Off: the outside is one cell lower and dry, so water and sediment drain off the image. |
+| Hardness Layer `hardness_layer` | string | *(empty)* | Optional 0-1 layer; 1 is bedrock that neither erodes nor slumps. |
+| Rain Layer `rain_layer` | string | *(empty)* | Optional per-cell rain multiplier (for example more rain on windward slopes). |
+
+*Erosion*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sediment Capacity `capacity` | float [0.0..1000.0] | 1 | Carrying capacity factor: the water can hold Capacity x sin(tilt) x speed x min(depth, Max Depth) of material. |
+| Erosion Rate `erode_rate` | float [0.0..1.0] | 0.1 | Fraction of the missing capacity picked up per step. |
+| Deposition Rate `deposit_rate` | float [0.0..1.0] | 0.1 | Fraction of the excess sediment dropped per step. |
+| Min Slope `min_slope` | float [0.0..10.0] | 0.03 | Lower limit of sin(tilt) in the capacity, so water on flat ground still carries some material. |
+| Max Erosion Depth `max_depth` | float [0.001..1000.0] | 2 | Depth (cells) beyond which deeper water carries no more, so lakes do not dig their floors. |
+| Flow Damping `damping` | float [0.0..1.0] | 0.9 | Fraction of last step's flux kept in each pipe: the momentum of the flow. |
+
+*Thermal*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Talus Angle `talus_angle` | float [0.0..89.9] | 52 | Slopes steeper than this angle slump. |
+| Thermal Rate `thermal_rate` | float [0.0..1.0] | 0.05 | Fraction of the excess above the talus angle moved per step. 0 disables slumping. |
+
+*Output*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `C` | Layer for the eroded height. |
+| Flow Layer `flow_layer` | string | `flow` | Layer for the 0-1 flow mask. Empty disables it. |
+| Water Layer `water_layer` | string | `water` | Layer for the standing water depth at the end. Empty disables it. |
+| Sediment Layer `sediment_layer` | string | `sediment` | Layer for net deposition by water. Empty disables it. |
+| Debris Layer `debris_layer` | string | `debris` | Layer for net deposition by slumping. Empty disables it. |
+| Accumulate onto Existing `accumulate_debris` | toggle | on | Add the debris onto an existing layer of the same name (from Thermal or Hydraulic Erosion) instead of replacing it. *Disabled when debris_layer = "".* |
+| Erosion Layer `erosion_layer` | string | *(empty)* | Layer for net removal of material. Empty disables it. |
+| Keep Input Layers `keep_layers` | toggle | on | Keep the input image's other layers in the output. |
+
+*Advanced*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Compute `compute` | menu | Auto | Where to compute: auto uses CUDA when available, cpu forces numpy. The result returns to the input's backend. Options: Auto (`auto`), CPU (`cpu`), CUDA (`cuda`). |
+
+**Compared with Houdini**
+
+Corresponds to HeightField Erode / Erode Hydro: grid water with sediment transport and thermal slumping in one solver, with flow, water, sediment and debris outputs. Houdini additionally separates bedrock from loose debris and has a precipitation spread, river bank and erodability-by-layer controls; parameters here are in cells and steps rather than Houdini's physical units.
+
+**Tips**
+
+- Erode, upres, erode: run it at a quarter resolution for the big valleys, Resize up, add a little noise, then run fewer steps at full resolution.
+- Feed it terrain that already has a drainage network (Stream Power with uplift) for mountain ranges; on raw noise the water pools in every pit and fills them with sediment.
+- The flow, sediment and debris layers are the masks for texturing: dark wet streaks, light valley floors, scree at the foot of slopes.
+
+---
+
 ### COP HeightField from Depth (PCG)
 
 <a id="pcg-copheightfieldfromdepth"></a>
@@ -619,7 +714,7 @@ Connect the original image to `image` to also get an `albedo` layer (the color p
 
 <a id="pcg-cophydraulicerosion"></a>
 
-`PCG_COPHydraulicErosion` · category `PCG/cop` · Houdini: HeightField Erode (COP)
+`PCG_COPHydraulicErosion` · category `PCG/cop`
 
 Erodes a height layer with simulated water droplets that carry and deposit sediment.
 

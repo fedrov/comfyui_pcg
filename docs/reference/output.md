@@ -269,6 +269,8 @@ Shading: **Normal** colours by world-space face normal, **Lambert** is a grey mo
 
 The **Outdoor** look renders an environment shot instead of an object on a studio floor: a perspective camera (the connected Camera node, or an automatic 35 mm camera at Elevation / Azimuth), a sky with a sun, warm sun light with shadows plus blue sky fill and ground bounce, aerial perspective that fades distant surfaces toward the horizon, and an optional ground plane to the horizon. Textures and PBR work as in the studio look; glossy surfaces reflect the sky. Use it for streets, towns and terrain where scale and depth matter; keep Studio for asset turnarounds.
 
+The outdoor look lights the scene like a photograph: the sky is an area light with shadows and one bounce of light off the scene, so narrow streets are darker than open squares and shadowed walls pick up warm light from sunlit ground; sun shadows are crisp at contact and soften with distance; the sky's colours follow the sun's elevation; the frame is finished with bloom, a slight vignette and the AgX tone curve.
+
 **Inputs**
 
 | Input | Type | Description |
@@ -305,6 +307,9 @@ The **Outdoor** look renders an environment shot instead of an object on a studi
 | Sun Elevation `sun_elevation` | float [1.0..90.0] | 35 | Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light. *Hidden when look ≠ outdoor.* |
 | Sun Azimuth `sun_azimuth` | float [-360.0..360.0] | 135 | Outdoor: the sun's direction in world space (0 = toward +Z, 90 = toward +X), so the light stays put when the camera moves. *Hidden when look ≠ outdoor.* |
 | Haze `haze` | float [0.0..20.0] | 1 | Outdoor: aerial perspective, how fast distant surfaces fade toward the horizon colour; 0 turns it off. *Hidden when look ≠ outdoor.* |
+| Clouds `clouds` | float [0.0..1.0] | 0 | Outdoor: cumulus cover from 0 (clear) to 1 (overcast). The clouds are drawn in the sky and throw soft shadows on the scene. *Hidden when look ≠ outdoor.* |
+| Cloud Seed `cloud_seed` | int [0..] | 0 | Outdoor: seed of the cloud pattern. *Hidden when look ≠ outdoor } { clouds = 0.* |
+| Sky Samples `sky_samples` | int [0..128] | 32 | Outdoor: number of directions the sky light is sampled and shadowed from, one depth map each. More is smoother and slower; 0 uses a plain hemisphere fill without sky shadows. *Hidden when look ≠ outdoor.* |
 | Ground Plane `ground_plane` | toggle | on | Outdoor: add a ground plane to the horizon at the bottom of the geometry, so a block of buildings sits in a landscape. *Hidden when look ≠ outdoor.* |
 | Ground Color `ground_color` | string | `0.32 0.31 0.27` | Outdoor: colour of the ground plane, three numbers 0..1. *Hidden when look ≠ outdoor } { ground_plane is off.* |
 | Exposure `exposure` | float [0.05..8.0] | 1 | Outdoor: brightness multiplier before the tone curve. *Hidden when look ≠ outdoor.* |

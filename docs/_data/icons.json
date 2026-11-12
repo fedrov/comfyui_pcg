@@ -110,6 +110,7 @@
 "PCG_COPHeightToCaustics":["caustics","#e0975f"],
 "PCG_COPHeightToNormal":["h2n","#e0975f"],
 "PCG_COPHeightToShadow":["h2shadow","#e0975f"],
+"PCG_COPHeightfieldErode":["hydro","#e0975f"],
 "PCG_COPHeightfieldFromDepth":["from_depth","#e0975f"],
 "PCG_COPHeightfieldToMesh":["hf_mesh","#e0975f"],
 "PCG_COPHexTile":["ux_hex","#e0975f"],

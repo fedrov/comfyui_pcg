@@ -1050,7 +1050,8 @@ SPECS = {
     "PCG_PreviewImage": {
         "order": ["width", "height", "elevation", "azimuth", "look", "shading",
                   "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
-                  "sun_elevation", "sun_azimuth", "haze", "ground_plane", "ground_color", "exposure"],
+                  "sun_elevation", "sun_azimuth", "haze", "clouds", "cloud_seed", "sky_samples",
+                  "ground_plane", "ground_color", "exposure"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
@@ -1082,6 +1083,13 @@ SPECS = {
             "ground_color": {"label": "Ground Color", "section": "Outdoor",
                              "hide": "{ look != outdoor } { ground_plane == 0 }"},
             "exposure": {"label": "Exposure", "section": "Outdoor", "hide": "{ look != outdoor }"},
+            "clouds": {"label": "Clouds", "section": "Outdoor", "hide": "{ look != outdoor }",
+                       "help": "Cumulus cover 0..1; the clouds also throw soft shadows on the ground"},
+            "cloud_seed": {"label": "Cloud Seed", "section": "Outdoor",
+                           "hide": "{ look != outdoor } { clouds == 0 }"},
+            "sky_samples": {"label": "Sky Samples", "section": "Outdoor", "hide": "{ look != outdoor }",
+                            "help": "Directions the sky light is shadowed from (one depth map each); 0 = plain "
+                                    "hemisphere fill, fast"},
         },
     },
 

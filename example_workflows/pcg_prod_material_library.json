@@ -877,7 +877,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Wall: studio preview"
   },
@@ -1521,7 +1524,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "Ground_Cobble: studio preview"
   },
@@ -2120,7 +2126,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Door: studio preview"
   },
@@ -2719,7 +2728,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Roof: studio preview"
   },
@@ -3318,7 +3330,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Trim: studio preview"
   },
@@ -3917,7 +3932,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Glass: studio preview"
   },
@@ -4516,7 +4534,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Metal: studio preview"
   },
@@ -5160,7 +5181,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Sign: studio preview"
   },
@@ -5804,7 +5828,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_BrickBuff: studio preview"
   },
@@ -6448,7 +6475,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_Stucco: studio preview"
   },
@@ -7092,7 +7122,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "Ground_Asphalt: studio preview"
   },
@@ -7736,7 +7769,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_RoofFlat: studio preview"
   },
@@ -8335,7 +8371,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_FacadeFar: studio preview"
   },
@@ -8934,7 +8973,10 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ],
    "title": "M_FacadeFarBrick: studio preview"
   },

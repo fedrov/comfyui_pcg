@@ -151,7 +151,7 @@ M = {
  "Height to Normal": ("done", "PCG_COPHeightToNormal"),
  "Height to Shadow": ("done", "PCG_COPHeightToShadow"),
  "HeightField Clip": ("new", "PCG_COPHFClip"),
- "HeightField Erode": ("done", "PCG_COPHydraulicErosion"),
+ "HeightField Erode": ("done", "PCG_COPHeightfieldErode"),
  "HeightField Mask by Feature": ("done", "PCG_COPMaskByFeature"),
  "HeightField Project": ("new", "PCG_COPHFProject"),
  "HeightField Slump": ("done", "PCG_COPThermalErosion"),

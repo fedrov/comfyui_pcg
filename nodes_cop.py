@@ -2245,6 +2245,74 @@ class PCG_COPStreamPower:
         return (out, msg)
 
 
+class PCG_COPHeightfieldErode:
+    """
+    HeightField Erode: grid-based hydraulic erosion with sediment transport plus thermal slumping, in one solver -- the
+    model behind Houdini's HeightField Erode (Hydro). Rain falls on every cell every step, water flows between
+    neighbours through virtual pipes, picks up material where it runs fast and deep and drops it where it slows, and
+    over-steep slopes slump to the Talus Angle.
+
+    Besides the eroded height it writes the masks terrain texturing is built from: **flow** (where water ran, 0..1,
+    dendritic on slopes), **water** (standing water at the end), **sediment** (where water deposited: valley floors,
+    fans) and **debris** (where slopes slumped: scree aprons; added onto an existing debris layer).
+
+    Parameters are in cells (pixel size) and steps, so the same values carve proportionally finer gullies at a higher
+    resolution: erode a few hundred steps at low resolution for the big valleys, resize up, erode again for the detail.
+    Material is conserved: the change in total terrain equals the sediment carried off the image edges (report).
+    Compute = auto runs on CUDA when available (float32); numpy at 1024² is about 0.25 s per step.
+    Compared with the other erosion nodes: Stream Power grows the large-scale river network (no water, no deposits);
+    Hydraulic Erosion moves droplets (no water field, gullies one droplet wide); this one is the in-between scale.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "cop": (COP,),
+            "layer": ("STRING", {"default": "C"}),
+            **_hscale(),
+            "iterations": _i(200, 0, 100000),
+            "rain": _f(0.02, 0.0, 10.0, 0.001),
+            "evaporation": _f(0.02, 0.0, 1.0, 0.001),
+            "capacity": _sec("Erosion", _f(1.0, 0.0, 1000.0, 0.05)),
+            "erode_rate": _sec("Erosion", _f(0.1, 0.0, 1.0, 0.01)),
+            "deposit_rate": _sec("Erosion", _f(0.1, 0.0, 1.0, 0.01)),
+            "min_slope": _sec("Erosion", _f(0.03, 0.0, 10.0, 0.005)),
+            "max_depth": _sec("Erosion", _f(2.0, 0.001, 1000.0, 0.1)),
+            "damping": _sec("Erosion", _f(0.9, 0.0, 1.0, 0.01)),
+            "talus_angle": _sec("Thermal", _f(52.0, 0.0, 89.9, 0.5)),
+            "thermal_rate": _sec("Thermal", _f(0.05, 0.0, 1.0, 0.01)),
+            "tile": ("BOOLEAN", {"default": False}),
+            "hardness_layer": ("STRING", {"default": ""}),
+            "rain_layer": ("STRING", {"default": ""}),
+            "out_layer": ("STRING", {"default": "C"}),
+            "flow_layer": ("STRING", {"default": "flow"}),
+            "water_layer": ("STRING", {"default": "water"}),
+            "sediment_layer": ("STRING", {"default": "sediment"}),
+            "debris_layer": ("STRING", {"default": "debris"}),
+            "erosion_layer": ("STRING", {"default": ""}),
+            "accumulate_debris": ("BOOLEAN", {"default": True}),
+            "keep_layers": ("BOOLEAN", {"default": True}),
+            "compute": _compute(),
+        }}
+    RETURN_TYPES = (COP, "STRING")
+    RETURN_NAMES = ("cop", "report")
+    FUNCTION = "run"; CATEGORY = CAT + "/cop"
+
+    def run(self, cop, layer, strength, world_size, iterations, rain, evaporation, capacity, erode_rate,
+            deposit_rate, min_slope, max_depth, damping, talus_angle, thermal_rate, tile, hardness_layer,
+            rain_layer, out_layer, flow_layer, water_layer, sediment_layer, debris_layer, erosion_layer,
+            accumulate_debris, keep_layers, compute="auto"):
+        out, rep = _cop.erode.heightfield_erode(
+            cop, layer, strength, world_size, iterations, rain, evaporation, capacity, erode_rate,
+            deposit_rate, min_slope, max_depth, damping, talus_angle, thermal_rate, tile, hardness_layer,
+            rain_layer, out_layer, flow_layer, water_layer, sediment_layer, debris_layer, erosion_layer,
+            accumulate_debris, keep_layers, compute)
+        if not rep:
+            return (out, "")
+        return (out, f"{rep['iterations']} steps on {rep['compute']}; terrain volume {rep['mass_before']:.6g} -> "
+                     f"{rep['mass_after']:.6g}, sediment carried off the edges {rep['sediment_out']:.6g}; "
+                     f"water drained {rep['water_out']:.6g}, standing {rep['water_left']:.6g}")
+
+
 class PCG_COPHydraulicErosion:
     """
     Hydraulic erosion (with deposition): batches of droplets run downhill, speeding up on steep ground and picking up material, then dropping it where the slope eases,

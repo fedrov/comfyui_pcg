@@ -24,6 +24,7 @@ import numpy as np
 
 from .core import POINT
 from . import studio as S
+from . import skylight as K
 
 SKY_ZENITH = np.array([0.11, 0.27, 0.64])
 SKY_HORIZON = np.array([0.64, 0.74, 0.88])
@@ -36,32 +37,25 @@ def sun_dir(elev, azim):
 
 
 def sky_radiance(D, L, sun=True):
-    """D (n, 3) unit view rays -> (n, 3) linear sky radiance; below the horizon the horizon colour, darkened."""
-    y = D[:, 1:2]
-    t = np.clip(y, 0.0, 1.0) ** 0.45
-    col = SKY_HORIZON[None] + (SKY_ZENITH - SKY_HORIZON)[None] * t
-    col = np.where(y < 0, SKY_HORIZON[None] * (0.75 + 0.25 * np.exp(np.minimum(y, 0) * 8.0)), col)
-    cos = np.clip(D @ L, -1.0, 1.0)[:, None]
-    # warm glow around the sun (Mie-ish), brighter near the horizon
-    glow = np.exp((cos - 1.0) / 0.08) * 0.55 + np.exp((cos - 1.0) / 0.6) * 0.12
-    col = col + glow * np.array([1.0, 0.82, 0.6])[None]
-    if sun:
-        col = col + (np.exp((cos - 1.0) / 0.00025) * 40.0) * np.array([1.0, 0.95, 0.85])[None]
-    return col * 1.25
+    """D (n, 3) unit view rays -> (n, 3) linear sky radiance (clear sky; skylight.sky)."""
+    return K.sky(D, L, sun=sun)
 
 
 def _env(L):
     """Environment for PBR reflections: the sky, blurred toward the dome average with roughness, plus the sun lobe."""
+    dd = K.dome_dirs(16)
+    dome_avg = (K.sky(dd, L, sun=False) * dd[:, 1:2]).sum(0) / dd[:, 1].sum()
+    sunc = K.sun_light(L) / 3.4
+
     def env(R, rough, Ldir, V=None):
         sharp = sky_radiance(R, L, sun=False)
         y = np.clip(R[:, 1:2], -1, 1)
-        avg = np.where(y > 0, np.array([0.60, 0.64, 0.70])[None],
-                       np.array(GROUND_DEFAULT)[None] * 0.6)
+        avg = np.where(y > 0, dome_avg[None], np.array(GROUND_DEFAULT)[None] * 0.6)
         r = np.clip(rough, 0, 1)[:, None]
         base = sharp * (1 - r) + avg * r
         w0, w = 0.0015, 0.0015 + 0.6 * np.clip(rough, 0, 1) ** 2
         lobe = np.exp((R @ L - 1.0) / w) * (w0 / w)
-        return base + (60.0 * lobe)[:, None] * np.array([1.0, 0.93, 0.82])[None]
+        return base + (60.0 * lobe)[:, None] * sunc[None]
     return env
 
 
@@ -86,7 +80,7 @@ def auto_camera(geo, W, H, elev, azim, fov=35.0, margin=1.04):
 def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
-                   report=None, tex_cop=None):
+                   report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32):
     """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
     from . import render as R
     from .convert import _attrib_image
@@ -116,17 +110,29 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     D /= np.linalg.norm(D, axis=-1, keepdims=True)
     img = np.zeros((H, W, 3), np.float32)
     if not have:
-        img[:] = S.linear_to_srgb(S.filmic(sky_radiance(D.reshape(-1, 3), L).reshape(H, W, 3) * exposure))
-        return S._finish(img, k)
+        sk_ = K.clouds(D.reshape(-1, 3), L, sky_radiance(D.reshape(-1, 3), L), clouds, cloud_seed)
+        return _develop(sk_.reshape(H, W, 3).astype(np.float32), exposure, k)
 
-    rast = R.rasterize(geo, cam, max_pairs=S._PAIRS)
+    ts, T = K.soup(geo)
+    rast = R.rasterize(geo, cam, max_pairs=S._PAIRS, soup=ts)
     hit = rast["hit"]
     m = hit >= 0
     dfw = (D @ fwd.astype(np.float32))                      # cos between ray and forward: z -> distance
     dist = np.where(m, rast["z"] / np.maximum(dfw, 1e-6), np.inf).astype(np.float32)
     P = (eye[None, None] + D * np.where(m, dist, 0.0)[..., None]).astype(np.float32)
-    N = S._smooth_normals(geo, rast).astype(np.float32)
-    FN = R._face_normals(geo, rast).astype(np.float32)
+    # face normals once (Newell, length = area): the per-pixel geometric normal, the fallback of the shading normal,
+    # and the face size for the shadow normal offset
+    from .ops import prim_normals as _pn
+    pn = np.asarray(_pn(geo, normalize=False), np.float32)
+    ar = np.linalg.norm(pn, axis=1)
+    pn /= np.maximum(ar, 1e-20)[:, None]
+    pid = rast["src"][hit[m]]
+    FN = np.zeros((H, W, 3), np.float32)
+    FN[m] = pn[pid]
+    off = np.zeros(m.shape, np.float32)                      # face size per pixel, for the shadow normal offset
+    off[m] = 0.5 * np.sqrt(ar[pid])
+    del pn, ar, pid
+    N = S._smooth_normals(geo, rast, FN)
     flip = (FN * D).sum(-1) > 0
     N[flip] *= -1
     FN[flip] *= -1
@@ -157,7 +163,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     alb[gplane] = S.srgb_to_linear(np.asarray(ground_color, np.float64))
     tex = S.parse_textures(textures)
     rep = {"used": [], "missing": []}
-    pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.5, np.float32),
+    pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.8, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
         S._apply_textures(geo, rast, alb, N, surf, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr)
@@ -168,46 +174,94 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
 
     # sun shadows: the shadow map frames the geometry; the ground plane beyond it is lit
     # the shadow map frames what the camera sees (a big scene shot from inside would get coarse texels otherwise)
-    vis_p = P[surf][:: max(1, int(surf.sum()) // 200000)].astype(np.float64) if surf.any() else None
+    # (receivers are what must be inside the map: the visible surfaces, and the visible ground around the geometry
+    # where its shadows fall -- casters anywhere along the light direction are in the map's column anyway)
+    recv = surf
+    if gplane.any():
+        near_g = gplane & (np.linalg.norm(P - center.astype(np.float32)[None, None], axis=-1) < radius * 1.6)
+        recv = surf | near_g
+        del near_g
+    vis_p = P[recv][:: max(1, int(recv.sum()) // 200000)].astype(np.float64) if surf.any() else None
     if vis_p is not None and len(vis_p) > 16:
         sc = np.median(vis_p, 0)
         sr = float(np.percentile(np.linalg.norm(vis_p - sc, axis=1), 97)) * 1.1
-        sc_, sr_ = (sc, sr) if sr < radius else (center, radius)
+        sc_, sr_ = (sc, sr) if sr < radius * 1.6 else (center, radius * 1.6)
     else:
         sc_, sr_ = center, radius
-    sh = S._shadow(geo, P, FN, valid, L, sc_, sr_, res=4096 if k * max(width, height) > 1500 else 2048)
+    # ── sun: one 4096² depth map of what the camera sees, soft shadows with contact hardening
+    off[gplane] = 0.0
+    sres = 4096 if k * max(width, height) > 1500 else 2048
+    off = np.minimum(off, 8.0 * sr_ * 2.0 / sres)
     L32 = L.astype(np.float32)
-    ndl_g = np.clip(FN @ L32, 0.0, 1.0)
-    t_ = np.clip((ndl_g - 0.03) / 0.25, 0.0, 1.0)
-    sh = 1.0 - (1.0 - sh) * (t_ * t_ * (3 - 2 * t_))
-    # AO: screen space at the output resolution; a world radius relative to the scene, pixel size at the median depth
+    vi = np.nonzero(valid)
+    dmap, meta = K.depth_map(T, L, sc_, sr_, sres)
+    sh = np.ones(valid.shape, np.float32)
+    step = 1 << 20
+    for s0 in range(0, len(vi[0]), step):
+        so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
+        sh[so] = K.sun_shadow(dmap, meta, P[so], FN[so], offset=off[so])
+    del dmap
+    # Faces turned away from the sun are in their own shadow, faces at a grazing angle fade into it (with
+    # smooth-normal shading, treating grazing faces as lit lights single triangles along every terminator of a
+    # coarse mesh; the normal offset in sun_shadow handles the acne)
+    t_ = np.clip((FN @ L32 + 0.02) / 0.12, 0.0, 1.0)
+    sh = sh * (t_ * t_ * (3 - 2 * t_))
+    cam_h = max(radius * 1.2, 600.0)
+    if clouds > 0:
+        for s0 in range(0, len(vi[0]), step):
+            so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
+            sh[so] *= K.cloud_shadow(P[so], eye, L, clouds, cloud_seed, cam_h)
+
+    # ── sky: an area light with shadows and one bounce, at the output resolution (every k-th sample)
     sub = (slice(None, None, k), slice(None, None, k))
     dmed = float(np.median(dist[surf])) if surf.any() else radius
     px_world = dmed * 2 * th / H * k
-    occ = S._ssao(P[sub].astype(np.float32), N[sub].astype(np.float32), valid[sub], px_world,
-                  max(radius * 0.035, px_world * 3))
+    Ps, Ns, vs = P[sub], N[sub], valid[sub]
+    occ = S._ssao(Ps.astype(np.float32), Ns.astype(np.float32), vs, px_world, max(radius * 0.02, px_world * 3))
+    occ = occ ** 0.6                                         # contact detail only: the dome carries the large scale
+    sun = K.sun_light(L)
+    sky_fn = lambda d: K.sky(d, L, sun=False) * (1.0 - 0.25 * float(np.clip(clouds, 0, 1)))  # noqa: E731
+    alb_mean = alb[sub][vs].mean(0).astype(np.float64) if vs.any() else np.array([0.3, 0.3, 0.3])
+    lit_frac = float(sh[sub][vs].mean()) if vs.any() else 0.5
+    Es = np.zeros(vs.shape + (3,), np.float32)
+    vis_s = np.ones(vs.shape, np.float32)
+    if vs.any() and int(sky_samples) > 0:
+        e_, v_ = K.sky_dome(T, Ps[vs], Ns[vs], sc_, sr_, L, sky_fn, alb_mean, k=int(sky_samples),
+                            res=512, sun_frac=lit_frac)
+        Es[vs] = e_
+        vis_s[vs] = v_
+    elif vs.any():
+        dd = K.dome_dirs(16)
+        Es[vs] = ((sky_fn(dd) * dd[:, 1:2]).sum(0) / dd[:, 1].sum()).astype(np.float32)[None] \
+            * (0.5 + 0.5 * Ns[vs][:, 1:2])
+    del T
+    Es = np.repeat(np.repeat(Es, k, 0), k, 1)[:H, :W]
     occ = np.repeat(np.repeat(occ, k, 0), k, 1)[:H, :W]
+    vis_s = np.repeat(np.repeat(vis_s, k, 0), k, 1)[:H, :W]
 
-    sun = np.array([1.0, 0.93, 0.82]) * 3.2 * max(0.15, min(1.0, L[1] * 2.5))
-    sky_amb = np.array([0.42, 0.48, 0.60]) * 0.85
-    bounce = np.asarray(S.srgb_to_linear(np.asarray(ground_color, np.float64))) * 0.9
+    # light from below: the ground, lit by the sun (the share of it not in shadow) and the sky
+    dd = K.dome_dirs(16)
+    sky_flat = (sky_fn(dd) * dd[:, 1:2]).sum(0) * (2.0 / 16)
+    gcol = np.asarray(S.srgb_to_linear(np.asarray(ground_color, np.float64))) if ground else alb_mean
+    bounce = gcol * (sun * max(float(L[1]), 0.0) * lit_frac + sky_flat)
     cam_d = float(np.linalg.norm(eye - center))
     env = _env(L)
+    lin_img = np.zeros((H, W, 3), np.float32)
     # shading per chunk of pixels: the PBR and haze terms make a dozen float64 (n, 3) temporaries, which over a whole
     # supersampled frame were the render's memory peak (several gigabytes)
-    so_all = np.nonzero(valid)
     step = 1 << 19
-    for s0 in range(0, len(so_all[0]), step):
-        so = (so_all[0][s0:s0 + step], so_all[1][s0:s0 + step])
+    for s0 in range(0, len(vi[0]), step):
+        so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
         n_ = N[so].astype(np.float64)
-        up_ = 0.5 + 0.5 * n_[:, 1:2]
-        amb = bounce[None] * (1 - up_) + sky_amb[None] * up_
+        down = np.clip(0.5 - 0.5 * n_[:, 1:2], 0.0, 1.0)
+        amb = Es[so].astype(np.float64) + bounce[None] * down * (0.35 + 0.65 * vis_s[so][:, None])
         lit = np.clip(n_ @ L, 0.0, 1.0) * sh[so]
         occ_s = occ[so] * pbr["ao"][so]
         Dv = D[so].astype(np.float64)
         if use_pbr:
             lin = S._shade_pbr(alb[so], n_, -Dv, L, sun, lit, amb, occ_s,
-                               pbr["roughness"][so], pbr["metallic"][so], env=env)
+                               pbr["roughness"][so], pbr["metallic"][so], env=env,
+                               spec_occ=occ_s * (0.15 + 0.85 * vis_s[so]))
         else:
             Hh = L[None] - Dv
             Hh /= np.linalg.norm(Hh, axis=1, keepdims=True)
@@ -217,12 +271,23 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         ds = dist[so].astype(np.float64)
         f = 1.0 - np.exp(-float(haze) * np.maximum(ds - cam_d * 0.6, 0.0) / (radius * 14.0 + cam_d * 3.0))
         fogc = sky_radiance(_flat(Dv), L, sun=False)
-        lin = lin * (1 - f[:, None]) + fogc * f[:, None]
-        img[so] = S.linear_to_srgb(S.filmic(lin * exposure))
+        lin_img[so] = lin * (1 - f[:, None]) + fogc * f[:, None]
     sk_all = np.nonzero(~valid)
     for s0 in range(0, len(sk_all[0]), step):
         sk = (sk_all[0][s0:s0 + step], sk_all[1][s0:s0 + step])
-        img[sk] = S.linear_to_srgb(S.filmic(sky_radiance(D[sk].astype(np.float64), L) * exposure))
+        Dk = D[sk].astype(np.float64)
+        lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
+    return _develop(lin_img, exposure, k)
+
+
+def _develop(lin, exposure, k):
+    """Linear HDR frame -> display: bloom, vignette, exposure, AgX tone curve, supersample down."""
+    lin = K.bloom(lin * np.float32(exposure * 0.8))
+    lin = K.vignette(lin)
+    img = np.empty_like(lin)
+    rows = max(1, (1 << 20) // max(lin.shape[1], 1))
+    for r0 in range(0, lin.shape[0], rows):
+        img[r0:r0 + rows] = K.agx(lin[r0:r0 + rows])
     return S._finish(img, k)
 
 

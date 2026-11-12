@@ -111,6 +111,7 @@
 "PCG_COPHeightToCaustics": "PCG/cop",
 "PCG_COPHeightToNormal": "PCG/cop",
 "PCG_COPHeightToShadow": "PCG/cop",
+"PCG_COPHeightfieldErode": "PCG/cop",
 "PCG_COPHeightfieldFromDepth": "PCG/cop",
 "PCG_COPHeightfieldToMesh": "PCG/cop",
 "PCG_COPHexTile": "PCG/cop",

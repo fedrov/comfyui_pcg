@@ -1,6 +1,6 @@
 # Node reference
 
-All 503 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
+All 504 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
 
 In the parameter tables, the first column is the label shown in the node's panel followed by the input's internal name (the name used in saved workflows, relative references and `ch()` expressions). *Hidden when* / *Disabled when* repeat the panel's own rules.
 
@@ -134,7 +134,7 @@ Channels, layers, conversions between data types.
 
 Height field generation, erosion, masks and terrain tools.
 
-[COP Curvature (PCG)](cop-terrain.md#pcg-copcurvature), [COP Erosion Filter (PCG)](cop-terrain.md#pcg-coperosion), [COP Flow Accumulation (PCG)](cop-terrain.md#pcg-copflowaccumulation), [COP Height to AO (PCG)](cop-terrain.md#pcg-copheighttoao), [COP Height to Caustics (PCG)](cop-terrain.md#pcg-copheighttocaustics), [COP Height to Normal (PCG)](cop-terrain.md#pcg-copheighttonormal), [COP Height to Shadow (PCG)](cop-terrain.md#pcg-copheighttoshadow), [COP HeightField Clip (PCG)](cop-terrain.md#pcg-cophfclip), [COP HeightField Cutout by Object (PCG)](cop-terrain.md#pcg-cophfcutoutbyobject), [COP HeightField from Depth (PCG)](cop-terrain.md#pcg-copheightfieldfromdepth), [COP HeightField Hydraulic Erosion (PCG)](cop-terrain.md#pcg-cophydraulicerosion), [COP HeightField Mask by Feature (PCG)](cop-terrain.md#pcg-copmaskbyfeature), [COP HeightField Mask by Object (PCG)](cop-terrain.md#pcg-cophfmaskbyobject), [COP HeightField Project (PCG)](cop-terrain.md#pcg-cophfproject), [COP HeightField Splat Map (PCG)](cop-terrain.md#pcg-copsplatmap), [COP HeightField Stream Power Erosion (PCG)](cop-terrain.md#pcg-copstreampower), [COP HeightField Terrace (PCG)](cop-terrain.md#pcg-copterrace), [COP HeightField Thermal Erosion (PCG)](cop-terrain.md#pcg-copthermalerosion), [COP Mono to HeightField (PCG)](cop-terrain.md#pcg-copmonotoheightfield), [COP Normal to Height (PCG)](cop-terrain.md#pcg-copnormaltoheight), [COP Slope & Aspect (PCG)](cop-terrain.md#pcg-copslope), [COP Strata (PCG)](cop-terrain.md#pcg-copstrata)
+[COP Curvature (PCG)](cop-terrain.md#pcg-copcurvature), [COP Erosion Filter (PCG)](cop-terrain.md#pcg-coperosion), [COP Flow Accumulation (PCG)](cop-terrain.md#pcg-copflowaccumulation), [COP Height to AO (PCG)](cop-terrain.md#pcg-copheighttoao), [COP Height to Caustics (PCG)](cop-terrain.md#pcg-copheighttocaustics), [COP Height to Normal (PCG)](cop-terrain.md#pcg-copheighttonormal), [COP Height to Shadow (PCG)](cop-terrain.md#pcg-copheighttoshadow), [COP HeightField Clip (PCG)](cop-terrain.md#pcg-cophfclip), [COP HeightField Cutout by Object (PCG)](cop-terrain.md#pcg-cophfcutoutbyobject), [COP HeightField Erode (PCG)](cop-terrain.md#pcg-copheightfielderode), [COP HeightField from Depth (PCG)](cop-terrain.md#pcg-copheightfieldfromdepth), [COP HeightField Hydraulic Erosion (PCG)](cop-terrain.md#pcg-cophydraulicerosion), [COP HeightField Mask by Feature (PCG)](cop-terrain.md#pcg-copmaskbyfeature), [COP HeightField Mask by Object (PCG)](cop-terrain.md#pcg-cophfmaskbyobject), [COP HeightField Project (PCG)](cop-terrain.md#pcg-cophfproject), [COP HeightField Splat Map (PCG)](cop-terrain.md#pcg-copsplatmap), [COP HeightField Stream Power Erosion (PCG)](cop-terrain.md#pcg-copstreampower), [COP HeightField Terrace (PCG)](cop-terrain.md#pcg-copterrace), [COP HeightField Thermal Erosion (PCG)](cop-terrain.md#pcg-copthermalerosion), [COP Mono to HeightField (PCG)](cop-terrain.md#pcg-copmonotoheightfield), [COP Normal to Height (PCG)](cop-terrain.md#pcg-copnormaltoheight), [COP Slope & Aspect (PCG)](cop-terrain.md#pcg-copslope), [COP Strata (PCG)](cop-terrain.md#pcg-copstrata)
 
 ## [Image: Geometry and Images](cop-geometry.md)
 
@@ -293,6 +293,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Height to Shadow (PCG)](cop-terrain.md#pcg-copheighttoshadow) | `PCG_COPHeightToShadow` | Image: Height Fields & Terrain |
 | [COP HeightField Clip (PCG)](cop-terrain.md#pcg-cophfclip) | `PCG_COPHFClip` | Image: Height Fields & Terrain |
 | [COP HeightField Cutout by Object (PCG)](cop-terrain.md#pcg-cophfcutoutbyobject) | `PCG_COPHFCutoutByObject` | Image: Height Fields & Terrain |
+| [COP HeightField Erode (PCG)](cop-terrain.md#pcg-copheightfielderode) | `PCG_COPHeightfieldErode` | Image: Height Fields & Terrain |
 | [COP HeightField from Depth (PCG)](cop-terrain.md#pcg-copheightfieldfromdepth) | `PCG_COPHeightfieldFromDepth` | Image: Height Fields & Terrain |
 | [COP HeightField Hydraulic Erosion (PCG)](cop-terrain.md#pcg-cophydraulicerosion) | `PCG_COPHydraulicErosion` | Image: Height Fields & Terrain |
 | [COP HeightField Mask by Feature (PCG)](cop-terrain.md#pcg-copmaskbyfeature) | `PCG_COPMaskByFeature` | Image: Height Fields & Terrain |

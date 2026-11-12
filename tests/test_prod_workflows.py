@@ -10,7 +10,7 @@ CSV read with the csv module; expected values come from the conventions stated i
          the files the texture uris point to really exist, 1024²; the normal map decodes to unit vectors pointing outwards (z > 0);
          pivot convention (flat bottom at y = -0.5, centered horizontally); Khronos validator (if installed) 0 errors
   terrain    16 tiles of 257² height PNGs, shared edges of neighbouring tiles bit-identical, stitched back = the full r16 image; the six weight layers
-         sum to ≈ 255 per pixel; instances all within 0..2048, each tile file only has its own tile's points, the index counts match;
+         sum to ≈ 255 per pixel; instances all within 0..4096, each tile file only has its own tile's points, the index counts match;
          instance y = terrain height decoded via Height.json (rocks buried 0.25·pscale by convention) --
          negative control: comparing with a one-sample offset does not match
   buildings  kit pivot convention (bottom edge midpoint, facade +Z, wall thickness towards -Z); the instance table's assets are all exported glb names;
@@ -538,17 +538,17 @@ else:
         okt &= len(rr) == f["count"] and 0 <= tx < 4 and 0 <= ty < 4
         for r in rr:
             x, z = float(r["px"]), float(r["pz"])
-            okt &= int(x // 512) == tx and int(z // 512) == ty
+            okt &= int(x // 1024) == tx and int(z // 1024) == ty
         rows += rr
     check("instances: the master table is called Instances_index.json, tile numbers all in 0..3, each tile only has its own points, counts match",
           okt and len(rows) == idx["count"] > 1000, len(rows))
     xs = np.array([float(r["px"]) for r in rows])
     zs = np.array([float(r["pz"]) for r in rows])
-    check("  all instances within 0..2048 (points half a cell beyond the border removed)",
-          xs.min() >= 0 and xs.max() < 2048 and zs.min() >= 0 and zs.max() < 2048)
+    check("  all instances within 0..4096 (points half a cell beyond the border removed)",
+          xs.min() >= 0 and xs.max() < 4096 and zs.min() >= 0 and zs.max() < 4096)
 
     def hgt(x, z, off=0.0):
-        u, v = x / 2.0 + off, z / 2.0
+        u, v = x / 4.0 + off, z / 4.0
         i0 = np.clip(np.floor(u).astype(int), 0, 1023)
         j0 = np.clip(np.floor(v).astype(int), 0, 1023)
         fu, fv = u - i0, v - j0
@@ -564,7 +564,7 @@ else:
           "99% within < 0.5 m", np.percentile(err_, 99) < 0.5,
           (round(float(np.median(err_)), 3), round(float(np.percentile(err_, 99)), 3)))
     err2 = np.abs(ys - (hgt(xs, zs, 3.0) - np.where(rock, 0.25 * sc, 0.0)))
-    check("    negative control: offset by 3 samples (6 m) and compared again, much worse", np.median(err2) > 5 * np.median(err_),
+    check("    negative control: offset by 3 samples (12 m) and compared again, much worse", np.median(err2) > 5 * np.median(err_),
           round(float(np.median(err2)), 3))
     assets = {r["asset"] for r in rows}
     check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",

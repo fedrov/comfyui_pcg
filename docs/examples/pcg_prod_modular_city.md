@@ -2,7 +2,7 @@
 
 Modular buildings: first a kit of facade and roof pieces (each 4 m wide, one storey = 3.5 m), then rules that place the kit onto the facades and roofs of twelve buildings along two crossing streets. The deliverable is **the kit meshes plus an instance table**, not one merged building mesh. The preview dresses the block as a street scene (asphalt, road paint, trees, lamps, parked cars, low-detail context blocks to the horizon) and shoots it with two cameras in the *Outdoor* look.
 
-![A low aerial over the crossing, Outdoor look](images/pcg_prod_modular_city.png)
+![The block from the south-west in afternoon light, Outdoor look](images/pcg_prod_modular_city.png)
 
 ![Eye level in the street](images/pcg_prod_modular_city_street.png)
 
@@ -38,11 +38,12 @@ How the pieces are built: **[Box (PCG)](../reference/generate.md#pcg-box)** part
 4. **Delivery.** All instance points are merged, `asset` is set to `SM_Kit_<name>`, and **[Export Instances (PCG)](../reference/output.md#pcg-exportinstances)** writes the CSV.
 5. **Preview.** **[Copy to Points (PCG)](../reference/scatter.md#pcg-copytopoints)** with *Piece Attribute* `name` places the kit back onto the points, carrying `facade` to the primitives; a Wrangle swaps `M_Wall` for `M_BrickBuff` or `M_Stucco` per building, as an engine would with a material override. The street scene around it is made in the workflow, not part of the kit:
    - asphalt carriageways (`Ground_Asphalt`) that run on to the horizon, 15 cm below the cobbled quarters (`Ground_Cobble`) and 3 m concrete sidewalks (`M_Trim`); dashed centre lines, zebra crossings and stop lines as boxes copied onto a table of points and sizes;
-   - street lamps and trees alternating every 6 m along the curbs (trees: a tapering trunk, two limbs, a crown of seven noise-displaced clusters in their own greens, random turn and size);
+   - street lamps and trees alternating every 6 m along the curbs (trees: a tapering trunk, two limbs, a crown of eighteen noise-displaced clusters on the shell of an ellipsoid, darker low and inside, random turn and size);
    - parked cars in the parking lanes, about two slots in three, heading with the traffic, in a random paint colour (a bevelled body, a cabin tapered to raked screens with a painted roof, lights, four wheels);
-   - **context blocks**: a 640 m grid of 32 m blocks outside the plot, shrunk to 24 m footprints and extruded to random heights (**[PolyExtrude (PCG)](../reference/modify.md#pcg-polyextrude)** by a `h` attribute), low around the plot and taller toward the horizon. Their walls use `M_FacadeFar` / `M_FacadeFarBrick`, one whole 4 m x 3.5 m bay per image with UVs u = x / 4, v = y / 3.5, so a plain box reads as a building with windows at a distance, the way a game fills the background behind a hero area.
+   - **context blocks**: a 640 m grid of 32 m blocks outside the plot, shrunk to 27 m footprints and extruded to random heights (**[PolyExtrude (PCG)](../reference/modify.md#pcg-polyextrude)** by a `h` attribute), low around the plot and taller toward the horizon. Their walls use `M_FacadeFar` / `M_FacadeFarBrick`, one whole 4 m x 3.5 m bay per image with UVs u = x / 4, v = y / 3.5, so a plain box reads as a building with windows at a distance, the way a game fills the background behind a hero area. They stand on one concrete slab;
+   - a **green belt** west and east of the plot, between it and the first context blocks: lawn with about a hundred scattered trees (the same tree, larger).
 
-   Two **[Camera (PCG)](../reference/render.md#pcg-camera)** nodes (*look_at*) frame a low aerial over the crossing and an eye-level view down the street, and **[Geometry Preview (PCG)](../reference/output.md#pcg-previewimage)** renders both in the *Outdoor* look (perspective, sky and sun, sun shadows, aerial perspective) with the material library's textures (`basecolor = pcg/materials/T_{material}_BaseColor.png`, `normal = pcg/materials/T_{material}_Normal_GL.png`, `orm = pcg/materials/T_{material}_ORM.png`, looked up by each face's `material`; a material whose files are missing keeps its colour). A third preview lines up the eleven kit pieces in the *Studio* look.
+   Two **[Camera (PCG)](../reference/render.md#pcg-camera)** nodes (*look_at*) frame the block from the south-west and an eye-level view down the street, and **[Geometry Preview (PCG)](../reference/output.md#pcg-previewimage)** renders both in the *Outdoor* look (perspective, a sky with clouds, soft sun shadows, the sky as an area light so the street is darker than the roofs and shaded walls pick up light bounced off the sunlit ground, aerial perspective; the aerial in afternoon light, the street with the sun down its length) with the material library's textures (`basecolor = pcg/materials/T_{material}_BaseColor.png`, `normal = pcg/materials/T_{material}_Normal_GL.png`, `orm = pcg/materials/T_{material}_ORM.png`, looked up by each face's `material`; a material whose files are missing keeps its colour). A third preview lines up the eleven kit pieces in the *Studio* look.
 
 ## Worth tweaking
 
@@ -53,7 +54,7 @@ How the pieces are built: **[Box (PCG)](../reference/generate.md#pcg-box)** part
 | `CITY_FACADE` table (generator) / footprint Wrangle | `code` | Facade variant per building. |
 | Rooftop plant Wrangle | `code` | How many roof cells get condensers and tanks. |
 | Camera nodes | `eye_*`, `target_*`, `fov` | The two hero shots. |
-| Geometry Preview | `sun_elevation`, `sun_azimuth`, `haze` | Time of day and atmosphere. |
+| Geometry Preview | `sun_elevation`, `sun_azimuth`, `haze`, `clouds` | Time of day, atmosphere and weather. |
 | Kit boxes | `size_*`, `c*` | Proportions of windows, doors and trims (keep the 4 m x 3.5 m module). |
 | Export Mesh (kit) | `textures`, `texture_materials` | Which slots get texture paths, and the paths themselves. |
 

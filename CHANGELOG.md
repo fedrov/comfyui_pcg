@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Outdoor look, lit like a photograph** (Geometry Preview): the sky is an area light with shadows (*Sky Samples*
+  directions, each with its own depth map: narrow streets are darker than squares, eaves shade walls) plus one bounce
+  of light off the scene; soft sun shadows that are crisp at contact and widen with distance; sky colours that
+  follow the sun's elevation; a cumulus layer (*Clouds*, *Cloud Seed*) that also shades the ground; bloom, a slight
+  vignette and the AgX tone curve. Per-material COP textures (`orm = @{material}_orm`: faces whose layer does not
+  exist keep their own colour).
+- **Studio look**: soft key-light shadows with contact hardening, occlusion from the whole studio dome (objects sit
+  in a pool of shade instead of floating), a lighter backdrop with a pool of light on the floor.
+- **COP HeightField Erode**: grid-based hydraulic erosion like Houdini's HeightField Erode (Hydro) -- rain on every
+  cell, water flowing through virtual pipes, sediment carried and deposited, thermal slumping in the same solver --
+  writing flow, water, sediment and debris masks. Material is conserved exactly; runs on CUDA when available.
 - **Packed primitives**: Pack and Unpack nodes, *Pack and Instance* on Copy to Points (one packed primitive per copy),
   and GPU instancing in the viewport (one InstancedMesh per distinct piece). Transform, Merge, Blast / Delete, Sort and
   the point attribute / group nodes keep geometry packed; every other node unpacks its input automatically.
@@ -40,6 +51,17 @@ All notable changes to this project are documented here. The format follows
   - material library: six new materials (buff brick, painted render, asphalt, bitumen roofing, two facade bays).
 
 ### Changed
+- **Production examples reworked for picture quality.** World tiles: now 4 km x 4 km at 4 m cells, a range with
+  rounded ridges and natural slopes (hillslope diffusion in the Stream Power pass), forest climbing the slopes to a
+  ragged tree line, 40,000 trees with per-instance tints, mirror lakes, a side-lit low sun with clouds and haze.
+  Modular city: a green belt with trees around the plot, context blocks on their own ground, fuller street trees,
+  new hero cameras and light. Rock assets: weathering lumps, pits and iron staining in the texel detail.
+- Rendering 8 million faces takes 3 GB less memory (triangles and convex quads are cut directly, face normals are
+  computed once, materials are looked up as codes).
+- **Open-world terrain example** rebuilt the Houdini way: Stream Power grows a dendritic range, HeightField Erode
+  passes at 513² and 1025² with an erosion-filter gully pattern in between; materials and vegetation now come from
+  the erosion masks (water-streaked rock, scree, grassed alluvium, clumped forest with a ragged tree line, tree size
+  by wetness); side-lit camera closer to the range.
 - Second performance round: PolyBevel ~17x on dense meshes (a per-point scan of every corner was O(points x
   corners); corner candidates vectorized); Intersection Analysis 15-80x (KD-tree candidate pairs instead of testing
   every edge against every triangle, identical output); Voronoi Fracture ~1.8x (cuts that change nothing are skipped;
@@ -55,6 +77,10 @@ All notable changes to this project are documented here. The format follows
 - The 3D viewport draws on demand instead of 60 times a second: idle viewports no longer use GPU / CPU.
 
 ### Fixed
+- **Outdoor look**: the sun's shadow map now frames the visible ground around the geometry too; shadows cast by the
+  lower part of a tall object used to be missing next to it when the camera only saw its top.
+- **Outdoor look**: no more staircase of bright triangles along shadow terminators on coarse meshes (grazing faces
+  are now faded into shadow instead of treated as lit; the shadow normal offset scales with the face size).
 - **COP Flow Accumulation**: water crossing a filled lake no longer runs down the pit-filling epsilon slope,
   which drew ruler-straight 0° / 45° lines and hatching across every lake and long filled valley floor. Lake pixels
   now drain along the drowned valley (a second priority flood over the original terrain, from the lake's exit).

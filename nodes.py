@@ -40,7 +40,7 @@ from .nodes_cop import (  # noqa: F401
     PCG_COPErosion, PCG_COPSlope, PCG_COPCurvature, PCG_COPStatistics,
     PCG_COPHistogram, PCG_COPSegment, PCG_COPCompare, PCG_COPMaskByFeature,
     PCG_COPTerrace, PCG_COPThermalErosion, PCG_COPHeightfieldToMesh,
-    PCG_COPFlowAccumulation, PCG_COPStreamPower, PCG_COPHydraulicErosion,
+    PCG_COPFlowAccumulation, PCG_COPStreamPower, PCG_COPHydraulicErosion, PCG_COPHeightfieldErode,
     PCG_COPSplatMap, _encode_text, _cond_with_mask, PCG_RegionalPrompt,
     PCG_COPHeightfieldFromDepth, PCG_ControlImage, PCG_IDMasks, PCG_COPWarp,
     PCG_SequenceExport, PCG_SequenceImport, PCG_SequencePick,
@@ -1884,6 +1884,13 @@ class PCG_PreviewImage:
     pcg123 Outdoor look: a perspective environment shot -- the Camera node's view (or an automatic 35 mm camera at
     Elevation / Azimuth), a sky with a sun, sun light with shadows plus sky fill and ground bounce, aerial perspective
     (Haze) and an optional ground plane to the horizon. Textures work as in the studio look; PBR surfaces reflect the sky.
+
+    pcg125: the outdoor look lights like a photograph. The sky is an area light with shadows (Sky Samples directions,
+    each with its own depth map: narrow streets are darker than squares, eaves shade walls) and one bounce of light
+    off the scene; the sun casts soft shadows that are crisp at contact and widen with distance; the sky's colours
+    follow the sun's elevation (a low sun warms the light and the horizon); Clouds adds a cumulus layer that also
+    throws soft shadows on the ground; the frame is finished with bloom, a slight vignette and the AgX tone curve.
+    Sky Samples 0 falls back to a plain hemisphere fill (fast).
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -1914,6 +1921,10 @@ class PCG_PreviewImage:
             "ground_plane": ("BOOLEAN", {"default": True}),
             "ground_color": ("STRING", {"default": "0.32 0.31 0.27"}),
             "exposure": _f(1.0, 0.05, 8.0, 0.05),
+            # pcg125, appended: cumulus layer (also shades the ground) and the number of sky-light directions
+            "clouds": _f(0.0, 0.0, 1.0, 0.05),
+            "cloud_seed": _i(0, 0, 2 ** 31 - 1),
+            "sky_samples": _i(32, 0, 128),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
@@ -1922,7 +1933,7 @@ class PCG_PreviewImage:
             color_attrib="Cd", look="basic", supersampling=2, textures="",
             material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
-            ground_color="0.32 0.31 0.27", exposure=1.0):
+            ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32):
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")
@@ -1937,7 +1948,8 @@ class PCG_PreviewImage:
             img = _od.render_outdoor(geo, width, height, camera, elevation, azimuth, color_attrib,
                                      supersampling, textures, output_dir(), material_attrib, uv_attrib,
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
-                                     tex_cop=textures_cop)
+                                     tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
+                                     sky_samples=sky_samples)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,
@@ -6753,6 +6765,7 @@ NODE_CLASS_MAPPINGS = {
     "PCG_COPFlowAccumulation": PCG_COPFlowAccumulation,
     "PCG_COPStreamPower": PCG_COPStreamPower,
     "PCG_COPHydraulicErosion": PCG_COPHydraulicErosion,
+    "PCG_COPHeightfieldErode": PCG_COPHeightfieldErode,
     "PCG_COPSplatMap": PCG_COPSplatMap,
     "PCG_RegionalPrompt": PCG_RegionalPrompt,
     "PCG_COPHeightfieldFromDepth": PCG_COPHeightfieldFromDepth,
@@ -6911,6 +6924,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PCG_COPFlowAccumulation": "COP Flow Accumulation (PCG)",
     "PCG_COPStreamPower": "COP HeightField Stream Power Erosion (PCG)",
     "PCG_COPHydraulicErosion": "COP HeightField Hydraulic Erosion (PCG)",
+    "PCG_COPHeightfieldErode": "COP HeightField Erode (PCG)",
     "PCG_COPSplatMap": "COP HeightField Splat Map (PCG)",
     "PCG_RegionalPrompt": "Regional Prompt from COP (PCG)",
     "PCG_COPHeightfieldFromDepth": "COP HeightField from Depth (PCG)",

@@ -6,7 +6,7 @@ Produces four engine-ready rock assets in one run, fully procedurally and withou
 - LOD0 with about 4,500 triangles (the same SDF lightly blurred and re-extracted at 9 cm voxels, so it is made of even quads), with automatic seams, LSCM/ARAP unwrapping and shape-aware packing;
 - LOD1 and LOD2 reduced from LOD0 with *Preserve UVs* (half-edge collapse with locked seams), so they **share LOD0's textures**;
 - a convex-decomposition collision mesh (`UCX_` prefix, one convex hull per piece, at most 32 points / 60 triangles each);
-- textures: BaseColor (sRGB), Normal (tangent space, OpenGL +Y), ORM (AO, roughness and metallic packed) and Height (16-bit, with its range in a `.json` next to it). Detail finer than the high poly's voxels (bedding grooves, hairline cracks, grain, colour speckle) is computed per texel after the bake, so the 1024 px per rock carry real detail.
+- textures: BaseColor (sRGB), Normal (tangent space, OpenGL +Y), ORM (AO, roughness and metallic packed) and Height (16-bit, with its range in a `.json` next to it). Detail finer than the high poly's voxels (bedding grooves, cracks, hand-sized weathering lumps and pits, grain, colour speckle and rusty iron staining) is computed per texel after the bake, so the 1024 px per rock carry real detail.
 
 ![LOD0 with the baked textures, studio preview](images/pcg_prod_rock_assets.png)
 

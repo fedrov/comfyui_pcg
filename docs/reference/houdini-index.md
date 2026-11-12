@@ -407,7 +407,7 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Height to Normal | [COP Height to Normal (PCG)](cop-terrain.md#pcg-copheighttonormal) | equivalent |
 | Height to Shadow | [COP Height to Shadow (PCG)](cop-terrain.md#pcg-copheighttoshadow) | equivalent |
 | HeightField Clip | [COP HeightField Clip (PCG)](cop-terrain.md#pcg-cophfclip) | equivalent |
-| HeightField Erode | [COP HeightField Hydraulic Erosion (PCG)](cop-terrain.md#pcg-cophydraulicerosion) | equivalent |
+| HeightField Erode | [COP HeightField Erode (PCG)](cop-terrain.md#pcg-copheightfielderode) | equivalent |
 | HeightField Mask by Feature | [COP HeightField Mask by Feature (PCG)](cop-terrain.md#pcg-copmaskbyfeature) | equivalent |
 | HeightField Project | [COP HeightField Project (PCG)](cop-terrain.md#pcg-cophfproject) | equivalent |
 | HeightField Slump | [COP HeightField Thermal Erosion (PCG)](cop-terrain.md#pcg-copthermalerosion) | equivalent |

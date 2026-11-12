@@ -52,7 +52,7 @@ from . import (generate, filters, transform, levels, morph, sdf, composite,
                flow, splat, regions, lift, hydro,
                pixel, fx, pattern, noisex, stamp, solve, sim, uvx,
                geoimg, hfvis, accel, colorkey, sdf2d, uvshape, coordspace, warp3d,
-               filtersim, geolayer)
+               filtersim, geolayer, erode)
 
 __all__ = ["CopImage", "DEFAULT_LAYER", "LAYER_C", "LAYER_MASK", "MAX_RES",
            "check_res", "uv_grid", "match_channels", "conform",
@@ -60,4 +60,4 @@ __all__ = ["CopImage", "DEFAULT_LAYER", "LAYER_C", "LAYER_MASK", "MAX_RES",
            "composite", "bridge", "control", "heightmap", "erosion", "analysis", "terrain",
            "flow", "splat", "regions", "lift", "hydro",
            "pixel", "fx", "pattern", "noisex", "stamp", "solve", "sim", "uvx", "geoimg", "hfvis", "accel",
-           "colorkey", "sdf2d", "uvshape", "coordspace", "warp3d", "filtersim", "geolayer"]
+           "colorkey", "sdf2d", "uvshape", "coordspace", "warp3d", "filtersim", "geolayer", "erode"]

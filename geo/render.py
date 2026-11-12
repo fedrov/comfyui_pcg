@@ -204,7 +204,7 @@ def project(cam, P):
 
 
 # ════════════════════════════════════════════════════════════════ rasterization
-def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS):
+def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None):
     """
     z-buffer rasterization. Returns a dict:
 
@@ -214,6 +214,9 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS):
         tri   (T,3)         point numbers of the triangles
         cor   (T,3)         corner numbers of the triangles (needed to interpolate vertex attributes)
         src   (T,)          which prim each triangle comes from
+
+    soup: an earlier tri_soup(geo, group) result to reuse (cutting ngons costs seconds on millions of faces, and a
+    lit render rasterizes the same geometry several times).
     """
     from .spatial import tri_soup
     W, H = int(cam["xres"]), int(cam["yres"])
@@ -225,7 +228,7 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS):
            "cor": np.zeros((0, 3), np.int64), "src": np.zeros(0, np.int64)}
     if geo is None or geo.nprims == 0 or geo.npoints == 0:
         return out
-    tri, src, cor = tri_soup(geo, group)
+    tri, src, cor = soup if soup is not None else tri_soup(geo, group)
     out["tri"], out["src"], out["cor"] = tri, src, cor
     if not len(tri):
         return out

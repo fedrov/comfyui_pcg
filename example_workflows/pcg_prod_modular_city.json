@@ -1,6 +1,6 @@
 {
- "last_node_id": 320,
- "last_link_id": 332,
+ "last_node_id": 332,
+ "last_link_id": 344,
  "nodes": [
   {
    "id": 1,
@@ -134,7 +134,7 @@
     247
    ],
    "flags": {},
-   "order": 135,
+   "order": 140,
    "mode": 0,
    "inputs": [
     {
@@ -197,7 +197,7 @@
     247
    ],
    "flags": {},
-   "order": 136,
+   "order": 141,
    "mode": 0,
    "inputs": [
     {
@@ -255,7 +255,7 @@
     166
    ],
    "flags": {},
-   "order": 190,
+   "order": 198,
    "mode": 0,
    "inputs": [
     {
@@ -317,7 +317,7 @@
     247
    ],
    "flags": {},
-   "order": 231,
+   "order": 240,
    "mode": 0,
    "inputs": [
     {
@@ -421,7 +421,7 @@
     349
    ],
    "flags": {},
-   "order": 137,
+   "order": 142,
    "mode": 0,
    "inputs": [
     {
@@ -479,7 +479,7 @@
     247
    ],
    "flags": {},
-   "order": 191,
+   "order": 199,
    "mode": 0,
    "inputs": [
     {
@@ -629,7 +629,7 @@
     349
    ],
    "flags": {},
-   "order": 138,
+   "order": 143,
    "mode": 0,
    "inputs": [
     {
@@ -687,7 +687,7 @@
     247
    ],
    "flags": {},
-   "order": 192,
+   "order": 200,
    "mode": 0,
    "inputs": [
     {
@@ -791,7 +791,7 @@
     247
    ],
    "flags": {},
-   "order": 139,
+   "order": 144,
    "mode": 0,
    "inputs": [
     {
@@ -895,7 +895,7 @@
     247
    ],
    "flags": {},
-   "order": 140,
+   "order": 145,
    "mode": 0,
    "inputs": [
     {
@@ -1045,7 +1045,7 @@
     166
    ],
    "flags": {},
-   "order": 141,
+   "order": 146,
    "mode": 0,
    "inputs": [
     {
@@ -1107,7 +1107,7 @@
     247
    ],
    "flags": {},
-   "order": 193,
+   "order": 201,
    "mode": 0,
    "inputs": [
     {
@@ -1441,7 +1441,7 @@
     166
    ],
    "flags": {},
-   "order": 142,
+   "order": 147,
    "mode": 0,
    "inputs": [
     {
@@ -1503,7 +1503,7 @@
     247
    ],
    "flags": {},
-   "order": 194,
+   "order": 202,
    "mode": 0,
    "inputs": [
     {
@@ -1561,7 +1561,7 @@
     166
    ],
    "flags": {},
-   "order": 232,
+   "order": 241,
    "mode": 0,
    "inputs": [
     {
@@ -1623,7 +1623,7 @@
     166
    ],
    "flags": {},
-   "order": 252,
+   "order": 262,
    "mode": 0,
    "inputs": [
     {
@@ -1685,7 +1685,7 @@
     247
    ],
    "flags": {},
-   "order": 267,
+   "order": 277,
    "mode": 0,
    "inputs": [
     {
@@ -1789,7 +1789,7 @@
     349
    ],
    "flags": {},
-   "order": 143,
+   "order": 148,
    "mode": 0,
    "inputs": [
     {
@@ -1847,7 +1847,7 @@
     247
    ],
    "flags": {},
-   "order": 195,
+   "order": 203,
    "mode": 0,
    "inputs": [
     {
@@ -1952,7 +1952,7 @@
     247
    ],
    "flags": {},
-   "order": 144,
+   "order": 149,
    "mode": 0,
    "inputs": [
     {
@@ -2194,7 +2194,7 @@
     166
    ],
    "flags": {},
-   "order": 145,
+   "order": 150,
    "mode": 0,
    "inputs": [
     {
@@ -2256,7 +2256,7 @@
     247
    ],
    "flags": {},
-   "order": 196,
+   "order": 204,
    "mode": 0,
    "inputs": [
     {
@@ -2452,7 +2452,7 @@
     166
    ],
    "flags": {},
-   "order": 146,
+   "order": 151,
    "mode": 0,
    "inputs": [
     {
@@ -2514,7 +2514,7 @@
     247
    ],
    "flags": {},
-   "order": 197,
+   "order": 205,
    "mode": 0,
    "inputs": [
     {
@@ -2756,7 +2756,7 @@
     166
    ],
    "flags": {},
-   "order": 147,
+   "order": 152,
    "mode": 0,
    "inputs": [
     {
@@ -2818,7 +2818,7 @@
     247
    ],
    "flags": {},
-   "order": 198,
+   "order": 206,
    "mode": 0,
    "inputs": [
     {
@@ -2876,7 +2876,7 @@
     166
    ],
    "flags": {},
-   "order": 233,
+   "order": 242,
    "mode": 0,
    "inputs": [
     {
@@ -2938,7 +2938,7 @@
     247
    ],
    "flags": {},
-   "order": 253,
+   "order": 263,
    "mode": 0,
    "inputs": [
     {
@@ -3042,7 +3042,7 @@
     247
    ],
    "flags": {},
-   "order": 148,
+   "order": 153,
    "mode": 0,
    "inputs": [
     {
@@ -3330,7 +3330,7 @@
     166
    ],
    "flags": {},
-   "order": 149,
+   "order": 154,
    "mode": 0,
    "inputs": [
     {
@@ -3392,7 +3392,7 @@
     247
    ],
    "flags": {},
-   "order": 199,
+   "order": 207,
    "mode": 0,
    "inputs": [
     {
@@ -3496,7 +3496,7 @@
     247
    ],
    "flags": {},
-   "order": 150,
+   "order": 155,
    "mode": 0,
    "inputs": [
     {
@@ -3922,7 +3922,7 @@
     166
    ],
    "flags": {},
-   "order": 151,
+   "order": 156,
    "mode": 0,
    "inputs": [
     {
@@ -3984,7 +3984,7 @@
     166
    ],
    "flags": {},
-   "order": 200,
+   "order": 208,
    "mode": 0,
    "inputs": [
     {
@@ -4046,7 +4046,7 @@
     247
    ],
    "flags": {},
-   "order": 234,
+   "order": 243,
    "mode": 0,
    "inputs": [
     {
@@ -4204,7 +4204,7 @@
     375
    ],
    "flags": {},
-   "order": 152,
+   "order": 157,
    "mode": 0,
    "inputs": [
     {
@@ -4259,7 +4259,7 @@
     247
    ],
    "flags": {},
-   "order": 201,
+   "order": 209,
    "mode": 0,
    "inputs": [
     {
@@ -4317,7 +4317,7 @@
     166
    ],
    "flags": {},
-   "order": 254,
+   "order": 264,
    "mode": 0,
    "inputs": [
     {
@@ -4379,7 +4379,7 @@
     166
    ],
    "flags": {},
-   "order": 268,
+   "order": 278,
    "mode": 0,
    "inputs": [
     {
@@ -4441,7 +4441,7 @@
     247
    ],
    "flags": {},
-   "order": 277,
+   "order": 288,
    "mode": 0,
    "inputs": [
     {
@@ -4545,7 +4545,7 @@
     349
    ],
    "flags": {},
-   "order": 153,
+   "order": 158,
    "mode": 0,
    "inputs": [
     {
@@ -4603,7 +4603,7 @@
     247
    ],
    "flags": {},
-   "order": 202,
+   "order": 210,
    "mode": 0,
    "inputs": [
     {
@@ -4707,7 +4707,7 @@
     247
    ],
    "flags": {},
-   "order": 154,
+   "order": 159,
    "mode": 0,
    "inputs": [
     {
@@ -4811,7 +4811,7 @@
     247
    ],
    "flags": {},
-   "order": 155,
+   "order": 160,
    "mode": 0,
    "inputs": [
     {
@@ -5191,7 +5191,7 @@
     166
    ],
    "flags": {},
-   "order": 156,
+   "order": 161,
    "mode": 0,
    "inputs": [
     {
@@ -5253,7 +5253,7 @@
     166
    ],
    "flags": {},
-   "order": 203,
+   "order": 211,
    "mode": 0,
    "inputs": [
     {
@@ -5315,7 +5315,7 @@
     247
    ],
    "flags": {},
-   "order": 235,
+   "order": 244,
    "mode": 0,
    "inputs": [
     {
@@ -5419,7 +5419,7 @@
     247
    ],
    "flags": {},
-   "order": 157,
+   "order": 162,
    "mode": 0,
    "inputs": [
     {
@@ -5523,7 +5523,7 @@
     247
    ],
    "flags": {},
-   "order": 158,
+   "order": 163,
    "mode": 0,
    "inputs": [
     {
@@ -5581,7 +5581,7 @@
     166
    ],
    "flags": {},
-   "order": 255,
+   "order": 265,
    "mode": 0,
    "inputs": [
     {
@@ -5643,7 +5643,7 @@
     166
    ],
    "flags": {},
-   "order": 269,
+   "order": 279,
    "mode": 0,
    "inputs": [
     {
@@ -5705,7 +5705,7 @@
     247
    ],
    "flags": {},
-   "order": 278,
+   "order": 289,
    "mode": 0,
    "inputs": [
     {
@@ -5901,7 +5901,7 @@
     166
    ],
    "flags": {},
-   "order": 159,
+   "order": 164,
    "mode": 0,
    "inputs": [
     {
@@ -5963,7 +5963,7 @@
     247
    ],
    "flags": {},
-   "order": 204,
+   "order": 212,
    "mode": 0,
    "inputs": [
     {
@@ -6021,7 +6021,7 @@
     247
    ],
    "flags": {},
-   "order": 236,
+   "order": 245,
    "mode": 0,
    "inputs": [
     {
@@ -6079,7 +6079,7 @@
     474
    ],
    "flags": {},
-   "order": 160,
+   "order": 165,
    "mode": 0,
    "inputs": [
     {
@@ -6271,7 +6271,7 @@
     166
    ],
    "flags": {},
-   "order": 161,
+   "order": 166,
    "mode": 0,
    "inputs": [
     {
@@ -6333,7 +6333,7 @@
     247
    ],
    "flags": {},
-   "order": 205,
+   "order": 213,
    "mode": 0,
    "inputs": [
     {
@@ -6491,7 +6491,7 @@
     375
    ],
    "flags": {},
-   "order": 162,
+   "order": 167,
    "mode": 0,
    "inputs": [
     {
@@ -6546,7 +6546,7 @@
     247
    ],
    "flags": {},
-   "order": 206,
+   "order": 214,
    "mode": 0,
    "inputs": [
     {
@@ -6604,7 +6604,7 @@
     247
    ],
    "flags": {},
-   "order": 207,
+   "order": 215,
    "mode": 0,
    "inputs": [
     {
@@ -6662,7 +6662,7 @@
     166
    ],
    "flags": {},
-   "order": 237,
+   "order": 246,
    "mode": 0,
    "inputs": [
     {
@@ -6724,7 +6724,7 @@
     247
    ],
    "flags": {},
-   "order": 256,
+   "order": 266,
    "mode": 0,
    "inputs": [
     {
@@ -6828,7 +6828,7 @@
     247
    ],
    "flags": {},
-   "order": 163,
+   "order": 168,
    "mode": 0,
    "inputs": [
     {
@@ -6886,7 +6886,7 @@
     247
    ],
    "flags": {},
-   "order": 208,
+   "order": 216,
    "mode": 0,
    "inputs": [
     {
@@ -7036,7 +7036,7 @@
     166
    ],
    "flags": {},
-   "order": 164,
+   "order": 169,
    "mode": 0,
    "inputs": [
     {
@@ -7098,7 +7098,7 @@
     349
    ],
    "flags": {},
-   "order": 209,
+   "order": 217,
    "mode": 0,
    "inputs": [
     {
@@ -7156,7 +7156,7 @@
     247
    ],
    "flags": {},
-   "order": 238,
+   "order": 247,
    "mode": 0,
    "inputs": [
     {
@@ -7306,7 +7306,7 @@
     166
    ],
    "flags": {},
-   "order": 165,
+   "order": 170,
    "mode": 0,
    "inputs": [
     {
@@ -7368,7 +7368,7 @@
     247
    ],
    "flags": {},
-   "order": 210,
+   "order": 218,
    "mode": 0,
    "inputs": [
     {
@@ -7656,7 +7656,7 @@
     166
    ],
    "flags": {},
-   "order": 166,
+   "order": 171,
    "mode": 0,
    "inputs": [
     {
@@ -7718,7 +7718,7 @@
     247
    ],
    "flags": {},
-   "order": 211,
+   "order": 219,
    "mode": 0,
    "inputs": [
     {
@@ -7960,7 +7960,7 @@
     166
    ],
    "flags": {},
-   "order": 167,
+   "order": 172,
    "mode": 0,
    "inputs": [
     {
@@ -8022,7 +8022,7 @@
     247
    ],
    "flags": {},
-   "order": 212,
+   "order": 220,
    "mode": 0,
    "inputs": [
     {
@@ -8080,7 +8080,7 @@
     166
    ],
    "flags": {},
-   "order": 257,
+   "order": 267,
    "mode": 0,
    "inputs": [
     {
@@ -8142,7 +8142,7 @@
     247
    ],
    "flags": {},
-   "order": 270,
+   "order": 280,
    "mode": 0,
    "inputs": [
     {
@@ -8292,7 +8292,7 @@
     166
    ],
    "flags": {},
-   "order": 168,
+   "order": 173,
    "mode": 0,
    "inputs": [
     {
@@ -8354,7 +8354,7 @@
     247
    ],
    "flags": {},
-   "order": 213,
+   "order": 221,
    "mode": 0,
    "inputs": [
     {
@@ -8550,7 +8550,7 @@
     166
    ],
    "flags": {},
-   "order": 169,
+   "order": 174,
    "mode": 0,
    "inputs": [
     {
@@ -8612,7 +8612,7 @@
     247
    ],
    "flags": {},
-   "order": 214,
+   "order": 222,
    "mode": 0,
    "inputs": [
     {
@@ -8670,7 +8670,7 @@
     166
    ],
    "flags": {},
-   "order": 239,
+   "order": 248,
    "mode": 0,
    "inputs": [
     {
@@ -8732,7 +8732,7 @@
     247
    ],
    "flags": {},
-   "order": 258,
+   "order": 268,
    "mode": 0,
    "inputs": [
     {
@@ -8882,7 +8882,7 @@
     166
    ],
    "flags": {},
-   "order": 170,
+   "order": 175,
    "mode": 0,
    "inputs": [
     {
@@ -8944,7 +8944,7 @@
     247
    ],
    "flags": {},
-   "order": 215,
+   "order": 223,
    "mode": 0,
    "inputs": [
     {
@@ -9232,7 +9232,7 @@
     166
    ],
    "flags": {},
-   "order": 171,
+   "order": 176,
    "mode": 0,
    "inputs": [
     {
@@ -9294,7 +9294,7 @@
     247
    ],
    "flags": {},
-   "order": 216,
+   "order": 224,
    "mode": 0,
    "inputs": [
     {
@@ -9352,7 +9352,7 @@
     166
    ],
    "flags": {},
-   "order": 240,
+   "order": 249,
    "mode": 0,
    "inputs": [
     {
@@ -9414,7 +9414,7 @@
     247
    ],
    "flags": {},
-   "order": 259,
+   "order": 269,
    "mode": 0,
    "inputs": [
     {
@@ -9472,7 +9472,7 @@
     166
    ],
    "flags": {},
-   "order": 285,
+   "order": 296,
    "mode": 0,
    "inputs": [
     {
@@ -9534,7 +9534,7 @@
     166
    ],
    "flags": {},
-   "order": 290,
+   "order": 301,
    "mode": 0,
    "inputs": [
     {
@@ -9596,7 +9596,7 @@
     350
    ],
    "flags": {},
-   "order": 294,
+   "order": 305,
    "mode": 0,
    "inputs": [
     {
@@ -9667,7 +9667,7 @@
     247
    ],
    "flags": {},
-   "order": 298,
+   "order": 309,
    "mode": 0,
    "inputs": [
     {
@@ -9698,7 +9698,7 @@
      "links": [
       193,
       222,
-      329
+      341
      ],
      "slot_index": 0
     }
@@ -9727,7 +9727,7 @@
     378
    ],
    "flags": {},
-   "order": 302,
+   "order": 313,
    "mode": 0,
    "inputs": [
     {
@@ -9815,7 +9815,7 @@
     247
    ],
    "flags": {},
-   "order": 172,
+   "order": 177,
    "mode": 0,
    "inputs": [
     {
@@ -9873,7 +9873,7 @@
     136
    ],
    "flags": {},
-   "order": 217,
+   "order": 225,
    "mode": 0,
    "inputs": [
     {
@@ -9915,7 +9915,7 @@
     262
    ],
    "flags": {},
-   "order": 241,
+   "order": 250,
    "mode": 0,
    "inputs": [
     {
@@ -9974,7 +9974,7 @@
     402
    ],
    "flags": {},
-   "order": 260,
+   "order": 270,
    "mode": 0,
    "inputs": [
     {
@@ -10057,7 +10057,7 @@
     247
    ],
    "flags": {},
-   "order": 271,
+   "order": 281,
    "mode": 0,
    "inputs": [
     {
@@ -10115,7 +10115,7 @@
     136
    ],
    "flags": {},
-   "order": 279,
+   "order": 290,
    "mode": 0,
    "inputs": [
     {
@@ -10157,7 +10157,7 @@
     279
    ],
    "flags": {},
-   "order": 286,
+   "order": 297,
    "mode": 0,
    "inputs": [
     {
@@ -10205,7 +10205,7 @@
     255
    ],
    "flags": {},
-   "order": 291,
+   "order": 302,
    "mode": 0,
    "inputs": [
     {
@@ -10254,7 +10254,7 @@
     247
    ],
    "flags": {},
-   "order": 295,
+   "order": 306,
    "mode": 0,
    "inputs": [
     {
@@ -10313,7 +10313,7 @@
     136
    ],
    "flags": {},
-   "order": 299,
+   "order": 310,
    "mode": 0,
    "inputs": [
     {
@@ -10354,7 +10354,7 @@
     247
    ],
    "flags": {},
-   "order": 303,
+   "order": 314,
    "mode": 0,
    "inputs": [
     {
@@ -10412,7 +10412,7 @@
     244
    ],
    "flags": {},
-   "order": 287,
+   "order": 298,
    "mode": 0,
    "inputs": [
     {
@@ -10477,7 +10477,7 @@
     236
    ],
    "flags": {},
-   "order": 292,
+   "order": 303,
    "mode": 0,
    "inputs": [
     {
@@ -10524,7 +10524,7 @@
     136
    ],
    "flags": {},
-   "order": 296,
+   "order": 307,
    "mode": 0,
    "inputs": [
     {
@@ -10565,7 +10565,7 @@
     195
    ],
    "flags": {},
-   "order": 300,
+   "order": 311,
    "mode": 0,
    "inputs": [
     {
@@ -10619,7 +10619,7 @@
     136
    ],
    "flags": {},
-   "order": 304,
+   "order": 315,
    "mode": 0,
    "inputs": [
     {
@@ -10660,7 +10660,7 @@
     247
    ],
    "flags": {},
-   "order": 306,
+   "order": 317,
    "mode": 0,
    "inputs": [
     {
@@ -10718,7 +10718,7 @@
     255
    ],
    "flags": {},
-   "order": 242,
+   "order": 251,
    "mode": 0,
    "inputs": [
     {
@@ -10767,7 +10767,7 @@
     247
    ],
    "flags": {},
-   "order": 261,
+   "order": 271,
    "mode": 0,
    "inputs": [
     {
@@ -10826,7 +10826,7 @@
     247
    ],
    "flags": {},
-   "order": 272,
+   "order": 282,
    "mode": 0,
    "inputs": [
     {
@@ -10884,7 +10884,7 @@
     136
    ],
    "flags": {},
-   "order": 280,
+   "order": 291,
    "mode": 0,
    "inputs": [
     {
@@ -10925,7 +10925,7 @@
     166
    ],
    "flags": {},
-   "order": 308,
+   "order": 319,
    "mode": 0,
    "inputs": [
     {
@@ -10988,7 +10988,7 @@
     247
    ],
    "flags": {},
-   "order": 310,
+   "order": 321,
    "mode": 0,
    "inputs": [
     {
@@ -11046,7 +11046,7 @@
     279
    ],
    "flags": {},
-   "order": 312,
+   "order": 323,
    "mode": 0,
    "inputs": [
     {
@@ -11090,7 +11090,7 @@
     375
    ],
    "flags": {},
-   "order": 311,
+   "order": 322,
    "mode": 0,
    "inputs": [
     {
@@ -11145,7 +11145,7 @@
     247
    ],
    "flags": {},
-   "order": 313,
+   "order": 324,
    "mode": 0,
    "inputs": [
     {
@@ -11174,8 +11174,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      315,
-      321
+      325,
+      333
      ],
      "slot_index": 0
     }
@@ -11236,7 +11236,7 @@
     0,
     "polygon"
    ],
-   "title": "Carriageways (both streets, to the horizon) + lanes between the context blocks 1"
+   "title": "Carriageways (both streets, to the horizon) 1"
   },
   {
    "id": 214,
@@ -11282,67 +11282,21 @@
     0,
     "polygon"
    ],
-   "title": "Carriageways (both streets, to the horizon) + lanes between the context blocks 2"
+   "title": "Carriageways (both streets, to the horizon) 2"
   },
   {
    "id": 215,
-   "type": "PCG_Box",
+   "type": "PCG_Merge",
    "pos": [
     3080,
     1238
    ],
    "size": [
     520,
-    220
-   ],
-   "flags": {},
-   "order": 95,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      227
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    640.0,
-    0.1,
-    640.0,
-    1.0,
-    0.0,
-    -0.21,
-    0.0,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Carriageways (both streets, to the horizon) + lanes between the context blocks 3"
-  },
-  {
-   "id": 216,
-   "type": "PCG_Merge",
-   "pos": [
-    3080,
-    1502
-   ],
-   "size": [
-    520,
     166
    ],
    "flags": {},
-   "order": 173,
+   "order": 178,
    "mode": 0,
    "inputs": [
     {
@@ -11358,7 +11312,7 @@
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 227
+     "link": null
     },
     {
      "name": "geo4",
@@ -11381,7 +11335,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      228
+      227
      ],
      "slot_index": 0
     }
@@ -11390,27 +11344,27 @@
     "Node name for S&R": "PCG_Merge"
    },
    "widgets_values": [],
-   "title": "Carriageways (both streets, to the horizon) + lanes between the context blocks"
+   "title": "Carriageways (both streets, to the horizon)"
   },
   {
-   "id": 217,
+   "id": 216,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    1712
+    1448
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 218,
+   "order": 226,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 228
+     "link": 227
     },
     {
      "name": "geo1",
@@ -11433,7 +11387,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      229
+      228
      ],
      "slot_index": 0
     }
@@ -11451,24 +11405,24 @@
    "title": "→ Ground_Asphalt"
   },
   {
-   "id": 218,
+   "id": 217,
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    2003
+    1739
    ],
    "size": [
     520,
     350
    ],
    "flags": {},
-   "order": 243,
+   "order": 252,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 229
+     "link": 228
     }
    ],
    "outputs": [
@@ -11476,7 +11430,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      316
+      326
      ],
      "slot_index": 0
     }
@@ -11522,6 +11476,52 @@
    "title": "Road UVs (1 UV = 1 m)"
   },
   {
+   "id": 218,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    2133
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 95,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      229
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    47.0,
+    0.15,
+    39.0,
+    1.0,
+    -28.5,
+    -0.075,
+    -24.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Paved quarters (one slab each) 1"
+  },
+  {
    "id": 219,
    "type": "PCG_Box",
    "pos": [
@@ -11556,7 +11556,7 @@
     1.0,
     -28.5,
     -0.075,
-    -24.5,
+    24.5,
     2,
     2,
     2,
@@ -11565,7 +11565,7 @@
     0,
     "polygon"
    ],
-   "title": "Paved quarters (one slab each) 1"
+   "title": "Paved quarters (one slab each) 2"
   },
   {
    "id": 220,
@@ -11600,9 +11600,9 @@
     0.15,
     39.0,
     1.0,
-    -28.5,
+    28.5,
     -0.075,
-    24.5,
+    -24.5,
     2,
     2,
     2,
@@ -11611,7 +11611,7 @@
     0,
     "polygon"
    ],
-   "title": "Paved quarters (one slab each) 2"
+   "title": "Paved quarters (one slab each) 3"
   },
   {
    "id": 221,
@@ -11648,52 +11648,6 @@
     1.0,
     28.5,
     -0.075,
-    -24.5,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Paved quarters (one slab each) 3"
-  },
-  {
-   "id": 222,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    3189
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 99,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      233
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    47.0,
-    0.15,
-    39.0,
-    1.0,
-    28.5,
-    -0.075,
     24.5,
     2,
     2,
@@ -11706,39 +11660,39 @@
    "title": "Paved quarters (one slab each) 4"
   },
   {
-   "id": 223,
+   "id": 222,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    3453
+    3189
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 174,
+   "order": 179,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 230
+     "link": 229
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 231
+     "link": 230
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 232
+     "link": 231
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 233
+     "link": 232
     },
     {
      "name": "geo5",
@@ -11756,7 +11710,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      234
+      233
      ],
      "slot_index": 0
     }
@@ -11768,24 +11722,24 @@
    "title": "Paved quarters (one slab each)"
   },
   {
-   "id": 224,
+   "id": 223,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    3663
+    3399
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 219,
+   "order": 227,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 234
+     "link": 233
     },
     {
      "name": "geo1",
@@ -11826,6 +11780,52 @@
    "title": "→ Ground_Cobble"
   },
   {
+   "id": 224,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    3690
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 99,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      234
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    295.0,
+    0.17,
+    3.0,
+    1.0,
+    -152.5,
+    -0.065,
+    -6.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Sidewalk strips along the curbs 1"
+  },
+  {
    "id": 225,
    "type": "PCG_Box",
    "pos": [
@@ -11854,13 +11854,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    295.0,
-    0.17,
     3.0,
+    0.17,
+    295.0,
     1.0,
-    -152.5,
-    -0.065,
     -6.5,
+    -0.065,
+    -152.5,
     2,
     2,
     2,
@@ -11869,7 +11869,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 1"
+   "title": "Sidewalk strips along the curbs 2"
   },
   {
    "id": 226,
@@ -11900,13 +11900,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    3.0,
-    0.17,
     295.0,
+    0.17,
+    3.0,
     1.0,
-    -6.5,
-    -0.065,
     -152.5,
+    -0.065,
+    6.5,
     2,
     2,
     2,
@@ -11915,7 +11915,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 2"
+   "title": "Sidewalk strips along the curbs 3"
   },
   {
    "id": 227,
@@ -11946,13 +11946,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    295.0,
-    0.17,
     3.0,
+    0.17,
+    295.0,
     1.0,
-    -152.5,
+    -6.5,
     -0.065,
-    6.5,
+    152.5,
     2,
     2,
     2,
@@ -11961,7 +11961,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 3"
+   "title": "Sidewalk strips along the curbs 4"
   },
   {
    "id": 228,
@@ -11992,13 +11992,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    3.0,
-    0.17,
     295.0,
+    0.17,
+    3.0,
     1.0,
-    -6.5,
-    -0.065,
     152.5,
+    -0.065,
+    -6.5,
     2,
     2,
     2,
@@ -12007,7 +12007,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 4"
+   "title": "Sidewalk strips along the curbs 5"
   },
   {
    "id": 229,
@@ -12038,13 +12038,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    295.0,
-    0.17,
     3.0,
+    0.17,
+    295.0,
     1.0,
-    152.5,
+    6.5,
     -0.065,
-    -6.5,
+    -152.5,
     2,
     2,
     2,
@@ -12053,7 +12053,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 5"
+   "title": "Sidewalk strips along the curbs 6"
   },
   {
    "id": 230,
@@ -12075,7 +12075,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      240
+      241
      ],
      "slot_index": 0
     }
@@ -12084,13 +12084,13 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    3.0,
-    0.17,
     295.0,
+    0.17,
+    3.0,
     1.0,
-    6.5,
+    152.5,
     -0.065,
-    -152.5,
+    6.5,
     2,
     2,
     2,
@@ -12099,7 +12099,7 @@
     0,
     "polygon"
    ],
-   "title": "Sidewalk strips along the curbs 6"
+   "title": "Sidewalk strips along the curbs 7"
   },
   {
    "id": 231,
@@ -12130,52 +12130,6 @@
     "Node name for S&R": "PCG_Box"
    },
    "widgets_values": [
-    295.0,
-    0.17,
-    3.0,
-    1.0,
-    152.5,
-    -0.065,
-    6.5,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Sidewalk strips along the curbs 7"
-  },
-  {
-   "id": 232,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    5802
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 107,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      243
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
     3.0,
     0.17,
     295.0,
@@ -12194,49 +12148,49 @@
    "title": "Sidewalk strips along the curbs 8"
   },
   {
-   "id": 233,
+   "id": 232,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    6066
+    5802
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 175,
+   "order": 180,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 235
+     "link": 234
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 236
+     "link": 235
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 237
+     "link": 236
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 238
+     "link": 237
     },
     {
      "name": "geo5",
      "type": "GEOMETRY",
-     "link": 239
+     "link": 238
     },
     {
      "name": "geo6",
      "type": "GEOMETRY",
-     "link": 240
+     "link": 239
     }
    ],
    "outputs": [
@@ -12244,7 +12198,69 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      241
+      240
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Sidewalk strips along the curbs"
+  },
+  {
+   "id": 233,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    6012
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 228,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 240
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 241
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 242
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      243
      ],
      "slot_index": 0
     }
@@ -12257,85 +12273,23 @@
   },
   {
    "id": 234,
-   "type": "PCG_Merge",
-   "pos": [
-    3080,
-    6276
-   ],
-   "size": [
-    520,
-    166
-   ],
-   "flags": {},
-   "order": 220,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": 241
-    },
-    {
-     "name": "geo2",
-     "type": "GEOMETRY",
-     "link": 242
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": 243
-    },
-    {
-     "name": "geo4",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo5",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo6",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      244
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Merge"
-   },
-   "widgets_values": [],
-   "title": "Sidewalk strips along the curbs"
-  },
-  {
-   "id": 235,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    6486
+    6222
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 244,
+   "order": 253,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 244
+     "link": 243
     },
     {
      "name": "geo1",
@@ -12376,18 +12330,122 @@
    "title": "→ M_Trim"
   },
   {
+   "id": 235,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    6513
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 107,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      244
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    640.0,
+    0.1,
+    640.0,
+    1.0,
+    0.0,
+    -0.21,
+    0.0,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Context ground"
+  },
+  {
    "id": 236,
-   "type": "PCG_Merge",
+   "type": "PCG_Wrangle",
    "pos": [
     3080,
     6777
    ],
    "size": [
     520,
+    247
+   ],
+   "flags": {},
+   "order": 181,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 244
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      247
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@material = \"M_Trim\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "→ M_Trim"
+  },
+  {
+   "id": 237,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    7068
+   ],
+   "size": [
+    520,
     166
    ],
    "flags": {},
-   "order": 262,
+   "order": 272,
    "mode": 0,
    "inputs": [
     {
@@ -12403,7 +12461,7 @@
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": null
+     "link": 247
     },
     {
      "name": "geo4",
@@ -12426,7 +12484,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      247
+      248
      ],
      "slot_index": 0
     }
@@ -12438,24 +12496,24 @@
    "title": "Paving + sidewalks"
   },
   {
-   "id": 237,
+   "id": 238,
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    6987
+    7278
    ],
    "size": [
     520,
     350
    ],
    "flags": {},
-   "order": 273,
+   "order": 283,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 247
+     "link": 248
     }
    ],
    "outputs": [
@@ -12463,7 +12521,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      248
+      249
      ],
      "slot_index": 0
     }
@@ -12509,24 +12567,24 @@
    "title": "Sidewalk UVs (1 UV = 1 m)"
   },
   {
-   "id": 238,
+   "id": 239,
    "type": "PCG_Color",
    "pos": [
     3080,
-    7381
+    7672
    ],
    "size": [
     520,
     195
    ],
    "flags": {},
-   "order": 281,
+   "order": 292,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 248
+     "link": 249
     }
    ],
    "outputs": [
@@ -12534,7 +12592,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      317
+      327
      ],
      "slot_index": 0
     }
@@ -12567,11 +12625,11 @@
    "title": "Sidewalk colour (viewport)"
   },
   {
-   "id": 239,
+   "id": 240,
    "type": "PCG_Add",
    "pos": [
     3080,
-    7620
+    7911
    ],
    "size": [
     520,
@@ -12592,7 +12650,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      249
+      250
      ],
      "slot_index": 0
     }
@@ -12621,24 +12679,24 @@
    "title": "Road paint positions"
   },
   {
-   "id": 240,
+   "id": 241,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    8174
+    8465
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 176,
+   "order": 182,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 249
+     "link": 250
     },
     {
      "name": "geo1",
@@ -12661,7 +12719,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      251
+      252
      ],
      "slot_index": 0
     }
@@ -12679,11 +12737,11 @@
    "title": "Road paint sizes"
   },
   {
-   "id": 241,
+   "id": 242,
    "type": "PCG_Box",
    "pos": [
     3080,
-    8465
+    8756
    ],
    "size": [
     520,
@@ -12698,7 +12756,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      250
+      251
      ],
      "slot_index": 0
     }
@@ -12725,29 +12783,29 @@
    "title": "Unit stripe"
   },
   {
-   "id": 242,
+   "id": 243,
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    8729
+    9020
    ],
    "size": [
     520,
     375
    ],
    "flags": {},
-   "order": 221,
+   "order": 229,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 250
+     "link": 251
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 251
+     "link": 252
     }
    ],
    "outputs": [
@@ -12755,7 +12813,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      252
+      253
      ],
      "slot_index": 0
     }
@@ -12780,24 +12838,24 @@
    "title": "Road paint"
   },
   {
-   "id": 243,
+   "id": 244,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    9148
+    9439
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 245,
+   "order": 254,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 252
+     "link": 253
     },
     {
      "name": "geo1",
@@ -12820,7 +12878,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      319
+      329
      ],
      "slot_index": 0
     }
@@ -12838,11 +12896,11 @@
    "title": "Paint: white, no texture"
   },
   {
-   "id": 244,
+   "id": 245,
    "type": "PCG_Box",
    "pos": [
     3080,
-    9439
+    9730
    ],
    "size": [
     520,
@@ -12857,7 +12915,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      253
+      254
      ],
      "slot_index": 0
     }
@@ -12884,11 +12942,11 @@
    "title": "Lamp pole"
   },
   {
-   "id": 245,
+   "id": 246,
    "type": "PCG_Box",
    "pos": [
     3080,
-    9703
+    9994
    ],
    "size": [
     520,
@@ -12903,7 +12961,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      254
+      255
      ],
      "slot_index": 0
     }
@@ -12930,11 +12988,11 @@
    "title": "Lamp base"
   },
   {
-   "id": 246,
+   "id": 247,
    "type": "PCG_Box",
    "pos": [
     3080,
-    9967
+    10258
    ],
    "size": [
     520,
@@ -12949,7 +13007,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      255
+      256
      ],
      "slot_index": 0
     }
@@ -12976,11 +13034,11 @@
    "title": "Lamp arm"
   },
   {
-   "id": 247,
+   "id": 248,
    "type": "PCG_Box",
    "pos": [
     3080,
-    10231
+    10522
    ],
    "size": [
     520,
@@ -12995,7 +13053,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      256
+      257
      ],
      "slot_index": 0
     }
@@ -13022,39 +13080,39 @@
    "title": "Lamp head"
   },
   {
-   "id": 248,
+   "id": 249,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    10495
+    10786
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 177,
+   "order": 183,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 253
+     "link": 254
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 254
+     "link": 255
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 255
+     "link": 256
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 256
+     "link": 257
     },
     {
      "name": "geo5",
@@ -13072,7 +13130,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      257
+      258
      ],
      "slot_index": 0
     }
@@ -13084,24 +13142,24 @@
    "title": "Street lamp"
   },
   {
-   "id": 249,
+   "id": 250,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    10705
+    10996
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 222,
+   "order": 230,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 257
+     "link": 258
     },
     {
      "name": "geo1",
@@ -13124,7 +13182,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      297
+      299
      ],
      "slot_index": 0
     }
@@ -13142,11 +13200,11 @@
    "title": "Lamp: metal, name"
   },
   {
-   "id": 250,
+   "id": 251,
    "type": "PCG_Tube",
    "pos": [
     3080,
-    10996
+    11287
    ],
    "size": [
     520,
@@ -13161,7 +13219,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      258
+      259
      ],
      "slot_index": 0
     }
@@ -13188,24 +13246,24 @@
    "title": "Tree trunk"
   },
   {
-   "id": 251,
+   "id": 252,
    "type": "PCG_MatchSize",
    "pos": [
     3080,
-    11344
+    11635
    ],
    "size": [
     520,
     390
    ],
    "flags": {},
-   "order": 178,
+   "order": 184,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 258
+     "link": 259
     },
     {
      "name": "target",
@@ -13218,7 +13276,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      263
+      264
      ],
      "slot_index": 0
     }
@@ -13257,11 +13315,11 @@
    "title": "Trunk on the ground"
   },
   {
-   "id": 252,
+   "id": 253,
    "type": "PCG_Box",
    "pos": [
     3080,
-    11778
+    12069
    ],
    "size": [
     520,
@@ -13276,7 +13334,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      259
+      260
      ],
      "slot_index": 0
     }
@@ -13303,11 +13361,11 @@
    "title": "Limbs 1"
   },
   {
-   "id": 253,
+   "id": 254,
    "type": "PCG_Box",
    "pos": [
     3080,
-    12042
+    12333
    ],
    "size": [
     520,
@@ -13322,7 +13380,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      260
+      261
      ],
      "slot_index": 0
     }
@@ -13349,29 +13407,29 @@
    "title": "Limbs 2"
   },
   {
-   "id": 254,
+   "id": 255,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    12306
+    12597
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 179,
+   "order": 185,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 259
+     "link": 260
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 260
+     "link": 261
     },
     {
      "name": "geo3",
@@ -13399,7 +13457,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      261
+      262
      ],
      "slot_index": 0
     }
@@ -13411,24 +13469,24 @@
    "title": "Limbs"
   },
   {
-   "id": 255,
+   "id": 256,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    12516
+    12807
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 223,
+   "order": 231,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 261
+     "link": 262
     },
     {
      "name": "geo1",
@@ -13451,7 +13509,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      262
+      263
      ],
      "slot_index": 0
     }
@@ -13469,24 +13527,24 @@
    "title": "→ Bark"
   },
   {
-   "id": 256,
+   "id": 257,
    "type": "PCG_Transform",
    "pos": [
     3080,
-    12807
+    13098
    ],
    "size": [
     520,
     363
    ],
    "flags": {},
-   "order": 246,
+   "order": 255,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 262
+     "link": 263
     }
    ],
    "outputs": [
@@ -13494,7 +13552,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      264
+      265
      ],
      "slot_index": 0
     }
@@ -13530,24 +13588,24 @@
    "title": "Limbs lean out"
   },
   {
-   "id": 257,
+   "id": 258,
    "type": "PCG_Color",
    "pos": [
     3080,
-    13214
+    13505
    ],
    "size": [
     520,
     195
    ],
    "flags": {},
-   "order": 274,
+   "order": 284,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 265
+     "link": 266
     }
    ],
    "outputs": [
@@ -13555,7 +13613,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      272
+      274
      ],
      "slot_index": 0
     }
@@ -13588,29 +13646,29 @@
    "title": "Bark"
   },
   {
-   "id": 258,
+   "id": 259,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    13453
+    13744
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 263,
+   "order": 273,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 263
+     "link": 264
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 264
+     "link": 265
     },
     {
      "name": "geo3",
@@ -13638,7 +13696,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      265
+      266
      ],
      "slot_index": 0
     }
@@ -13650,11 +13708,11 @@
    "title": "Trunk + limbs"
   },
   {
-   "id": 259,
+   "id": 260,
    "type": "PCG_Sphere",
    "pos": [
     3080,
-    13663
+    13954
    ],
    "size": [
     520,
@@ -13669,7 +13727,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      266
+      267
      ],
      "slot_index": 0
     }
@@ -13679,8 +13737,8 @@
    },
    "widgets_values": [
     1.0,
-    14,
-    10,
+    12,
+    8,
     "polygon_mesh",
     2,
     1.0,
@@ -13697,24 +13755,24 @@
    "title": "Leaf cluster"
   },
   {
-   "id": 260,
+   "id": 261,
    "type": "PCG_Normal",
    "pos": [
     3080,
-    13977
+    14268
    ],
    "size": [
     520,
     304
    ],
    "flags": {},
-   "order": 180,
+   "order": 186,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 266
+     "link": 267
     }
    ],
    "outputs": [
@@ -13722,7 +13780,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      267
+      268
      ],
      "slot_index": 0
     }
@@ -13745,24 +13803,24 @@
    "title": "Cluster normals"
   },
   {
-   "id": 261,
+   "id": 262,
    "type": "PCG_AttribNoise",
    "pos": [
     3080,
-    14325
+    14616
    ],
    "size": [
     520,
     1098
    ],
    "flags": {},
-   "order": 224,
+   "order": 232,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 267
+     "link": 268
     }
    ],
    "outputs": [
@@ -13790,7 +13848,7 @@
     1.0,
     "add",
     "zero_centered",
-    0.35,
+    0.3,
     false,
     0.5,
     0.5,
@@ -13842,15 +13900,63 @@
    "title": "Lumpy cluster"
   },
   {
-   "id": 262,
-   "type": "PCG_Add",
+   "id": 263,
+   "type": "PCG_Normal",
    "pos": [
     3080,
-    15467
+    15758
    ],
    "size": [
     520,
-    270
+    304
+   ],
+   "flags": {},
+   "order": 256,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 269
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      271
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Normal"
+   },
+   "widgets_values": [
+    "point",
+    60.0,
+    "",
+    "by_face_area",
+    "guess",
+    "N",
+    true,
+    false,
+    false,
+    false
+   ],
+   "title": "Normals of the lumpy surface"
+  },
+  {
+   "id": 264,
+   "type": "PCG_Add",
+   "pos": [
+    3080,
+    16106
+   ],
+   "size": [
+    520,
+    435
    ],
    "flags": {},
    "order": 118,
@@ -13867,7 +13973,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      268
+      270
      ],
      "slot_index": 0
     }
@@ -13876,7 +13982,7 @@
     "Node name for S&R": "PCG_Add"
    },
    "widgets_values": [
-    "0 4.9 0\n1.2 4.4 0.3\n-1.1 4.5 -0.4\n0.3 4.3 1.2\n-0.4 4.6 -1.2\n0.6 5.6 -0.5\n-0.5 5.5 0.6",
+    "-1.06 5.11 -0.85\n1.14 4.08 -0.72\n0.48 5.70 1.35\n0.65 5.02 -1.22\n1.39 5.14 -0.76\n1.32 5.03 -0.33\n0.38 4.79 -1.29\n-1.13 5.40 -0.85\n-0.55 5.74 -0.68\n0.44 4.21 -0.64\n-0.34 6.33 0.46\n1.21 4.38 -1.17\n-0.52 4.37 -1.53\n-1.44 5.09 1.04\n-0.34 6.46 -0.08\n-0.30 4.25 1.48\n-0.93 4.23 -1.11\n0.59 5.87 0.93",
     false,
     false,
     "0-3",
@@ -13896,24 +14002,24 @@
    "title": "Crown: cluster centres"
   },
   {
-   "id": 263,
+   "id": 265,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    15781
+    16585
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 181,
+   "order": 187,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 268
+     "link": 270
     },
     {
      "name": "geo1",
@@ -13936,7 +14042,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      270
+      272
      ],
      "slot_index": 0
     }
@@ -13946,7 +14052,7 @@
    },
    "widgets_values": [
     "point",
-    "@pscale = 0.85 + 0.45 * rand(@ptnum * 3.3)\nt = rand(@ptnum * 7.7)\nv@leaf = lerp(set(0.20, 0.33, 0.12), set(0.34, 0.45, 0.17), t)\n@N = set(sin(@ptnum * 2.1), 0, cos(@ptnum * 2.1))\n@up = set(0, 1, 0)",
+    "@pscale = 0.7 + 0.35 * rand(@ptnum * 3.3)\nt = rand(@ptnum * 7.7)\n# darker low and inside the crown, sunlit yellow-greens on top\nhgt = smoothstep(3.8, 6.3, @P.y)\nv@leaf = lerp(set(0.13, 0.22, 0.08), set(0.30, 0.42, 0.14), 0.25 * t + 0.75 * hgt)\n@N = set(sin(@ptnum * 2.1), 0, cos(@ptnum * 2.1))\n@up = set(0, 1, 0)",
     "",
     0,
     "{}"
@@ -13954,29 +14060,29 @@
    "title": "Cluster sizes + greens"
   },
   {
-   "id": 264,
+   "id": 266,
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    16072
+    16876
    ],
    "size": [
     520,
     375
    ],
    "flags": {},
-   "order": 247,
+   "order": 274,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 269
+     "link": 271
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 270
+     "link": 272
     }
    ],
    "outputs": [
@@ -13984,7 +14090,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      271
+      273
      ],
      "slot_index": 0
     }
@@ -14009,24 +14115,24 @@
    "title": "Crown"
   },
   {
-   "id": 265,
+   "id": 267,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    16491
+    17295
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 264,
+   "order": 285,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 271
+     "link": 273
     },
     {
      "name": "geo1",
@@ -14049,7 +14155,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      273
+      275
      ],
      "slot_index": 0
     }
@@ -14067,29 +14173,29 @@
    "title": "Leaf colour per cluster"
   },
   {
-   "id": 266,
+   "id": 268,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    16782
+    17586
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 282,
+   "order": 293,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 272
+     "link": 274
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 273
+     "link": 275
     },
     {
      "name": "geo3",
@@ -14117,7 +14223,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      274
+      276
      ],
      "slot_index": 0
     }
@@ -14129,24 +14235,24 @@
    "title": "Street tree"
   },
   {
-   "id": 267,
+   "id": 269,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    16992
+    17796
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 288,
+   "order": 299,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 274
+     "link": 276
     },
     {
      "name": "geo1",
@@ -14169,7 +14275,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      298
+      300
      ],
      "slot_index": 0
     }
@@ -14187,176 +14293,18 @@
    "title": "Tree: name"
   },
   {
-   "id": 268,
-   "type": "PCG_Wrangle",
-   "pos": [
-    3080,
-    17283
-   ],
-   "size": [
-    520,
-    247
-   ],
-   "flags": {},
-   "order": 182,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "link": 275
-    },
-    {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo2",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      276
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Wrangle"
-   },
-   "widgets_values": [
-    "point",
-    "top = @P.y > 0.8\n@P.z = where(top, @P.z * 0.94, @P.z)\n@P.x = where(top, @P.x * 0.97, @P.x)",
-    "",
-    0,
-    "{}"
-   ],
-   "title": "Body: narrower at the shoulders"
-  },
-  {
-   "id": 269,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    17574
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 119,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      275
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    4.4,
-    0.66,
-    1.8,
-    1.0,
-    0.0,
-    0.6,
-    0.0,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Car body box"
-  },
-  {
    "id": 270,
-   "type": "PCG_PolyBevel",
-   "pos": [
-    3080,
-    17838
-   ],
-   "size": [
-    520,
-    474
-   ],
-   "flags": {},
-   "order": 225,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "link": 276
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      280
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_PolyBevel"
-   },
-   "widgets_values": [
-    "",
-    "guess",
-    0.12,
-    true,
-    true,
-    "round",
-    1,
-    true,
-    "edgefilletpolys",
-    "pointfilletpolys",
-    false,
-    2.0,
-    "none",
-    "pscale",
-    1.0,
-    ""
-   ],
-   "title": "Car body (bevelled)"
-  },
-  {
-   "id": 271,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    18356
+    18087
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 183,
+   "order": 188,
    "mode": 0,
    "inputs": [
     {
@@ -14395,6 +14343,164 @@
    },
    "widgets_values": [
     "point",
+    "top = @P.y > 0.8\n@P.z = where(top, @P.z * 0.94, @P.z)\n@P.x = where(top, @P.x * 0.97, @P.x)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Body: narrower at the shoulders"
+  },
+  {
+   "id": 271,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    18378
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 119,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      277
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    4.4,
+    0.66,
+    1.8,
+    1.0,
+    0.0,
+    0.6,
+    0.0,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Car body box"
+  },
+  {
+   "id": 272,
+   "type": "PCG_PolyBevel",
+   "pos": [
+    3080,
+    18642
+   ],
+   "size": [
+    520,
+    474
+   ],
+   "flags": {},
+   "order": 233,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 278
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      282
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PolyBevel"
+   },
+   "widgets_values": [
+    "",
+    "guess",
+    0.12,
+    true,
+    true,
+    "round",
+    1,
+    true,
+    "edgefilletpolys",
+    "pointfilletpolys",
+    false,
+    2.0,
+    "none",
+    "pscale",
+    1.0,
+    ""
+   ],
+   "title": "Car body (bevelled)"
+  },
+  {
+   "id": 273,
+   "type": "PCG_Wrangle",
+   "pos": [
+    3080,
+    19160
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 189,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 279
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      280
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
     "top = @P.y > 1.4\n@P.x = where(top, @P.x * 0.6 - 0.2, @P.x)\n@P.z = where(top, @P.z * 0.86, @P.z)",
     "",
     0,
@@ -14403,11 +14509,11 @@
    "title": "Cabin: raked screens, tumblehome"
   },
   {
-   "id": 272,
+   "id": 274,
    "type": "PCG_Box",
    "pos": [
     3080,
-    18647
+    19451
    ],
    "size": [
     520,
@@ -14422,7 +14528,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      277
+      279
      ],
      "slot_index": 0
     }
@@ -14449,24 +14555,24 @@
    "title": "Cabin box"
   },
   {
-   "id": 273,
+   "id": 275,
    "type": "PCG_PolyBevel",
    "pos": [
     3080,
-    18911
+    19715
    ],
    "size": [
     520,
     474
    ],
    "flags": {},
-   "order": 226,
+   "order": 234,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 278
+     "link": 280
     }
    ],
    "outputs": [
@@ -14474,7 +14580,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      279
+      281
      ],
      "slot_index": 0
     }
@@ -14503,24 +14609,24 @@
    "title": "Cabin (bevelled)"
   },
   {
-   "id": 274,
+   "id": 276,
    "type": "PCG_Normal",
    "pos": [
     3080,
-    19429
+    20233
    ],
    "size": [
     520,
     279
    ],
    "flags": {},
-   "order": 248,
+   "order": 257,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 279
+     "link": 281
     }
    ],
    "outputs": [
@@ -14528,7 +14634,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      281
+      283
      ],
      "slot_index": 0
     }
@@ -14551,140 +14657,24 @@
    "title": "Cabin normals"
   },
   {
-   "id": 275,
-   "type": "PCG_Wrangle",
-   "pos": [
-    3080,
-    19752
-   ],
-   "size": [
-    520,
-    247
-   ],
-   "flags": {},
-   "order": 249,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "link": 280
-    },
-    {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo2",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      292
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Wrangle"
-   },
-   "widgets_values": [
-    "prim",
-    "s@material = \"Car_Paint\"",
-    "",
-    0,
-    "{}"
-   ],
-   "title": "Body paint"
-  },
-  {
-   "id": 276,
-   "type": "PCG_Wrangle",
-   "pos": [
-    3080,
-    20043
-   ],
-   "size": [
-    520,
-    247
-   ],
-   "flags": {},
-   "order": 265,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "link": 281
-    },
-    {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo2",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      293
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Wrangle"
-   },
-   "widgets_values": [
-    "prim",
-    "s@material = where(@N.y > 0.8, \"Car_Paint\", \"M_Glass\")",
-    "",
-    0,
-    "{}"
-   ],
-   "title": "Cabin: glass, painted roof"
-  },
-  {
    "id": 277,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    20334
+    20556
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 227,
+   "order": 258,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 286
+     "link": 282
     },
     {
      "name": "geo1",
@@ -14717,462 +14707,32 @@
    },
    "widgets_values": [
     "prim",
-    "s@material = \"Car_Light\"\n@Cd = where(@P.x > 0, set(0.95, 0.93, 0.85), set(0.7, 0.05, 0.04))",
+    "s@material = \"Car_Paint\"",
     "",
     0,
     "{}"
    ],
-   "title": "Lights"
+   "title": "Body paint"
   },
   {
    "id": 278,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    20625
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 121,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      282
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    0.06,
-    0.12,
-    0.34,
-    1.0,
-    2.19,
-    0.75,
-    0.6,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Headlight L"
-  },
-  {
-   "id": 279,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    20889
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 122,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      283
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    0.06,
-    0.12,
-    0.34,
-    1.0,
-    2.19,
-    0.75,
-    -0.6,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Headlight R"
-  },
-  {
-   "id": 280,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    21153
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 123,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      284
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    0.06,
-    0.14,
-    0.3,
-    1.0,
-    -2.19,
-    0.78,
-    0.62,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Tail light L"
-  },
-  {
-   "id": 281,
-   "type": "PCG_Box",
-   "pos": [
-    3080,
-    21417
-   ],
-   "size": [
-    520,
-    220
-   ],
-   "flags": {},
-   "order": 124,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      285
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Box"
-   },
-   "widgets_values": [
-    0.06,
-    0.14,
-    0.3,
-    1.0,
-    -2.19,
-    0.78,
-    -0.62,
-    2,
-    2,
-    2,
-    0.0,
-    0,
-    0,
-    "polygon"
-   ],
-   "title": "Tail light R"
-  },
-  {
-   "id": 282,
-   "type": "PCG_Merge",
-   "pos": [
-    3080,
-    21681
-   ],
-   "size": [
-    520,
-    166
-   ],
-   "flags": {},
-   "order": 184,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": 282
-    },
-    {
-     "name": "geo2",
-     "type": "GEOMETRY",
-     "link": 283
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": 284
-    },
-    {
-     "name": "geo4",
-     "type": "GEOMETRY",
-     "link": 285
-    },
-    {
-     "name": "geo5",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo6",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      286
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Merge"
-   },
-   "widgets_values": [],
-   "title": "Head + tail lights"
-  },
-  {
-   "id": 283,
-   "type": "PCG_Tube",
-   "pos": [
-    3080,
-    21891
-   ],
-   "size": [
-    520,
-    304
-   ],
-   "flags": {},
-   "order": 125,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      287
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Tube"
-   },
-   "widgets_values": [
-    0.34,
-    0.34,
-    0.26,
-    16,
-    2,
-    true,
-    "y",
-    1.4,
-    0.34,
-    0.78,
-    90.0,
-    0,
-    0,
-    1.0
-   ],
-   "title": "Wheel 1"
-  },
-  {
-   "id": 284,
-   "type": "PCG_Tube",
-   "pos": [
-    3080,
-    22239
-   ],
-   "size": [
-    520,
-    304
-   ],
-   "flags": {},
-   "order": 126,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      288
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Tube"
-   },
-   "widgets_values": [
-    0.34,
-    0.34,
-    0.26,
-    16,
-    2,
-    true,
-    "y",
-    1.4,
-    0.34,
-    -0.78,
-    90.0,
-    0,
-    0,
-    1.0
-   ],
-   "title": "Wheel 2"
-  },
-  {
-   "id": 285,
-   "type": "PCG_Tube",
-   "pos": [
-    3080,
-    22587
-   ],
-   "size": [
-    520,
-    304
-   ],
-   "flags": {},
-   "order": 127,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      289
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Tube"
-   },
-   "widgets_values": [
-    0.34,
-    0.34,
-    0.26,
-    16,
-    2,
-    true,
-    "y",
-    -1.4,
-    0.34,
-    0.78,
-    90.0,
-    0,
-    0,
-    1.0
-   ],
-   "title": "Wheel 3"
-  },
-  {
-   "id": 286,
-   "type": "PCG_Tube",
-   "pos": [
-    3080,
-    22935
-   ],
-   "size": [
-    520,
-    304
-   ],
-   "flags": {},
-   "order": 128,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      290
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Tube"
-   },
-   "widgets_values": [
-    0.34,
-    0.34,
-    0.26,
-    16,
-    2,
-    true,
-    "y",
-    -1.4,
-    0.34,
-    -0.78,
-    90.0,
-    0,
-    0,
-    1.0
-   ],
-   "title": "Wheel 4"
-  },
-  {
-   "id": 287,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    23283
+    20847
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 228,
+   "order": 275,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 291
+     "link": 283
     },
     {
      "name": "geo1",
@@ -15205,117 +14765,45 @@
    },
    "widgets_values": [
     "prim",
-    "s@material = \"Tyre\"\n@Cd = set(0.06, 0.06, 0.06)",
+    "s@material = where(@N.y > 0.8, \"Car_Paint\", \"M_Glass\")",
     "",
     0,
     "{}"
    ],
-   "title": "Tyres"
+   "title": "Cabin: glass, painted roof"
   },
   {
-   "id": 288,
-   "type": "PCG_Merge",
+   "id": 279,
+   "type": "PCG_Wrangle",
    "pos": [
     3080,
-    23574
+    21138
    ],
    "size": [
     520,
-    166
+    247
    ],
    "flags": {},
-   "order": 185,
+   "order": 235,
    "mode": 0,
    "inputs": [
     {
-     "name": "geo1",
-     "type": "GEOMETRY",
-     "link": 287
-    },
-    {
-     "name": "geo2",
+     "name": "geo",
      "type": "GEOMETRY",
      "link": 288
     },
     {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": 289
-    },
-    {
-     "name": "geo4",
-     "type": "GEOMETRY",
-     "link": 290
-    },
-    {
-     "name": "geo5",
-     "type": "GEOMETRY",
-     "link": null
-    },
-    {
-     "name": "geo6",
-     "type": "GEOMETRY",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "geo",
-     "type": "GEOMETRY",
-     "links": [
-      291
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PCG_Merge"
-   },
-   "widgets_values": [],
-   "title": "Wheels"
-  },
-  {
-   "id": 289,
-   "type": "PCG_Merge",
-   "pos": [
-    3080,
-    23784
-   ],
-   "size": [
-    520,
-    166
-   ],
-   "flags": {},
-   "order": 275,
-   "mode": 0,
-   "inputs": [
-    {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 292
+     "link": null
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 293
-    },
-    {
-     "name": "geo3",
-     "type": "GEOMETRY",
-     "link": 294
-    },
-    {
-     "name": "geo4",
-     "type": "GEOMETRY",
-     "link": 295
-    },
-    {
-     "name": "geo5",
-     "type": "GEOMETRY",
      "link": null
     },
     {
-     "name": "geo6",
+     "name": "geo3",
      "type": "GEOMETRY",
      "link": null
     }
@@ -15331,30 +14819,466 @@
     }
    ],
    "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@material = \"Car_Light\"\n@Cd = where(@P.x > 0, set(0.95, 0.93, 0.85), set(0.7, 0.05, 0.04))",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Lights"
+  },
+  {
+   "id": 280,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    21429
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 121,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      284
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    0.06,
+    0.12,
+    0.34,
+    1.0,
+    2.19,
+    0.75,
+    0.6,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Headlight L"
+  },
+  {
+   "id": 281,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    21693
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 122,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      285
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    0.06,
+    0.12,
+    0.34,
+    1.0,
+    2.19,
+    0.75,
+    -0.6,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Headlight R"
+  },
+  {
+   "id": 282,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    21957
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 123,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      286
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    0.06,
+    0.14,
+    0.3,
+    1.0,
+    -2.19,
+    0.78,
+    0.62,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Tail light L"
+  },
+  {
+   "id": 283,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    22221
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 124,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      287
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    0.06,
+    0.14,
+    0.3,
+    1.0,
+    -2.19,
+    0.78,
+    -0.62,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Tail light R"
+  },
+  {
+   "id": 284,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    22485
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 190,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 284
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 285
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 286
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 287
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      288
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
     "Node name for S&R": "PCG_Merge"
    },
    "widgets_values": [],
-   "title": "Car"
+   "title": "Head + tail lights"
   },
   {
-   "id": 290,
+   "id": 285,
+   "type": "PCG_Tube",
+   "pos": [
+    3080,
+    22695
+   ],
+   "size": [
+    520,
+    304
+   ],
+   "flags": {},
+   "order": 125,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      289
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Tube"
+   },
+   "widgets_values": [
+    0.34,
+    0.34,
+    0.26,
+    16,
+    2,
+    true,
+    "y",
+    1.4,
+    0.34,
+    0.78,
+    90.0,
+    0,
+    0,
+    1.0
+   ],
+   "title": "Wheel 1"
+  },
+  {
+   "id": 286,
+   "type": "PCG_Tube",
+   "pos": [
+    3080,
+    23043
+   ],
+   "size": [
+    520,
+    304
+   ],
+   "flags": {},
+   "order": 126,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      290
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Tube"
+   },
+   "widgets_values": [
+    0.34,
+    0.34,
+    0.26,
+    16,
+    2,
+    true,
+    "y",
+    1.4,
+    0.34,
+    -0.78,
+    90.0,
+    0,
+    0,
+    1.0
+   ],
+   "title": "Wheel 2"
+  },
+  {
+   "id": 287,
+   "type": "PCG_Tube",
+   "pos": [
+    3080,
+    23391
+   ],
+   "size": [
+    520,
+    304
+   ],
+   "flags": {},
+   "order": 127,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      291
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Tube"
+   },
+   "widgets_values": [
+    0.34,
+    0.34,
+    0.26,
+    16,
+    2,
+    true,
+    "y",
+    -1.4,
+    0.34,
+    0.78,
+    90.0,
+    0,
+    0,
+    1.0
+   ],
+   "title": "Wheel 3"
+  },
+  {
+   "id": 288,
+   "type": "PCG_Tube",
+   "pos": [
+    3080,
+    23739
+   ],
+   "size": [
+    520,
+    304
+   ],
+   "flags": {},
+   "order": 128,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      292
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Tube"
+   },
+   "widgets_values": [
+    0.34,
+    0.34,
+    0.26,
+    16,
+    2,
+    true,
+    "y",
+    -1.4,
+    0.34,
+    -0.78,
+    90.0,
+    0,
+    0,
+    1.0
+   ],
+   "title": "Wheel 4"
+  },
+  {
+   "id": 289,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    23994
+    24087
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 283,
+   "order": 236,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 296
+     "link": 293
     },
     {
      "name": "geo1",
@@ -15377,7 +15301,189 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      299
+      297
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@material = \"Tyre\"\n@Cd = set(0.06, 0.06, 0.06)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Tyres"
+  },
+  {
+   "id": 290,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    24378
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 191,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 289
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 290
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 291
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 292
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      293
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Wheels"
+  },
+  {
+   "id": 291,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    24588
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 286,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 294
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 295
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 296
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 297
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      298
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Car"
+  },
+  {
+   "id": 292,
+   "type": "PCG_Wrangle",
+   "pos": [
+    3080,
+    24798
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 294,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 298
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      301
      ],
      "slot_index": 0
     }
@@ -15395,34 +15501,34 @@
    "title": "Car: name"
   },
   {
-   "id": 291,
+   "id": 293,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    24285
+    25089
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 293,
+   "order": 304,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 297
+     "link": 299
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 298
+     "link": 300
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 299
+     "link": 301
     },
     {
      "name": "geo4",
@@ -15445,7 +15551,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      305
+      315
      ],
      "slot_index": 0
     }
@@ -15457,11 +15563,11 @@
    "title": "Street furniture library"
   },
   {
-   "id": 292,
+   "id": 294,
    "type": "PCG_Add",
    "pos": [
     3080,
-    24495
+    25299
    ],
    "size": [
     520,
@@ -15482,7 +15588,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      300
+      302
      ],
      "slot_index": 0
     }
@@ -15511,24 +15617,24 @@
    "title": "Furniture points along the curbs"
   },
   {
-   "id": 293,
+   "id": 295,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    25049
+    25853
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 186,
+   "order": 192,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 300
+     "link": 302
     },
     {
      "name": "geo1",
@@ -15551,7 +15657,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      303
+      312
      ],
      "slot_index": 0
     }
@@ -15569,11 +15675,11 @@
    "title": "Face the road; lamp / tree alternating; trees vary"
   },
   {
-   "id": 294,
+   "id": 296,
    "type": "PCG_Add",
    "pos": [
     3080,
-    25340
+    26144
    ],
    "size": [
     520,
@@ -15594,7 +15700,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      301
+      303
      ],
      "slot_index": 0
     }
@@ -15623,24 +15729,24 @@
    "title": "Parking slots"
   },
   {
-   "id": 295,
+   "id": 297,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    25894
+    26698
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 187,
+   "order": 193,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 301
+     "link": 303
     },
     {
      "name": "geo1",
@@ -15663,7 +15769,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      302
+      304
      ],
      "slot_index": 0
     }
@@ -15681,24 +15787,24 @@
    "title": "Cars: which slots, heading, paint"
   },
   {
-   "id": 296,
+   "id": 298,
    "type": "PCG_Blast",
    "pos": [
     3080,
-    26185
+    26989
    ],
    "size": [
     520,
     136
    ],
    "flags": {},
-   "order": 229,
+   "order": 237,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 302
+     "link": 304
     }
    ],
    "outputs": [
@@ -15706,7 +15812,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      304
+      313
      ],
      "slot_index": 0
     }
@@ -15722,34 +15828,508 @@
    "title": "Taken slots"
   },
   {
-   "id": 297,
+   "id": 299,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    27169
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 131,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      305
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    23.0,
+    0.2,
+    49.0,
+    1.0,
+    -64.5,
+    -0.06,
+    -33.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Lawn (green belt) 1"
+  },
+  {
+   "id": 300,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    27433
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 132,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      306
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    23.0,
+    0.2,
+    49.0,
+    1.0,
+    -64.5,
+    -0.06,
+    33.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Lawn (green belt) 2"
+  },
+  {
+   "id": 301,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    27697
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 133,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      307
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    23.0,
+    0.2,
+    49.0,
+    1.0,
+    64.5,
+    -0.06,
+    -33.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Lawn (green belt) 3"
+  },
+  {
+   "id": 302,
+   "type": "PCG_Box",
+   "pos": [
+    3080,
+    27961
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 134,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      308
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    23.0,
+    0.2,
+    49.0,
+    1.0,
+    64.5,
+    -0.06,
+    33.5,
+    2,
+    2,
+    2,
+    0.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "Lawn (green belt) 4"
+  },
+  {
+   "id": 303,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    26365
+    28225
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 250,
+   "order": 194,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 303
+     "link": 305
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 304
+     "link": 306
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 307
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 308
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      309
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Lawn (green belt)"
+  },
+  {
+   "id": 304,
+   "type": "PCG_Wrangle",
+   "pos": [
+    3080,
+    28435
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 238,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 309
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
      "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      310
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@material = \"Lawn\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "→ Lawn"
+  },
+  {
+   "id": 305,
+   "type": "PCG_Color",
+   "pos": [
+    3080,
+    28726
+   ],
+   "size": [
+    520,
+    195
+   ],
+   "flags": {},
+   "order": 259,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 310
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      332
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "prim",
+    "",
+    "constant",
+    0.3,
+    0.4,
+    0.17,
+    0,
+    "",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Lawn colour"
+  },
+  {
+   "id": 306,
+   "type": "PCG_Add",
+   "pos": [
+    3080,
+    28965
+   ],
+   "size": [
+    520,
+    510
+   ],
+   "flags": {},
+   "order": 135,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      311
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Add"
+   },
+   "widgets_values": [
+    "-61.15 0 -29.37\n-56.38 0 -28.09\n-72.28 0 13.65\n-62.95 0 15.99\n-56.12 0 -53.69\n65.96 0 -14.18\n65.27 0 -36.65\n-65.72 0 33.84\n69.77 0 37.76\n-61.87 0 -46.95\n56.56 0 35.11\n57.24 0 19.26\n57.89 0 -30.55\n69.53 0 26.97\n72.95 0 -42.67\n56.15 0 40.47\n60.41 0 51.03\n56.53 0 29.67\n71.78 0 50.02\n68.42 0 42.04\n-73.20 0 -15.65\n-59.41 0 -12.53\n66.59 0 -53.94\n63.68 0 29.52\n56.97 0 -14.74\n73.71 0 19.14\n-66.41 0 -12.01\n73.15 0 -32.86\n71.13 0 33.14\n-56.63 0 44.99\n-64.09 0 -34.72\n73.07 0 -18.45\n-67.09 0 47.47\n-69.06 0 20.80\n-61.76 0 55.54\n-63.97 0 42.47\n-56.53 0 -21.98\n61.42 0 -39.46\n64.11 0 -47.18\n-70.86 0 -52.03\n57.87 0 -47.49\n-70.72 0 -35.40\n-70.96 0 30.33\n-73.38 0 -44.85\n62.57 0 -19.16\n58.07 0 55.74\n-63.37 0 28.91\n-64.73 0 -16.97\n-68.31 0 -24.28\n-63.08 0 -23.83\n-56.27 0 31.97\n-72.82 0 -23.52\n-64.77 0 -53.12\n-55.86 0 18.93\n62.49 0 -25.39\n73.23 0 -48.78\n64.39 0 15.38\n-55.24 0 -33.38\n-60.50 0 48.08\n-73.10 0 38.55\n67.95 0 -25.29\n-72.86 0 43.37\n63.29 0 20.35\n62.16 0 45.09\n73.40 0 12.01\n72.67 0 -54.78\n-69.88 0 -18.79\n67.26 0 54.35\n65.04 0 -42.74\n56.89 0 -35.08\n-68.92 0 52.99\n58.62 0 13.40\n61.90 0 -54.14\n-60.03 0 21.17\n-64.64 0 -40.58\n-67.41 0 16.50\n-71.77 0 48.98\n55.77 0 -22.25\n-70.12 0 -40.12\n62.72 0 -32.28\n-72.58 0 -28.88\n-73.93 0 20.52\n67.91 0 19.42\n-57.19 0 40.00\n-66.69 0 25.04\n-56.82 0 54.55\n73.19 0 -37.43\n61.62 0 34.96\n73.69 0 44.26\n68.32 0 -49.22\n62.95 0 39.66\n-72.86 0 55.75\n67.90 0 12.12\n-59.75 0 -37.45\n-59.15 0 -17.67\n72.95 0 -24.87\n55.97 0 50.31\n67.17 0 -20.04\n-61.13 0 33.01\n-57.71 0 -44.39\n-68.56 0 -31.31\n-59.95 0 25.99\n60.98 0 25.36\n-68.50 0 -46.15\n55.56 0 -51.47\n57.53 0 -42.71\n-67.86 0 38.34\n-58.19 0 14.01\n-55.58 0 23.54\n73.44 0 -12.11",
+    false,
+    false,
+    "0-3",
+    true,
+    false,
+    "",
+    "all_points",
+    2,
+    false,
+    false,
+    "class",
+    false,
+    false,
+    true,
+    false
+   ],
+   "title": "Park trees"
+  },
+  {
+   "id": 307,
+   "type": "PCG_Wrangle",
+   "pos": [
+    3080,
+    29519
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 195,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 311
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      314
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "s@name = \"tree\"\na = rand(@ptnum * 3.7 + 0.2) * 6.2832\n@N = set(sin(a), 0, cos(a))\n@up = set(0, 1, 0)\n@pscale = 0.9 + 0.8 * rand(@ptnum * 2.3 + 0.7)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Park trees: size, turn"
+  },
+  {
+   "id": 308,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    29810
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 260,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 312
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 313
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 314
     },
     {
      "name": "geo4",
@@ -15772,7 +16352,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      306
+      316
      ],
      "slot_index": 0
     }
@@ -15784,29 +16364,29 @@
    "title": "Furniture + cars"
   },
   {
-   "id": 298,
+   "id": 309,
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    26575
+    30020
    ],
    "size": [
     520,
     375
    ],
    "flags": {},
-   "order": 297,
+   "order": 308,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 305
+     "link": 315
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 306
+     "link": 316
     }
    ],
    "outputs": [
@@ -15814,7 +16394,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      307
+      317
      ],
      "slot_index": 0
     }
@@ -15839,24 +16419,24 @@
    "title": "Place the street furniture"
   },
   {
-   "id": 299,
+   "id": 310,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    26994
+    30439
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 301,
+   "order": 312,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 307
+     "link": 317
     },
     {
      "name": "geo1",
@@ -15879,7 +16459,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      318
+      328
      ],
      "slot_index": 0
     }
@@ -15897,18 +16477,18 @@
    "title": "Car paint → body colour"
   },
   {
-   "id": 300,
+   "id": 311,
    "type": "PCG_Grid",
    "pos": [
     3080,
-    27285
+    30730
    ],
    "size": [
     520,
     245
    ],
    "flags": {},
-   "order": 131,
+   "order": 136,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -15916,7 +16496,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      308
+      318
      ],
      "slot_index": 0
     }
@@ -15941,24 +16521,24 @@
    "title": "Context: 32 m blocks (640 m)"
   },
   {
-   "id": 301,
+   "id": 312,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    27574
+    31019
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 188,
+   "order": 196,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 308
+     "link": 318
     },
     {
      "name": "geo1",
@@ -15981,7 +16561,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      309
+      319
      ],
      "slot_index": 0
     }
@@ -15999,24 +16579,24 @@
    "title": "Context: which blocks, how tall"
   },
   {
-   "id": 302,
+   "id": 313,
    "type": "PCG_Blast",
    "pos": [
     3080,
-    27865
+    31310
    ],
    "size": [
     520,
     136
    ],
    "flags": {},
-   "order": 230,
+   "order": 239,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 309
+     "link": 319
     }
    ],
    "outputs": [
@@ -16024,7 +16604,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      310
+      320
      ],
      "slot_index": 0
     }
@@ -16040,24 +16620,24 @@
    "title": "Context: keep blocks"
   },
   {
-   "id": 303,
+   "id": 314,
    "type": "PCG_Primitive",
    "pos": [
     3080,
-    28045
+    31490
    ],
    "size": [
     520,
     549
    ],
    "flags": {},
-   "order": 251,
+   "order": 261,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 310
+     "link": 320
     }
    ],
    "outputs": [
@@ -16065,7 +16645,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      311
+      321
      ],
      "slot_index": 0
     }
@@ -16084,7 +16664,7 @@
     1,
     1,
     1,
-    0.75,
+    0.88,
     "",
     0.0,
     true,
@@ -16107,27 +16687,27 @@
     0,
     0
    ],
-   "title": "Context: 24 m footprints (8 m lanes between)"
+   "title": "Context: 27 m footprints (lanes between)"
   },
   {
-   "id": 304,
+   "id": 315,
    "type": "PCG_PolyExtrude",
    "pos": [
     3080,
-    28638
+    32083
    ],
    "size": [
     520,
     378
    ],
    "flags": {},
-   "order": 266,
+   "order": 276,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 311
+     "link": 321
     },
     {
      "name": "spine",
@@ -16140,7 +16720,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      312
+      322
      ],
      "slot_index": 0
     }
@@ -16193,24 +16773,24 @@
    "title": "Context: extrude by h"
   },
   {
-   "id": 305,
+   "id": 316,
    "type": "PCG_Normal",
    "pos": [
     3080,
-    29060
+    32505
    ],
    "size": [
     520,
     279
    ],
    "flags": {},
-   "order": 276,
+   "order": 287,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 312
+     "link": 322
     }
    ],
    "outputs": [
@@ -16218,7 +16798,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      313
+      323
      ],
      "slot_index": 0
     }
@@ -16241,24 +16821,24 @@
    "title": "Context: face normals"
   },
   {
-   "id": 306,
+   "id": 317,
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    29383
+    32828
    ],
    "size": [
     520,
     350
    ],
    "flags": {},
-   "order": 284,
+   "order": 295,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 313
+     "link": 323
     }
    ],
    "outputs": [
@@ -16266,7 +16846,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      314
+      324
      ],
      "slot_index": 0
     }
@@ -16312,24 +16892,24 @@
    "title": "Context UVs: u = x / 4, v = y / 3.5 (one bay per image)"
   },
   {
-   "id": 307,
+   "id": 318,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    29777
+    33222
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 289,
+   "order": 300,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 314
+     "link": 324
     },
     {
      "name": "geo1",
@@ -16352,7 +16932,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      320
+      330
      ],
      "slot_index": 0
     }
@@ -16370,49 +16950,49 @@
    "title": "Context materials"
   },
   {
-   "id": 308,
+   "id": 319,
    "type": "PCG_Merge",
    "pos": [
     3080,
-    30068
+    33513
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 314,
+   "order": 325,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 315
+     "link": 325
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 316
+     "link": 326
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 317
+     "link": 327
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 318
+     "link": 328
     },
     {
      "name": "geo5",
      "type": "GEOMETRY",
-     "link": 319
+     "link": 329
     },
     {
      "name": "geo6",
      "type": "GEOMETRY",
-     "link": 320
+     "link": 330
     }
    ],
    "outputs": [
@@ -16420,8 +17000,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      322,
-      325
+      331
      ],
      "slot_index": 0
     }
@@ -16433,24 +17012,87 @@
    "title": "Block"
   },
   {
-   "id": 309,
+   "id": 320,
+   "type": "PCG_Merge",
+   "pos": [
+    3080,
+    33723
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 327,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 331
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 332
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      334,
+      337
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Block + green belt"
+  },
+  {
+   "id": 321,
    "type": "PCG_Viewport",
    "pos": [
     3080,
-    30278
+    33933
    ],
    "size": [
     520,
     520
    ],
    "flags": {},
-   "order": 315,
+   "order": 326,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 321
+     "link": 333
     },
     {
      "name": "template",
@@ -16472,18 +17114,18 @@
    "widgets_values": []
   },
   {
-   "id": 310,
+   "id": 322,
    "type": "PCG_Camera",
    "pos": [
     3080,
-    30842
+    34497
    ],
    "size": [
     520,
     250
    ],
    "flags": {},
-   "order": 132,
+   "order": 137,
    "mode": 0,
    "inputs": [
     {
@@ -16497,7 +17139,7 @@
      "name": "cam",
      "type": "PCGCAM",
      "links": [
-      323
+      335
      ],
      "slot_index": 0
     },
@@ -16516,18 +17158,18 @@
     "look_at",
     1600,
     900,
-    45.0,
+    38.0,
     2.0,
     25.0,
     35.0,
     5.0,
     1.15,
-    10.0,
-    8.0,
+    6.0,
+    13.0,
     -10.0,
-    -118.0,
-    42.0,
-    4.0,
+    -104.0,
+    34.0,
+    66.0,
     0.0,
     1.0,
     0.0,
@@ -16537,24 +17179,24 @@
    "title": "Camera: low aerial over the crossing"
   },
   {
-   "id": 311,
+   "id": 323,
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    31136
+    34791
    ],
    "size": [
     520,
-    593
+    668
    ],
    "flags": {},
-   "order": 316,
+   "order": 328,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 322
+     "link": 334
     },
     {
      "name": "textures_cop",
@@ -16564,7 +17206,7 @@
     {
      "name": "camera",
      "type": "PCGCAM",
-     "link": 323
+     "link": 335
     }
    ],
    "outputs": [
@@ -16572,7 +17214,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      324
+      336
      ],
      "slot_index": 0
     }
@@ -16592,33 +17234,36 @@
     "basecolor = pcg/materials/T_{material}_BaseColor.png\nnormal = pcg/materials/T_{material}_Normal_GL.png\norm = pcg/materials/T_{material}_ORM.png",
     "material",
     "uv",
-    34.0,
-    215.0,
-    1.2,
+    30.0,
+    250.0,
+    2.5,
     true,
     "0.40 0.39 0.36",
-    1.0
+    1.0,
+    0.35,
+    5,
+    32
    ]
   },
   {
-   "id": 312,
+   "id": 324,
    "type": "PreviewImage",
    "pos": [
     3080,
-    31773
+    35503
    ],
    "size": [
     520,
     400
    ],
    "flags": {},
-   "order": 318,
+   "order": 330,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 324
+     "link": 336
     }
    ],
    "outputs": [],
@@ -16629,18 +17274,18 @@
    "title": "Assembled block"
   },
   {
-   "id": 313,
+   "id": 325,
    "type": "PCG_Camera",
    "pos": [
     3080,
-    32217
+    35947
    ],
    "size": [
     520,
     250
    ],
    "flags": {},
-   "order": 133,
+   "order": 138,
    "mode": 0,
    "inputs": [
     {
@@ -16654,7 +17299,7 @@
      "name": "cam",
      "type": "PCGCAM",
      "links": [
-      326
+      338
      ],
      "slot_index": 0
     },
@@ -16694,24 +17339,24 @@
    "title": "Camera: eye level in the street"
   },
   {
-   "id": 314,
+   "id": 326,
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    32511
+    36241
    ],
    "size": [
     520,
-    593
+    668
    ],
    "flags": {},
-   "order": 317,
+   "order": 329,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 325
+     "link": 337
     },
     {
      "name": "textures_cop",
@@ -16721,7 +17366,7 @@
     {
      "name": "camera",
      "type": "PCGCAM",
-     "link": 326
+     "link": 338
     }
    ],
    "outputs": [
@@ -16729,7 +17374,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      327
+      339
      ],
      "slot_index": 0
     }
@@ -16749,33 +17394,36 @@
     "basecolor = pcg/materials/T_{material}_BaseColor.png\nnormal = pcg/materials/T_{material}_Normal_GL.png\norm = pcg/materials/T_{material}_ORM.png",
     "material",
     "uv",
-    34.0,
-    215.0,
-    1.2,
+    40.0,
+    35.0,
+    2.5,
     true,
     "0.40 0.39 0.36",
-    1.0
+    1.0,
+    0.35,
+    5,
+    32
    ]
   },
   {
-   "id": 315,
+   "id": 327,
    "type": "PreviewImage",
    "pos": [
     3080,
-    33148
+    36953
    ],
    "size": [
     520,
     400
    ],
    "flags": {},
-   "order": 319,
+   "order": 331,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 327
+     "link": 339
     }
    ],
    "outputs": [],
@@ -16786,18 +17434,18 @@
    "title": "Street level"
   },
   {
-   "id": 316,
+   "id": 328,
    "type": "PCG_Add",
    "pos": [
     3080,
-    33592
+    37397
    ],
    "size": [
     520,
     330
    ],
    "flags": {},
-   "order": 134,
+   "order": 139,
    "mode": 0,
    "inputs": [
     {
@@ -16811,7 +17459,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      328
+      340
      ],
      "slot_index": 0
     }
@@ -16840,24 +17488,24 @@
    "title": "11 points in three rows (5 m apart)"
   },
   {
-   "id": 317,
+   "id": 329,
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    33966
+    37771
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 189,
+   "order": 197,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 328
+     "link": 340
     },
     {
      "name": "geo1",
@@ -16880,7 +17528,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      330
+      342
      ],
      "slot_index": 0
     }
@@ -16898,29 +17546,29 @@
    "title": "One piece per point"
   },
   {
-   "id": 318,
+   "id": 330,
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    34257
+    38062
    ],
    "size": [
     520,
     375
    ],
    "flags": {},
-   "order": 305,
+   "order": 316,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 329
+     "link": 341
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 330
+     "link": 342
     }
    ],
    "outputs": [
@@ -16928,7 +17576,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      331
+      343
      ],
      "slot_index": 0
     }
@@ -16953,24 +17601,24 @@
    "title": "Kit laid out in a row"
   },
   {
-   "id": 319,
+   "id": 331,
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    34676
+    38481
    ],
    "size": [
     520,
     408
    ],
    "flags": {},
-   "order": 307,
+   "order": 318,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 331
+     "link": 343
     },
     {
      "name": "textures_cop",
@@ -16988,7 +17636,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      332
+      344
      ],
      "slot_index": 0
     }
@@ -17013,28 +17661,31 @@
     1.0,
     true,
     "0.32 0.31 0.27",
-    1.0
+    1.0,
+    0.0,
+    0,
+    32
    ]
   },
   {
-   "id": 320,
+   "id": 332,
    "type": "PreviewImage",
    "pos": [
     3080,
-    35128
+    38933
    ],
    "size": [
     520,
     360
    ],
    "flags": {},
-   "order": 309,
+   "order": 320,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 332
+     "link": 344
     }
    ],
    "outputs": [],
@@ -18842,7 +19493,7 @@
    225,
    213,
    0,
-   216,
+   215,
    0,
    "GEOMETRY"
   ],
@@ -18850,7 +19501,7 @@
    226,
    214,
    0,
-   216,
+   215,
    1,
    "GEOMETRY"
   ],
@@ -18859,7 +19510,7 @@
    215,
    0,
    216,
-   2,
+   0,
    "GEOMETRY"
   ],
   [
@@ -18872,9 +19523,9 @@
   ],
   [
    229,
-   217,
-   0,
    218,
+   0,
+   222,
    0,
    "GEOMETRY"
   ],
@@ -18882,24 +19533,24 @@
    230,
    219,
    0,
-   223,
-   0,
+   222,
+   1,
    "GEOMETRY"
   ],
   [
    231,
    220,
    0,
-   223,
-   1,
+   222,
+   2,
    "GEOMETRY"
   ],
   [
    232,
    221,
    0,
-   223,
-   2,
+   222,
+   3,
    "GEOMETRY"
   ],
   [
@@ -18907,14 +19558,14 @@
    222,
    0,
    223,
-   3,
+   0,
    "GEOMETRY"
   ],
   [
    234,
-   223,
-   0,
    224,
+   0,
+   232,
    0,
    "GEOMETRY"
   ],
@@ -18922,95 +19573,95 @@
    235,
    225,
    0,
-   233,
-   0,
+   232,
+   1,
    "GEOMETRY"
   ],
   [
    236,
    226,
    0,
-   233,
-   1,
+   232,
+   2,
    "GEOMETRY"
   ],
   [
    237,
    227,
    0,
-   233,
-   2,
+   232,
+   3,
    "GEOMETRY"
   ],
   [
    238,
    228,
    0,
-   233,
-   3,
+   232,
+   4,
    "GEOMETRY"
   ],
   [
    239,
    229,
    0,
-   233,
-   4,
-   "GEOMETRY"
-  ],
-  [
-   240,
-   230,
-   0,
-   233,
+   232,
    5,
    "GEOMETRY"
   ],
   [
-   241,
+   240,
+   232,
+   0,
    233,
    0,
-   234,
+   "GEOMETRY"
+  ],
+  [
+   241,
+   230,
    0,
+   233,
+   1,
    "GEOMETRY"
   ],
   [
    242,
    231,
    0,
-   234,
-   1,
-   "GEOMETRY"
-  ],
-  [
-   243,
-   232,
-   0,
-   234,
+   233,
    2,
    "GEOMETRY"
   ],
   [
-   244,
+   243,
+   233,
+   0,
    234,
    0,
+   "GEOMETRY"
+  ],
+  [
+   244,
    235,
+   0,
+   236,
    0,
    "GEOMETRY"
   ],
   [
    245,
-   224,
+   223,
    0,
-   236,
+   237,
    0,
    "GEOMETRY"
   ],
   [
    246,
-   235,
+   234,
    0,
-   236,
+   237,
    1,
    "GEOMETRY"
   ],
@@ -19019,7 +19670,7 @@
    236,
    0,
    237,
-   0,
+   2,
    "GEOMETRY"
   ],
   [
@@ -19032,30 +19683,22 @@
   ],
   [
    249,
-   239,
+   238,
    0,
-   240,
+   239,
    0,
    "GEOMETRY"
   ],
   [
    250,
-   241,
+   240,
    0,
-   242,
+   241,
    0,
    "GEOMETRY"
   ],
   [
    251,
-   240,
-   0,
-   242,
-   1,
-   "GEOMETRY"
-  ],
-  [
-   252,
    242,
    0,
    243,
@@ -19063,10 +19706,18 @@
    "GEOMETRY"
   ],
   [
-   253,
-   244,
+   252,
+   241,
    0,
-   248,
+   243,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   253,
+   243,
+   0,
+   244,
    0,
    "GEOMETRY"
   ],
@@ -19074,24 +19725,24 @@
    254,
    245,
    0,
-   248,
-   1,
+   249,
+   0,
    "GEOMETRY"
   ],
   [
    255,
    246,
    0,
-   248,
-   2,
+   249,
+   1,
    "GEOMETRY"
   ],
   [
    256,
    247,
    0,
-   248,
-   3,
+   249,
+   2,
    "GEOMETRY"
   ],
   [
@@ -19099,22 +19750,22 @@
    248,
    0,
    249,
-   0,
+   3,
    "GEOMETRY"
   ],
   [
    258,
-   250,
+   249,
    0,
-   251,
+   250,
    0,
    "GEOMETRY"
   ],
   [
    259,
-   252,
+   251,
    0,
-   254,
+   252,
    0,
    "GEOMETRY"
   ],
@@ -19122,8 +19773,8 @@
    260,
    253,
    0,
-   254,
-   1,
+   255,
+   0,
    "GEOMETRY"
   ],
   [
@@ -19131,7 +19782,7 @@
    254,
    0,
    255,
-   0,
+   1,
    "GEOMETRY"
   ],
   [
@@ -19144,33 +19795,33 @@
   ],
   [
    263,
-   251,
+   256,
    0,
-   258,
+   257,
    0,
    "GEOMETRY"
   ],
   [
    264,
-   256,
+   252,
    0,
-   258,
-   1,
+   259,
+   0,
    "GEOMETRY"
   ],
   [
    265,
-   258,
-   0,
    257,
    0,
+   259,
+   1,
    "GEOMETRY"
   ],
   [
    266,
    259,
    0,
-   260,
+   258,
    0,
    "GEOMETRY"
   ],
@@ -19184,6 +19835,14 @@
   ],
   [
    268,
+   261,
+   0,
+   262,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   269,
    262,
    0,
    263,
@@ -19191,39 +19850,23 @@
    "GEOMETRY"
   ],
   [
-   269,
-   261,
-   0,
-   264,
-   0,
-   "GEOMETRY"
-  ],
-  [
    270,
-   263,
-   0,
    264,
-   1,
+   0,
+   265,
+   0,
    "GEOMETRY"
   ],
   [
    271,
-   264,
+   263,
    0,
-   265,
+   266,
    0,
    "GEOMETRY"
   ],
   [
    272,
-   257,
-   0,
-   266,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   273,
    265,
    0,
    266,
@@ -19231,7 +19874,7 @@
    "GEOMETRY"
   ],
   [
-   274,
+   273,
    266,
    0,
    267,
@@ -19239,48 +19882,56 @@
    "GEOMETRY"
   ],
   [
-   275,
-   269,
+   274,
+   258,
    0,
    268,
    0,
+   "GEOMETRY"
+  ],
+  [
+   275,
+   267,
+   0,
+   268,
+   1,
    "GEOMETRY"
   ],
   [
    276,
    268,
    0,
-   270,
+   269,
    0,
    "GEOMETRY"
   ],
   [
    277,
-   272,
-   0,
    271,
+   0,
+   270,
    0,
    "GEOMETRY"
   ],
   [
    278,
-   271,
+   270,
    0,
-   273,
+   272,
    0,
    "GEOMETRY"
   ],
   [
    279,
-   273,
-   0,
    274,
+   0,
+   273,
    0,
    "GEOMETRY"
   ],
   [
    280,
-   270,
+   273,
    0,
    275,
    0,
@@ -19288,7 +19939,7 @@
   ],
   [
    281,
-   274,
+   275,
    0,
    276,
    0,
@@ -19296,175 +19947,175 @@
   ],
   [
    282,
-   278,
+   272,
    0,
-   282,
+   277,
    0,
    "GEOMETRY"
   ],
   [
    283,
-   279,
+   276,
    0,
-   282,
-   1,
+   278,
+   0,
    "GEOMETRY"
   ],
   [
    284,
    280,
    0,
-   282,
-   2,
+   284,
+   0,
    "GEOMETRY"
   ],
   [
    285,
    281,
    0,
-   282,
-   3,
+   284,
+   1,
    "GEOMETRY"
   ],
   [
    286,
    282,
    0,
-   277,
-   0,
+   284,
+   2,
    "GEOMETRY"
   ],
   [
    287,
    283,
    0,
-   288,
-   0,
+   284,
+   3,
    "GEOMETRY"
   ],
   [
    288,
    284,
    0,
-   288,
-   1,
+   279,
+   0,
    "GEOMETRY"
   ],
   [
    289,
    285,
    0,
-   288,
-   2,
+   290,
+   0,
    "GEOMETRY"
   ],
   [
    290,
    286,
    0,
-   288,
-   3,
+   290,
+   1,
    "GEOMETRY"
   ],
   [
    291,
-   288,
-   0,
    287,
    0,
+   290,
+   2,
    "GEOMETRY"
   ],
   [
    292,
-   275,
+   288,
    0,
-   289,
-   0,
+   290,
+   3,
    "GEOMETRY"
   ],
   [
    293,
-   276,
+   290,
    0,
    289,
-   1,
+   0,
    "GEOMETRY"
   ],
   [
    294,
    277,
    0,
-   289,
-   2,
+   291,
+   0,
    "GEOMETRY"
   ],
   [
    295,
-   287,
+   278,
    0,
-   289,
-   3,
+   291,
+   1,
    "GEOMETRY"
   ],
   [
    296,
-   289,
+   279,
    0,
-   290,
-   0,
+   291,
+   2,
    "GEOMETRY"
   ],
   [
    297,
-   249,
+   289,
    0,
    291,
-   0,
+   3,
    "GEOMETRY"
   ],
   [
    298,
-   267,
-   0,
    291,
-   1,
+   0,
+   292,
+   0,
    "GEOMETRY"
   ],
   [
    299,
-   290,
-   0,
-   291,
-   2,
-   "GEOMETRY"
-  ],
-  [
-   300,
-   292,
+   250,
    0,
    293,
    0,
    "GEOMETRY"
   ],
   [
+   300,
+   269,
+   0,
+   293,
+   1,
+   "GEOMETRY"
+  ],
+  [
    301,
-   294,
+   292,
    0,
-   295,
-   0,
+   293,
+   2,
    "GEOMETRY"
   ],
   [
    302,
-   295,
+   294,
    0,
-   296,
+   295,
    0,
    "GEOMETRY"
   ],
   [
    303,
-   293,
+   296,
    0,
    297,
    0,
@@ -19472,86 +20123,62 @@
   ],
   [
    304,
-   296,
-   0,
    297,
-   1,
+   0,
+   298,
+   0,
    "GEOMETRY"
   ],
   [
    305,
-   291,
+   299,
    0,
-   298,
+   303,
    0,
    "GEOMETRY"
   ],
   [
    306,
-   297,
+   300,
    0,
-   298,
+   303,
    1,
    "GEOMETRY"
   ],
   [
    307,
-   298,
+   301,
    0,
-   299,
-   0,
+   303,
+   2,
    "GEOMETRY"
   ],
   [
    308,
-   300,
+   302,
    0,
-   301,
-   0,
+   303,
+   3,
    "GEOMETRY"
   ],
   [
    309,
-   301,
+   303,
    0,
-   302,
+   304,
    0,
    "GEOMETRY"
   ],
   [
    310,
-   302,
+   304,
    0,
-   303,
+   305,
    0,
    "GEOMETRY"
   ],
   [
    311,
-   303,
-   0,
-   304,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   312,
-   304,
-   0,
-   305,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   313,
-   305,
-   0,
-   306,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   314,
    306,
    0,
    307,
@@ -19559,111 +20186,95 @@
    "GEOMETRY"
   ],
   [
-   315,
-   212,
+   312,
+   295,
    0,
    308,
    0,
    "GEOMETRY"
   ],
   [
-   316,
-   218,
+   313,
+   298,
    0,
    308,
    1,
    "GEOMETRY"
   ],
   [
-   317,
-   238,
+   314,
+   307,
    0,
    308,
    2,
    "GEOMETRY"
   ],
   [
-   318,
-   299,
+   315,
+   293,
    0,
+   309,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   316,
    308,
-   3,
+   0,
+   309,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   317,
+   309,
+   0,
+   310,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   318,
+   311,
+   0,
+   312,
+   0,
    "GEOMETRY"
   ],
   [
    319,
-   243,
+   312,
    0,
-   308,
-   4,
+   313,
+   0,
    "GEOMETRY"
   ],
   [
    320,
-   307,
+   313,
    0,
-   308,
-   5,
+   314,
+   0,
    "GEOMETRY"
   ],
   [
    321,
-   212,
+   314,
    0,
-   309,
+   315,
    0,
    "GEOMETRY"
   ],
   [
    322,
-   308,
+   315,
    0,
-   311,
+   316,
    0,
    "GEOMETRY"
   ],
   [
    323,
-   310,
-   0,
-   311,
-   2,
-   "PCGCAM"
-  ],
-  [
-   324,
-   311,
-   0,
-   312,
-   0,
-   "IMAGE"
-  ],
-  [
-   325,
-   308,
-   0,
-   314,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   326,
-   313,
-   0,
-   314,
-   2,
-   "PCGCAM"
-  ],
-  [
-   327,
-   314,
-   0,
-   315,
-   0,
-   "IMAGE"
-  ],
-  [
-   328,
    316,
    0,
    317,
@@ -19671,34 +20282,170 @@
    "GEOMETRY"
   ],
   [
-   329,
-   184,
+   324,
+   317,
    0,
    318,
    0,
    "GEOMETRY"
   ],
   [
-   330,
-   317,
+   325,
+   212,
    0,
-   318,
+   319,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   326,
+   217,
+   0,
+   319,
    1,
    "GEOMETRY"
   ],
   [
-   331,
+   327,
+   239,
+   0,
+   319,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   328,
+   310,
+   0,
+   319,
+   3,
+   "GEOMETRY"
+  ],
+  [
+   329,
+   244,
+   0,
+   319,
+   4,
+   "GEOMETRY"
+  ],
+  [
+   330,
    318,
    0,
    319,
+   5,
+   "GEOMETRY"
+  ],
+  [
+   331,
+   319,
+   0,
+   320,
    0,
    "GEOMETRY"
   ],
   [
    332,
-   319,
+   305,
    0,
    320,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   333,
+   212,
+   0,
+   321,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   334,
+   320,
+   0,
+   323,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   335,
+   322,
+   0,
+   323,
+   2,
+   "PCGCAM"
+  ],
+  [
+   336,
+   323,
+   0,
+   324,
+   0,
+   "IMAGE"
+  ],
+  [
+   337,
+   320,
+   0,
+   326,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   338,
+   325,
+   0,
+   326,
+   2,
+   "PCGCAM"
+  ],
+  [
+   339,
+   326,
+   0,
+   327,
+   0,
+   "IMAGE"
+  ],
+  [
+   340,
+   328,
+   0,
+   329,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   341,
+   184,
+   0,
+   330,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   342,
+   329,
+   0,
+   330,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   343,
+   330,
+   0,
+   331,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   344,
+   331,
+   0,
+   332,
    0,
    "IMAGE"
   ]

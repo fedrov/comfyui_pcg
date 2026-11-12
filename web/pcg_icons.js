@@ -3022,7 +3022,7 @@ export const NODE_GLYPH = {
   COPMaskByFeature: "hf_mask", COPTerrace: "terrace",
   COPThermalErosion: "slump", COPHeightfieldToMesh: "hf_mesh",
   COPFlowAccumulation: "flow_acc", COPStreamPower: "stream_power",
-  COPHydraulicErosion: "hydro",
+  COPHydraulicErosion: "hydro", COPHeightfieldErode: "hydro",
   COPSplatMap: "splat", RegionalPrompt: "region_prompt",
   COPHeightfieldFromDepth: "from_depth",
   // completing Copernicus batch A

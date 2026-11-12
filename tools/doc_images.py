@@ -1668,6 +1668,17 @@ _cop("COPCurvature", _smooth, layer_out="curvature", strength=4.0)
 _cop("COPHeightToShadow", _smooth, layer_out="shadow", strength=4.0, elevation=25.0, softness=4.0)
 _cop("COPHeightToCaustics", _smooth, layer_out="caustics", strength=0.5)
 _cop("COPHydraulicErosion", _smooth, strength=4.0, droplets_per_pixel=2.0)
+
+
+def _erode_view():
+    # a dome of hills draining to the edges (few pits), so the water runs off and carves instead of pooling
+    a = g("COPWrangle", cop=_noise(octaves=6, frequency=3.0),
+          code="r = length(set(@u - 0.5, @v - 0.5, 0))\n@C = (@C - 0.5) * 0.35 + 0.45 * (1 - smoothstep(0.0, 0.7, r))")
+    out = g("COPHeightfieldErode", cop=a, strength=60.0, world_size=256.0, iterations=250)
+    return {"in": [a], "out": out, "layer_in": "C", "layer_out": "flow"}
+
+
+cop_recipe("COPHeightfieldErode", _erode_view)
 _cop("COPMaskByFeature", _smooth, layer_out="mask", use_slope=False, use_height=True,
      height_min=0.55, height_falloff=0.05)
 _cop("COPNormalToHeight", _normals, layer_in="N", layer_out="height")

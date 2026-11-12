@@ -1088,7 +1088,10 @@ TEXEL_DETAIL = (
     "    groove = smoothstep(0.86, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade * open_\n"
     "    crack = (1 - smoothstep(0.0, 0.012, abs(noise(Q * 1.4 + s + 40) - 0.5))) * cfade\n"
     "    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n"
-    "    return -0.003 * groove - 0.009 * crack + 0.003 * grain, groove, crack\n"
+    "    # weathering: hand-sized lumps and hollows, and pits where softer grains fell out\n"
+    "    lump = noise(Q * 4.5 + s + 7) - 0.5\n"
+    "    pit = smoothstep(0.64, 0.76, noise(Q * 10 + s + 29))\n"
+    "    return -0.007 * groove - 0.018 * crack + 0.006 * grain + 0.014 * lump - 0.007 * pit, groove, crack + 0.15 * pit\n"
     "\n"
     "h, groove, crack = sharp(P)\n"
     "e = 0.003\n"
@@ -1107,8 +1110,11 @@ TEXEL_DETAIL = (
     "cav = clamp(-@high_curv / 20, 0, 1)\n"
     "edge = clamp(@high_curv / 25, 0, 1)\n"
     "strata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832)\n"
-    "base = lerp(set(0.40, 0.37, 0.33), set(0.45, 0.42, 0.37), strata)\n"
-    "base = base * (0.82 + 0.25 * noise(P * 4.0 + s + 1.7) + 0.16 * (noise(P * 22 + s + 5) - 0.5))\n"
+    "base = lerp(set(0.36, 0.33, 0.29), set(0.49, 0.46, 0.40), strata)\n"
+    "base = base * (0.74 + 0.40 * noise(P * 4.0 + s + 1.7) + 0.22 * (noise(P * 22 + s + 5) - 0.5))\n"
+    "# iron staining: rusty washes in broad patches, stronger below (where water runs off)\n"
+    "stain = smoothstep(0.52, 0.72, noise(P * 1.6 + s + 44)) * (0.5 + 0.5 * noise(P * 7 + s + 13))\n"
+    "base = lerp(base, set(0.46, 0.33, 0.21), 0.38 * stain)\n"
     "base = lerp(base, set(0.66, 0.64, 0.60), edge * 0.55)\n"
     "base = lerp(base, set(0.16, 0.14, 0.12), clamp(cav * 0.6 + @crevice * 0.45, 0, 1))\n"
     "Nw = normalize(@worldnormal)\n"
@@ -1386,139 +1392,218 @@ def world_tiles():
         "Coordinate convention (written into every .json): origin at the north-west corner = top left of the height map, x east, z south (matching image "
         "row order), y up, units in metres. Instance transforms are read the same way as Copy to Points, so what the preview places "
         "is what the table says.\n\n"
-        "① Terrain: fractal noise + mountain belt → Stream Power cuts river valleys → thermal erosion → hydraulic erosion (one minute on numpy, "
-        "over ten seconds with CUDA) → flow accumulation → Splat Map.\n"
-        "② Ecology: forest = grassland × below the tree line × gentle slope × noise patches, then split into six weight layers.\n"
+        "① Terrain, erode → upres → erode (the Houdini way): a massif belt is grown at 513² by Stream Power (rivers cut the "
+        "uplifted ground: branching ridges, spurs and valleys) → lowland restored, concave mountain profiles → HeightField "
+        "Erode at 513² (rain, flowing water, sediment) → resize to 1025² → gully pattern (erosion filter, on the massif "
+        "only) → HeightField Erode at 1025², which also writes the flow, sediment and debris masks → flow accumulation "
+        "(rivers, lakes) → Splat Map. About two minutes on numpy, much less with CUDA.\n"
+        "② Ecology and colour from the erosion masks: rock darkened where water streaks down it, light scree on the debris, "
+        "alluvium (grassed where thin) on the sediment, lush grass where water collects; forest in clumps below a ragged "
+        "tree line, bigger trees where it is wet, bushes on forest edges and alpine ledges, rocks on scree.\n"
         "③ Distribution: each of the three instance kinds scatters by its density map, samples height, picks an asset and sets orientation (trees upright with random rotation, "
         "rocks tilted a bit towards the slope).\n"
         "④ Write files + preview: the full-map mesh with instance proxies (stacked-cone pines, clustered broadleaf "
         "crowns, bushes, rocks), shot from a Camera node over the lowlands toward the range in the Outdoor look "
-        "(low sun, haze)."),
+        "(side-lit sun, haze)."),
         h=780, title="Open-world terrain tiles (read me first)", w=W)
 
-    nz = A("PCG_COPNoise", title="Base relief (1025²)", resolution_x=1025,
-           resolution_y=1025, noise_type="simplex", fractal="hybrid_terrain",
-           frequency=3.0, octaves=8, roughness=0.5, amplitude=0.07, rand_seed=21)
-    mt = A("PCG_COPWrangle", title="Mountain belt (ridged)", code=(
-        "# one large-scale mountain range: a thresholded low-frequency belt. Inside it the relief is a ridged multifractal\n"
-        "# (crest lines where a noise crosses its middle value, each octave weighted by the one before) on domain-warped\n"
-        "# coordinates -- sharp crests and branching spurs instead of round cones; erosion below then cuts the valleys\n"
-        "m = smoothstep(0.42, 0.72, noise(set(@u * 2.2, @v * 2.2, 3.1)))\n"
-        "w = set(@u * 5, @v * 5, 0.0) + 0.6 * (vnoise(set(@u * 2.5, @v * 2.5, 7.7)) - 0.5)\n"
-        "r = 0\n"
-        "a = 0.5\n"
-        "f = 1.0\n"
-        "prev = 1\n"
-        "for i in range(5):\n"
-        "    n = 1 - clamp(abs(noise(w * f + i * 3.3) - 0.5) * 3.5, 0, 1)\n"
-        "    n = n * n * (0.4 + 0.6 * prev)\n"
-        "    r = r + a * n\n"
-        "    prev = n\n"
-        "    a = a * 0.5\n"
-        "    f = f * 2.1\n"
-        "@C = @C * (0.6 + 0.6 * m) + m * (0.20 * r + 0.07 * m) - 0.02"))
+    # ① Terrain, erode-upres-erode: the range is grown at 257² (16 m cells), carved at 513² and again at 1025²
+    nz = A("PCG_COPNoise", title="Base noise (257²)", resolution_x=257, resolution_y=257,
+           noise_type="simplex", fractal="standard", frequency=2.5, octaves=6, roughness=0.5,
+           amplitude=0.5, bias=0.5, rand_seed=21)
+    mt = A("PCG_COPWrangle", title="Lowland + massif mask", code=(
+        "# lowland: gentle rolling relief tilted toward the south-west so the plains drain instead of pooling\n"
+        "low = 0.02 * (@C - 0.5) + 0.012 * (@u + 1 - @v)\n"
+        "# massif: a low-frequency belt. It is NOT drawn as mountains here -- Stream Power uplifts it and rivers cut it,\n"
+        "# which is what gives ridges, spurs and valleys their branching (ridged noise only imitates that).\n"
+        "# The belt runs north-west to south-east across the north-east half (across the camera's view), with a\n"
+        "# wandering axis, saddles and summits along it, plus a few foothill knolls; it fades out before the map edges\n"
+        "# (the edges are the rivers' base level: uplift there would stand up as walls)\n"
+        "ax = (@u + @v - 1.3 + 0.4 * (noise(set(@u * 1.6 - @v * 1.6, 0.5, 7.3)) - 0.5)) * 0.7071\n"
+        "belt = 1 - smoothstep(0.06, 0.30, abs(ax))\n"
+        "belt = belt * (0.4 + 0.8 * noise(set((@u - @v) * 2.2, 1.5, 5.1)))\n"
+        "knoll = 0.35 * smoothstep(0.56, 0.74, noise(set(@u * 3.2, @v * 3.2, 9.4)))\n"
+        "edge = smoothstep(0.02, 0.14, min(min(@u, 1 - @u), min(@v, 1 - @v)))\n"
+        "m = clamp(max(belt, knoll), 0, 1) * edge\n"
+        "@m = m\n"
+        "@base = low\n"
+        "# the massif starts as noisy high ground (irregular summits and shoulders); the rivers then cut it\n"
+        "@C = low + m * (0.05 + 0.10 * @C * @C)"))
     g.link(nz, "cop", mt, "cop")
-    sp = B("PCG_COPStreamPower", title="River valleys", iterations=60, erodibility=0.03,
-           diffusion=0.02, rand_seed=21)
+    # Diffusion 0.2 matters as much as the uplift: with little hillslope diffusion every slope is a knife-cut V at the
+    # angle the rivers leave (the "row of fins" look); with it the ridges are rounded shoulders and the median slope
+    # of the range is about 23°, like real mid-height mountains
+    sp = A("PCG_COPStreamPower", title="Grow the range (uplift + rivers)", strength=2048.0, world_size=4100.0,
+           iterations=300, erodibility=0.06, uplift=2.1, uplift_layer="m", diffusion=0.2, routing="rho8",
+           rand_seed=21)
     g.link(mt, "cop", sp, "cop")
-    th = B("PCG_COPThermalErosion", title="Talus", talus_angle=38.0,
-           iterations=15)
-    g.link(sp, "cop", th, "cop")
-    hy = B("PCG_COPHydraulicErosion", title="Gullies + sediment",
-           droplets_per_pixel=0.5, rand_seed=21)
-    g.link(th, "cop", hy, "cop")
-    fa = B("PCG_COPFlowAccumulation", title="Rivers / lakes", method="d8",
-           river_area=0.002, river_softness=0.4)
+    kp = A("PCG_COPWrangle", title="Keep the rolling lowland", code=(
+        "# Stream Power fills every pit before it starts, which flattens the lowland into plains; outside the massif\n"
+        "# the original rolling relief comes back\n"
+        "k = smoothstep(0.1, 0.7, @m)\n"
+        "@C = lerp(@base, @C, k)\n"
+        "# slightly concave profiles: steeper toward the crests, long aprons at the foot\n"
+        "top = @C.max()\n"
+        "r = clamp((@C - @base) / (top - @base), 0, 1)\n"
+        "@C = @base + (top - @base) * pow(r, 1.25)"))
+    g.link(sp, "cop", kp, "cop")
+    r1 = B("PCG_COPResize", title="Upres to 513²", resolution_x=513, resolution_y=513)
+    g.link(kp, "cop", r1, "cop")
+    d1 = B("PCG_COPWrangle", title="Break up the smooth flanks", code=(
+        "# 100-200 m lumps on the massif: buttresses and hollows for the water to find\n"
+        "n = noise(set(@u * 24, @v * 24, 1.1)) - 0.5 + 0.5 * (noise(set(@u * 55, @v * 55, 2.3)) - 0.5)\n"
+        "@C = @C + 0.012 * n * smoothstep(0.05, 0.5, @m)"))
+    g.link(r1, "cop", d1, "cop")
+    e1 = B("PCG_COPHeightfieldErode", title="Erode 513² (valleys, spurs)", strength=2048.0, world_size=4100.0,
+           iterations=250, flow_layer="", water_layer="", sediment_layer="", debris_layer="")
+    g.link(d1, "cop", e1, "cop")
+    r2 = B("PCG_COPResize", title="Upres to 1025²", resolution_x=1025, resolution_y=1025)
+    g.link(e1, "cop", r2, "cop")
+    dt = B("PCG_COPWrangle", title="Rock detail on the massif", code=(
+        "# a few metres of fine relief where the slopes are, and a copy of the height for the mask blend below\n"
+        "n = noise(set(@u * 70, @v * 70, 1.1)) - 0.5 + 0.5 * (noise(set(@u * 150, @v * 150, 2.3)) - 0.5)\n"
+        "@C = @C + 0.004 * n * smoothstep(0.05, 0.4, @m)\n"
+        "@pre = @C"))
+    g.link(r2, "cop", dt, "cop")
+    ef = B("PCG_COPErosion", title="Gully pattern (erosion filter)", strength=2048.0, world_size=4100.0,
+           amplitude=14.0, wavelength=40.0, octaves=5, steepness=3.0, mask_layer="")
+    g.link(dt, "cop", ef, "cop")
+    em = B("PCG_COPWrangle", title="Gullies only on the massif", code=(
+        "# the filter roughens everything; the lowland keeps its soft relief\n"
+        "@C = lerp(@pre, @C, smoothstep(0.05, 0.35, @m))"))
+    g.link(ef, "cop", em, "cop")
+    hy = B("PCG_COPHeightfieldErode", title="Erode 1025² (gullies, scree, sediment)", strength=2048.0,
+           world_size=4100.0, iterations=150, rain=0.03, capacity=2.0, talus_angle=42.0, thermal_rate=0.1)
+    g.link(em, "cop", hy, "cop")
+    fa = B("PCG_COPFlowAccumulation", title="Rivers / lakes", method="rho8",
+           river_area=0.002, river_softness=0.4, flow_layer="catchment", rand_seed=21)
     g.link(hy, "cop", fa, "cop")
-    spl = C("PCG_COPSplatMap", title="Five material layers", rock_angle=40.0, snow_line=0.72,
-            lake_min=0.002)
-    g.link(fa, "cop", spl, "cop")
+    ls_ = C("PCG_COPWrangle", title="Loose material (scree + alluvium)", code=(
+        "# what the erosion left lying around: slumped scree (debris) and water-laid sediment, in height values\n"
+        "@loose = @debris + @sediment"))
+    g.link(fa, "cop", ls_, "cop")
+    spl = C("PCG_COPSplatMap", title="Five material layers", strength=2048.0, world_size=4100.0, rock_angle=37.0,
+            rock_falloff=7.0, snow_line=0.99,
+            sediment_layer="loose", sediment_ref=0.0015, lake_min=0.002)
+    g.link(ls_, "cop", spl, "cop")
     nm = C("PCG_COPHeightToNormal", title="Normal (for aligning rocks to slopes)", strength=2048.0,
-           world_size=2050.0, out_layer="N")
+           world_size=4100.0, out_layer="N")
     g.link(spl, "cop", nm, "cop")
     bio = C("PCG_COPWrangle", title="Ecology: six weight layers + scatter densities", code=(
         "hn = (@C - @C.min()) / (@C.max() - @C.min())\n"
         "@hn = hn\n"
-        "# forest: on grassland, below the tree line (0.62), in patches\n"
-        "patch = smoothstep(0.38, 0.62, noise(set(@u * 9, @v * 9, 1.7)))\n"
-        "f = (1 - smoothstep(0.55, 0.68, hn)) * patch\n"
-        "@Grass = @splat_grass * (1 - f)\n"
-        "@ForestFloor = @splat_grass * f\n"
-        "@Sediment = @splat_sediment\n"
+        "# terrain normal to world space (image x → world +X, image y (north) → world −Z, z → +Y)\n"
+        "@tn = normalize(set(@N.x, @N.z, -@N.y))\n"
+        "steep = 1 - @N.z\n"
+        "wet = clamp(@flow, 0, 1)\n"
+        "# forest: where soil holds (not rock, not scree, not water), below a ragged tree line, on slopes under ~35°,\n"
+        "# thicker where water collects. Two scales of patches give clumps with edges and clearings, not an even carpet\n"
+        "# thin alluvium grows grass and trees too; only the scree stays bare\n"
+        "scree_f = smoothstep(0.3, 0.7, @debris / (@loose + 1e-9))\n"
+        "soil = (@splat_grass + 0.8 * @splat_sediment * (1 - scree_f)) * (1 - smoothstep(0.14, 0.24, steep))\n"
+        "tl = 0.62 + 0.12 * (noise(set(@u * 7, @v * 7, 8.8)) - 0.5) + 0.06 * wet\n"
+        "below = 1 - smoothstep(-0.06, 0.02, hn - tl)\n"
+        "big = smoothstep(0.36, 0.56, noise(set(@u * 5, @v * 5, 1.7)) + 0.35 * wet)\n"
+        "small = smoothstep(0.3, 0.6, noise(set(@u * 28, @v * 28, 4.2)))\n"
+        "f = clamp(soil * below * big * (0.55 + 0.45 * small), 0, 1)\n"
+        "veg = 0.8 * @splat_sediment * (1 - scree_f)\n"
+        "@Grass = (@splat_grass + veg) * (1 - f)\n"
+        "@ForestFloor = (@splat_grass + veg) * f\n"
+        "@Sediment = @splat_sediment - veg\n"
         "@Rock = @splat_rock\n"
         "@Snow = @splat_snow\n"
         "@Water = @splat_water\n"
-        "# scatter densities\n"
-        "@d_tree = @ForestFloor\n"
-        "@d_bush = @Grass * smoothstep(0.4, 0.7, noise(set(@u * 23, @v * 23, 5.3)))\n"
-        "@d_rock = smoothstep(0.15, 0.5, @Rock) * (1 - 0.7 * @Rock) + 0.35 * @Sediment\n"
-        "# terrain normal to world space (image x → world +X, image y (north) → world −Z, z → +Y)\n"
-        "@tn = normalize(set(@N.x, @N.z, -@N.y))\n"
-        "# colour for preview / minimap: lush and dry grass in patches, darker rock lower down, bluish water. Picked as\n"
-        "# display (sRGB) values and made linear at the end (the minimap is written with an sRGB encode, the mesh preview\n"
-        "# treats Cd as linear) -- without it everything came out pale lime\n"
-        "dry = smoothstep(0.35, 0.7, noise(set(@u * 6, @v * 6, 4.4)) + 0.25 * hn)\n"
-        "grass = lerp(set(0.27, 0.34, 0.16), set(0.43, 0.42, 0.26), dry)\n"
-        "rock = lerp(set(0.36, 0.34, 0.31), set(0.52, 0.50, 0.47), smoothstep(0.3, 0.8, hn))\n"
-        "c = (grass * @Grass + set(0.19, 0.24, 0.12) * @ForestFloor"
-        " + set(0.50, 0.45, 0.36) * @Sediment + rock * @Rock"
-        " + set(0.90, 0.91, 0.94) * @Snow + set(0.13, 0.21, 0.25) * @Water)\n"
-        "@albedo = (c * (0.92 + 0.16 * noise(set(@u * 60, @v * 60, 2.2)))) ** 2.2"))
+        "# scatter densities: forest; lone trees in meadows; bushes along forest edges and on wet ground and alpine\n"
+        "# ledges; rocks on scree and at the foot of cliffs\n"
+        "@d_tree = @ForestFloor + 0.04 * @Grass * below\n"
+        "edge_ = f * (1 - f) * 4\n"
+        "@d_bush = @Grass * (0.25 * edge_ + 0.35 * wet + 0.5 * smoothstep(0.5, 0.7, hn) * (1 - smoothstep(0.2, 0.35, steep)))"
+        " * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3)))\n"
+        "@d_rock = 0.35 * smoothstep(0.0005, 0.003, @debris) + 0.3 * smoothstep(0.2, 0.5, @Rock) * (1 - 0.6 * @Rock)"
+        " + 0.15 * @Sediment\n"
+        "@wet = wet\n"
+        "# colour (display values, made linear at the end). Rock: warm and cool greys in patches, faint irregular\n"
+        "# bedding (about 9 m, warped -- smooth bands, never a step), darker where water streaks down it, lighter scree\n"
+        "# below. Grass: lush where wet, dry and yellow on ridges and high meadows\n"
+        "rv = noise(set(@u * 9, @v * 9, 2.6))\n"
+        "bed = 0.5 + 0.5 * sin(@C * 2048 / 9 + 8 * noise(set(@u * 3, @v * 3, 6.1)))\n"
+        "rock = lerp(set(0.38, 0.35, 0.31), set(0.62, 0.60, 0.56), rv) * (0.86 + 0.2 * bed)\n"
+        "rock = rock * (0.9 + 0.2 * hn)\n"
+        "# lichen and thin soil on the gentler rock\n"
+        "rock = lerp(rock, set(0.36, 0.38, 0.27), 0.5 * (1 - smoothstep(0.2, 0.4, steep)) * noise(set(@u * 30, @v * 30, 6.6)))\n"
+        "# water streaks: dark down the gullies, staining the faces below\n"
+        "rock = rock * (1 - 0.5 * smoothstep(0.3, 0.9, wet))\n"
+        "scree = set(0.60, 0.57, 0.52) * (0.9 + 0.2 * noise(set(@u * 80, @v * 80, 3.9)))\n"
+        "alluv = lerp(set(0.36, 0.38, 0.24), set(0.52, 0.48, 0.38), smoothstep(0.002, 0.006, @sediment))\n"
+        "loose = lerp(alluv, scree, scree_f)\n"
+        "dry = clamp(smoothstep(0.35, 0.75, noise(set(@u * 6, @v * 6, 4.4))) * 0.7 + 0.5 * hn - 0.8 * wet, 0, 1)\n"
+        "grass = lerp(set(0.23, 0.31, 0.12), set(0.44, 0.44, 0.22), dry)\n"
+        "# alpine meadow above the tree line: paler, olive\n"
+        "grass = lerp(grass, set(0.42, 0.45, 0.27), smoothstep(-0.05, 0.1, hn - tl))\n"
+        "grass = grass * (0.9 + 0.2 * noise(set(@u * 40, @v * 40, 7.7)))\n"
+        "c = (grass * @Grass + set(0.17, 0.22, 0.10) * @ForestFloor + loose * @Sediment + rock * @Rock"
+        " + set(0.90, 0.91, 0.94) * @Snow + set(0.05, 0.11, 0.13) * @Water)\n"
+        "@albedo = (c * (0.94 + 0.12 * noise(set(@u * 120, @v * 120, 2.2)))) ** 2.2\n"
+        "# for the preview: ambient occlusion 1, roughness (water is a mirror, wet rock glistens a little), metallic 0\n"
+        "@terrain_orm = set(1 + 0 * hn, lerp(0.92 - 0.25 * wet * @Rock, 0.04, @Water), 0 * hn)"))
     g.link(nm, "cop", bio, "cop")
 
     # ③ Distribution
     def scatter(col, title, count, dens, seed):
         n = col("PCG_COPLayerToPoints", title=title, mode="scatter", count=count,
                 density_layer=dens, height_layer="C", height_scale=2048.0,
-                attribs="hn tn", plane="xz", world_size=2050.0, rand_seed=seed)
+                attribs="hn tn wet " + dens, plane="xz", world_size=4100.0, rand_seed=seed)
         g.link(bio, "cop", n, "cop")
         return n
-    trees = scatter(D, "Trees: scatter by forest density", 15000, "d_tree", 1)
+    trees = scatter(D, "Trees: scatter by forest density", 40000, "d_tree", 1)
     tw = D("PCG_Wrangle", title="Trees: asset / orientation / size", code=(
         "r = rand(@ptnum + 0.5)\n"
         'pine = np.array(["Tree_Pine_A", "Tree_Pine_B", "Tree_Pine_C"])\n'
         'broad = np.array(["Tree_Broadleaf_A", "Tree_Broadleaf_B"])\n'
         "# pines up high, broadleaf down low, a mixed band in between (by altitude + random)\n"
-        "high = @hn.x + 0.08 * (rand(@ptnum + 7.1) - 0.5) > 0.42\n"
+        "high = @hn.x + 0.1 * (rand(@ptnum + 7.1) - 0.5) > 0.3\n"
         "s@name = where(high, pine[(r * 3).astype(int)], broad[(r * 2).astype(int)])\n"
         "a = rand(@ptnum + 1.3) * 2 * PI\n"
         "@N = set(sin(a), 0 * a, cos(a))\n"
         "@up = set(0, 1, 0)\n"
-        "@pscale = 0.75 + 0.55 * rand(@ptnum + 2.9)"))
+        "# big trees deep in the forest and where water collects, smaller at the edges and up toward the tree line\n"
+        "d = clamp(@d_tree.x, 0, 1)\n"
+        "@pscale = (0.75 + 0.5 * d + 0.4 * @wet.x) * (1 - 0.4 * smoothstep(0.45, 0.65, @hn.x))"
+        " * (0.7 + 0.6 * rand(@ptnum + 2.9))"))
     g.link(trees, "geo", tw, "geo")
-    bush = scatter(D, "Bushes: clumps on grassland", 8000, "d_bush", 2)
+    bush = scatter(D, "Bushes: forest edges, wet ground, alpine ledges", 14000, "d_bush", 2)
     bw = D("PCG_Wrangle", title="Bushes", code=(
         'names = np.array(["Bush_A", "Bush_B"])\n'
         "s@name = names[(rand(@ptnum + 0.3) * 2).astype(int)]\n"
         "a = rand(@ptnum + 1.7) * 2 * PI\n"
         "@N = set(sin(a), 0 * a, cos(a))\n"
         "@up = normalize(lerp(set(0, 1, 0), @tn, 0.4))\n"
-        "@pscale = 0.6 + 0.8 * rand(@ptnum + 4.1)"))
+        "@pscale = 0.9 + 1.2 * rand(@ptnum + 4.1)"))
     g.link(bush, "geo", bw, "geo")
-    rocks = scatter(E, "Rocks: by rocky slopes, alluvial fans", 2500, "d_rock", 3)
+    rocks = scatter(E, "Rocks: by rocky slopes, alluvial fans", 4000, "d_rock", 3)
     rw = E("PCG_Wrangle", title="Rocks (using the 4 from the rock pipeline)", code=(
         "s@name = sprintf(\"SM_Rock_%02d\", (rand(@ptnum + 0.9) * 4).astype(int))\n"
         "# follow the slope (up tilted 70% towards the terrain normal), sunk in a bit\n"
         "@up = normalize(lerp(set(0, 1, 0), @tn, 0.7))\n"
         "a = rand(@ptnum + 3.3) * 2 * PI\n"
         "@N = normalize(cross(@up, set(sin(a), 0 * a, cos(a))))\n"
-        "@pscale = 0.5 + 1.6 * pow(rand(@ptnum + 5.5), 2)\n"
+        "@pscale = 0.8 + 3.0 * pow(rand(@ptnum + 5.5), 2)\n"
         "@P.y -= 0.25 * @pscale"))
     g.link(rocks, "geo", rw, "geo")
     allp = E("PCG_Merge", title="All instances")
     g.link(tw, "geo", allp, "geo1")
     g.link(bw, "geo", allp, "geo2")
     g.link(rw, "geo", allp, "geo3")
-    corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=1024.0, tz=1024.0)
+    corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=2048.0, tz=2048.0)
     g.link(allp, "geo", corner, "geo")
-    # Scatter works by pixel area (each sample covers 2 m square), so the outermost ring scatters half a cell beyond the terrain border -
-    # those points land at places like x = −1 / 2049, and tiling then produces extra empty tiles like x−1, y4
+    # Scatter works by pixel area (each sample covers 4 m square), so the outermost ring scatters half a cell beyond the terrain border -
+    # those points land at places like x = −2 / 4098, and tiling then produces extra empty tiles like x−1, y4
     inb = E("PCG_Blast", title="Remove points in the half cell outside the border", cls="point",
-            group="(@P.x < 0) | (@P.x >= 2048) | (@P.z < 0) | (@P.z >= 2048)")
+            group="(@P.x < 0) | (@P.x >= 4096) | (@P.z < 0) | (@P.z >= 4096)")
     g.link(corner, "geo", inb, "geo")
-    ei = E("PCG_ExportInstances", title="Instance table: 512 m tiles",
+    ei = E("PCG_ExportInstances", title="Instance table: 1024 m tiles",
            filename="pcg/world/instances/Instances_x{tx}_y{ty}", format="csv",
-           asset_attribute="name", tile_size=512.0)
+           asset_attribute="name", tile_size=1024.0)
     g.link(inb, "geo", ei, "points")
 
     # ④ Write files
@@ -1540,7 +1625,7 @@ def world_tiles():
     # Preview
     lit = G("PCG_COPLight", title="Minimap (with shadows)", normal_layer="N",
             albedo_layer="albedo", height_layer="C", azimuth=135.0, elevation=35.0,
-            shadows=True, strength=2048.0, world_size=2050.0, ambient=0.35,
+            shadows=True, strength=2048.0, world_size=4100.0, ambient=0.35,
             out_layer="lit")
     g.link(bio, "cop", lit, "cop")
     grid = G("PCG_COPWrangle", title="Draw tile lines", code=(
@@ -1552,17 +1637,22 @@ def world_tiles():
     g.link(grid, "cop", wm, "cop")
     pv0 = G("PreviewImage", title="Minimap (yellow lines = tiles)", size=[520, 580])
     g.link(wm, "preview", pv0, "images")
-    msh0 = G("PCG_COPHeightfieldToMesh", title="Full-map mesh (one point every 2 cells)",
-             strength=2048.0, world_size=2050.0, step=2, attribs="Cd=albedo")
+    msh0 = G("PCG_COPHeightfieldToMesh", title="Full-map mesh (one point per sample)",
+             strength=2048.0, world_size=4100.0, step=1, attribs="Cd=albedo")
     g.link(bio, "cop", msh0, "cop")
-    # albedo is linear (for the files); Cd is a display colour (the preview decodes it from sRGB)
-    msh = G("PCG_Wrangle", title="Cd to display colour", code="@Cd = pow(clamp(@Cd, 0, 1), 1 / 2.2)")
-    g.link(msh0, "geo", msh, "geo")
-    # Preview proxies (pcg123): stacked-cone pines, clustered broadleaf crowns, bushes and lumpy rocks, so a low camera
-    # reads as a landscape; the engine places its real assets from the table. Their colour is a point attribute like the
-    # terrain's (a prim Cd would lose to the merged point Cd, which is 0 on the proxies)
-    def tube(col, title, r1, r2, h, y, rgb):
-        t = col("PCG_Tube", title=title, radius1=r1, radius2=r2, height=h, cols=7, rows=2, caps=False, center_y=y)
+    # albedo is linear (for the files); Cd is a display colour (the preview decodes it from sRGB). The material name
+    # lets the preview read this mesh's roughness from the image ('@{material}_orm') and leave the proxies alone
+    msh1 = G("PCG_Wrangle", title="Cd to display colour", code="@Cd = pow(clamp(@Cd, 0, 1), 1 / 2.2)")
+    g.link(msh0, "geo", msh1, "geo")
+    msh = G("PCG_Wrangle", title="Material: terrain", run_over="prim", code='s@material = "terrain"')
+    g.link(msh1, "geo", msh, "geo")
+
+    # Preview proxies: stacked-cone pines, clustered broadleaf crowns, bushes and lumpy rocks, so a low camera reads
+    # as a landscape; the engine places its real assets from the table. Their colour is a point attribute like the
+    # terrain's, darker toward the bottom of the crown (less sky reaches it), and every instance multiplies it by its
+    # own tint (Copy to Points, Multiply Attributes = Cd) so a forest is not one flat green
+    def tube(col, title, r1, r2, h, y, rgb, cols=6):
+        t = col("PCG_Tube", title=title, radius1=r1, radius2=r2, height=h, cols=cols, rows=2, caps=False, center_y=y)
         c = col("PCG_Color", title=title + " colour", attribute_class="point", r=rgb[0], g=rgb[1], b=rgb[2])
         g.link(t, "geo", c, "geo")
         return c
@@ -1573,42 +1663,51 @@ def world_tiles():
             g.link(n_, "geo", m, f"geo{k + 1}")
         return m
 
-    def named(col, node, name):
-        n_ = col("PCG_Wrangle", title=f"Proxy: {name}", run_over="prim", code=f's@kind = "{name}"')
+    def named(col, node, name, top=0.0):
+        code = f's@kind = "{name}"'
+        n_ = col("PCG_Wrangle", title=f"Proxy: {name}", run_over="prim", code=code)
         g.link(node, "geo", n_, "geo")
-        return n_
-    dark, mid = (0.20, 0.30, 0.17), (0.26, 0.37, 0.19)
+        if top <= 0:
+            return n_
+        sh_ = col("PCG_Wrangle", title=f"{name}: darker low in the crown",
+                  code=f"@Cd = @Cd * (0.5 + 0.65 * smoothstep(0.15, 1.0, @P.y / {top}))")
+        g.link(n_, "geo", sh_, "geo")
+        return sh_
+    trunk = (0.20, 0.15, 0.11)
     pine = named(G, merge_n(G, "Pine proxy", [
-        tube(G, "Pine trunk", 0.3, 0.2, 3.0, 1.5, (0.28, 0.21, 0.15)),
-        tube(G, "Pine tier 1", 2.6, 0.9, 3.6, 3.8, dark), tube(G, "Pine tier 2", 2.0, 0.6, 3.4, 6.4, mid),
-        tube(G, "Pine tier 3", 1.3, 0.0, 3.6, 9.2, dark)]), "pine")
-    blob = G("PCG_Sphere", title="Broadleaf cluster", radius=1.0, cols=7, rows=5)
-    blj = G("PCG_PointJitter", title="Lumpy cluster", scale=0.4, rand_seed=3)
+        tube(G, "Pine trunk", 0.3, 0.2, 3.0, 1.5, trunk, 5),
+        tube(G, "Pine tier 1", 2.7, 1.0, 3.4, 3.6, (0.11, 0.19, 0.10), 7),
+        tube(G, "Pine tier 2", 2.1, 0.7, 3.4, 6.2, (0.12, 0.21, 0.11), 7),
+        tube(G, "Pine tier 3", 1.5, 0.3, 3.4, 8.8, (0.13, 0.23, 0.12), 6),
+        tube(G, "Pine tip", 0.8, 0.0, 3.0, 11.4, (0.14, 0.25, 0.13), 5)]), "pine", 13.0)
+    blob = G("PCG_Sphere", title="Broadleaf cluster", radius=1.0, cols=6, rows=4)
+    blj = G("PCG_PointJitter", title="Lumpy cluster", scale=0.35, rand_seed=3)
     g.link(blob, "geo", blj, "geo")
-    bpts = G("PCG_Add", title="Crown cluster centres", points="0 6.4 0\n1.6 5.6 0.4\n-1.4 5.8 -0.6\n0.3 5.5 1.6\n-0.4 7.3 -1.0")
-    bps = G("PCG_Wrangle", title="Cluster sizes", code="@pscale = 1.6 + 0.6 * rand(@ptnum * 3.1)")
+    bpts = G("PCG_Add", title="Crown cluster centres",
+             points="0 6.6 0\n1.7 5.6 0.5\n-1.5 5.9 -0.7\n0.3 5.4 1.7\n-0.5 7.6 -1.0\n0.6 5.2 -1.8")
+    bps = G("PCG_Wrangle", title="Cluster sizes", code="@pscale = 1.7 + 0.7 * rand(@ptnum * 3.1)")
     g.link(bpts, "geo", bps, "geo")
     bcr = G("PCG_CopyToPoints", title="Broadleaf crown")
     g.link(blj, "geo", bcr, "source")
     g.link(bps, "geo", bcr, "points")
-    bcc = G("PCG_Color", title="Broadleaf green", attribute_class="point", r=0.33, g=0.44, b=0.19)
+    bcc = G("PCG_Color", title="Broadleaf green", attribute_class="point", r=0.20, g=0.29, b=0.11)
     g.link(bcr, "geo", bcc, "geo")
-    broad = named(G, merge_n(G, "Broadleaf proxy", [tube(G, "Broadleaf trunk", 0.35, 0.22, 4.5, 2.25,
-                                                         (0.30, 0.23, 0.16)), bcc]), "broad")
+    broad = named(G, merge_n(G, "Broadleaf proxy", [tube(G, "Broadleaf trunk", 0.35, 0.22, 4.5, 2.25, trunk, 5),
+                                                    bcc]), "broad", 9.5)
     bsh = G("PCG_Sphere", title="Bush", radius=1.0, cols=6, rows=4)
     bsj = G("PCG_PointJitter", title="Bush lumps", scale=0.35, rand_seed=5)
     g.link(bsh, "geo", bsj, "geo")
     bst = G("PCG_Transform", title="Bush on the ground", ty=0.55, sy=0.65)
     g.link(bsj, "geo", bst, "geo")
-    bsc = G("PCG_Color", title="Bush green", attribute_class="point", r=0.38, g=0.44, b=0.22)
+    bsc = G("PCG_Color", title="Bush green", attribute_class="point", r=0.25, g=0.31, b=0.13)
     g.link(bst, "geo", bsc, "geo")
-    bushp = named(G, bsc, "bush")
+    bushp = named(G, bsc, "bush", 1.3)
     rk = G("PCG_Sphere", title="Rock", radius=1.0, cols=7, rows=5)
     rkj = G("PCG_PointJitter", title="Rock: angular", scale=0.45, rand_seed=8)
     g.link(rk, "geo", rkj, "geo")
     rkt = G("PCG_Transform", title="Rock: squat", sy=0.62, sx=1.25)
     g.link(rkj, "geo", rkt, "geo")
-    rkc = G("PCG_Color", title="Rock grey", attribute_class="point", r=0.47, g=0.45, b=0.42)
+    rkc = G("PCG_Color", title="Rock grey", attribute_class="point", r=0.44, g=0.42, b=0.39)
     g.link(rkt, "geo", rkc, "geo")
     rockp = named(G, rkc, "rock")
     plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp])
@@ -1619,18 +1718,27 @@ def world_tiles():
     kr = G("PCG_Wrangle", title="Rocks → rock", code='s@kind = "rock"')
     g.link(rw, "geo", kr, "geo")
     kall = merge_n(G, "Proxy points", [kt, kb, kr])
-    ct = G("PCG_CopyToPoints", title="Place the proxies", piece_attribute="kind")
+    tint = G("PCG_Wrangle", title="Per-instance tint", code=(
+        "# brightness 0.75..1.2, and a drift toward yellow-green or blue-green\n"
+        "b = 0.75 + 0.45 * rand(@ptnum + 11.1)\n"
+        "h = rand(@ptnum + 12.7) - 0.5\n"
+        "@Cd = set(b * (1 + 0.5 * h), b, b * (1 - 0.4 * h))"))
+    g.link(kall, "geo", tint, "geo")
+    ct = G("PCG_CopyToPoints", title="Place the proxies", piece_attribute="kind", target_point_attributes="Cd",
+           multiply_attributes="Cd")
     g.link(plib, "geo", ct, "source")
-    g.link(kall, "geo", ct, "points")
+    g.link(tint, "geo", ct, "points")
     mg = G("PCG_Merge", title="Terrain + instance proxies")
     g.link(msh, "geo", mg, "geo1")
     g.link(ct, "geo", mg, "geo2")
     cam = G("PCG_Camera", title="Camera: over the south-west lowlands toward the range", projection="perspective",
-            mode="look_at", resolution_x=1600, resolution_y=900, fov=45.0, eye_x=-950.0, eye_y=260.0,
-            eye_z=950.0, target_x=300.0, target_y=-60.0, target_z=-300.0)
+            mode="look_at", resolution_x=1600, resolution_y=900, fov=36.0, eye_x=-1150.0, eye_y=190.0,
+            eye_z=1150.0, target_x=350.0, target_y=150.0, target_z=-350.0)
     pr = G("PCG_PreviewImage", width=1600, height=900, elevation=38.0, azimuth=25.0, shading="color",
-           look="outdoor", sun_elevation=20.0, sun_azimuth=200.0, haze=1.0, ground_plane=False)
+           look="outdoor", textures="orm = @{material}_orm", sun_elevation=20.0, sun_azimuth=228.0, haze=2.5,
+           ground_plane=False, clouds=0.4, cloud_seed=3)
     g.link(mg, "geo", pr, "geo")
+    g.link(bio, "cop", pr, "textures_cop")
     g.link(cam, "cam", pr, "camera")
     pv = G("PreviewImage", title="Whole world", size=[520, 400])
     g.link(pr, "image", pv, "images")
@@ -2032,9 +2140,8 @@ def modular_city():
     cw = 5.0                    # curb: 5 m from the street axis (10 m carriageway), 3 m sidewalks behind it
     reach = 300.0               # the two streets run on past the block, between the context buildings
     # Streets: asphalt, 15 cm below the sidewalks, continuing out to the horizon
-    road = boxes(E, "Carriageways (both streets, to the horizon) + lanes between the context blocks",
-                 "Ground_Asphalt", [(2 * reach, 0.1, 2 * cw, 0.0, -0.2, 0.0), (2 * cw, 0.1, 2 * reach, 0.0, -0.2, 0.0),
-                                    (640.0, 0.1, 640.0, 0.0, -0.21, 0.0)])
+    road = boxes(E, "Carriageways (both streets, to the horizon)",
+                 "Ground_Asphalt", [(2 * reach, 0.1, 2 * cw, 0.0, -0.2, 0.0), (2 * cw, 0.1, 2 * reach, 0.0, -0.2, 0.0)])
     gt = E("PCG_UVProject", title="Road UVs (1 UV = 1 m)", mode="box", fit_to_01=False, scale_u=1.0, scale_v=1.0)
     g.link(road, "geo", gt, "geo")
     yard = boxes(E, "Paved quarters (one slab each)", "Ground_Cobble", [
@@ -2045,7 +2152,9 @@ def modular_city():
         sp for sx in (-1, 1) for sz in (-1, 1) for sp in (
             (reach - cw, 0.17, 3.0, sx * (cw + reach) / 2, -0.065, sz * (cw + 1.5)),
             (3.0, 0.17, reach - cw, sx * (cw + 1.5), -0.065, sz * (cw + reach) / 2))])
-    swk = merge_all(E, "Paving + sidewalks", [yard, walk])
+    # the ground the context blocks stand on: one concrete slab (their forecourts and the lanes between them)
+    slab = boxes(E, "Context ground", "M_Trim", [(640.0, 0.1, 640.0, 0.0, -0.21, 0.0)])
+    swk = merge_all(E, "Paving + sidewalks", [yard, walk, slab])
     swu = E("PCG_UVProject", title="Sidewalk UVs (1 UV = 1 m)", mode="box", fit_to_01=False, scale_u=1.0,
             scale_v=1.0)
     g.link(swk, "geo", swu, "geo")
@@ -2084,7 +2193,7 @@ def modular_city():
     lampn = E("PCG_Wrangle", title="Lamp: metal, name", run_over="prim",
               code='s@material = "M_Metal"\ns@name = "lamp"')
     g.link(lamp, "geo", lampn, "geo")
-    # Street tree: a tapering trunk, two limbs, a crown of seven lumpy leaf clusters with their own greens
+    # Street tree: a tapering trunk, two limbs, a crown of eighteen lumpy leaf clusters, darker inside and low
     trunk = E("PCG_Tube", title="Tree trunk", radius1=0.17, radius2=0.10, height=3.2, cols=10, rows=2)
     tkm = E("PCG_MatchSize", title="Trunk on the ground", justify_y="min")
     g.link(trunk, "geo", tkm, "geo")
@@ -2093,17 +2202,22 @@ def modular_city():
     g.link(limbs, "geo", lmb, "geo")
     tkc = E("PCG_Color", title="Bark", attribute_class="prim", r=0.45, g=0.39, b=0.32)
     g.link(merge_all(E, "Trunk + limbs", [tkm, lmb]), "geo", tkc, "geo")
-    blob = E("PCG_Sphere", title="Leaf cluster", radius=1.0, cols=14, rows=10)
+    blob = E("PCG_Sphere", title="Leaf cluster", radius=1.0, cols=12, rows=8)
     blbn = E("PCG_Normal", title="Cluster normals")
     g.link(blob, "geo", blbn, "geo")
-    bln = E("PCG_AttribNoise", title="Lumpy cluster", noise_along_vector=True, amplitude=0.35)
-    g.link(blbn, "geo", bln, "geo")
+    bln0 = E("PCG_AttribNoise", title="Lumpy cluster", noise_along_vector=True, amplitude=0.3)
+    g.link(blbn, "geo", bln0, "geo")
+    bln = E("PCG_Normal", title="Normals of the lumpy surface")
+    g.link(bln0, "geo", bln, "geo")
+    # eighteen clusters on the shell of an ellipsoid crown: small enough to read as foliage masses, not balloons
     cpts = E("PCG_Add", title="Crown: cluster centres", points=(
-        "0 4.9 0\n1.2 4.4 0.3\n-1.1 4.5 -0.4\n0.3 4.3 1.2\n-0.4 4.6 -1.2\n0.6 5.6 -0.5\n-0.5 5.5 0.6"))
+        "-1.06 5.11 -0.85\n1.14 4.08 -0.72\n0.48 5.70 1.35\n0.65 5.02 -1.22\n1.39 5.14 -0.76\n1.32 5.03 -0.33\n0.38 4.79 -1.29\n-1.13 5.40 -0.85\n-0.55 5.74 -0.68\n0.44 4.21 -0.64\n-0.34 6.33 0.46\n1.21 4.38 -1.17\n-0.52 4.37 -1.53\n-1.44 5.09 1.04\n-0.34 6.46 -0.08\n-0.30 4.25 1.48\n-0.93 4.23 -1.11\n0.59 5.87 0.93"))
     cpw = E("PCG_Wrangle", title="Cluster sizes + greens", code=(
-        "@pscale = 0.85 + 0.45 * rand(@ptnum * 3.3)\n"
+        "@pscale = 0.7 + 0.35 * rand(@ptnum * 3.3)\n"
         "t = rand(@ptnum * 7.7)\n"
-        "v@leaf = lerp(set(0.20, 0.33, 0.12), set(0.34, 0.45, 0.17), t)\n"
+        "# darker low and inside the crown, sunlit yellow-greens on top\n"
+        "hgt = smoothstep(3.8, 6.3, @P.y)\n"
+        "v@leaf = lerp(set(0.13, 0.22, 0.08), set(0.30, 0.42, 0.14), 0.25 * t + 0.75 * hgt)\n"
         "@N = set(sin(@ptnum * 2.1), 0, cos(@ptnum * 2.1))\n"
         "@up = set(0, 1, 0)"))
     g.link(cpts, "geo", cpw, "geo")
@@ -2193,7 +2307,29 @@ def modular_city():
     g.link(cpa, "geo", cpr, "geo")
     cpk = E("PCG_Blast", title="Taken slots", group="@keep == 0", cls="point")
     g.link(cpr, "geo", cpk, "geo")
-    fall = merge_all(E, "Furniture + cars", [fpn, cpk])
+    # A green belt west and east of the plot, between it and the first context blocks: lawn with scattered trees
+    import random as _rnd
+    rr = _rnd.Random(7)
+    x0, x1 = hx + 1.0, hx + 24.0
+    lawn = boxes(E, "Lawn (green belt)", "Lawn", [
+        (x1 - x0, 0.2, hz + 14.0 - cw - 4.0, sx * (x0 + x1) / 2, -0.06, sz * (cw + 4.0 + hz + 14.0) / 2)
+        for sx in (-1, 1) for sz in (-1, 1)])
+    lawnc = E("PCG_Color", title="Lawn colour", attribute_class="prim", r=0.30, g=0.40, b=0.17)
+    g.link(lawn, "geo", lawnc, "geo")
+    ppts = []
+    while len(ppts) < 110:
+        x, z = rr.uniform(x0 + 2, x1 - 2) * rr.choice((-1, 1)), rr.uniform(cw + 7, hz + 12) * rr.choice((-1, 1))
+        if all((x - a) ** 2 + (z - b) ** 2 > 20 for a, _, b in ppts):
+            ppts.append((x, 0.0, z))
+    pk = E("PCG_Add", title="Park trees", points="\n".join(f"{x:.2f} {y:g} {z:.2f}" for x, y, z in ppts))
+    pkw = E("PCG_Wrangle", title="Park trees: size, turn", code=(
+        's@name = "tree"\n'
+        "a = rand(@ptnum * 3.7 + 0.2) * 6.2832\n"
+        "@N = set(sin(a), 0, cos(a))\n"
+        "@up = set(0, 1, 0)\n"
+        "@pscale = 0.9 + 0.8 * rand(@ptnum * 2.3 + 0.7)"))
+    g.link(pk, "geo", pkw, "geo")
+    fall = merge_all(E, "Furniture + cars", [fpn, cpk, pkw])
     fcp = E("PCG_CopyToPoints", title="Place the street furniture", piece_attribute="name",
             target_prim_attributes="paint")
     g.link(props, "geo", fcp, "source")
@@ -2218,7 +2354,7 @@ def modular_city():
     g.link(ctx, "geo", ctw, "geo")
     ctb = E("PCG_Blast", title="Context: keep blocks", group="@drop == 1", cls="prim")
     g.link(ctw, "geo", ctb, "geo")
-    cts = E("PCG_Primitive", title="Context: 24 m footprints (8 m lanes between)", uniform_scale=0.75,
+    cts = E("PCG_Primitive", title="Context: 27 m footprints (lanes between)", uniform_scale=0.88,
             unshare_points=True)
     g.link(ctb, "geo", cts, "geo")
     cte = E("PCG_PolyExtrude", title="Context: extrude by h", distance=1.0, use_local=True, distance_attrib="h",
@@ -2241,15 +2377,19 @@ def modular_city():
     g.link(fcc, "geo", mg, "geo4")
     g.link(rpm, "geo", mg, "geo5")
     g.link(ctm, "geo", mg, "geo6")
+    mg0 = mg
+    mg = E("PCG_Merge", title="Block + green belt")
+    g.link(mg0, "geo", mg, "geo1")
+    g.link(lawnc, "geo", mg, "geo2")
     vp = E("PCG_Viewport", size=[520, 520])
     g.link(fv, "geo", vp, "geo")
     # Hero shots: a low aerial over the crossing toward the tower, and one from the sidewalk at eye level
     cam1 = E("PCG_Camera", title="Camera: low aerial over the crossing", projection="perspective", mode="look_at",
-             resolution_x=1600, resolution_y=900, fov=45.0, eye_x=-118.0, eye_y=42.0, eye_z=4.0,
-             target_x=10.0, target_y=8.0, target_z=-10.0)
+             resolution_x=1600, resolution_y=900, fov=38.0, eye_x=-104.0, eye_y=34.0, eye_z=66.0,
+             target_x=6.0, target_y=13.0, target_z=-10.0)
     pr = E("PCG_PreviewImage", width=1600, height=900, elevation=32.0, azimuth=30.0, shading="color",
-           look="outdoor", textures=CITY_TEXTURES, sun_elevation=34.0, sun_azimuth=215.0, haze=1.2,
-           ground_color="0.40 0.39 0.36")
+           look="outdoor", textures=CITY_TEXTURES, sun_elevation=30.0, sun_azimuth=250.0, haze=2.5,
+           ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5)
     g.link(mg, "geo", pr, "geo")
     g.link(cam1, "cam", pr, "camera")
     pv = E("PreviewImage", title="Assembled block", size=[520, 400])
@@ -2258,8 +2398,8 @@ def modular_city():
              resolution_x=1600, resolution_y=900, fov=55.0, eye_x=-2.2, eye_y=1.7, eye_z=56.0,
              target_x=-0.5, target_y=8.0, target_z=-20.0)
     pr2 = E("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
-            look="outdoor", textures=CITY_TEXTURES, sun_elevation=34.0, sun_azimuth=215.0, haze=1.2,
-            ground_color="0.40 0.39 0.36")
+            look="outdoor", textures=CITY_TEXTURES, sun_elevation=40.0, sun_azimuth=35.0, haze=2.5,
+            ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5)
     g.link(mg, "geo", pr2, "geo")
     g.link(cam2, "cam", pr2, "camera")
     pv2 = E("PreviewImage", title="Street level", size=[520, 400])
