@@ -1374,6 +1374,9 @@ def rock_assets():
 
 
 # ═══════════════════════════════════════════════════ Production 2: open-world terrain tiles
+CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)   # a ridge south-west of the main peak
+
+
 def world_tiles():
     g = Graph()
     W = 360
@@ -1381,171 +1384,161 @@ def world_tiles():
     F = Col(g, 2100, width=W)
     G = Col(g, 2520, width=520)
     A.note((
-        "A 2 km × 2 km open-world terrain delivered as 4 × 4 tiles, engine-agnostic:\n"
-        "  · Height: 1025² samples, 2 m per cell; each tile a 257² 16-bit PNG, **neighbouring tiles share the row of "
+        "A 4 km × 4 km island for an open world, delivered as 4 × 4 tiles, engine-agnostic:\n"
+        "  · Height: 1025² samples, 4 m per cell; each tile a 257² 16-bit PNG, **neighbouring tiles share the row of "
         "pixels on their common edge** (heights at the seams are bit-identical when stitched); metres = minimum + value × range, the range is in "
-        "Height.json's range_scaled (one range for the whole map, the same for all tiles). A full-map .r16 is included too.\n"
-        "  · Weight maps: six layers Grass / ForestFloor / Sediment / Rock / Snow / Water, one "
+        "Height.json's range_scaled (one range for the whole map, the same for all tiles; the sea floor is negative). A full-map .r16 is included too.\n"
+        "  · Weight maps: six layers Grass / ForestFloor / Sediment / Rock / Sand / Water, one "
         "8-bit greyscale PNG per tile per layer, **summing to 1 everywhere** (usable directly as the engine's terrain layers).\n"
         "  · Instances: trees (3 pine and 2 broadleaf kinds, split by altitude), bushes, rocks (asset names match the "
-        "SM_Rock_0N exported by the rock pipeline), written as CSV in 512 m tiles, plus Instances_index.json listing each tile.\n\n"
+        "SM_Rock_0N exported by the rock pipeline), written as CSV in 1024 m tiles, plus Instances_index.json listing each tile.\n\n"
         "Coordinate convention (written into every .json): origin at the north-west corner = top left of the height map, x east, z south (matching image "
         "row order), y up, units in metres. Instance transforms are read the same way as Copy to Points, so what the preview places "
         "is what the table says.\n\n"
-        "① Terrain, erode → upres → erode (the Houdini way): a massif belt is grown at 513² by Stream Power (rivers cut the "
-        "uplifted ground: branching ridges, spurs and valleys) → lowland restored, concave mountain profiles → HeightField "
-        "Erode at 513² (rain, flowing water, sediment) → resize to 1025² → gully pattern (erosion filter, on the massif "
-        "only) → HeightField Erode at 1025², which also writes the flow, sediment and debris masks → flow accumulation "
-        "(rivers, lakes) → Splat Map. About two minutes on numpy, much less with CUDA.\n"
-        "② Ecology and colour from the erosion masks: rock darkened where water streaks down it, light scree on the debris, "
-        "alluvium (grassed where thin) on the sediment, lush grass where water collects; forest in clumps below a ragged "
-        "tree line, bigger trees where it is wet, bushes on forest edges and alpine ledges, rocks on scree.\n"
+        "① Terrain, grown by its rivers: an island outline and an uplift map (more under a few massifs) → Stream Power at "
+        "513² with the sea as base level: the whole island rises while rivers cut it, so every slope belongs to a "
+        "valley and every valley reaches the coast → resize to 1025² → buttresses, rock roughness, gully pattern "
+        "(erosion filter) → HeightField Erode (Capacity 4 with the bed change limit; writes the flow, sediment and "
+        "debris masks) → flow accumulation → river beds cut 1.5-5 m into the valley floors. About two and a half "
+        "minutes on numpy, much less with CUDA.\n"
+        "② Ecology and colour from the erosion masks: cliffs above 45°, scree below them, sand on the beach and in the "
+        "river beds, water in the sea and the trunk rivers, woodland in the valleys, grass that is lush where water "
+        "collects, dry on the ridges and heath-coloured on the high ground, darker along every gully.\n"
         "③ Distribution: each of the three instance kinds scatters by its density map, samples height, picks an asset and sets orientation (trees upright with random rotation, "
         "rocks tilted a bit towards the slope).\n"
-        "④ Write files + preview: the full-map mesh with instance proxies (stacked-cone pines, clustered broadleaf "
-        "crowns, bushes, rocks), shot from a Camera node over the lowlands toward the range in the Outdoor look "
-        "(side-lit sun, haze)."),
-        h=780, title="Open-world terrain tiles (read me first)", w=W)
+        "④ Write files + preview: the full-map mesh with instance proxies and a sea to the horizon, shot from the air "
+        "in the Outdoor look (afternoon sun, clouds, haze)."),
+        h=800, title="Open-world terrain tiles (read me first)", w=W)
 
-    # ① Terrain, erode-upres-erode: the range is grown at 257² (16 m cells), carved at 513² and again at 1025²
-    nz = A("PCG_COPNoise", title="Base noise (257²)", resolution_x=257, resolution_y=257,
-           noise_type="simplex", fractal="standard", frequency=2.5, octaves=6, roughness=0.5,
+    # ① Terrain: grown by Stream Power at 513² (8 m cells) over the whole island, detailed and eroded at 1025²
+    nz = A("PCG_COPNoise", title="Base noise (513²)", resolution_x=513, resolution_y=513,
+           noise_type="simplex", fractal="standard", frequency=3.0, octaves=6, roughness=0.5,
            amplitude=0.5, bias=0.5, rand_seed=21)
-    mt = A("PCG_COPWrangle", title="Lowland + massif mask", code=(
-        "# lowland: gentle rolling relief tilted toward the south-west so the plains drain instead of pooling\n"
-        "low = 0.02 * (@C - 0.5) + 0.012 * (@u + 1 - @v)\n"
-        "# massif: a low-frequency belt. It is NOT drawn as mountains here -- Stream Power uplifts it and rivers cut it,\n"
-        "# which is what gives ridges, spurs and valleys their branching (ridged noise only imitates that).\n"
-        "# The belt runs north-west to south-east across the north-east half (across the camera's view), with a\n"
-        "# wandering axis, saddles and summits along it, plus a few foothill knolls; it fades out before the map edges\n"
-        "# (the edges are the rivers' base level: uplift there would stand up as walls)\n"
-        "ax = (@u + @v - 1.3 + 0.4 * (noise(set(@u * 1.6 - @v * 1.6, 0.5, 7.3)) - 0.5)) * 0.7071\n"
-        "belt = 1 - smoothstep(0.06, 0.30, abs(ax))\n"
-        "belt = belt * (0.4 + 0.8 * noise(set((@u - @v) * 2.2, 1.5, 5.1)))\n"
-        "knoll = 0.35 * smoothstep(0.56, 0.74, noise(set(@u * 3.2, @v * 3.2, 9.4)))\n"
-        "edge = smoothstep(0.02, 0.14, min(min(@u, 1 - @u), min(@v, 1 - @v)))\n"
-        "m = clamp(max(belt, knoll), 0, 1) * edge\n"
-        "@m = m\n"
-        "@base = low\n"
-        "# the massif starts as noisy high ground (irregular summits and shoulders); the rivers then cut it\n"
-        "@C = low + m * (0.05 + 0.10 * @C * @C)"))
+    mt = A("PCG_COPWrangle", title="Island outline + uplift map", code=(
+        "# island outline: distance from the centre, pushed in and out by two scales of noise (bays, headlands)\n"
+        "dx = @u - 0.5\n"
+        "dy = @v - 0.5\n"
+        "r = sqrt(dx * dx + dy * dy) * 2\n"
+        "coast = 0.78 + 0.45 * (noise(set(@u * 2.3, @v * 2.3, 1.7)) - 0.5) + 0.16 * (noise(set(@u * 7, @v * 7, 5.2)) - 0.5)\n"
+        "land = smoothstep(0.0, 0.10, coast - r)\n"
+        "# the sea is the rivers' base level (Stream Power's Outlet Layer)\n"
+        "@sea = 1 - smoothstep(0.0, 0.004, coast - r)\n"
+        "# uplift: everywhere on the island (no flat interior), more under a few massifs, less toward the coast\n"
+        "pk = noise(set(@u * 3.1, @v * 3.1, 9.4))\n"
+        "pk2 = noise(set(@u * 6.5, @v * 6.5, 3.3))\n"
+        "@up = land * (0.25 + 1.1 * smoothstep(0.35, 0.8, pk) + 0.35 * pk2) * smoothstep(0.0, 0.5, coast - r + 0.15)\n"
+        "@land = land\n"
+        "@C = lerp(-0.012, 0.004 + 0.01 * @C, land)"))
     g.link(nz, "cop", mt, "cop")
-    # Diffusion 0.2 matters as much as the uplift: with little hillslope diffusion every slope is a knife-cut V at the
-    # angle the rivers leave (the "row of fins" look); with it the ridges are rounded shoulders and the median slope
-    # of the range is about 23°, like real mid-height mountains
-    sp = A("PCG_COPStreamPower", title="Grow the range (uplift + rivers)", strength=2048.0, world_size=4100.0,
-           iterations=300, erodibility=0.06, uplift=2.1, uplift_layer="m", diffusion=0.2, routing="rho8",
-           rand_seed=21)
+    # Uplift against erosion until they balance: relief ~ Uplift / Erodibility. Diffusion sets how far apart the
+    # valleys are (0.04: a finely dissected badland; 0.25: a few smooth domes); 0.12 gives valleys 150-300 m apart
+    sp = A("PCG_COPStreamPower", title="Grow the island (uplift + rivers to the sea)", strength=2048.0,
+           world_size=4100.0, iterations=300, erodibility=0.05, uplift=0.9, uplift_layer="up", diffusion=0.12,
+           base_layer="sea", routing="rho8", rand_seed=21)
     g.link(mt, "cop", sp, "cop")
-    kp = A("PCG_COPWrangle", title="Keep the rolling lowland", code=(
-        "# Stream Power fills every pit before it starts, which flattens the lowland into plains; outside the massif\n"
-        "# the original rolling relief comes back\n"
-        "k = smoothstep(0.1, 0.7, @m)\n"
-        "@C = lerp(@base, @C, k)\n"
-        "# slightly concave profiles: steeper toward the crests, long aprons at the foot\n"
-        "top = @C.max()\n"
-        "r = clamp((@C - @base) / (top - @base), 0, 1)\n"
-        "@C = @base + (top - @base) * pow(r, 1.25)"))
-    g.link(sp, "cop", kp, "cop")
-    r1 = B("PCG_COPResize", title="Upres to 513²", resolution_x=513, resolution_y=513)
-    g.link(kp, "cop", r1, "cop")
-    d1 = B("PCG_COPWrangle", title="Break up the smooth flanks", code=(
-        "# 100-200 m lumps on the massif: buttresses and hollows for the water to find\n"
-        "n = noise(set(@u * 24, @v * 24, 1.1)) - 0.5 + 0.5 * (noise(set(@u * 55, @v * 55, 2.3)) - 0.5)\n"
-        "@C = @C + 0.012 * n * smoothstep(0.05, 0.5, @m)"))
-    g.link(r1, "cop", d1, "cop")
-    e1 = B("PCG_COPHeightfieldErode", title="Erode 513² (valleys, spurs)", strength=2048.0, world_size=4100.0,
-           iterations=250, flow_layer="", water_layer="", sediment_layer="", debris_layer="")
-    g.link(d1, "cop", e1, "cop")
+    bl = B("PCG_COPBlur", title="Soften the one-cell river cuts", sigma_pixels=0.8, border="clamp", layers="C")
+    g.link(sp, "cop", bl, "cop")
     r2 = B("PCG_COPResize", title="Upres to 1025²", resolution_x=1025, resolution_y=1025)
-    g.link(e1, "cop", r2, "cop")
-    dt = B("PCG_COPWrangle", title="Rock detail on the massif", code=(
-        "# a few metres of fine relief where the slopes are, and a copy of the height for the mask blend below\n"
-        "n = noise(set(@u * 70, @v * 70, 1.1)) - 0.5 + 0.5 * (noise(set(@u * 150, @v * 150, 2.3)) - 0.5)\n"
-        "@C = @C + 0.004 * n * smoothstep(0.05, 0.4, @m)\n"
+    g.link(bl, "cop", r2, "cop")
+    dt = B("PCG_COPWrangle", title="Buttresses and rock roughness", code=(
+        "# buttresses and hollows (60-150 m), rock roughness (10-50 m), on the land only; and a copy of the height\n"
+        "# for the mask blend below\n"
+        "n1 = noise(set(@u * 34, @v * 34, 1.1)) - 0.5\n"
+        "n2 = noise(set(@u * 90, @v * 90, 2.3)) - 0.5\n"
+        "n3 = noise(set(@u * 220, @v * 220, 4.7)) - 0.5\n"
+        "@C = @C + (0.006 * n1 + 0.0025 * n2 + 0.001 * n3) * @land\n"
         "@pre = @C"))
     g.link(r2, "cop", dt, "cop")
     ef = B("PCG_COPErosion", title="Gully pattern (erosion filter)", strength=2048.0, world_size=4100.0,
-           amplitude=14.0, wavelength=40.0, octaves=5, steepness=3.0, mask_layer="")
+           amplitude=10.0, wavelength=36.0, octaves=5, steepness=3.0, mask_layer="")
     g.link(dt, "cop", ef, "cop")
-    em = B("PCG_COPWrangle", title="Gullies only on the massif", code=(
-        "# the filter roughens everything; the lowland keeps its soft relief\n"
-        "@C = lerp(@pre, @C, smoothstep(0.05, 0.35, @m))"))
+    em = B("PCG_COPWrangle", title="Gullies on the land only", code="@C = lerp(@pre, @C, @land)")
     g.link(ef, "cop", em, "cop")
     hy = B("PCG_COPHeightfieldErode", title="Erode 1025² (gullies, scree, sediment)", strength=2048.0,
-           world_size=4100.0, iterations=150, rain=0.03, capacity=2.0, talus_angle=42.0, thermal_rate=0.1)
+           world_size=4100.0, iterations=160, rain=0.03, capacity=4.0, talus_angle=40.0, thermal_rate=0.1,
+           bed_change_limit=0.03)
     g.link(em, "cop", hy, "cop")
-    fa = B("PCG_COPFlowAccumulation", title="Rivers / lakes", method="rho8",
-           river_area=0.002, river_softness=0.4, flow_layer="catchment", rand_seed=21)
+    fa = B("PCG_COPFlowAccumulation", title="Rivers (draining to the sea)", method="rho8", river_area=0.0015,
+           river_softness=0.4, flow_layer="catchment", base_layer="sea", rand_seed=21)
     g.link(hy, "cop", fa, "cop")
-    ls_ = C("PCG_COPWrangle", title="Loose material (scree + alluvium)", code=(
-        "# what the erosion left lying around: slumped scree (debris) and water-laid sediment, in height values\n"
-        "@loose = @debris + @sediment"))
-    g.link(fa, "cop", ls_, "cop")
-    spl = C("PCG_COPSplatMap", title="Five material layers", strength=2048.0, world_size=4100.0, rock_angle=37.0,
-            rock_falloff=7.0, snow_line=0.99,
-            sediment_layer="loose", sediment_ref=0.0015, lake_min=0.002)
-    g.link(ls_, "cop", spl, "cop")
-    nm = C("PCG_COPHeightToNormal", title="Normal (for aligning rocks to slopes)", strength=2048.0,
+    rb = C("PCG_COPBlur", title="Rivers: from a 1-cell line to a channel", sigma_pixels=1.4, border="clamp",
+           layers="river")
+    g.link(fa, "cop", rb, "cop")
+    cv = C("PCG_COPWrangle", title="Cut the river beds", code=(
+        "# river beds: cut 1.5-5 m into the valley floor, deeper and wider for larger catchments, with soft banks\n"
+        "big = smoothstep(0.003, 0.05, @catchment)\n"
+        "bed = smoothstep(0.05, 0.3, @river + 0.12 * big * @river / (@river + 0.02))\n"
+        "@bed = bed * @land\n"
+        "@C = @C - (1.5 + 3.5 * big) / 2048 * @bed"))
+    g.link(rb, "cop", cv, "cop")
+    nm = C("PCG_COPHeightToNormal", title="Normal (slopes, aligning rocks)", strength=2048.0,
            world_size=4100.0, out_layer="N")
-    g.link(spl, "cop", nm, "cop")
+    g.link(cv, "cop", nm, "cop")
     bio = C("PCG_COPWrangle", title="Ecology: six weight layers + scatter densities", code=(
-        "hn = (@C - @C.min()) / (@C.max() - @C.min())\n"
-        "@hn = hn\n"
-        "# terrain normal to world space (image x → world +X, image y (north) → world −Z, z → +Y)\n"
-        "@tn = normalize(set(@N.x, @N.z, -@N.y))\n"
-        "steep = 1 - @N.z\n"
-        "wet = clamp(@flow, 0, 1)\n"
-        "# forest: where soil holds (not rock, not scree, not water), below a ragged tree line, on slopes under ~35°,\n"
-        "# thicker where water collects. Two scales of patches give clumps with edges and clearings, not an even carpet\n"
-        "# thin alluvium grows grass and trees too; only the scree stays bare\n"
-        "scree_f = smoothstep(0.3, 0.7, @debris / (@loose + 1e-9))\n"
-        "soil = (@splat_grass + 0.8 * @splat_sediment * (1 - scree_f)) * (1 - smoothstep(0.14, 0.24, steep))\n"
-        "tl = 0.62 + 0.12 * (noise(set(@u * 7, @v * 7, 8.8)) - 0.5) + 0.06 * wet\n"
-        "below = 1 - smoothstep(-0.06, 0.02, hn - tl)\n"
-        "big = smoothstep(0.36, 0.56, noise(set(@u * 5, @v * 5, 1.7)) + 0.35 * wet)\n"
-        "small = smoothstep(0.3, 0.6, noise(set(@u * 28, @v * 28, 4.2)))\n"
-        "f = clamp(soil * below * big * (0.55 + 0.45 * small), 0, 1)\n"
-        "veg = 0.8 * @splat_sediment * (1 - scree_f)\n"
-        "@Grass = (@splat_grass + veg) * (1 - f)\n"
-        "@ForestFloor = (@splat_grass + veg) * f\n"
-        "@Sediment = @splat_sediment - veg\n"
-        "@Rock = @splat_rock\n"
-        "@Snow = @splat_snow\n"
-        "@Water = @splat_water\n"
-        "# scatter densities: forest; lone trees in meadows; bushes along forest edges and on wet ground and alpine\n"
-        "# ledges; rocks on scree and at the foot of cliffs\n"
-        "@d_tree = @ForestFloor + 0.04 * @Grass * below\n"
-        "edge_ = f * (1 - f) * 4\n"
-        "@d_bush = @Grass * (0.25 * edge_ + 0.35 * wet + 0.5 * smoothstep(0.5, 0.7, hn) * (1 - smoothstep(0.2, 0.35, steep)))"
-        " * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3)))\n"
-        "@d_rock = 0.35 * smoothstep(0.0005, 0.003, @debris) + 0.3 * smoothstep(0.2, 0.5, @Rock) * (1 - 0.6 * @Rock)"
-        " + 0.15 * @Sediment\n"
-        "@wet = wet\n"
-        "# colour (display values, made linear at the end). Rock: warm and cool greys in patches, faint irregular\n"
-        "# bedding (about 9 m, warped -- smooth bands, never a step), darker where water streaks down it, lighter scree\n"
-        "# below. Grass: lush where wet, dry and yellow on ridges and high meadows\n"
-        "rv = noise(set(@u * 9, @v * 9, 2.6))\n"
-        "bed = 0.5 + 0.5 * sin(@C * 2048 / 9 + 8 * noise(set(@u * 3, @v * 3, 6.1)))\n"
-        "rock = lerp(set(0.38, 0.35, 0.31), set(0.62, 0.60, 0.56), rv) * (0.86 + 0.2 * bed)\n"
-        "rock = rock * (0.9 + 0.2 * hn)\n"
-        "# lichen and thin soil on the gentler rock\n"
-        "rock = lerp(rock, set(0.36, 0.38, 0.27), 0.5 * (1 - smoothstep(0.2, 0.4, steep)) * noise(set(@u * 30, @v * 30, 6.6)))\n"
-        "# water streaks: dark down the gullies, staining the faces below\n"
-        "rock = rock * (1 - 0.5 * smoothstep(0.3, 0.9, wet))\n"
-        "scree = set(0.60, 0.57, 0.52) * (0.9 + 0.2 * noise(set(@u * 80, @v * 80, 3.9)))\n"
-        "alluv = lerp(set(0.36, 0.38, 0.24), set(0.52, 0.48, 0.38), smoothstep(0.002, 0.006, @sediment))\n"
-        "loose = lerp(alluv, scree, scree_f)\n"
-        "dry = clamp(smoothstep(0.35, 0.75, noise(set(@u * 6, @v * 6, 4.4))) * 0.7 + 0.5 * hn - 0.8 * wet, 0, 1)\n"
-        "grass = lerp(set(0.23, 0.31, 0.12), set(0.44, 0.44, 0.22), dry)\n"
-        "# alpine meadow above the tree line: paler, olive\n"
-        "grass = lerp(grass, set(0.42, 0.45, 0.27), smoothstep(-0.05, 0.1, hn - tl))\n"
-        "grass = grass * (0.9 + 0.2 * noise(set(@u * 40, @v * 40, 7.7)))\n"
-        "c = (grass * @Grass + set(0.17, 0.22, 0.10) * @ForestFloor + loose * @Sediment + rock * @Rock"
-        " + set(0.90, 0.91, 0.94) * @Snow + set(0.05, 0.11, 0.13) * @Water)\n"
-        "@albedo = (c * (0.94 + 0.12 * noise(set(@u * 120, @v * 120, 2.2)))) ** 2.2\n"
-        "# for the preview: ambient occlusion 1, roughness (water is a mirror, wet rock glistens a little), metallic 0\n"
-        "@terrain_orm = set(1 + 0 * hn, lerp(0.92 - 0.25 * wet * @Rock, 0.04, @Water), 0 * hn)"))
+        'hm = @C * 2048\n'
+        'tn = normalize(set(@N.x, @N.z, -@N.y))\n'
+        '@tn = tn\n'
+        'steep = 1 - @N.z\n'
+        'wet = clamp(@flow, 0, 1) * @land\n'
+        'hn = clamp(hm / (@C.max() * 2048), 0, 1)\n'
+        '@hn = hn\n'
+        '# water: the sea (below 0 m), and the trunk rivers (largest catchments) inside their beds\n'
+        'sea = 1 - smoothstep(-0.6, 0.3, hm)\n'
+        'big = smoothstep(0.003, 0.05, @catchment)\n'
+        'riv = @bed * smoothstep(0.25, 0.7, big)\n'
+        'water = clamp(max(sea, riv), 0, 1)\n'
+        '# cliffs: above ~45 degrees everywhere; from ~35 degrees on in patches (bare outcrops in the grass)\n'
+        'cliff = max(smoothstep(0.27, 0.37, steep), smoothstep(0.17, 0.25, steep)'
+        ' * smoothstep(0.5, 0.65, noise(set(@u * 40, @v * 40, 2.2)) + 0.2 * (noise(set(@u * 140, @v * 140, 5.5)) - 0.5)))\n'
+        '# sand: the beach (0-4 m above the sea, gentle), dry river beds and gravel bars\n'
+        'beach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.08, 0.2, steep))\n'
+        'sand = clamp(max(beach, @bed * (1 - smoothstep(0.25, 0.7, big))), 0, 1)\n'
+        '# scree: what slumped (debris), below the cliffs\n'
+        'scree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n'
+        '# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\n'
+        'soil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.2, 0.3, steep))\n'
+        'clump = smoothstep(0.5, 0.62, 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06)\n'
+        'wood = clamp(soil * clump, 0, 1)\n'
+        '# layer the six weights: each takes its share of what the ones above left\n'
+        'rem = 1 - water\n'
+        '@Water = water\n'
+        '@Sand = rem * sand\n'
+        'rem = rem * (1 - sand)\n'
+        '@Rock = rem * cliff\n'
+        'rem = rem * (1 - cliff)\n'
+        '@Sediment = rem * scree\n'
+        'rem = rem * (1 - scree)\n'
+        '@ForestFloor = rem * wood\n'
+        '@Grass = rem * (1 - wood)\n'
+        '@d_tree = @ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))\n'
+        'edge_ = wood * (1 - wood) * 4\n'
+        '@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn)) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3)))\n'
+        '@d_rock = 0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed\n'
+        '@wet = wet\n'
+        '# colour (display values, made linear at the end)\n'
+        'rv = noise(set(@u * 9, @v * 9, 2.6))\n'
+        'bedd = 0.5 + 0.5 * sin(hm / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\n'
+        'rock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.82 + 0.26 * bedd)\n'
+        'rock = lerp(rock, rock * set(1.06, 0.98, 0.88), smoothstep(0.55, 0.8, noise(set(@u * 4, hm / 40, 3.3))))\n'
+        'rock = rock * (1 - 0.45 * smoothstep(0.3, 0.9, wet))\n'
+        'screec = set(0.58, 0.55, 0.50) * (0.88 + 0.24 * noise(set(@u * 80, @v * 80, 3.9)))\n'
+        'sandc = lerp(set(0.66, 0.60, 0.47), set(0.50, 0.46, 0.38), @bed) * (0.92 + 0.16 * noise(set(@u * 50, @v * 50, 8.1)))\n'
+        'sandc = lerp(sandc, sandc * 0.72, 1 - smoothstep(0.0, 1.2, hm))\n'
+        '# grass: lush in the valleys, dry yellow-green on sunny ridges, olive heath on the high ground\n'
+        'dry = clamp(0.75 * smoothstep(0.35, 0.75, noise(set(@u * 7, @v * 7, 4.4))) + 0.5 * steep * 4 - 0.9 * wet, 0, 1)\n'
+        'grass = lerp(set(0.22, 0.30, 0.13), set(0.42, 0.42, 0.22), dry)\n'
+        'grass = lerp(grass, set(0.40, 0.40, 0.24), smoothstep(0.55, 0.85, hn + 0.15 * (noise(set(@u * 12, @v * 12, 9.9)) - 0.5)))\n'
+        'grass = grass * (0.86 + 0.28 * noise(set(@u * 45, @v * 45, 7.7)))\n'
+        '# darker in the gullies (damp soil, shade-loving plants): the drainage pattern reads in the colour too\n'
+        'grass = grass * (1 - 0.28 * smoothstep(0.35, 0.9, wet))\n'
+        'woodc = set(0.15, 0.21, 0.09) * (0.85 + 0.3 * noise(set(@u * 60, @v * 60, 1.3)))\n'
+        'deep = smoothstep(0.0, -14.0, hm)\n'
+        'waterc = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\n'
+        'waterc = lerp(waterc, set(0.10, 0.19, 0.21), riv)\n'
+        'c = grass * @Grass + woodc * @ForestFloor + screec * @Sediment + rock * @Rock + sandc * @Sand + waterc * @Water\n'
+        '@albedo = (c * (0.95 + 0.1 * noise(set(@u * 150, @v * 150, 2.2)))) ** 2.2\n'
+        '@terrain_orm = set(1 + 0 * hn, lerp(0.92 - 0.2 * wet * @Rock, 0.05, @Water), 0 * hn)\n'
+        '@sea_orm = set(1 + 0 * hn, 0.05 + 0 * hn, 0 * hn)\n'))
     g.link(nm, "cop", bio, "cop")
 
     # ③ Distribution
@@ -1555,23 +1548,23 @@ def world_tiles():
                 attribs="hn tn wet " + dens, plane="xz", world_size=4100.0, rand_seed=seed)
         g.link(bio, "cop", n, "cop")
         return n
-    trees = scatter(D, "Trees: scatter by forest density", 40000, "d_tree", 1)
+    trees = scatter(D, "Trees: scatter by woodland density", 30000, "d_tree", 1)
     tw = D("PCG_Wrangle", title="Trees: asset / orientation / size", code=(
         "r = rand(@ptnum + 0.5)\n"
         'pine = np.array(["Tree_Pine_A", "Tree_Pine_B", "Tree_Pine_C"])\n'
         'broad = np.array(["Tree_Broadleaf_A", "Tree_Broadleaf_B"])\n'
         "# pines up high, broadleaf down low, a mixed band in between (by altitude + random)\n"
-        "high = @hn.x + 0.1 * (rand(@ptnum + 7.1) - 0.5) > 0.3\n"
+        "high = @hn.x + 0.12 * (rand(@ptnum + 7.1) - 0.5) > 0.42\n"
         "s@name = where(high, pine[(r * 3).astype(int)], broad[(r * 2).astype(int)])\n"
         "a = rand(@ptnum + 1.3) * 2 * PI\n"
         "@N = set(sin(a), 0 * a, cos(a))\n"
         "@up = set(0, 1, 0)\n"
         "# big trees deep in the forest and where water collects, smaller at the edges and up toward the tree line\n"
         "d = clamp(@d_tree.x, 0, 1)\n"
-        "@pscale = (0.75 + 0.5 * d + 0.4 * @wet.x) * (1 - 0.4 * smoothstep(0.45, 0.65, @hn.x))"
+        "@pscale = (0.75 + 0.5 * d + 0.4 * @wet.x) * (1 - 0.4 * smoothstep(0.55, 0.8, @hn.x))"
         " * (0.7 + 0.6 * rand(@ptnum + 2.9))"))
     g.link(trees, "geo", tw, "geo")
-    bush = scatter(D, "Bushes: forest edges, wet ground, alpine ledges", 14000, "d_bush", 2)
+    bush = scatter(D, "Bushes: woodland edges, wet ground, heath", 14000, "d_bush", 2)
     bw = D("PCG_Wrangle", title="Bushes", code=(
         'names = np.array(["Bush_A", "Bush_B"])\n'
         "s@name = names[(rand(@ptnum + 0.3) * 2).astype(int)]\n"
@@ -1580,7 +1573,7 @@ def world_tiles():
         "@up = normalize(lerp(set(0, 1, 0), @tn, 0.4))\n"
         "@pscale = 0.9 + 1.2 * rand(@ptnum + 4.1)"))
     g.link(bush, "geo", bw, "geo")
-    rocks = scatter(E, "Rocks: by rocky slopes, alluvial fans", 4000, "d_rock", 3)
+    rocks = scatter(E, "Rocks: scree, cliff feet, river beds", 4000, "d_rock", 3)
     rw = E("PCG_Wrangle", title="Rocks (using the 4 from the rock pipeline)", code=(
         "s@name = sprintf(\"SM_Rock_%02d\", (rand(@ptnum + 0.9) * 4).astype(int))\n"
         "# follow the slope (up tilted 70% towards the terrain normal), sunk in a bit\n"
@@ -1616,7 +1609,7 @@ def world_tiles():
            channels="C", format="raw", bit_depth="16", remap="normalize",
            value_scale=2048.0)
     g.link(bio, "cop", wr, "cop")
-    for layer in ("Grass", "ForestFloor", "Sediment", "Rock", "Snow", "Water"):
+    for layer in ("Grass", "ForestFloor", "Sediment", "Rock", "Sand", "Water"):
         w = F("PCG_COPWriteFile", title=f"Weight: {layer}",
               filename=f"pcg/world/weight/{layer}_x{{tx}}_y{{ty}}", channels=layer,
               format="png", bit_depth="8", tiles_x=4, tiles_y=4, shared_edge=True)
@@ -1642,7 +1635,12 @@ def world_tiles():
     g.link(bio, "cop", msh0, "cop")
     # albedo is linear (for the files); Cd is a display colour (the preview decodes it from sRGB). The material name
     # lets the preview read this mesh's roughness from the image ('@{material}_orm') and leave the proxies alone
-    msh1 = G("PCG_Wrangle", title="Cd to display colour", code="@Cd = pow(clamp(@Cd, 0, 1), 1 / 2.2)")
+    msh1 = G("PCG_Wrangle", title="Cd to display colour; flat sea", code=(
+        "@Cd = pow(clamp(@Cd, 0, 1), 1 / 2.2)\n"
+        "# the preview shows the sea surface, not the sea floor (the height files keep the floor)\n"
+        "uw = @P.y < -0.3\n"
+        "@N = where(uw, set(0, 1, 0), @N)\n"
+        "@P.y = max(@P.y, -0.3)"))
     g.link(msh0, "geo", msh1, "geo")
     msh = G("PCG_Wrangle", title="Material: terrain", run_over="prim", code='s@material = "terrain"')
     g.link(msh1, "geo", msh, "geo")
@@ -1728,20 +1726,40 @@ def world_tiles():
            multiply_attributes="Cd")
     g.link(plib, "geo", ct, "source")
     g.link(tint, "geo", ct, "points")
-    mg = G("PCG_Merge", title="Terrain + instance proxies")
+    # the sea beyond the map: one quad to the horizon, with its own roughness layer ('@sea_orm')
+    sq = G("PCG_Grid", title="Sea to the horizon", size_x=60000.0, size_z=60000.0, cols=2, rows=2)
+    sqt = G("PCG_Transform", title="Just under the map's sea level", ty=-0.35)
+    g.link(sq, "geo", sqt, "geo")
+    sqc = G("PCG_Color", title="Deep water", attribute_class="point", r=0.03, g=0.10, b=0.17)
+    g.link(sqt, "geo", sqc, "geo")
+    sqm = G("PCG_Wrangle", title="Material: sea", run_over="prim", code='s@material = "sea"')
+    g.link(sqc, "geo", sqm, "geo")
+    mg = G("PCG_Merge", title="Terrain + instance proxies + sea")
     g.link(msh, "geo", mg, "geo1")
     g.link(ct, "geo", mg, "geo2")
-    cam = G("PCG_Camera", title="Camera: over the south-west lowlands toward the range", projection="perspective",
-            mode="look_at", resolution_x=1600, resolution_y=900, fov=36.0, eye_x=-1150.0, eye_y=190.0,
-            eye_z=1150.0, target_x=350.0, target_y=150.0, target_z=-350.0)
+    g.link(sqm, "geo", mg, "geo3")
+    cam = G("PCG_Camera", title="Camera: from the air, south-west of the island", projection="perspective",
+            mode="look_at", resolution_x=1600, resolution_y=900, fov=30.0, eye_x=-2300.0, eye_y=1250.0,
+            eye_z=2600.0, target_x=0.0, target_y=40.0, target_z=120.0)
     pr = G("PCG_PreviewImage", width=1600, height=900, elevation=38.0, azimuth=25.0, shading="color",
-           look="outdoor", textures="orm = @{material}_orm", sun_elevation=20.0, sun_azimuth=228.0, haze=2.5,
-           ground_plane=False, clouds=0.4, cloud_seed=3)
+           look="outdoor", textures="orm = @{material}_orm", sun_elevation=32.0, sun_azimuth=235.0, haze=1.2,
+           ground_plane=False, clouds=0.3, cloud_seed=3)
     g.link(mg, "geo", pr, "geo")
     g.link(bio, "cop", pr, "textures_cop")
     g.link(cam, "cam", pr, "camera")
     pv = G("PreviewImage", title="Whole world", size=[520, 400])
     g.link(pr, "image", pv, "images")
+    cam2 = G("PCG_Camera", title="Camera: low, up a valley toward the peaks", projection="perspective",
+             mode="look_at", resolution_x=1600, resolution_y=900, fov=45.0, eye_x=CAM2[0], eye_y=CAM2[1],
+             eye_z=CAM2[2], target_x=CAM2[3], target_y=CAM2[4], target_z=CAM2[5])
+    pr2 = G("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
+            look="outdoor", textures="orm = @{material}_orm", sun_elevation=24.0, sun_azimuth=250.0, haze=1.5,
+            ground_plane=False, clouds=0.45, cloud_seed=3)
+    g.link(mg, "geo", pr2, "geo")
+    g.link(bio, "cop", pr2, "textures_cop")
+    g.link(cam2, "cam", pr2, "camera")
+    pv2 = G("PreviewImage", title="In the valley", size=[520, 400])
+    g.link(pr2, "image", pv2, "images")
     return g
 
 

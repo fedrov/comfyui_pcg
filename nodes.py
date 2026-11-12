@@ -1890,7 +1890,8 @@ class PCG_PreviewImage:
     off the scene; the sun casts soft shadows that are crisp at contact and widen with distance; the sky's colours
     follow the sun's elevation (a low sun warms the light and the horizon); Clouds adds a cumulus layer that also
     throws soft shadows on the ground; the frame is finished with bloom, a slight vignette and the AgX tone curve.
-    Sky Samples 0 falls back to a plain hemisphere fill (fast).
+    Sky Samples 0 falls back to a plain hemisphere fill (fast). pcg126: Compute = auto runs the shadow maps and the
+    sky light on CUDA when there is one (the bulk of the render time); the node shows progress and can be cancelled.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -1925,6 +1926,8 @@ class PCG_PreviewImage:
             "clouds": _f(0.0, 0.0, 1.0, 0.05),
             "cloud_seed": _i(0, 0, 2 ** 31 - 1),
             "sky_samples": _i(32, 0, 128),
+            # pcg126, appended: where the outdoor look's shadow maps and sky light are computed
+            "compute": (["auto", "cpu", "cuda"], {"tooltip": "auto = CUDA when available, else numpy"}),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
@@ -1933,7 +1936,8 @@ class PCG_PreviewImage:
             color_attrib="Cd", look="basic", supersampling=2, textures="",
             material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
-            ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32):
+            ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
+            compute="auto"):
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")
@@ -1949,7 +1953,7 @@ class PCG_PreviewImage:
                                      supersampling, textures, output_dir(), material_attrib, uv_attrib,
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
                                      tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
-                                     sky_samples=sky_samples)
+                                     sky_samples=sky_samples, compute=compute)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,

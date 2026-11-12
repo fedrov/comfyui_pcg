@@ -320,6 +320,8 @@ The second output is a text report of the run.
 
 Simulates 2D waves with a leapfrog wave-equation solver.
 
+![COP Ripple (PCG): input and result](../images/nodes/PCG_COPRipple.png)
+
 Solves the 2D wave equation for Steps iterations. The Source Layer gives the initial displacement on the first run, or with a Drive Frequency keeps driving the source continuously with a sine. The Obstacle Layer defines walls. State is stored in `<Output Layer>`, `<Output Layer>_prev` and `<Output Layer>_t`; wire the output back in to continue the run.
 
 Wave Speed is limited to 0.707 pixels per step, the CFL stability limit. The second output is a text report.

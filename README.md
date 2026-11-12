@@ -29,16 +29,16 @@
 
 <p align="center">
   <img src="docs/examples/images/pcg_prod_modular_city.png" alt="Modular city kit with the material library's textures" width="49%">
-  <img src="docs/examples/images/pcg_prod_world_tiles.png" alt="2 km open-world terrain tiles" width="49%">
+  <img src="docs/examples/images/pcg_prod_world_tiles.png" alt="4 km open-world island tiles" width="49%">
 </p>
 <p align="center">
   <img src="docs/examples/images/pcg_prod_rock_assets.png" alt="Rock assets: LOD0 with baked textures" width="98%">
 </p>
 <p align="center">
-  <img src="docs/examples/images/pcg_prod_material_library.png" alt="Eight procedural PBR materials" width="98%">
+  <img src="docs/examples/images/pcg_prod_material_library.png" alt="Fourteen procedural PBR materials" width="98%">
 </p>
 <p align="center"><sub>All generated in ComfyUI by the example workflows, no source files: a modular city kit, 4 × 4 terrain tiles,
-game-ready rocks (LODs, baked textures, collision) and an 8-material PBR library.</sub></p>
+game-ready rocks (LODs, baked textures, collision) and a 14-material PBR library.</sub></p>
 
 ## Why
 
@@ -68,8 +68,9 @@ No Houdini license and no extra binaries: every node is plain numpy (a handful o
 - **Network editor** — Houdini-style rounded wires, drag a wire end to rewire, Y + drag to cut, shake to disconnect,
   snapping and Alt-drag arranging, a Tab menu of PCG nodes; see [Wires](docs/concepts/wires.md) and
   [Keyboard and mouse](docs/concepts/shortcuts.md).
-- **Presentable previews** — Geometry Preview's *Studio* look: shadows, AO, a shadow-catching ground and textures straight
-  from the COP chain.
+- **Presentable previews** — Geometry Preview's *Studio* look (soft shadows, occlusion, a shadow-catching floor,
+  textures straight from the COP chain) and *Outdoor* look (perspective camera, sky and clouds, soft sun shadows,
+  the sky as an area light, haze, AgX tone curve) for environment shots.
 - **Production pipelines** — rock assets with LODs, baked textures and engine collision; open-world terrain tiles with
   weight maps and instance tables; a modular building kit; a seamless PBR material library.
 - **AI round trip** — render passes (depth, normal, ID, regional prompts) to feed ControlNet, and back-projection of the
@@ -134,7 +135,7 @@ workflow from an unknown source before queueing it. Details: [Wrangle syntax: Se
 
 ## Status and limitations
 
-This is an early public release (0.1.0); expect rough edges:
+This is an early public release (0.2.0); expect rough edges:
 
 - Expressions and geometry queries in parameter fields are evaluated in the browser; workflows run headless through
   the API use the last values the UI wrote, and geometry queries lag one run.

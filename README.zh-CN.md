@@ -26,10 +26,10 @@
   <img src="docs/examples/images/pcg_prod_rock_assets.png" alt="岩石资产" width="98%">
 </p>
 <p align="center">
-  <img src="docs/examples/images/pcg_prod_material_library.png" alt="八种程序化 PBR 材质" width="98%">
+  <img src="docs/examples/images/pcg_prod_material_library.png" alt="十四种程序化 PBR 材质" width="98%">
 </p>
 <p align="center"><sub>全部由示例工作流在 ComfyUI 里生成，不需要任何源文件：模块化城市套件、4 × 4 地形分块、
-可直接进引擎的岩石（LOD、烘焙贴图、碰撞体）和 8 种 PBR 材质。</sub></p>
+可直接进引擎的岩石（LOD、烘焙贴图、碰撞体）和 14 种 PBR 材质。</sub></p>
 
 ## 为什么
 
@@ -56,7 +56,7 @@ Grid → Wrangle → Normal → Scatter → Copy to Points → Render Pass → C
   任意节点自定义参数。
 - **节点编辑器**：Houdini 式圆角连线、拖连线端点改接、按住 Y 划线剪断、晃动节点断开连线、拖动吸附和 Alt 拖动排列、
   Tab 弹出 PCG 节点菜单；见 [Wires](docs/concepts/wires.md) 和 [Keyboard and mouse](docs/concepts/shortcuts.md)。
-- **可直接展示的预览**：Geometry Preview 的 *Studio* 外观：阴影、AO、接阴影的地面，贴图可以直接来自 COP 链。
+- **可直接展示的预览**：Geometry Preview 的 *Studio* 外观（软阴影、遮蔽、接阴影的地面，贴图可以直接来自 COP 链）和 *Outdoor* 外观（透视相机、天空与云、太阳软阴影、天空面光源、雾气、AgX 色调曲线），用于场景镜头。
 - **生产级流程**：带 LOD、烘焙贴图和引擎碰撞体的岩石资产；带权重图和实例表的开放世界地形分块；模块化建筑套件；
   无缝 PBR 材质库。
 - **AI 闭环**：渲染通道（深度、法线、ID、区域提示词）喂给 ControlNet，生成的图再反投影回模型 UV。
@@ -115,7 +115,7 @@ Wrangle 代码、组表达式和 Expression / Switch 的公式保存在工作流
 
 ## 现状和限制
 
-这是第一个公开版本（0.1.0），还会有不完善的地方：
+这是早期公开版本（0.2.0），还会有不完善的地方：
 
 - 参数里的表达式和几何查询在浏览器端求值；通过 API 无界面运行时用的是界面上次写入的值，几何查询会滞后一次运行。
 - 尚未实现：Remesh 自适应边长；曲线切线手柄 / 权重；视口内直接选点选面（请用组）；字体 GPOS 字距；Boolean 不保留边组。

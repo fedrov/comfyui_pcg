@@ -21,6 +21,8 @@ import math
 
 import numpy as np
 
+from ..progress import Progress
+
 from .core import CopImage
 from .pattern import _base, rnd
 from .pixel import getn, put
@@ -160,7 +162,9 @@ def reaction_diffusion(img=None, mode="gray_scott", preset="coral",
         # frequency-domain kernels of activator (σ = r/2) minus inhibitor (σ = r), one per scale, computed outside the loop
         kd = [_gauss_hat(X, H, W, r / 2) - _gauss_hat(X, H, W, r) for r in sc]
         k1 = _gauss_hat(X, H, W, 1.0)
+        prog = Progress(n)
         for _ in range(n):
+            prog.step()
             G = X.rfft2(g)
             best = bi = None
             for kdi, st in zip(kd, amt):
@@ -235,7 +239,9 @@ def reaction_diffusion(img=None, mode="gray_scott", preset="coral",
             float(maginu_gamma)
         A, B = X.arr(A), X.arr(B)
         wb = X.arr(bw) if bw is not None else None
+        prog = Progress(n)
         for _ in range(n):
+            prog.step()
             A2 = A + h * (Da * _lap9(X, A, edge)
                           + (al * (A - A * A * A) - B) * inv)
             B = B + h * (Db * _lap9(X, B, edge) + be * (A - ga * B) * inv)
@@ -276,7 +282,9 @@ def reaction_diffusion(img=None, mode="gray_scott", preset="coral",
     Km = X.arr(Km) if isinstance(Km, np.ndarray) else Km
     FK = Fm + Km
     wb = X.arr(bw) if bw is not None else None
+    prog = Progress(n)
     for _ in range(n):
+        prog.step()
         uvv = U * V * V
         # inv = 1/Scale Multiplier; at S = 1, x1.0 is exact and the addition order matches the original too
         U = U + h * (Du * _lap9(X, U, edge) - uvv * inv + Fm * (1 - U) * inv)
@@ -374,7 +382,9 @@ def ripple(img=None, source_layer="", obstacle_layer="", speed=0.5,
     has_wall = bool(wall.any())
     wall = X.mask(wall)
     smask = X.mask(src > 0.5) if drive else None
+    prog = Progress(steps)
     for s in range(int(steps)):
+        prog.step()
         hn = a2 * h - a1 * hp + c * c * SV.laplacian(h, bnd, X)
         if has_wall:
             hn = X.where(wall, 0.0, hn)
@@ -488,7 +498,9 @@ def flow(img, velocity_layer="vel", density_layers="density", mode="simulate",
         D = {n: X.arr(getn(img, n)) for n in dens}
         fl = str(force_layer).strip()
         Fv = X.arr(getn(img, fl)[..., :2] * float(force_scale)) if fl else None
+        prog = Progress(steps)
         for _ in range(int(steps)):
+            prog.step()
             if Fv is not None:
                 vx = vx + Fv[..., 0] * float(dt)
                 vy = vy + Fv[..., 1] * float(dt)

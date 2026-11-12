@@ -1051,7 +1051,7 @@ SPECS = {
         "order": ["width", "height", "elevation", "azimuth", "look", "shading",
                   "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
                   "sun_elevation", "sun_azimuth", "haze", "clouds", "cloud_seed", "sky_samples",
-                  "ground_plane", "ground_color", "exposure"],
+                  "ground_plane", "ground_color", "exposure", "compute"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
@@ -1090,6 +1090,9 @@ SPECS = {
             "sky_samples": {"label": "Sky Samples", "section": "Outdoor", "hide": "{ look != outdoor }",
                             "help": "Directions the sky light is shadowed from (one depth map each); 0 = plain "
                                     "hemisphere fill, fast"},
+            "compute": {"label": "Compute", "section": "Outdoor", "hide": "{ look != outdoor }",
+                        "menu": {"auto": "Auto (CUDA if available)", "cpu": "CPU (numpy)", "cuda": "CUDA"},
+                        "help": "Where the shadow maps and the sky light are computed"},
         },
     },
 

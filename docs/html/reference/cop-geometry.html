@@ -159,6 +159,7 @@
 <h3 id="pcg-copplanarinflate" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_inflate"/></svg>COP Planar Inflate (PCG)<a class="hash" href="#pcg-copplanarinflate" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPPlanarInflate</code> · category <code>PCG/cop</code> · Houdini: Planar Inflate (COP)</p>
 <p>Inflates a mask into a height layer, like a pillow or soap bubble.</p>
+<p><img src="../../images/nodes/PCG_COPPlanarInflate.png" alt="COP Planar Inflate (PCG): input and result" loading="lazy"></p>
 <p>Pixels of the mask above 0.5 are inflated, and the result is normalized so the highest point equals Height. It is a good starting point for relief, bevelled text and normal maps. An empty mask gives an error.</p>
 <ul><li><strong>Round</strong>: a circular-arc profile <code>h = sqrt(2Rd - d^2) / R</code>, where d is the distance to the boundary and R the largest inner distance. Edges are vertical and the middle is a flat top, like a pillow.</li><li><strong>Poisson (Soap Bubble)</strong>: solves <code>laplacian(h) = -1</code> with h = 0 on the boundary, using a coarse-to-fine Jacobi solver.</li></ul>
 <p><strong>Inputs</strong></p>
@@ -261,6 +262,7 @@
 <h3 id="pcg-copuvshape" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-ux_uvshape"/></svg>COP UV Shape (PCG)<a class="hash" href="#pcg-copuvshape" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPUVShape</code> · category <code>PCG/cop</code> · Houdini: UV Shape (COP)</p>
 <p>Generates interior UV coordinates, UV stretch and a mask for a disk or annulus shape.</p>
+<p><img src="../../images/nodes/PCG_COPUVShape.png" alt="COP UV Shape (PCG): input and result" loading="lazy"></p>
 <p>Outputs where each pixel lies in the shape's own parametric coordinate system, so that a square image can be mapped into the shape with UV Sample. This is not the same as COP Shape, which outputs a signed distance field.</p>
 <p>Coordinates are centred and normalised by the short side of the image (short side from -0.5 to 0.5), as in COP Shape. Three layers are written (empty name = not written):</p>
 <ul><li><code>uv</code>: two channels with the interior coordinates, by default in the range -1 to 1 as in Houdini.</li><li><code>uvscale</code>: how fast the UV changes per pixel (largest singular value of the Jacobian, measured in -1 to 1 units and clamped to <code>UV Filter Bound</code>); use it to pick a filter width in UV Sample.</li><li><code>mask</code>: 1 inside the shape and 0 outside, decided at the pixel centre without anti-aliasing.</li></ul>

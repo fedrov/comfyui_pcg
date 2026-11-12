@@ -313,6 +313,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | Ground Plane `ground_plane` | toggle | on | Outdoor: add a ground plane to the horizon at the bottom of the geometry, so a block of buildings sits in a landscape. *Hidden when look ≠ outdoor.* |
 | Ground Color `ground_color` | string | `0.32 0.31 0.27` | Outdoor: colour of the ground plane, three numbers 0..1. *Hidden when look ≠ outdoor } { ground_plane is off.* |
 | Exposure `exposure` | float [0.05..8.0] | 1 | Outdoor: brightness multiplier before the tone curve. *Hidden when look ≠ outdoor.* |
+| Compute `compute` | menu | Auto (CUDA if available) | Outdoor: where the shadow maps and the sky light are computed. Auto uses CUDA when available, otherwise numpy; the result differs only at float32 rounding level. Options: Auto (CUDA if available) (`auto`), CPU (numpy) (`cpu`), CUDA (`cuda`). *Hidden when look ≠ outdoor.* |
 
 ---
 

@@ -78,6 +78,7 @@
 <h3 id="pcg-copfractalsample" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cop_noise"/></svg>COP Fractal Sample (PCG)<a class="hash" href="#pcg-copfractalsample" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPFractalSample</code> · category <code>PCG/cop</code> · Houdini: Fractal Sample (COP)</p>
 <p>Layers a source image into itself at shrinking, rotating, jittered scales, like fractal noise whose basis function is an image.</p>
+<p><img src="../../images/nodes/PCG_COPFractalSample.png" alt="COP Fractal Sample (PCG): input and result" loading="lazy"></p>
 <p>Equivalent of Fractal Sample. Each octave samples the source layer with a scale of <code>lacunarity^octave</code>, an optional rotation (<code>angle</code>), jitter and random flips, around the image center. The octaves are weighted by <code>roughness^octave</code> and combined by the blend mode: Add, Subtract, Maximum or Over (Over only makes sense for RGBA). With one octave and no rotation or jitter the output equals the source.</p>
 <p>Add and Subtract are normalized by the sum of the weights so that the value range matches the source. Samples first have <code>bias</code> subtracted (so the result is centered on 0), and <code>offset_with_bias</code> adds it back at the end. Over does not subtract bias.</p>
 <p>Maintain Tileable rounds the lacunarity to an integer and the angle to multiples of 90 degrees; the source itself must already tile for the result to tile. The noise post-processing parameters (fold, complement, bias, gain, gamma, contrast, clamps) are then applied to the combined result in that order.</p>
@@ -143,6 +144,7 @@
 <h3 id="pcg-copnoiseextra" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-pat_noisex"/></svg>COP Noise Extra (PCG)<a class="hash" href="#pcg-copnoiseextra" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPNoiseExtra</code> · category <code>PCG/cop</code> · Houdini: Bubble Noise (COP), Cloud Noise 3D (COP), Crystal Noise (COP), Crystal Noise 3D (COP), Curl Noise (COP), Curl Noise 3D (COP), Phasor Noise (COP)</p>
 <p>Generates Bubble, Crystal, Phasor, Curl, Curl 3D and Cloud noise.</p>
+<p><img src="../../images/nodes/PCG_COPNoiseExtra.png" alt="COP Noise Extra (PCG): input and result" loading="lazy"></p>
 <p>A collection of additional noise types. Coordinates are normalized by the image width and keep the aspect ratio, so bubbles stay round. The 3D types slice the volume at the third Offset value (z); moving it animates the noise. If <code>cop</code> is connected, layers are added to it and its resolution is used; otherwise a new image is created with Resolution.</p>
 <p>The main layer is the Output Layer; auxiliary layers are named <code>&lt;Output Layer&gt;_xxx</code>:</p>
 <ul><li><strong>Bubble</strong>: one sphere per cell with probability Density and radius Radius times 0.5-1 cell; the value is the cross-section height of the sphere at the slice. Overlaps take the maximum. Auxiliary: <code>_id</code>.</li><li><strong>Crystal</strong>: 3D Voronoi where every cell has a random tilted plane, producing facets with creases between cells. Auxiliary: <code>_id</code>, <code>_edge</code> (F2-F1, zero at creases).</li><li><strong>Phasor</strong>: Gabor-like noise with the phase of the complex sum of kernels only, so stripe contrast is uniform. Auxiliary: <code>_phase</code>, <code>_amplitude</code>.</li><li><strong>Curl</strong>: a divergence-free 2-channel velocity field derived from a simplex fractal potential (unit is per noise unit; multiply by Frequency / image width for per-pixel). Auxiliary: <code>_potential</code>.</li><li><strong>Curl 3D</strong>: 3-channel curl of three potentials, evaluated on the z slice. Note that (vx, vy) on a single slice are not divergence-free.</li><li><strong>Cloud 3D</strong>: simplex fractal turned into a 0-1 density by Coverage and Softness. Auxiliary: <code>_raw</code>.</li></ul>
@@ -225,6 +227,7 @@
 <h3 id="pcg-coprandom" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-random"/></svg>COP Random (PCG)<a class="hash" href="#pcg-coprandom" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPRandom</code> · category <code>PCG/cop</code> · Houdini: Random Mono (COP), Random RGB (COP)</p>
 <p>Generates hash-based random values per pixel or per ID.</p>
+<p><img src="../../images/nodes/PCG_COPRandom.png" alt="COP Random (PCG): input and result" loading="lazy"></p>
 <p>Per pixel gives white noise; per ID gives the same value to every pixel sharing an ID, which colours each region of a segmentation image randomly. The hash makes results reproducible bit for bit. Without a connected image a new one is created at the Resolution (per-pixel only).</p>
 <p>Shared Min/Max uses one range for all channels. Min/Max, Color Ramp and Specific Values are the three modes of Houdini's Random RGB and always output RGB (with Channels 4 the alpha is constantly 1).</p>
 <p><strong>Inputs</strong></p>
@@ -268,6 +271,7 @@
 <h3 id="pcg-copstereogram" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-pat_stereo"/></svg>COP Stereogram (PCG)<a class="hash" href="#pcg-copstereogram" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPStereogram</code> · category <code>PCG/cop</code> · Houdini: Auto Stereogram (COP)</p>
 <p>Creates a single-image autostereogram from a depth layer.</p>
+<p><img src="../../images/nodes/PCG_COPStereogram.png" alt="COP Stereogram (PCG): input and result" loading="lazy"></p>
 <p>Turns depth (0 far, 1 near) into a stereogram made of random dots or of a repeated pattern layer tiled at the strip width. The default is for parallel viewing; Cross-Eyed reverses it. Hidden surface removal is not done, so ghosting can appear at abrupt depth edges. A per-pixel separation layer in pixels is also written as <code>&lt;Output Layer&gt;_sep</code>.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>cop</code></td><td>COPIMAGE</td><td>Image containing the depth layer (and optional pattern layer).</td></tr></tbody></table></div>

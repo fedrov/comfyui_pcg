@@ -480,6 +480,8 @@ Softness models the sun as a disc by its angular radius (a first-order approxima
 
 Clamps a height layer into a minimum/maximum range, optionally with a soft knee.
 
+![COP HeightField Clip (PCG): input and result](../images/nodes/PCG_COPHFClip.png)
+
 Equivalent of HeightField Clip. Heights are limited to [Min, Max] in the chosen mode, with `softness` giving a C1 continuous knee instead of a hard edge. A second layer `<out>_clipped` holds the amount that was changed. The height layer defaults to `C`, like the rest of the terrain nodes. An optional mask blends the clipped result back into the original height.
 
 **Inputs**
@@ -601,6 +603,7 @@ Water and sediment drain off the image edges unless Tile is on. The report gives
 | Min Slope `min_slope` | float [0.0..10.0] | 0.03 | Lower limit of sin(tilt) in the capacity, so water on flat ground still carries some material. |
 | Max Erosion Depth `max_depth` | float [0.001..1000.0] | 2 | Depth (cells) beyond which deeper water carries no more, so lakes do not dig their floors. |
 | Flow Damping `damping` | float [0.0..1.0] | 0.9 | Fraction of last step's flux kept in each pipe: the momentum of the flow. |
+| Bed Change Limit `bed_change_limit` | float [0.0..10.0] | 0 | Caps how far the bed moves per step to this fraction of the water depth; 0 turns it off. With a Capacity above about 3, erosion and flow amplify each other and slopes break up into ripples across the flow; 0.03 keeps Capacity 10 smooth while channels still cut at nearly full speed. |
 
 *Thermal*
 
@@ -637,6 +640,7 @@ Corresponds to HeightField Erode / Erode Hydro: grid water with sediment transpo
 - Erode, upres, erode: run it at a quarter resolution for the big valleys, Resize up, add a little noise, then run fewer steps at full resolution.
 - Feed it terrain that already has a drainage network (Stream Power with uplift) for mountain ranges; on raw noise the water pools in every pit and fills them with sediment.
 - The flow, sediment and debris layers are the masks for texturing: dark wet streaks, light valley floors, scree at the foot of slopes.
+- For deep, sharp gullies raise Capacity to 5-10 and set Bed Change Limit to 0.03; without the limit the slopes turn into washboard ripples.
 
 ---
 
@@ -1014,6 +1018,8 @@ The grid convention is the one of HeightField to Mesh: xz plane, centered, width
 
 Derives a set of grass, sediment, rock, snow and water material masks that sum to one from a terrain.
 
+![COP HeightField Splat Map (PCG): input and result](../images/nodes/PCG_COPSplatMap.png)
+
 Produces masks that always add up to exactly 1 per pixel, for engine terrain layers, regional prompts or a segmentation ControlNet (use the id layer).
 
 The layers are composited in order, later ones covering earlier ones: water over snow over rock over sediment over grass. Rock is steep slope. Snow is above the snow line and not too steep (steep faces cannot hold snow). Sediment comes from the debris layer (a thermal erosion output) or, without one, from low flat areas. Water comes from lake / river layers (flow accumulation outputs).
@@ -1096,7 +1102,7 @@ Solves `dh/dt = U - K * A^m * S` (uplift minus erodibility times drainage area t
 
 Two uses: with Uplift 0, carve valleys into existing terrain (tens of iterations); with Uplift above 0, build mountains from noise as uplift and erosion balance (hundreds of iterations). The Uplift Layer multiplies uplift (raise only the middle for a mountain range). Slope Diffusion rounds hillslopes and dulls ridges.
 
-The implicit scheme is stable for any step size and creates no new pits (depressions are filled once at the start and lakes are filled as sediment). Outlets are fixed base level. D8 routing pulls rivers into straight lines at 0 and 45 degrees; Rho8 randomly picks diagonals each step, which is unbiased on average (reproducible with a fixed seed). Large flat areas after lake filling can still show straight lines, caused by the epsilon slope toward the nearest outlet, regardless of routing. CPU only, around 0.2 s per step at 512x512.
+The implicit scheme is stable for any step size and creates no new pits (depressions are filled once at the start and lakes are filled as sediment). Outlets are fixed base level. D8 routing pulls rivers into straight lines at 0 and 45 degrees; Rho8 randomly picks diagonals each step, which is unbiased on average (reproducible with a fixed seed). Across the lakes filled at the start the water follows the drowned valley under the fill (as in Flow Accumulation) instead of the epsilon slope of pit filling, which used to draw ruler-straight rivers across every filled flat. CPU only, around 0.2 s per step at 512x512.
 
 The second output is a text report. The Flow Layer receives the drainage area of the last step.
 
@@ -1418,6 +1424,8 @@ Slope and aspect are exact per pixel on inclined planes, and the derivatives use
 `PCG_COPStrata` · category `PCG/cop` · Houdini: HeightField Strata (COP)
 
 Adds tilted rock strata to a height layer as terraced layers with random hardness.
+
+![COP Strata (PCG): input and result](../images/nodes/PCG_COPStrata.png)
 
 The layer plane is `height + Tilt * (u, v) + noise`. Each stratum gets a random hardness: hard layers have flat tops and steep steps. The result is mixed back by Strength. With Tilt, noise and randomness all 0 this is a plain terrace. A layer index is also written as `<Output Layer>_id`. Strata Offset shifts the layer boundaries, a Mask Layer multiplies Strength, and Output Strata Only outputs just the strata displacement (adding it to the height equals Strength 1).
 

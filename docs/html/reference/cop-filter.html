@@ -61,6 +61,7 @@
 <h3 id="pcg-copconvolve" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_convolve"/></svg>COP Convolve (PCG)<a class="hash" href="#pcg-copconvolve" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPConvolve</code> · category <code>PCG/cop</code> · Houdini: Convolve 3x3 (COP), Convolve Filter (COP)</p>
 <p>Convolves layers with a kernel written as numbers, a preset, or another image.</p>
+<p><img src="../../images/nodes/PCG_COPConvolve.png" alt="COP Convolve (PCG): input and result" loading="lazy"></p>
 <p>The kernel is n x n numbers (n odd), written one row per line. The first line written is the top row of the image. Presets: box, gaussian, sharpen, edge, emboss and Sobel X / Y. Kernels larger than 7 x 7 are computed with an FFT.</p>
 <p>When the <code>kernel_cop</code> input is connected, a layer of that image (Kernel Layer) is used as the kernel instead. This is a true convolution: convolving a single-pixel impulse gives the kernel image itself. Preset and Kernel are then ignored. With Centered off, the origin is the bottom-left pixel of the kernel image.</p>
 <p>The image is always padded by the kernel radius, so no wrap-around bleeding occurs with <code>clamp</code>, <code>black</code> or <code>mirror</code>.</p>
@@ -250,6 +251,7 @@
 <h3 id="pcg-copfft" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-sv_fft"/></svg>COP FFT (PCG)<a class="hash" href="#pcg-copfft" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPFFT</code> · category <code>PCG/cop</code> · Houdini: Fast Fourier Transform (COP), Filter Frequencies (COP)</p>
 <p>Performs a forward or inverse Fourier transform, shows the magnitude spectrum, or filters frequencies.</p>
+<p><img src="../../images/nodes/PCG_COPFFT.png" alt="COP FFT (PCG): input and result" loading="lazy"></p>
 <p>Covers Houdini's Fast Fourier Transform and Filter Frequencies. <code>forward</code> turns channel 0 into a 2-channel layer (real, imaginary) without normalization (the DC component is the sum of the pixels); <code>inverse</code> takes (real, imaginary) back to one real channel; <code>magnitude</code> outputs <code>log(1 + |F|)</code> per channel for viewing the spectrum; <code>filter</code> transforms, multiplies by a radial window and transforms back, per channel, with a cosine soft edge (a hard cutoff would ring).</p>
 <p>Cutoffs are in cycles per image (image width = 1 cycle); the radial distance is elliptical, each axis scaled by its own size.</p>
 <p><strong>Inputs</strong></p>

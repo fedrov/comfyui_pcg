@@ -12,6 +12,7 @@ HeightField Erode (grid water: virtual pipes + sediment transport + thermal slum
   · thermal alone (no rain): a tall column slumps until no slope exceeds the talus angle; debris = what slid
   · Rain Layer: total water is the rain that fell on the wet part (closed form), spreading into the dry part
   · Strength and World Size both ×2: identical (everything is in cells); negative control: World Size alone changes it
+  · Bed Change Limit: stops the washboard a high Capacity makes; 0 = old behaviour bit for bit; still conserving
   · torch agrees with numpy (float32), conservation to float32 precision
   · the node: report, layers, bad parameters raise
 """
@@ -168,6 +169,37 @@ check("Strength and World Size both ×2: identical (everything is in cells)",
       np.allclose(L(a, "C") * 1.0, L(b, "C"), rtol=0, atol=1e-12) and np.allclose(L(a, "flow"), L(b, "flow")))
 c, _ = run(hills, strength=1.0, world_size=2.0, iterations=50)
 check("  negative control: World Size alone (slopes halved) changes it", not np.allclose(L(a, "C"), L(c, "C")))
+
+print("\n[bed change limit]")
+# A smooth 20° slope with a little noise, Capacity 10: erosion and flow feed each other and the slope breaks up into
+# ripples across the flow ("washboard"). Measured as the roughness along the fall line: mean |second difference|
+m_ = 96
+ym, xm = np.mgrid[0:m_, 0:m_].astype(float)
+rs = np.random.default_rng(2).random((m_, m_))
+for _ in range(3):
+    rs = (rs + np.roll(rs, 1, 0) + np.roll(rs, 1, 1)) / 3
+slope = (0.36 * (1 - xm / (m_ - 1)) + 0.004 * rs)                 # world_size 1: 0.36 * 96 cells of fall over 96 cells
+
+
+def rough(o_):
+    hc_ = L(o_, "C") * m_
+    return float(np.abs(np.diff(hc_[8:-8, 8:-8], 2, axis=1)).mean())
+
+
+r_off = rough(run(slope, iterations=250, capacity=10.0, erode_rate=0.2)[0])
+r_on = rough(run(slope, iterations=250, capacity=10.0, erode_rate=0.2, bed_change_limit=0.03)[0])
+r_in = float(np.abs(np.diff((slope * m_)[8:-8, 8:-8], 2, axis=1)).mean())
+check("Capacity 10 without a limit: the slope turns into washboard (roughness along the fall line grows > 10x)",
+      r_off > 10 * r_in, (round(r_in, 4), round(r_off, 4)))
+check("  Bed Change Limit 0.03: at least 3x smoother than without (what is left is the rills it carved)", r_on < r_off / 3,
+      round(r_on, 4))
+a0, _ = run(hills, iterations=40)
+a1, _ = run(hills, iterations=40, bed_change_limit=0.0)
+check("  limit 0 (the default) is bit-identical to the old behaviour", np.array_equal(L(a0, "C"), L(a1, "C")))
+a2, rp2 = run(hills, iterations=120, capacity=6.0, bed_change_limit=0.03)
+dv2 = (L(a2, "C").sum() - hills.sum()) / n / n
+check("  material is still conserved with the limit on", abs(dv2 + rp2["sediment_out"]) < 1e-9 * abs(hills.sum() / n / n))
+err("  a negative limit raises", lambda: run(hills, bed_change_limit=-0.1), "Bed Change Limit")
 
 print("\n[torch]")
 if BK.torch_module() is None:

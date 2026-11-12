@@ -2204,8 +2204,8 @@ class PCG_COPStreamPower:
 
     The implicit scheme is stable for any step size and never creates new pits (pits are filled once at the start, lakes filled flat as deposition).
     Outlets are a fixed base level. Routing defaults to rho8: D8 pulls the river network into straight 0° / 45° lines, rho8
-    picks diagonals randomly each step with unbiased mean direction (reproducible with a fixed Rand Seed). Large flats left by filled lakes
-    still get straight lines -- that's the ε slope of pit filling pointing to the nearest outlet, unrelated to routing.
+    picks diagonals randomly each step with unbiased mean direction (reproducible with a fixed Rand Seed). Across the lakes filled at the start the water
+    follows the drowned valley (as in Flow Accumulation), not the straight ε slope of pit filling.
     512² takes about 0.2 s per step, pure CPU. Flow Layer outputs the catchment area of the last step.
     """
     @classmethod
@@ -2292,6 +2292,8 @@ class PCG_COPHeightfieldErode:
             "accumulate_debris": ("BOOLEAN", {"default": True}),
             "keep_layers": ("BOOLEAN", {"default": True}),
             "compute": _compute(),
+            # pcg126, appended: 0 = off (the old behaviour)
+            "bed_change_limit": _f(0.0, 0.0, 10.0, 0.005),
         }}
     RETURN_TYPES = (COP, "STRING")
     RETURN_NAMES = ("cop", "report")
@@ -2300,12 +2302,12 @@ class PCG_COPHeightfieldErode:
     def run(self, cop, layer, strength, world_size, iterations, rain, evaporation, capacity, erode_rate,
             deposit_rate, min_slope, max_depth, damping, talus_angle, thermal_rate, tile, hardness_layer,
             rain_layer, out_layer, flow_layer, water_layer, sediment_layer, debris_layer, erosion_layer,
-            accumulate_debris, keep_layers, compute="auto"):
+            accumulate_debris, keep_layers, compute="auto", bed_change_limit=0.0):
         out, rep = _cop.erode.heightfield_erode(
             cop, layer, strength, world_size, iterations, rain, evaporation, capacity, erode_rate,
             deposit_rate, min_slope, max_depth, damping, talus_angle, thermal_rate, tile, hardness_layer,
             rain_layer, out_layer, flow_layer, water_layer, sediment_layer, debris_layer, erosion_layer,
-            accumulate_debris, keep_layers, compute)
+            accumulate_debris, keep_layers, compute, bed_change_limit=bed_change_limit)
         if not rep:
             return (out, "")
         return (out, f"{rep['iterations']} steps on {rep['compute']}; terrain volume {rep['mass_before']:.6g} -> "

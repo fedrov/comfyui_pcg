@@ -32,6 +32,10 @@ with the water fluxes instead of a semi-Lagrangian back-trace so that material i
   7. thermal     where a slope is steeper than the Talus Angle a fraction (Thermal Rate) of the excess slides to the
                  lower neighbours, in proportion to how much each is too low (mass conserving, Musgrave 1989)
 
+Bed Change Limit (0 = off): with a high Capacity (above about 3) erosion and flow amplify each other within a few
+steps and slopes break up into ripples across the flow. The limit caps how far the bed moves per step to that fraction
+of the water depth; 0.03 keeps Capacity 10 smooth while channels still cut at nearly full speed.
+
 At the end the suspended sediment is deposited where it is, so the terrain balance is exact:
 Δ(total terrain) = −(sediment carried off the image edges), as written in the report and checked in the tests.
 
@@ -164,7 +168,8 @@ def heightfield_erode(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0, it
                       max_depth=2.0, damping=0.9, talus_angle=52.0, thermal_rate=0.05, tile=False,
                       hardness_layer="", rain_layer="", out_layer=DEFAULT_LAYER, flow_layer="flow",
                       water_layer="water", sediment_layer="sediment", debris_layer="debris",
-                      erosion_layer="", accumulate_debris=True, keep=True, compute="auto", trace=None):
+                      erosion_layer="", accumulate_debris=True, keep=True, compute="auto", trace=None,
+                      bed_change_limit=0.0):
     """
     Returns (image, report). See the file header for the model; all parameters are in cells (pixel size) and steps.
 
@@ -229,7 +234,13 @@ def heightfield_erode(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0, it
     cap, ks, kd = float(capacity), float(erode_rate), float(deposit_rate)
     msin, wmax, ke, tr = float(min_slope), float(max_depth), float(evaporation), float(thermal_rate)
     tiny = 1e-12 if not ops.torch else 1e-8
+    bcl = float(bed_change_limit)
+    if bcl < 0:
+        raise ValueError("Bed Change Limit can't be negative")
+    from ..progress import Progress
+    prog = Progress(it)
     for step in range(it):
+        prog.step()
         w = w + (rain_a if rain_a is not None else rain_)
         Ht = h + w
         # deep water keeps more of its momentum: the steady flux of a pipe is 0.2·Δ/(1 − damping), so with a fixed
@@ -292,6 +303,13 @@ def heightfield_erode(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0, it
         hmin = ops.minimum(ops.minimum(g4.sh(h, 0), g4.sh(h, 1)), ops.minimum(g4.sh(h, 2), g4.sh(h, 3)))
         d = ops.minimum(d, ops.pos(h - hmin) * 0.5)
         d = ops.maximum(d, -s)                               # can't drop more than it carries (rounding)
+        if bcl > 0:
+            # The bed may not move faster than the water above it can follow: |Δh| per step <= limit × depth.
+            # Without it, a high Capacity makes erosion and the flow feed each other (a lowered cell draws more
+            # water next step, which lowers it more) faster than the pipes smooth the water out, and slopes break
+            # up into "washboard" ripples across the flow. Shallow sheet flow is slowed the most, channels the least
+            lim = bcl * wav
+            d = ops.maximum(ops.minimum(d, lim), -lim)
         # what is picked up / dropped is taken from / spread over the cell and its 4 neighbours (1/2 + 4 × 1/8): done in
         # place, the 4-pipe flow builds axis-aligned terraces and one-cell step lines on pond floors and plains. Shares that would land outside
         # the image stay in the cell, so material is still conserved exactly

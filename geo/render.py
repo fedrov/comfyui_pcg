@@ -289,7 +289,9 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None):
     nbatch = max(1, int(np.ceil(total / float(max(max_pairs, 1024)))))
     bounds = np.searchsorted(cum, np.linspace(0, total, nbatch + 1)[1:])
     start = 0
+    from .progress import check as _cancel
     for stop in bounds:
+        _cancel()
         stop = int(min(max(stop + 1, start + 1), len(idx)))
         _raster_batch(out, cam, rast, sx, sy, z,
                       idx[start:stop], x0[start:stop], y0[start:stop],

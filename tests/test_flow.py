@@ -489,13 +489,18 @@ sd = FL.seeds(hs.shape)
 f = FL.priority_fill(hs, sd)
 tex = 1.0 / 19
 rcv, dist = FL.d8(f, sd)
+# (pcg126) across filled lakes the first step routes along the drowned valley; distance = to that receiver
+li_, lr_ = FL.lake_routes(f, hs, sd)
+rcv[li_] = lr_
+dist[li_] = np.hypot(*(np.array(np.divmod(li_, hs.shape[1])) - np.array(np.divmod(lr_, hs.shape[1]))))
 src = np.flatnonzero(rcv >= 0)
 Aa = FL.accumulate(hs.size, src, rcv[src], np.ones(src.size),
                    np.full(hs.size, tex * tex),
                    FL.schedule(hs.size, src, rcv[src]))
 U_, K_ = 2e-3, 0.3
 ref = f.ravel().copy()
-for p in np.argsort(f.ravel(), kind="stable").tolist():
+lev_ = FL.tree_levels(rcv)
+for p in np.concatenate(lev_[1:]).tolist():          # downstream first (tree order: a lake's receiver may be an ulp higher)
     if rcv[p] >= 0:
         F_ = K_ * Aa[p] ** 0.5 / (dist[p] * tex)
         ref[p] = max((ref[p] + U_ + F_ * ref[rcv[p]]) / (1 + F_),
@@ -503,7 +508,7 @@ for p in np.argsort(f.ravel(), kind="stable").tolist():
 o, _ = FL.stream_power(himg(hs), iterations=1, erodibility=K_, uplift=U_,
                        routing="d8")
 d = float(np.abs(L(o, "C")[..., 0].ravel() - ref).max())
-check(f"one step = implicit update per pixel from low to high (diff {d:.1e})", d < 1e-15)
+check(f"one step = implicit update per pixel, downstream first (diff {d:.1e})", d < 1e-15)
 o, _ = FL.stream_power(himg(hs), iterations=0)
 check("0 steps: output = pit-filled input",
       bool((L(o, "C")[..., 0] == FL.priority_fill(hs, sd)).all()))
@@ -567,10 +572,19 @@ o, _ = FL.stream_power(himg(hq, z=np.zeros_like(hq)), iterations=10,
                        erodibility=0.1, uplift=1e-2, uplift_layer="z")
 o2, _ = FL.stream_power(himg(hq), iterations=10, erodibility=0.1)
 check("Uplift Layer all 0 = no uplift", bool((L(o, "C") == L(o2, "C")).all()))
-check("K = 0 and no uplift: only pit-filling changes",
-      bool((L(FL.stream_power(himg(hq), iterations=5, erodibility=0.0)[0],
-               "C")[..., 0] == FL.priority_fill(hq, FL.seeds(hq.shape)))
-           .all()))
+dk = np.abs(L(FL.stream_power(himg(hq), iterations=5, erodibility=0.0)[0], "C")[..., 0]
+            - FL.priority_fill(hq, FL.seeds(hq.shape)))
+check("K = 0 and no uplift: only pit-filling changes (lake floors re-sloped along the drowned valleys by ulps only)",
+      float(dk.max()) < 1e-12, float(dk.max()))
+# (pcg126) Stream Power across a lake: the dammed winding valley of the Flow Accumulation test. After one step the
+# catchment layer's main channel follows the drowned valley floor; steepest descent on the filled surface cut across
+offs = {}
+for it_ in (1, 10):
+    osp, _ = FL.stream_power(himg(hv), iterations=it_, erodibility=1e-9, routing="d8")
+    offs[it_] = max(_off(L(osp, "flow")[..., 0]))
+check("Stream Power: across a filled lake the flow follows the drowned valley (first step within 1 px of the floor, "
+      "ten steps later still within 4 px; the ε slope was 36 px off)", offs[1] <= 1.0 and offs[10] <= 4.0,
+      {k: round(float(v), 2) for k, v in offs.items()})
 check("Flow Layer: catchment area from the last step, outlet sum = whole image area",
       abs(float(L(o2, "flow")[..., 0][FL.seeds(hq.shape)].sum())
           - 1.0 * hq.shape[0] / hq.shape[1]) < 1e-12)

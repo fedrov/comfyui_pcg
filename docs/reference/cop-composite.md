@@ -74,6 +74,8 @@ With flat detail, `rnm`, `whiteout` and `udn` return the base unchanged (`linear
 
 Compares two layers (or a layer and a constant) per pixel and outputs a 0..1 mask.
 
+![COP Compare Mask (PCG): input and result](../images/nodes/PCG_COPCompareMask.png)
+
 Compares A with B per pixel using the True If condition and writes a single-channel 0..1 mask. B is Layer B, or the Comparison Value when Layer B is empty. For multi-channel layers, Components decides whether all channels (minimum) or any channel (maximum) must pass.
 
 Tolerance is two-sided for the equality tests (`equal`, `not_equal`) and one-sided for the strict and non-strict inequalities. Pixels that pass the comparison are always 1; Falloff shapes the pixels that fail it but lie within the tolerance: `none` cuts hard at the tolerance edge, `linear` ramps from 1 down to 0, `elendt` uses a smooth S-shaped curve (implemented here as smoothstep, so intermediate values differ slightly from Houdini). `not_equal` is the complement of `equal`.
@@ -178,6 +180,8 @@ Compared with Houdini's Blend, Under, Hypot, Exclusion, HardLight, Dodge and Bur
 
 Builds a drop shadow from an alpha mask by offsetting, blurring and tinting it behind the original image.
 
+![COP Drop Shadow (PCG): input and result](../images/nodes/PCG_COPDropShadow.png)
+
 Takes the alpha (the 4th channel of `layer`, or a separate alpha layer), shifts it by an offset, blurs it, colors it and places it underneath the original image. The result is RGBA.
 
 The node errors out if there is no alpha at all; it does not guess one.
@@ -259,6 +263,8 @@ Corresponds to Houdini's Layer Merge COP (the one documented as cop/average). Sp
 `PCG_COPLogic` · category `PCG/cop` · Houdini: Logic (COP)
 
 Compares layers or combines them with boolean operations, producing a 0/1 mask.
+
+![COP Logic (PCG): input and result](../images/nodes/PCG_COPLogic.png)
 
 Input A is a layer name; Input B is either a layer name or a constant number. Comparison operations (A > B, A >= B, A < B, A <= B, A = B, A != B) give 1 where true. Boolean operations (AND, OR, XOR, NOT A) treat any value above 0.5 as true. Equality uses Tolerance, since exact float equality almost never holds. For multichannel layers the result is 1 only where all channels satisfy the test. The output is a single channel.
 
@@ -350,6 +356,8 @@ The Per-Layer Blend Modes option follows Houdini's multiparm; here it is written
 `PCG_COPPremultiply` · category `PCG/cop` · Houdini: Premultiply (COP)
 
 Multiplies RGB by alpha, or divides it back out.
+
+![COP Premultiply (PCG): input and result](../images/nodes/PCG_COPPremultiply.png)
 
 Premultiply scales the colour channels by alpha. Unpremultiply divides them back; where alpha is 0 the result is 0 instead of NaN.
 

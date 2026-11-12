@@ -409,6 +409,7 @@ SPECS = {
         "order": ["layer", "strength", "world_size", "iterations", "rain", "evaporation", "tile",
                   "hardness_layer", "rain_layer",
                   "capacity", "erode_rate", "deposit_rate", "min_slope", "max_depth", "damping",
+                  "bed_change_limit",
                   "talus_angle", "thermal_rate",
                   "out_layer", "flow_layer", "water_layer", "sediment_layer", "debris_layer",
                   "accumulate_debris", "erosion_layer", "keep_layers", "compute"],
@@ -432,6 +433,9 @@ SPECS = {
                           "help": "Water deeper than this (cells) erodes no faster: lakes don't dig"},
             "damping": {"label": "Flow Damping", "folder": "Erosion", "section": None,
                         "help": "How much of last step's flux is kept (momentum)"},
+            "bed_change_limit": {"label": "Bed Change Limit", "folder": "Erosion", "section": None,
+                                 "help": "0 = off. Caps how far the bed moves per step, as a fraction of the water "
+                                         "depth; 0.03 stops the ripples a Capacity above ~3 makes"},
             "talus_angle": {"label": "Talus Angle", "folder": "Thermal", "section": None},
             "thermal_rate": {"label": "Thermal Rate", "folder": "Thermal", "section": None,
                              "help": "0 = no slumping"},

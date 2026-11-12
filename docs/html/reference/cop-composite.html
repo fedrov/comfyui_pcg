@@ -45,6 +45,7 @@
 <h3 id="pcg-copcomparemask" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cmp_mask"/></svg>COP Compare Mask (PCG)<a class="hash" href="#pcg-copcomparemask" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPCompareMask</code> · category <code>PCG/cop</code> · Houdini: Compare (COP)</p>
 <p>Compares two layers (or a layer and a constant) per pixel and outputs a 0..1 mask.</p>
+<p><img src="../../images/nodes/PCG_COPCompareMask.png" alt="COP Compare Mask (PCG): input and result" loading="lazy"></p>
 <p>Compares A with B per pixel using the True If condition and writes a single-channel 0..1 mask. B is Layer B, or the Comparison Value when Layer B is empty. For multi-channel layers, Components decides whether all channels (minimum) or any channel (maximum) must pass.</p>
 <p>Tolerance is two-sided for the equality tests (<code>equal</code>, <code>not_equal</code>) and one-sided for the strict and non-strict inequalities. Pixels that pass the comparison are always 1; Falloff shapes the pixels that fail it but lie within the tolerance: <code>none</code> cuts hard at the tolerance edge, <code>linear</code> ramps from 1 down to 0, <code>elendt</code> uses a smooth S-shaped curve (implemented here as smoothstep, so intermediate values differ slightly from Houdini). <code>not_equal</code> is the complement of <code>equal</code>.</p>
 <p>To measure how different two images are (SSIM, PSNR) use COP Compare.</p>
@@ -78,6 +79,7 @@
 <h3 id="pcg-copdropshadow" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_shadow"/></svg>COP Drop Shadow (PCG)<a class="hash" href="#pcg-copdropshadow" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPDropShadow</code> · category <code>PCG/cop</code> · Houdini: Drop Shadow (COP)</p>
 <p>Builds a drop shadow from an alpha mask by offsetting, blurring and tinting it behind the original image.</p>
+<p><img src="../../images/nodes/PCG_COPDropShadow.png" alt="COP Drop Shadow (PCG): input and result" loading="lazy"></p>
 <p>Takes the alpha (the 4th channel of <code>layer</code>, or a separate alpha layer), shifts it by an offset, blurs it, colors it and places it underneath the original image. The result is RGBA.</p>
 <p>The node errors out if there is no alpha at all; it does not guess one.</p>
 <p><strong>Inputs</strong></p>
@@ -105,6 +107,7 @@
 <h3 id="pcg-coplogic" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-logic"/></svg>COP Logic (PCG)<a class="hash" href="#pcg-coplogic" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPLogic</code> · category <code>PCG/cop</code> · Houdini: Logic (COP)</p>
 <p>Compares layers or combines them with boolean operations, producing a 0/1 mask.</p>
+<p><img src="../../images/nodes/PCG_COPLogic.png" alt="COP Logic (PCG): input and result" loading="lazy"></p>
 <p>Input A is a layer name; Input B is either a layer name or a constant number. Comparison operations (A &gt; B, A &gt;= B, A &lt; B, A &lt;= B, A = B, A != B) give 1 where true. Boolean operations (AND, OR, XOR, NOT A) treat any value above 0.5 as true. Equality uses Tolerance, since exact float equality almost never holds. For multichannel layers the result is 1 only where all channels satisfy the test. The output is a single channel.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>cop</code></td><td>COPIMAGE</td><td>Image containing the layers to compare.</td></tr></tbody></table></div>
@@ -134,6 +137,7 @@
 <h3 id="pcg-coppremultiply" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-premult"/></svg>COP Premultiply (PCG)<a class="hash" href="#pcg-coppremultiply" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPPremultiply</code> · category <code>PCG/cop</code> · Houdini: Premultiply (COP)</p>
 <p>Multiplies RGB by alpha, or divides it back out.</p>
+<p><img src="../../images/nodes/PCG_COPPremultiply.png" alt="COP Premultiply (PCG): input and result" loading="lazy"></p>
 <p>Premultiply scales the colour channels by alpha. Unpremultiply divides them back; where alpha is 0 the result is 0 instead of NaN.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>cop</code></td><td>COPIMAGE</td><td>Image to convert.</td></tr></tbody></table></div>

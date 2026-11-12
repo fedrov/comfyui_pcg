@@ -43,6 +43,8 @@ Primitives, curves, terrain and other nodes that create geometry from nothing.
 
 Creates points from typed coordinates, connects points into polygons, or strips a mesh down to its points.
 
+![Add (PCG): input and result](../images/nodes/PCG_Add.png)
+
 Covers the three jobs of Houdini's Add SOP, all of which change point/primitive membership rather than positions: creating points, wiring points into polygons or polylines, and discarding primitives while keeping the points.
 
 Operations run in Houdini's order: *Delete Geometry But Keep the Points*, then append the new points, then build polygons, then the cleanup. New points are appended after the existing ones, so every polygon-building method can reference both input points and new points by number. With no input connected the node is a pure generator.

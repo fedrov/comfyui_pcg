@@ -522,7 +522,7 @@ else:
           np.allclose([lo_m, hi_m], np.array(hj["range"]) * 2048) and hi_m - lo_m > 100,
           (round(lo_m, 1), round(hi_m, 1)))
     Hm = lo_m + full / 65535.0 * (hi_m - lo_m)
-    layers = ("Grass", "ForestFloor", "Sediment", "Rock", "Snow", "Water")
+    layers = ("Grass", "ForestFloor", "Sediment", "Rock", "Sand", "Water")
     okw = True
     for i in range(4):
         for j in range(4):

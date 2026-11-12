@@ -26,8 +26,6 @@ from .core import POINT
 from . import studio as S
 from . import skylight as K
 
-SKY_ZENITH = np.array([0.11, 0.27, 0.64])
-SKY_HORIZON = np.array([0.64, 0.74, 0.88])
 GROUND_DEFAULT = (0.32, 0.31, 0.27)
 
 
@@ -80,7 +78,7 @@ def auto_camera(geo, W, H, elev, azim, fov=35.0, margin=1.04):
 def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
-                   report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32):
+                   report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto"):
     """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
     from . import render as R
     from .convert import _attrib_image
@@ -108,7 +106,6 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
          + up[None, None] * (ndy * th)[..., None]).astype(np.float32)
     del jj, ii, ndx, ndy
     D /= np.linalg.norm(D, axis=-1, keepdims=True)
-    img = np.zeros((H, W, 3), np.float32)
     if not have:
         sk_ = K.clouds(D.reshape(-1, 3), L, sky_radiance(D.reshape(-1, 3), L), clouds, cloud_seed)
         return _develop(sk_.reshape(H, W, 3).astype(np.float32), exposure, k)
@@ -194,7 +191,14 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     off = np.minimum(off, 8.0 * sr_ * 2.0 / sres)
     L32 = L.astype(np.float32)
     vi = np.nonzero(valid)
-    dmap, meta = K.depth_map(T, L, sc_, sr_, sres)
+    from .progress import check as _cancel
+    _cancel()
+    dev = K.torch_device(compute)
+    if dev is not None:
+        dmap, meta = K.depth_map_t(K.to_device(T, dev), L, sc_, sr_, sres)
+        dmap = dmap.cpu().numpy()
+    else:
+        dmap, meta = K.depth_map(T, L, sc_, sr_, sres)
     sh = np.ones(valid.shape, np.float32)
     step = 1 << 20
     for s0 in range(0, len(vi[0]), step):
@@ -227,7 +231,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     vis_s = np.ones(vs.shape, np.float32)
     if vs.any() and int(sky_samples) > 0:
         e_, v_ = K.sky_dome(T, Ps[vs], Ns[vs], sc_, sr_, L, sky_fn, alb_mean, k=int(sky_samples),
-                            res=512, sun_frac=lit_frac)
+                            res=512, sun_frac=lit_frac, device=dev)
         Es[vs] = e_
         vis_s[vs] = v_
     elif vs.any():

@@ -496,6 +496,8 @@ The first two methods (One Point per Pixel, Scatter by Density) are specific to 
 
 Inflates a mask into a height layer, like a pillow or soap bubble.
 
+![COP Planar Inflate (PCG): input and result](../images/nodes/PCG_COPPlanarInflate.png)
+
 Pixels of the mask above 0.5 are inflated, and the result is normalized so the highest point equals Height. It is a good starting point for relief, bevelled text and normal maps. An empty mask gives an error.
 
 - **Round**: a circular-arc profile `h = sqrt(2Rd - d^2) / R`, where d is the distance to the boundary and R the largest inner distance. Edges are vertical and the middle is a flat top, like a pillow.
@@ -838,6 +840,8 @@ With Hex on, every projection uses hex-tiling: three overlapping hex cells are b
 `PCG_COPUVShape` · category `PCG/cop` · Houdini: UV Shape (COP)
 
 Generates interior UV coordinates, UV stretch and a mask for a disk or annulus shape.
+
+![COP UV Shape (PCG): input and result](../images/nodes/PCG_COPUVShape.png)
 
 Outputs where each pixel lies in the shape's own parametric coordinate system, so that a square image can be mapped into the shape with UV Sample. This is not the same as COP Shape, which outputs a signed distance field.
 

@@ -659,12 +659,18 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
     if ul:
         U = U * np.clip(_np(img.need(ul))[:, :, 0].ravel(), 0.0, None)
     U[smf] = 0.0        # outlets aren't updated anyway (rcv = -1); this line just keeps U itself honest
+    h_raw = h
     h = priority_fill(h, sm, tile)
+    lake_i, lake_r = lake_routes(h, h_raw, sm, tile)        # see the first step below
+    del h_raw
     refills = 1
     hf = h.ravel().copy()
     A = np.full(N, texel * texel)
     nb_last = 0
+    from ..progress import Progress
+    prog = Progress(it)
     for step in range(it):
+        prog.step()
         f2 = hf.reshape(H, W)
         rho = None if rng is None else rng.random(N)
         rcv, dist = d8(f2, sm, tile, rho)
@@ -674,6 +680,28 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
             hf = f2.ravel().copy()
             refills += 1
             rcv, dist = d8(f2, sm, tile, rho)
+        if lake_i.size:
+            # Across the lakes filled at the start the water follows the drowned valley (lake_routes), not the ε slope
+            # of pit filling, which runs in ruler-straight 0° / 45° lines. The implicit update below works on any
+            # receiver tree processed downstream first and leaves every pixel strictly above its receiver, so the
+            # route stays valid from step to step. A lake pixel keeps it for as long as its floor is still flat
+            # (steepest descent finds no real slope there, only ulps); once erosion has cut a real slope into the
+            # old lake floor, steepest descent takes over for that pixel
+            if step == 0:
+                use = np.ones(lake_i.size, bool)
+                flat_eps = 1e-9 * max(float(hf.max() - hf.min()), 1e-300)
+                ly, lx = np.divmod(lake_i, W)
+                ry, rx = np.divmod(lake_r, W)
+                dy_, dx_ = np.abs(ly - ry), np.abs(lx - rx)
+                if tile:
+                    dy_, dx_ = np.minimum(dy_, H - dy_), np.minimum(dx_, W - dx_)
+                lake_d = np.hypot(dx_, dy_)
+            else:
+                r8 = rcv[lake_i]
+                drop = hf[lake_i] - hf[np.maximum(r8, 0)]
+                use = ((r8 < 0) | (drop < flat_eps)) & (hf[lake_r] < hf[lake_i])
+            rcv[lake_i[use]] = lake_r[use]
+            dist[lake_i[use]] = lake_d[use]
         src = np.flatnonzero(rcv >= 0)
         # layered by "steps to the outlet" (tree_levels), downstream first. Each layer's receiver indices are fetched up front,
         # shared by the three loops below (accumulation, implicit update, diffusion)

@@ -43,6 +43,7 @@
 <h3 id="pcg-blastbyattribute" class="node"><svg class="ico big" style="color:#8fb8e0" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-blast_attr"/></svg>Blast by Attribute (PCG)<a class="hash" href="#pcg-blastbyattribute" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_BlastByAttribute</code> · category <code>PCG/modify</code> · Houdini: Blast by Attribute (SOP)</p>
 <p>Deletes points or primitives by comparing a single-valued attribute against a threshold, range or band, or just groups the hits.</p>
+<p><img src="../../images/nodes/PCG_BlastByAttribute.png" alt="Blast by Attribute (PCG): input and result" loading="lazy"></p>
 <p>Tests a scalar numeric attribute on each element and either deletes the elements that match or, with <em>Output = Group</em>, leaves the geometry intact and puts the matching elements into a new group.</p>
 <p>Modes:</p>
 <ul><li><em>Threshold</em>: matches elements whose value is strictly below the threshold (equal values stay).</li><li><em>Range</em>: matches <code>min &lt;= value &lt;= max</code>.</li><li><em>Width</em>: matches values inside <code>[center - width/2, center + width/2]</code>.</li></ul>
@@ -582,6 +583,7 @@
 <h3 id="pcg-matchaxis" class="node"><svg class="ico big" style="color:#8fb8e0" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-match_axis"/></svg>Match Axis (PCG)<a class="hash" href="#pcg-matchaxis" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_MatchAxis</code> · category <code>PCG/modify</code> · Houdini: Match Axis (SOP)</p>
 <p>Rotates geometry by the smallest rotation that takes one axis direction onto another.</p>
+<p><img src="../../images/nodes/PCG_MatchAxis.png" alt="Match Axis (PCG): input and result" loading="lazy"></p>
 <p>Rotates <em>From Axis</em> onto <em>To Axis</em> with the minimal rotation, about the origin, the centroid or the bounding box center. If <em>Up From</em> and <em>Up To</em> are both non-zero, a further rotation about the main axis then also aligns the up vectors. The vector attributes <code>N</code>, <code>up</code>, <code>v</code> and <code>orient</code> are rotated along with the points.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>geo</code></td><td>GEOMETRY</td><td>Geometry to rotate.</td></tr></tbody></table></div>
@@ -884,6 +886,7 @@
 <h3 id="pcg-primitivesplit" class="node"><svg class="ico big" style="color:#8fb8e0" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-prim_split"/></svg>Primitive Split (PCG)<a class="hash" href="#pcg-primitivesplit" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_PrimitiveSplit</code> · category <code>PCG/modify</code> · Houdini: Primitive Split (SOP)</p>
 <p>Splits shared points so that primitives with different attribute values no longer share them.</p>
+<p><img src="../../images/nodes/PCG_PrimitiveSplit.png" alt="Primitive Split (PCG): input and result" loading="lazy"></p>
 <p>Primitives whose primitive attribute values differ by more than <strong>Tolerance</strong> (strings are compared for equality) stop sharing points: a point shared by several kinds of primitives is duplicated, one copy per kind. Primitives outside <code>group</code> form one class of their own and keep sharing points among themselves.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>geo</code></td><td>GEOMETRY</td><td>Geometry with shared points.</td></tr></tbody></table></div>

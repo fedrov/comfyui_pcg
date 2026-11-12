@@ -34,6 +34,8 @@ Color correction, levels, remapping, keying.
 
 Keys out a colour (green or blue screen) into a matte, with optional despill.
 
+![COP Chroma Key (PCG): input and result](../images/nodes/PCG_COPChromaKey.png)
+
 Three matte methods are available:
 
 - `distance` (default, specific to this plugin): measures the distance to the key colour in the YCbCr chroma plane, normalised by luma, ignoring brightness, so shadows and highlights on a green screen are keyed out together. Tolerance and Softness control the transition.
@@ -259,6 +261,8 @@ Matches Despill: it only removes spill and does not output alpha.
 
 Shifts or scales the selected channels so that their measured minimum, maximum or average hits chosen target values.
 
+![COP Equalize (PCG): input and result](../images/nodes/PCG_COPEqualize.png)
+
 Measures the minimum, maximum and average of a luminance (chosen by `luminance_type`) and then moves all selected channels together to the target: stretch to Black/White, move the minimum to Black, move the maximum to White, move the average to Target Average, or scale so the maximum length hits White.
 
 This is not histogram equalization; for that use COP Histogram.
@@ -305,6 +309,8 @@ This is not histogram equalization; for that use COP Histogram.
 
 Remaps the measured minimum and maximum of each layer to a chosen output range and reports statistics.
 
+![COP Fit (PCG): input and result](../images/nodes/PCG_COPFit.png)
+
 Rescales values so that the actual minimum and maximum found in the layer land on `out_min` and `out_max`. COP does not clamp values, so the real range of an image (noise in plus/minus 1, an SDF in hundreds of pixels, depth in metres) is often unknown; Fit is the quickest way to inspect it without knowing the range in advance. The second output is a one-line statistics text for the chosen layer.
 
 By default all channels share one range, which preserves hue. With `per_channel` on, each channel is stretched on its own, which changes color relationships. A constant layer (min equal to max) is written as `out_min` without dividing by zero.
@@ -340,6 +346,8 @@ By default all channels share one range, which preserves hue. With `per_channel`
 `PCG_COPFunction` · category `PCG/cop` · Houdini: Function (COP)
 
 Applies a per-pixel unary function such as abs, pow, exp, log, sin, frac, step, smoothstep, mod or sigmoid.
+
+![COP Function (PCG): input and result](../images/nodes/PCG_COPFunction.png)
 
 Equivalent of Function. The function is applied to every channel of the selected layers.
 

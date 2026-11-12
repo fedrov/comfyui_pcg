@@ -249,9 +249,12 @@ def simulate(hp, W, H, n_drops, ops, lifetime=30, inertia=0.05,
     steps = 0
     lim_x, lim_y = W - 1, H - 1
     done = 0
+    from ..progress import Progress
+    prog = Progress(n_drops)
     while done < n_drops:
         B = min(int(batch), n_drops - done)
         done += B
+        prog.step(B)
         # Spawn points: when not tiling, in [0, W−1) × [0, H−1) -- bilinear needs the +1 neighbour
         sx = rng.random(B) * (W if tile else lim_x)
         sy = rng.random(B) * (H if tile else lim_y)

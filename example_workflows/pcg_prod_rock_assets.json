@@ -2324,7 +2324,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "LOD0 + baked textures (studio)"
   },
@@ -2566,7 +2567,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "High-poly (with bake colour)"
   },
@@ -2825,7 +2827,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "LOD0 / 1 / 2 with the baked textures"
   },

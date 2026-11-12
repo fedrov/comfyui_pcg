@@ -1995,6 +1995,82 @@ def render_3d(jobs, work):
             for n in jobs if os.path.exists(os.path.join(shots, n + ".png"))}
 
 
+# ── pcg126: more geometry nodes
+@recipe("Add")
+def _():
+    return {"out": g("Add", points="0 0 0\n1 0 0\n1.3 0 0.8\n0.5 0 1.4\n-0.3 0 0.8", use_pattern=True, pattern="0-4",
+                     pattern_closed=True), "wire": True}
+
+
+@recipe("MatchAxis")
+def _():
+    t = g("Tube", radius1=0.3, radius2=0.1, height=1.4)
+    return {"in": [t], "out": g("MatchAxis", geo=t, from_x=0, from_y=1, from_z=0, to_x=1, to_y=0, to_z=1)}
+
+
+@recipe("BlastByAttribute")
+def _():
+    s_ = g("Wrangle", geo=g("Sphere", radius=0.8, cols=32, rows=16), code="@pscale = noise(@P * 2.5)")
+    return {"in": [s_], "out": g("BlastByAttribute", geo=s_, cls="point", attribute="pscale", threshold=0.5)}
+
+
+@recipe("PrimitiveSplit")
+def _():
+    f = g("VoronoiFracture", geo=SPHERE(), points=g("Scatter", geo=SPHERE(), count=8))
+    c = g("Color", geo=f, attribute_class="prim", mode="random_by_attribute", attribute="name")
+    sp = g("PrimitiveSplit", geo=c, attribute="name")
+    return colored({"in": [c], "out": g("ExplodedView", geo=sp, distance=0.3)})
+
+
+# ── pcg126: more image (COP) nodes
+_cop("COPBoundingRect", _shape, layer_in="mask", layer_out="rect", padding=6)
+_cop("COPChromaKey", _colorful, layer_out="alpha", key_color="0.2 0.6 0.55", tolerance=0.25, softness=0.15)
+_cop("COPConvertNormal", _normals, layer_in="N", layer_out="N", layer="N", decode="signed", encode="packed")
+_cop("COPCopyTransform", _shape, layer_in="mask", layer_out="mask", copies=6, translate="0.05 0.02", rotate=20.0,
+     scale=0.85, op="max")
+_cop("COPEqualize", lambda: _noise(octaves=3, amplitude=0.15, bias=0.35))
+_cop("COPFit", lambda: _noise(octaves=3, amplitude=0.15, bias=0.35))
+_cop("COPFloodFill", lambda: g("COPPattern", kind="tile", resolution_x=256, resolution_y=256), layer_in="pattern",
+     layer_out="fill_mask", layer="pattern", seed_uv="0.3 0.3")
+_cop("COPFractalSample", _shape, layer_in="mask", layer_out="fractal", source_layer="mask", max_octaves=5)
+_cop("COPFunction", _sdf, layer_in="sdf", layer_out="sdf", layers="sdf", function="abs")
+_cop("COPHFClip", _smooth, mode="both", min=0.35, max=0.6, softness=0.03)
+_cop("COPLogic", _smooth, layer_out="mask", a="C", b="0.5", op="greater")
+_cop("COPPlanarInflate", _shape, layer_in="mask", layer_out="height")
+_cop("COPPrefixSum", _shape, layer_in="mask", layer_out="mask", layers="mask", direction="u")
+_cop("COPSegmentByValue", _smooth, layer_out="id", mode="bins", bins=6)
+_cop("COPSplatMap", _smooth, layer_out="splat_rgba", strength=0.4)
+_cop("COPStrata", _smooth, spacing=0.05, strength=1.0, sharpness=0.95, tilt="0.3 0.1", noise_amount=0.02)
+_cop("COPWrangle", _smooth, code="@C = set(@u, @v, 0.5) * smoothstep(0.4, 0.6, @C)")
+_cop("COPDropShadow", _shape, layer_in="mask", layer_out="mask", layer="mask", alpha_layer="mask", offset="10 -10",
+     blur=5.0)
+_cop("COPFFT", _fine, mode="filter", filter="lowpass", cutoff=10.0)
+_cop("COPConvolve", _colorful, preset="emboss")
+_cop("COPCornerPin", _colorful, corners="0.1 0.05 0.9 0.2 0.8 0.95 0.05 0.8")
+_cop("COPLatticeDeform", _colorful, divisions="4 4", jitter=0.12, rand_seed=3)
+_cop("COPTransform3D", _colorful, rotate="35 25 0", perspective=True, border="constant")
+_cop("COPCompareMask", _smooth, layer_out="mask", value=0.5, tolerance=0.05, true_if="equal", falloff="linear")
+_cop("COPResize", _colorful, resolution_x=48, resolution_y=48)
+_cop("COPLight", _normals, layer_in="N", layer_out="lit", azimuth=135.0, elevation=40.0, specular=0.4)
+_cop("COPRefractFromHeight", _smooth, layer_out="refract", strength=0.3, depth=0.3)
+_cop("COPIDConvert", lambda: g("COPSegmentByValue", cop=_smooth(), mode="bins", bins=6), layer_in="id",
+     layer_out="id_mask", ids="2 4", mode="mask")
+_cop("COPStereogram", lambda: g("COPWrangle", cop=_shape(), code="@depth = @mask"), layer_in="depth",
+     layer_out="stereogram")
+_cop("COPPremultiply", lambda: g("COPWrangle", cop=_colorful(), code=(
+    "a = smoothstep(0.45, 0.2, length(set(@u - 0.5, @v - 0.5, 0)))\n@C = set(@C.x, @C.y, @C.z, a)")))
+cop_recipe("COPNoiseExtra", lambda: {"out": g("COPNoiseExtra", kind="phasor", frequency=10.0, resolution_x=256,
+                                               resolution_y=256), "layer_out": "noise"})
+cop_recipe("COPRandom", lambda: {"out": g("COPRandom", mode="pixel", channels="3", resolution_x=64, resolution_y=64),
+                                  "layer_out": "random"})
+cop_recipe("COPUVShape", lambda: {"out": g("COPUVShape", shape="disk", disk_mode="polar", uv_range="unit",
+                                            resolution_x=256, resolution_y=256), "layer_out": "uv"})
+cop_recipe("COPUVMap", lambda: {"out": g("COPUVMap", resolution_x=256, resolution_y=256), "layer_out": "uv"})
+cop_recipe("COPRipple", lambda: {"in": [_shape()], "out": g("COPRipple", cop=_shape(), source_layer="mask", steps=140,
+                                                           resolution_x=256, resolution_y=256),
+                                  "layer_in": "mask", "layer_out": "ripple"})
+
+
 def main(argv):
     if "--list" in argv:
         print("\n".join(sorted(RECIPES)))

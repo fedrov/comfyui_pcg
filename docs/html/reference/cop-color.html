@@ -31,6 +31,7 @@
 <h3 id="pcg-copchromakey" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-chroma"/></svg>COP Chroma Key (PCG)<a class="hash" href="#pcg-copchromakey" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPChromaKey</code> · category <code>PCG/cop</code> · Houdini: Chroma Key (COP)</p>
 <p>Keys out a colour (green or blue screen) into a matte, with optional despill.</p>
+<p><img src="../../images/nodes/PCG_COPChromaKey.png" alt="COP Chroma Key (PCG): input and result" loading="lazy"></p>
 <p>Three matte methods are available:</p>
 <ul><li><code>distance</code> (default, specific to this plugin): measures the distance to the key colour in the YCbCr chroma plane, normalised by luma, ignoring brightness, so shadows and highlights on a green screen are keyed out together. Tolerance and Softness control the transition.</li><li><code>chromakey</code>: Houdini's legacy Chromakey, with a hue, saturation and luminance range and Rolloff values that extend a soft edge beyond each range.</li><li><code>channel_separation</code>: Houdini's Channel Separation, which subtracts the maximum of the two other channels from the screen's main channel and applies Threshold and Width.</li></ul>
 <p>Despill is an extension: the amount by which the key colour's main channel exceeds the average of the other two is reduced. The matte is written to Alpha Layer (1 keeps the pixel, 0 removes it).</p>
@@ -102,6 +103,7 @@
 <h3 id="pcg-copequalize" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-equalize"/></svg>COP Equalize (PCG)<a class="hash" href="#pcg-copequalize" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPEqualize</code> · category <code>PCG/cop</code> · Houdini: Equalize (COP)</p>
 <p>Shifts or scales the selected channels so that their measured minimum, maximum or average hits chosen target values.</p>
+<p><img src="../../images/nodes/PCG_COPEqualize.png" alt="COP Equalize (PCG): input and result" loading="lazy"></p>
 <p>Measures the minimum, maximum and average of a luminance (chosen by <code>luminance_type</code>) and then moves all selected channels together to the target: stretch to Black/White, move the minimum to Black, move the maximum to White, move the average to Target Average, or scale so the maximum length hits White.</p>
 <p>This is not histogram equalization; for that use COP Histogram.</p>
 <p><strong>Inputs</strong></p>
@@ -114,6 +116,7 @@
 <h3 id="pcg-copfit" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cop_fit"/></svg>COP Fit (PCG)<a class="hash" href="#pcg-copfit" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPFit</code> · category <code>PCG/cop</code></p>
 <p>Remaps the measured minimum and maximum of each layer to a chosen output range and reports statistics.</p>
+<p><img src="../../images/nodes/PCG_COPFit.png" alt="COP Fit (PCG): input and result" loading="lazy"></p>
 <p>Rescales values so that the actual minimum and maximum found in the layer land on <code>out_min</code> and <code>out_max</code>. COP does not clamp values, so the real range of an image (noise in plus/minus 1, an SDF in hundreds of pixels, depth in metres) is often unknown; Fit is the quickest way to inspect it without knowing the range in advance. The second output is a one-line statistics text for the chosen layer.</p>
 <p>By default all channels share one range, which preserves hue. With <code>per_channel</code> on, each channel is stretched on its own, which changes color relationships. A constant layer (min equal to max) is written as <code>out_min</code> without dividing by zero.</p>
 <p><strong>Inputs</strong></p>
@@ -126,6 +129,7 @@
 <h3 id="pcg-copfunction" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-func"/></svg>COP Function (PCG)<a class="hash" href="#pcg-copfunction" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPFunction</code> · category <code>PCG/cop</code> · Houdini: Function (COP)</p>
 <p>Applies a per-pixel unary function such as abs, pow, exp, log, sin, frac, step, smoothstep, mod or sigmoid.</p>
+<p><img src="../../images/nodes/PCG_COPFunction.png" alt="COP Function (PCG): input and result" loading="lazy"></p>
 <p>Equivalent of Function. The function is applied to every channel of the selected layers.</p>
 <p>The node never produces NaN: log and sqrt of negative numbers give 0, and the reciprocal of 0 gives 0. A NaN would be smeared by a downstream blur and turn the whole image black with no visible source.</p>
 <p><code>pow</code> keeps the sign (<code>x^a</code> applied to the magnitude). <code>step</code> is 1 where <code>x &gt;= a</code>. <code>smoothstep</code> runs from <code>a</code> to <code>b</code>. <code>mod</code> is <code>x mod a</code> (result has the sign of <code>a</code>; 0 when <code>a</code> is 0). <code>sigmoid</code> is the logistic function.</p>

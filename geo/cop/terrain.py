@@ -463,7 +463,10 @@ def thermal_erode(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
     if granular:
         from .pattern import rnd
         pid = np.arange(H * W, dtype=np.int64)
+    from ..progress import Progress
+    prog = Progress(it)
     for step_i in range(it):
+        prog.step()
         surf = h if bed is None else bed + h
         p = pad2(surf, mode)
         exc = []

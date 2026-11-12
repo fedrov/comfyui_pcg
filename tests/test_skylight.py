@@ -262,12 +262,108 @@ N = comfyui_pcg.NODE_CLASS_MAPPINGS
 it = N["PCG_PreviewImage"].INPUT_TYPES()["optional"]
 keys = list(it)
 check("node: clouds / cloud_seed / sky_samples appended last, defaults = the plain clear-sky render with 32 samples",
-      keys[-3:] == ["clouds", "cloud_seed", "sky_samples"] and it["clouds"][1]["default"] == 0.0
+      keys[-4:-1] == ["clouds", "cloud_seed", "sky_samples"] and it["clouds"][1]["default"] == 0.0
       and it["sky_samples"][1]["default"] == 32)
 r = N["PCG_PreviewImage"]().run(box, 96, 64, 25, 35, "color", look="outdoor", supersampling=1, clouds=0.5,
                                 cloud_seed=2, sky_samples=8)
 r = r["result"] if isinstance(r, dict) else r
 check("  the node runs with them", tuple(r[0].shape) == (1, 64, 96, 3))
+
+print("\n[9. Triangles of big meshes]")
+# Above spatial._FAST_SOUP primitives, triangles and convex quads are cut directly instead of through Divide (3 GB
+# less on the world example). It must give the same triangulation count per primitive, the same area, the same
+# picture -- also for the primitives it hands back to Divide (concave quads, n-gons)
+from comfyui_pcg.geo import spatial as SP, ops  # noqa: E402
+gq = build.grid(4, 4, 30, 30)
+Pq = np.asarray(gq.get(POINT, "P")).copy()
+Pq[:, 1] += np.random.default_rng(0).normal(0, 0.02, len(Pq))
+gq.set(POINT, "P", Pq)
+conc = Geometry.from_mesh(np.array([[0, 0, 0], [2, 0, 0], [0.4, 0, 0.4], [0, 0, 2], [5, 0, 0], [6, 0, 0], [6.5, 0, 1],
+                                    [5.5, 0, 1.6], [4.6, 0, 1]], np.float32), [[0, 1, 2, 3], [4, 5, 6, 7, 8]])
+mixed = ops.merge(gq, build.sphere(radius=1, cols=12, rows=6), conc)
+
+
+def tri_area(g_, t_):
+    Pm = np.asarray(g_.get(POINT, "P"), np.float64)
+    return float(np.linalg.norm(np.cross(Pm[t_[:, 1]] - Pm[t_[:, 0]], Pm[t_[:, 2]] - Pm[t_[:, 0]]), axis=1).sum() / 2)
+
+
+slow = SP.tri_soup(mixed, "")
+keep_ = SP._FAST_SOUP
+SP._FAST_SOUP = 0
+try:
+    fast = SP.tri_soup(mixed, "")
+finally:
+    SP._FAST_SOUP = keep_
+check("fast path: same number of triangles per primitive as Divide (quads 2, the pentagon 3, the concave quad 2)",
+      np.array_equal(np.bincount(slow[1], minlength=mixed.nprims), np.bincount(fast[1], minlength=mixed.nprims)),
+      (len(slow[0]), len(fast[0])))
+check("  corners and points agree (corner -> its point), total area equal",
+      np.array_equal(mixed.vertex_point[fast[2]], fast[0]) and abs(tri_area(mixed, slow[0]) - tri_area(mixed, fast[0]))
+      < 1e-5 * tri_area(mixed, slow[0]))
+camq = R.camera(mixed, "orthographic", xres=128, yres=128, elev=60, azim=30, frame_geometry=True)
+ra, rb = R.rasterize(mixed, camq, soup=slow), R.rasterize(mixed, camq, soup=fast)
+check("  the rasterized picture is the same (coverage and depth)",
+      np.array_equal(ra["hit"] >= 0, rb["hit"] >= 0) and float(np.abs(ra["z"] - rb["z"]).max()) < 1e-9)
+cq = Geometry.from_mesh(np.array([[0, 0, 0], [2, 0, 0], [0.4, 0, 0.4], [0, 0, 2]], np.float32), [[0, 1, 2, 3]])
+SP._FAST_SOUP = 0
+try:
+    fc = SP.tri_soup(cq, "")
+finally:
+    SP._FAST_SOUP = keep_
+check("  negative control: a concave quad cut as a plain fan would cover more than its area; the fast path does not",
+      abs(tri_area(cq, fc[0]) - 0.8) < 1e-6 and abs(tri_area(cq, np.array([[0, 1, 2], [0, 2, 3]])) - 0.8) < 1e-6
+      and abs(tri_area(cq, np.array([[1, 2, 3], [1, 3, 0]])) - 0.8) > 0.5,
+      (round(tri_area(cq, fc[0]), 4), round(tri_area(cq, np.array([[1, 2, 3], [1, 3, 0]])), 4)))
+
+print("\n[10. Torch path]")
+try:
+    import torch  # noqa: F401
+    have_t = True
+except Exception:
+    have_t = False
+if not have_t:
+    check("torch not installed: skipped", True)
+else:
+    dev = K.torch_device("torch_cpu")
+    check("Compute: cpu -> numpy; auto / cuda without CUDA -> numpy; a wrong value raises",
+          K.torch_device("cpu") is None and (torch.cuda.is_available() or K.torch_device("auto") is None))
+    try:
+        K.torch_device("gpu0")
+        bad = False
+    except ValueError:
+        bad = True
+    check("  unknown Compute raises", bad)
+    Tm = K.soup(mixed)[1]
+    dn, _ = K.depth_map(Tm, d, np.array([0.5, 0.0, 0.5]), 5.0, 384)
+    dt_, _ = K.depth_map_t(K.to_device(Tm, dev), d, np.array([0.5, 0.0, 0.5]), 5.0, 384)
+    dt_ = dt_.numpy()
+    same = np.isfinite(dn) == np.isfinite(dt_)
+    fin = np.isfinite(dn) & np.isfinite(dt_)
+    check("depth map in torch = numpy: same coverage (> 99.9 % of texels), depths equal to 1e-4",
+          same.mean() > 0.999 and float(np.abs(dn - dt_)[fin].max()) < 1e-4,
+          (float(same.mean()), float(np.abs(dn - dt_)[fin].max())))
+    slab = tris([[(-40, 0, -40), (40, 0, -40), (40, 0, 40), (-40, 0, 40)]])
+    dsn, _ = K.depth_map(slab, Lz, np.zeros(3), 30.0, 2048)
+    dst, _ = K.depth_map_t(K.to_device(slab, dev), Lz, np.zeros(3), 30.0, 2048)
+    check("  a triangle covering the whole 2048² map (cut into strips) fills it, in both", bool(np.isfinite(dsn).all())
+          and bool(torch.isfinite(dst).all()) and float(np.abs(dsn - dst.numpy()).max()) < 1e-4)
+    rngp = np.random.default_rng(4)
+    Pq_ = (rngp.random((4000, 3)) * np.array([4, 0.0, 4]) - np.array([2, 0, 2])).astype(np.float32)
+    Pq_[:, 1] = 0.01
+    Nq_ = np.tile(np.array([[0, 1.0, 0]], np.float32), (len(Pq_), 1))
+    cz = canyon(2.0)
+    En, vn = K.sky_dome(cz, Pq_, Nq_, np.array([0, 1.0, 0.0]), 6.0, Lh, white, np.array([0.3, 0.3, 0.3]), k=24, res=256)
+    Et, vt = K.sky_dome(cz, Pq_, Nq_, np.array([0, 1.0, 0.0]), 6.0, Lh, white, np.array([0.3, 0.3, 0.3]), k=24, res=256,
+                        device=dev)
+    check("sky dome in torch = numpy (irradiance and visibility to 2e-3; texel-edge points may flip one tap)",
+          float(np.abs(En - Et).mean()) < 2e-3 and float(np.abs(vn - vt).mean()) < 2e-3,
+          (float(np.abs(En - Et).mean()), float(np.abs(vn - vt).max())))
+    a_np = O.render_outdoor(box, 160, 120, cam=cam, ssaa=1, sun_elev=50, sun_azim=90, sky_samples=16, compute="cpu")
+    a_t = O.render_outdoor(box, 160, 120, cam=cam, ssaa=1, sun_elev=50, sun_azim=90, sky_samples=16, compute="torch_cpu")
+    check("the rendered frame: torch path within 1/255 of the numpy path on 99 % of pixels",
+          float((np.abs(a_np - a_t).max(-1) < 1 / 255).mean()) > 0.99, float(np.abs(a_np - a_t).max()))
+    check("node: Compute appended last", list(N["PCG_PreviewImage"].INPUT_TYPES()["optional"])[-1] == "compute")
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

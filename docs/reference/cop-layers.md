@@ -269,6 +269,8 @@ Renderers usually give z depth along the view axis, ray tracers give the Euclide
 
 Converts normal maps between packed/signed encoding and OpenGL/DirectX conventions.
 
+![COP Convert Normal (PCG): input and result](../images/nodes/PCG_COPConvertNormal.png)
+
 Steps always run in this fixed order: decode, reconstruct z, flip, normalize, encode.
 
 - `packed` vs `signed`: image files store normals as 0..1 colours, while inside this plugin normals are vectors in -1..1. A normal map read in from ComfyUI must go through packed to signed first.
@@ -312,6 +314,8 @@ packed to signed to packed is an identity, and flipping twice restores the input
 `PCG_COPIDConvert` · category `PCG/cop` · Houdini: ID to Mask (COP), ID to Mono (COP), ID to SDF (COP)
 
 Converts an integer ID layer into a mask, a normalized mono value or a signed distance field.
+
+![COP ID Convert (PCG): input and result](../images/nodes/PCG_COPIDConvert.png)
 
 Reads the first channel of the ID layer, rounded to integers.
 

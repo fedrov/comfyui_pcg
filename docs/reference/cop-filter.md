@@ -126,6 +126,8 @@ Corresponds to the contour mode of Houdini's Edge Detect.
 
 Convolves layers with a kernel written as numbers, a preset, or another image.
 
+![COP Convolve (PCG): input and result](../images/nodes/PCG_COPConvolve.png)
+
 The kernel is n x n numbers (n odd), written one row per line. The first line written is the top row of the image. Presets: box, gaussian, sharpen, edge, emboss and Sobel X / Y. Kernels larger than 7 x 7 are computed with an FFT.
 
 When the `kernel_cop` input is connected, a layer of that image (Kernel Layer) is used as the kernel instead. This is a true convolution: convolving a single-pixel impulse gives the kernel image itself. Preset and Kernel are then ignored. With Centered off, the origin is the bottom-left pixel of the kernel image.
@@ -706,6 +708,8 @@ This differs from the older COP Feather, which applies a smoothstep by distance 
 `PCG_COPFFT` · category `PCG/cop` · Houdini: Fast Fourier Transform (COP), Filter Frequencies (COP)
 
 Performs a forward or inverse Fourier transform, shows the magnitude spectrum, or filters frequencies.
+
+![COP FFT (PCG): input and result](../images/nodes/PCG_COPFFT.png)
 
 Covers Houdini's Fast Fourier Transform and Filter Frequencies. `forward` turns channel 0 into a 2-channel layer (real, imaginary) without normalization (the DC component is the sum of the pixels); `inverse` takes (real, imaginary) back to one real channel; `magnitude` outputs `log(1 + |F|)` per channel for viewing the spectrum; `filter` transforms, multiplies by a radial window and transforms back, per channel, with a cosine soft edge (a hard cutoff would ring).
 

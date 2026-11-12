@@ -2,7 +2,7 @@
 # Registry id: lowercase, unique across the Comfy Registry, should not contain "ComfyUI".
 # Check that it is still free at https://registry.comfy.org before the first publish.
 name = "pcg-geometry"
-version = "0.1.0"
+version = "0.2.0"
 description = "Houdini-style procedural geometry (SOPs) and Copernicus-style image nodes (COPs) for ComfyUI: 500+ numpy nodes with Houdini-style parameter panels, a 3D viewport with handles, expressions, keyframes, For-Each loops and a geometry <-> AI texture round trip."
 license = { file = "LICENSE" }
 readme = "README.md"

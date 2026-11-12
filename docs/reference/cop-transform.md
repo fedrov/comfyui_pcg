@@ -350,6 +350,8 @@ The red channel is scaled up around Center by 1 + Amount and the blue channel is
 
 Makes several transformed copies of the image and stacks them, each copy shifted, rotated and scaled further than the last.
 
+![COP Copy Transform (PCG): input and result](../images/nodes/PCG_COPCopyTransform.png)
+
 Copy i (starting at 0) is translated by `i * Translate` in uv units, rotated by `i * Rotate` degrees around Pivot and scaled by `Scale^i` (multiplied per axis by Scale XY). Copies are combined with Op: `over_last` and `under` use Porter-Duff compositing and compute a proper alpha (layers without alpha are treated as fully opaque, so their whole frame covers what is below); `add` adds; `max` takes the larger value; `over` is the older mode in which copy 0 is on top and alpha is interpolated like a normal channel.
 
 Fade makes later copies fainter: copy i is multiplied by `(1 - Fade)^i`. For `over_last` and `under` only alpha is faded.
@@ -401,6 +403,8 @@ Corresponds to Copy and Transform. The `over` mode is kept for compatibility and
 `PCG_COPCornerPin` · category `PCG/cop` · Houdini: Corner Pin (COP)
 
 Warps an image so its four corners land on given positions, or rotates it like a 3D card seen by a pinhole camera.
+
+![COP Corner Pin (PCG): input and result](../images/nodes/PCG_COPCornerPin.png)
 
 Both modes build a homography (a perspective transform), so straight lines stay straight. In `corners` mode you give the uv positions of the four output corners (bottom left, bottom right, top right, top left). In `rotate_3d` mode the image is treated as a card that is rotated in 3D by the given XYZ Euler angles in degrees and photographed by a pinhole camera with the given field of view; the four corner positions are computed from that and the same homography is used. If the card is rotated behind the camera an error is raised: reduce the angles or increase Distance.
 
@@ -758,6 +762,8 @@ The weights are sharpened as `w^(1 + 8*contrast)` and renormalized, so a higher 
 
 Warps an image with a grid of control points that are offset in uv.
 
+![COP Lattice Deform (PCG): input and result](../images/nodes/PCG_COPLatticeDeform.png)
+
 A lattice of `(nx+1) x (ny+1)` control points is laid over the image, where Divisions sets the number of cells `nx ny`. Each control point has a uv offset, either typed in explicitly (Point Offsets) or generated randomly (Jitter). The offsets are bilinearly interpolated across the image, and the image is resampled by inverse mapping (each output pixel reads the input at minus its offset), which matches a forward warp for small offsets.
 
 **Inputs**
@@ -957,6 +963,8 @@ Origin is an addition; Houdini always measures from UV (0, 0).
 
 Computes the 2-channel UV offset that a water-like height surface causes when viewing something below it.
 
+![COP Refract from Height (PCG): input and result](../images/nodes/PCG_COPRefractFromHeight.png)
+
 Looks through a height layer acting as a liquid surface and writes how far objects on the bottom appear shifted, as a 2-channel UV offset layer. Feeding it to COP Distort (Units = UV, Amount = 1, Field Layer = the output) produces an underwater distortion; the offset already says where the line of sight lands, and Distort samples backwards, so no negation is needed.
 
 A flat surface gives exactly zero offset; with IOR 1 the offset is zero however much the surface moves; the offset is linear in Depth. There is no Fresnel and no absorption: this is a distortion field, not a render. If a Source Layer is given, the refracted image is also produced by sampling it with the offset.
@@ -1031,6 +1039,8 @@ A flat surface gives exactly zero offset; with IOR 1 the offset is zero however 
 `PCG_COPResize` · category `PCG/cop` · Houdini: Resample (COP), Resize (COP)
 
 Resamples the image to a new resolution with bilinear filtering.
+
+![COP Resize (PCG): input and result](../images/nodes/PCG_COPResize.png)
 
 Coordinates are converted using pixel centres: `x = (i+0.5)*W/W' - 0.5`, not the end-point-aligned `i*(W-1)/(W'-1)`. Pixels are cells with width, not points. Scaling 2 columns to 1 gives x = 0.5 (half of each) with centre alignment, whereas end-point alignment would sample only the left pixel.
 
@@ -1331,6 +1341,8 @@ Covers both Transform 2D and HeightField Transform 2D.
 
 Places the image as a rectangle in 3D with a full Houdini transform and renders it back to the same raster.
 
+![COP Transform 3D (PCG): input and result](../images/nodes/PCG_COPTransform3D.png)
+
 The image is treated as a rectangle on the z = 0 plane, positioned in 3D with the full Houdini transform (transform order, rotate order, translate, rotate, scale, shear, uniform scale, pivot translate and rotate, invert), and then viewed with a default camera. The camera is orthographic by default; with Perspective on it becomes a perspective camera at distance `Camera Distance` on the Z axis. This corresponds to Houdini's Transform 3D with Rasterize enabled. Pixels that do not hit the plane (seen edge-on, or plane behind the camera) become 0.
 
 Translation is in image space, where -1 to 1 spans the long edge of the image. Layers do not carry border metadata here, so Border Auto behaves like Clip: the image is sampled normally inside its rectangle and is 0 outside, with no bleeding of black into the edge. Constant fades edges to black through the filter kernel; Clamp and Mirror and Wrap extend the image.
@@ -1425,6 +1437,8 @@ The inverse only makes sense where the map is roughly one-to-one and not much sp
 `PCG_COPUVMap` · category `PCG/cop` · Houdini: UV Map (COP), UV Map by ID (COP)
 
 Generates a UV layer, either as a plain per-pixel UV ramp or as one 0-1 UV set per ID island.
+
+![COP UV Map (PCG): input and result](../images/nodes/PCG_COPUVMap.png)
 
 **UV Map** (identity) writes the UV of every pixel centre, which you can scale, rotate (around 0.5, 0.5) and offset. **UV Map by ID** maps the bounding box of each ID (value greater than 0 in `ID Layer`) to its own 0-1 range, so every segmented region can carry a complete texture. Pixels with ID 0 get UV 0 (and uvscale 0).
 

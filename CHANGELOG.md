@@ -5,7 +5,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 ### Added
+- **Progress and Cancel for long nodes**: the erosion nodes (HeightField Erode, Stream Power, Thermal, Hydraulic),
+  the reaction-diffusion / ripple / fluid solvers and the Outdoor render advance ComfyUI's progress bar and stop
+  when the queue is cancelled.
+- **Outdoor look on the GPU**: *Compute* on Geometry Preview (auto = CUDA when available) runs the shadow maps and
+  the sky light in torch; same picture as numpy to float32 rounding.
+- **COP HeightField Erode: Bed Change Limit**. Caps how far the bed moves per step relative to the water depth;
+  0.03 stops the washboard ripples a Capacity above about 3 used to make, so deep gullies can be carved directly.
+- 39 more node pictures in the reference.
 - **Outdoor look, lit like a photograph** (Geometry Preview): the sky is an area light with shadows (*Sky Samples*
   directions, each with its own depth map: narrow streets are darker than squares, eaves shade walls) plus one bounce
   of light off the scene; soft sun shadows that are crisp at contact and widen with distance; sky colours that
@@ -51,6 +61,12 @@ All notable changes to this project are documented here. The format follows
   - material library: six new materials (buff brick, painted render, asphalt, bitumen roofing, two facade bays).
 
 ### Changed
+- World tiles example is now a 4 km island grown by its rivers: Stream Power raises the whole island against
+  erosion down to the sea, so every slope belongs to a branching valley and there are no flat interiors; then
+  buttresses, gullies (HeightField Erode, Capacity 4 with the bed change limit), river beds cut into the valley
+  floors, beaches, rock outcrops, scree, woodland in the valleys, grass darker along every gully, a sea to the
+  horizon; a second camera from a ridge toward the main peak. The weight layers are now Grass / ForestFloor /
+  Sediment / Rock / Sand / Water (Sand replaces Snow).
 - **Production examples reworked for picture quality.** World tiles: now 4 km x 4 km at 4 m cells, a range with
   rounded ridges and natural slopes (hillslope diffusion in the Stream Power pass), forest climbing the slopes to a
   ragged tree line, 40,000 trees with per-instance tints, mirror lakes, a side-lit low sun with clouds and haze.
@@ -77,6 +93,8 @@ All notable changes to this project are documented here. The format follows
 - The 3D viewport draws on demand instead of 60 times a second: idle viewports no longer use GPU / CPU.
 
 ### Fixed
+- **Stream Power Erosion**: across the lakes filled at the start, rivers follow the drowned valley instead of the
+  straight epsilon slope of pit filling (as Flow Accumulation already did).
 - **Outdoor look**: the sun's shadow map now frames the visible ground around the geometry too; shadows cast by the
   lower part of a tall object used to be missing next to it when the camera only saw its top.
 - **Outdoor look**: no more staircase of bright triangles along shadow terminators on coarse meshes (grazing faces
@@ -135,5 +153,6 @@ First public release.
 - Remesh adaptive edge lengths, curve tangent handles and weights, viewport component selection, font kerning (GPOS)
   and edge groups through Boolean are not implemented yet.
 
-[Unreleased]: https://github.com/fedrov/comfyui_pcg/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/fedrov/comfyui_pcg/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/fedrov/comfyui_pcg/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fedrov/comfyui_pcg/releases/tag/v0.1.0

@@ -107,6 +107,7 @@
 <h3 id="pcg-copconvertnormal" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-convert_n"/></svg>COP Convert Normal (PCG)<a class="hash" href="#pcg-copconvertnormal" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPConvertNormal</code> · category <code>PCG/cop</code> · Houdini: Convert Normal (COP)</p>
 <p>Converts normal maps between packed/signed encoding and OpenGL/DirectX conventions.</p>
+<p><img src="../../images/nodes/PCG_COPConvertNormal.png" alt="COP Convert Normal (PCG): input and result" loading="lazy"></p>
 <p>Steps always run in this fixed order: decode, reconstruct z, flip, normalize, encode.</p>
 <ul><li><code>packed</code> vs <code>signed</code>: image files store normals as 0..1 colours, while inside this plugin normals are vectors in -1..1. A normal map read in from ComfyUI must go through packed to signed first.</li><li>Flip Green switches between OpenGL (+Y up, used by this plugin) and DirectX (+Y down). Getting this wrong inverts bumps along one direction and raises no error.</li><li>Reconstruct Z rebuilds z as <code>sqrt(1 - x^2 - y^2)</code> from the x and y channels only (two-channel BC5-style normal maps).</li></ul>
 <p>packed to signed to packed is an identity, and flipping twice restores the input exactly. Conversion between tangent space and world space is not supported because it needs a tangent frame per pixel, which the height-map chain does not have.</p>
@@ -120,6 +121,7 @@
 <h3 id="pcg-copidconvert" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-ux_idconv"/></svg>COP ID Convert (PCG)<a class="hash" href="#pcg-copidconvert" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPIDConvert</code> · category <code>PCG/cop</code> · Houdini: ID to Mask (COP), ID to Mono (COP), ID to SDF (COP)</p>
 <p>Converts an integer ID layer into a mask, a normalized mono value or a signed distance field.</p>
+<p><img src="../../images/nodes/PCG_COPIDConvert.png" alt="COP ID Convert (PCG): input and result" loading="lazy"></p>
 <p>Reads the first channel of the ID layer, rounded to integers.</p>
 <ul><li><strong>Mask</strong>: IDs listed in IDs become 1, everything else 0.</li><li><strong>Mono</strong>: the ID value itself. With Normalize it is mapped to 0-1 as (id - min) / (max - min).</li><li><strong>SDF</strong>: with IDs given, the signed distance (negative inside, positive outside, boundary at plus or minus half a pixel) of the union of the selected IDs; Invert uses the complement. With IDs empty (or <code>*</code>), each pixel gets its distance to the nearest pixel with a different ID, so the per-region interior distances are combined in one image. The SDF mode fails if the selection is empty or covers the whole image, because there is then no boundary.</li></ul>
 <p><strong>Inputs</strong></p>

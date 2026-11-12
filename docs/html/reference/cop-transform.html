@@ -125,6 +125,7 @@
 <h3 id="pcg-copcopytransform" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_copyxf"/></svg>COP Copy Transform (PCG)<a class="hash" href="#pcg-copcopytransform" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPCopyTransform</code> · category <code>PCG/cop</code> · Houdini: Copy and Transform (COP)</p>
 <p>Makes several transformed copies of the image and stacks them, each copy shifted, rotated and scaled further than the last.</p>
+<p><img src="../../images/nodes/PCG_COPCopyTransform.png" alt="COP Copy Transform (PCG): input and result" loading="lazy"></p>
 <p>Copy i (starting at 0) is translated by <code>i * Translate</code> in uv units, rotated by <code>i * Rotate</code> degrees around Pivot and scaled by <code>Scale^i</code> (multiplied per axis by Scale XY). Copies are combined with Op: <code>over_last</code> and <code>under</code> use Porter-Duff compositing and compute a proper alpha (layers without alpha are treated as fully opaque, so their whole frame covers what is below); <code>add</code> adds; <code>max</code> takes the larger value; <code>over</code> is the older mode in which copy 0 is on top and alpha is interpolated like a normal channel.</p>
 <p>Fade makes later copies fainter: copy i is multiplied by <code>(1 - Fade)^i</code>. For <code>over_last</code> and <code>under</code> only alpha is faded.</p>
 <p><strong>Inputs</strong></p>
@@ -142,6 +143,7 @@
 <h3 id="pcg-copcornerpin" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_cornerpin"/></svg>COP Corner Pin (PCG)<a class="hash" href="#pcg-copcornerpin" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPCornerPin</code> · category <code>PCG/cop</code> · Houdini: Corner Pin (COP)</p>
 <p>Warps an image so its four corners land on given positions, or rotates it like a 3D card seen by a pinhole camera.</p>
+<p><img src="../../images/nodes/PCG_COPCornerPin.png" alt="COP Corner Pin (PCG): input and result" loading="lazy"></p>
 <p>Both modes build a homography (a perspective transform), so straight lines stay straight. In <code>corners</code> mode you give the uv positions of the four output corners (bottom left, bottom right, top right, top left). In <code>rotate_3d</code> mode the image is treated as a card that is rotated in 3D by the given XYZ Euler angles in degrees and photographed by a pinhole camera with the given field of view; the four corner positions are computed from that and the same homography is used. If the card is rotated behind the camera an error is raised: reduce the angles or increase Distance.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>cop</code></td><td>COPIMAGE</td><td>Image to warp.</td></tr></tbody></table></div>
@@ -257,6 +259,7 @@
 <h3 id="pcg-coplatticedeform" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-fx_lattice"/></svg>COP Lattice Deform (PCG)<a class="hash" href="#pcg-coplatticedeform" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPLatticeDeform</code> · category <code>PCG/cop</code> · Houdini: Lattice Deform (COP)</p>
 <p>Warps an image with a grid of control points that are offset in uv.</p>
+<p><img src="../../images/nodes/PCG_COPLatticeDeform.png" alt="COP Lattice Deform (PCG): input and result" loading="lazy"></p>
 <p>A lattice of <code>(nx+1) x (ny+1)</code> control points is laid over the image, where Divisions sets the number of cells <code>nx ny</code>. Each control point has a uv offset, either typed in explicitly (Point Offsets) or generated randomly (Jitter). The offsets are bilinearly interpolated across the image, and the image is resampled by inverse mapping (each output pixel reads the input at minus its offset), which matches a forward warp for small offsets.</p>
 <p><strong>Inputs</strong></p>
 <div class="table"><table><thead><tr><th>Input</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>cop</code></td><td>COPIMAGE</td><td>Image to warp.</td></tr></tbody></table></div>
@@ -322,6 +325,7 @@
 <h3 id="pcg-coprefractfromheight" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-refract"/></svg>COP Refract from Height (PCG)<a class="hash" href="#pcg-coprefractfromheight" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPRefractFromHeight</code> · category <code>PCG/cop</code> · Houdini: Refract from Height (COP)</p>
 <p>Computes the 2-channel UV offset that a water-like height surface causes when viewing something below it.</p>
+<p><img src="../../images/nodes/PCG_COPRefractFromHeight.png" alt="COP Refract from Height (PCG): input and result" loading="lazy"></p>
 <p>Looks through a height layer acting as a liquid surface and writes how far objects on the bottom appear shifted, as a 2-channel UV offset layer. Feeding it to COP Distort (Units = UV, Amount = 1, Field Layer = the output) produces an underwater distortion; the offset already says where the line of sight lands, and Distort samples backwards, so no negation is needed.</p>
 <p>A flat surface gives exactly zero offset; with IOR 1 the offset is zero however much the surface moves; the offset is linear in Depth. There is no Fresnel and no absorption: this is a distortion field, not a render. If a Source Layer is given, the refracted image is also produced by sampling it with the offset.</p>
 <p><strong>Inputs</strong></p>
@@ -343,6 +347,7 @@
 <h3 id="pcg-copresize" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cop_resize"/></svg>COP Resize (PCG)<a class="hash" href="#pcg-copresize" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPResize</code> · category <code>PCG/cop</code> · Houdini: Resample (COP), Resize (COP)</p>
 <p>Resamples the image to a new resolution with bilinear filtering.</p>
+<p><img src="../../images/nodes/PCG_COPResize.png" alt="COP Resize (PCG): input and result" loading="lazy"></p>
 <p>Coordinates are converted using pixel centres: <code>x = (i+0.5)*W/W' - 0.5</code>, not the end-point-aligned <code>i*(W-1)/(W'-1)</code>. Pixels are cells with width, not points. Scaling 2 columns to 1 gives x = 0.5 (half of each) with centre alignment, whereas end-point alignment would sample only the left pixel.</p>
 <p>The UV grid and Sample nodes use the same convention, so generating noise and then resizing matches generating the noise directly at the target size.</p>
 <p><strong>Inputs</strong></p>
@@ -443,6 +448,7 @@
 <h3 id="pcg-coptransform3d" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-ux_xform3d"/></svg>COP Transform 3D (PCG)<a class="hash" href="#pcg-coptransform3d" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPTransform3D</code> · category <code>PCG/cop</code> · Houdini: Transform 3D (COP)</p>
 <p>Places the image as a rectangle in 3D with a full Houdini transform and renders it back to the same raster.</p>
+<p><img src="../../images/nodes/PCG_COPTransform3D.png" alt="COP Transform 3D (PCG): input and result" loading="lazy"></p>
 <p>The image is treated as a rectangle on the z = 0 plane, positioned in 3D with the full Houdini transform (transform order, rotate order, translate, rotate, scale, shear, uniform scale, pivot translate and rotate, invert), and then viewed with a default camera. The camera is orthographic by default; with Perspective on it becomes a perspective camera at distance <code>Camera Distance</code> on the Z axis. This corresponds to Houdini's Transform 3D with Rasterize enabled. Pixels that do not hit the plane (seen edge-on, or plane behind the camera) become 0.</p>
 <p>Translation is in image space, where -1 to 1 spans the long edge of the image. Layers do not carry border metadata here, so Border Auto behaves like Clip: the image is sampled normally inside its rectangle and is 0 outside, with no bleeding of black into the edge. Constant fades edges to black through the filter kernel; Clamp and Mirror and Wrap extend the image.</p>
 <p>This node is not the same as the four-corner mapping of Corner Pin.</p>
@@ -473,6 +479,7 @@
 <h3 id="pcg-copuvmap" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-ux_uvmap"/></svg>COP UV Map (PCG)<a class="hash" href="#pcg-copuvmap" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPUVMap</code> · category <code>PCG/cop</code> · Houdini: UV Map (COP), UV Map by ID (COP)</p>
 <p>Generates a UV layer, either as a plain per-pixel UV ramp or as one 0-1 UV set per ID island.</p>
+<p><img src="../../images/nodes/PCG_COPUVMap.png" alt="COP UV Map (PCG): input and result" loading="lazy"></p>
 <p><strong>UV Map</strong> (identity) writes the UV of every pixel centre, which you can scale, rotate (around 0.5, 0.5) and offset. <strong>UV Map by ID</strong> maps the bounding box of each ID (value greater than 0 in <code>ID Layer</code>) to its own 0-1 range, so every segmented region can carry a complete texture. Pixels with ID 0 get UV 0 (and uvscale 0).</p>
 <p><code>UV Space</code> selects the coordinate system of the result: Texture is 0 to 1, Image is -1 to 1 across the long edge, Pixel counts pixels from 0.5 at the first pixel centre. By ID supports only Texture and Image. The values then go through <code>(uv + Shift) x Cycles</code> and are folded back into the space's range according to the border mode. An optional <code>uvscale</code> layer holds the effective scale factor relative to the identity map (the largest singular value of the Jacobian, including Scale, Cycles and the island scaling).</p>
 <p>In by-ID mode, <code>ID Mode</code> can output island statistics instead of local UVs: bounding box centre, minimum corner, maximum corner or size (measured in the chosen UV space; no shift, cycles or border are applied, and the uvscale is 1). With <code>Connected</code> on, ID regions that are not connected (4-neighbour) count as separate islands.</p>

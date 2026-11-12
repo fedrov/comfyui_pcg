@@ -151,13 +151,15 @@
    "erosion_layer": "Layer for net removal of material. Empty disables it.",
    "accumulate_debris": "Add the debris onto an existing layer of the same name (from Thermal or Hydraulic Erosion) instead of replacing it.",
    "keep_layers": "Keep the input image's other layers in the output.",
-   "compute": "Where to compute: auto uses CUDA when available, cpu forces numpy. The result returns to the input's backend."
+   "compute": "Where to compute: auto uses CUDA when available, cpu forces numpy. The result returns to the input's backend.",
+   "bed_change_limit": "Caps how far the bed moves per step to this fraction of the water depth; 0 turns it off. With a Capacity above about 3, erosion and flow amplify each other and slopes break up into ripples across the flow; 0.03 keeps Capacity 10 smooth while channels still cut at nearly full speed."
   },
   "houdini_notes": "Corresponds to HeightField Erode / Erode Hydro: grid water with sediment transport and thermal slumping in one solver, with flow, water, sediment and debris outputs. Houdini additionally separates bedrock from loose debris and has a precipitation spread, river bank and erodability-by-layer controls; parameters here are in cells and steps rather than Houdini's physical units.",
   "tips": [
    "Erode, upres, erode: run it at a quarter resolution for the big valleys, Resize up, add a little noise, then run fewer steps at full resolution.",
    "Feed it terrain that already has a drainage network (Stream Power with uplift) for mountain ranges; on raw noise the water pools in every pit and fills them with sediment.",
-   "The flow, sediment and debris layers are the masks for texturing: dark wet streaks, light valley floors, scree at the foot of slopes."
+   "The flow, sediment and debris layers are the masks for texturing: dark wet streaks, light valley floors, scree at the foot of slopes.",
+   "For deep, sharp gullies raise Capacity to 5-10 and set Bed Change Limit to 0.03; without the limit the slopes turn into washboard ripples."
   ]
  },
  "PCG_COPIDConvert": {

@@ -191,6 +191,8 @@ Equivalent of Fill. Every channel of the layer is replaced by the matching entry
 
 Layers a source image into itself at shrinking, rotating, jittered scales, like fractal noise whose basis function is an image.
 
+![COP Fractal Sample (PCG): input and result](../images/nodes/PCG_COPFractalSample.png)
+
 Equivalent of Fractal Sample. Each octave samples the source layer with a scale of `lacunarity^octave`, an optional rotation (`angle`), jitter and random flips, around the image center. The octaves are weighted by `roughness^octave` and combined by the blend mode: Add, Subtract, Maximum or Over (Over only makes sense for RGBA). With one octave and no rotation or jitter the output equals the source.
 
 Add and Subtract are normalized by the sum of the weights so that the value range matches the source. Samples first have `bias` subtracted (so the result is centered on 0), and `offset_with_bias` adds it back at the end. Over does not subtract bias.
@@ -417,6 +419,8 @@ Covers Houdini's Fractal Noise and Fractal Noise 3D. Tile U / Tile V and Torus a
 `PCG_COPNoiseExtra` · category `PCG/cop` · Houdini: Bubble Noise (COP), Cloud Noise 3D (COP), Crystal Noise (COP), Crystal Noise 3D (COP), Curl Noise (COP), Curl Noise 3D (COP), Phasor Noise (COP)
 
 Generates Bubble, Crystal, Phasor, Curl, Curl 3D and Cloud noise.
+
+![COP Noise Extra (PCG): input and result](../images/nodes/PCG_COPNoiseExtra.png)
 
 A collection of additional noise types. Coordinates are normalized by the image width and keep the aspect ratio, so bubbles stay round. The 3D types slice the volume at the third Offset value (z); moving it animates the noise. If `cop` is connected, layers are added to it and its resolution is used; otherwise a new image is created with Resolution.
 
@@ -728,6 +732,8 @@ There is no camera, so Camera Origin is not implemented.
 
 Generates hash-based random values per pixel or per ID.
 
+![COP Random (PCG): input and result](../images/nodes/PCG_COPRandom.png)
+
 Per pixel gives white noise; per ID gives the same value to every pixel sharing an ID, which colours each region of a segmentation image randomly. The hash makes results reproducible bit for bit. Without a connected image a new one is created at the Resolution (per-pixel only).
 
 Shared Min/Max uses one range for all channels. Min/Max, Color Ramp and Specific Values are the three modes of Houdini's Random RGB and always output RGB (with Channels 4 the alpha is constantly 1).
@@ -893,6 +899,8 @@ Based on Houdini's SDF Shape, with the Shape Class level removed: all shapes are
 `PCG_COPStereogram` · category `PCG/cop` · Houdini: Auto Stereogram (COP)
 
 Creates a single-image autostereogram from a depth layer.
+
+![COP Stereogram (PCG): input and result](../images/nodes/PCG_COPStereogram.png)
 
 Turns depth (0 far, 1 near) into a stereogram made of random dots or of a repeated pattern layer tiled at the strip width. The default is for parallel viewing; Cross-Eyed reverses it. Hidden surface removal is not done, so ghosting can appear at abrupt depth edges. A per-pixel separation layer in pixels is also written as `<Output Layer>_sep`.
 

@@ -47,6 +47,8 @@ Statistics, import / export, sequences, devices and wrangles.
 
 Finds the bounding rectangle of a mask, or one rectangle per id, and writes it as a fill layer plus a JSON report.
 
+![COP Bounding Rect (PCG): input and result](../images/nodes/PCG_COPBoundingRect.png)
+
 Takes the axis-aligned bounding box of all pixels where Layer is above Threshold. With Per ID on, Layer is read as an id image instead and every integer id above 0 gets its own rectangle. The rectangle is expanded by Padding pixels and clipped to the image.
 
 The output layer Out Layer holds the filled rectangles: 1 inside the box, or the id value in Per ID mode. The `rects` output is a JSON list with one entry per box, containing `id`, `pixels` (x0, y0, x1, y1, inclusive, y pointing up) and `uv` (u0, v0, u1, v1, measured to pixel edges, not centres). Empty masks produce no box.
@@ -205,6 +207,8 @@ Channel handling: a 1-channel layer is replicated to gray, a 4-channel layer dro
 `PCG_COPFloodFill` · category `PCG/cop` · Houdini: Fill Connected (COP)
 
 Selects the connected region around a seed whose values are close to the seed value and outputs it as a mask.
+
+![COP Flood Fill (PCG): input and result](../images/nodes/PCG_COPFloodFill.png)
 
 Equivalent of Fill Connected. Starting from the seed (a uv position or a seed layer), every connected pixel whose value differs from the seed value by no more than `tolerance` is selected. The result is a mask layer. The second output is the number of selected pixels.
 
@@ -474,6 +478,8 @@ It exists to answer "is my COP actually running on the GPU?". Auto silently fall
 
 Lights an image using tangent-space normals with a directional or point light.
 
+![COP Light (PCG): input and result](../images/nodes/PCG_COPLight.png)
+
 Shades the image from a tangent-space normal layer (Z up, as produced by a height-to-normal conversion). The result is `Albedo * (Ambient + diffuse * color * intensity * lit) + specular * color * intensity * lit`, using Lambert diffuse and a Blinn-Phong highlight with the viewer looking straight down.
 
 A **Directional** light is defined by Azimuth (the direction the light comes from: 0 degrees from +u, 90 degrees from +v) and Elevation, the same convention as Height to Shadow. A **Point** light sits above Light Position (uv) at Light Height (as a fraction of the image width), so the direction differs per pixel; no inverse-square falloff is applied.
@@ -541,6 +547,8 @@ With Shadows on and a Height Layer given, directional lights use Height to Shado
 `PCG_COPPrefixSum` · category `PCG/cop` · Houdini: Prefix Sum (COP)
 
 Computes running sums of pixel values along U or V, or a 2D summed-area table.
+
+![COP Prefix Sum (PCG): input and result](../images/nodes/PCG_COPPrefixSum.png)
 
 Accumulates values along rows, columns, or both. Both gives an integral image (summed-area table), from which the sum over any rectangle needs only four lookups. Reverse directions accumulate from the opposite edge.
 
@@ -618,6 +626,8 @@ The outputs are the region count and a text report.
 `PCG_COPSegmentByValue` · category `PCG/cop` · Houdini: Mono to ID (COP), Segment by Value (COP)
 
 Assigns IDs to pixels by their value range, optionally splitting disconnected areas.
+
+![COP Segment By Value (PCG): input and result](../images/nodes/PCG_COPSegmentByValue.png)
 
 Values are grouped into equal bins, fixed-size steps or one group per unique value. With Split Disconnected, areas of the same group that are not connected receive different IDs. The second output is the number of regions.
 
@@ -997,6 +1007,8 @@ Combines HeightField Visualize and Visualize Velocity. Houdini outputs coloured 
 `PCG_COPWrangle` · category `PCG/cop` · Houdini: Python Snippet (COP), Wrangle (COP)
 
 Runs VEX-style per-pixel code on the whole image at once.
+
+![COP Wrangle (PCG): input and result](../images/nodes/PCG_COPWrangle.png)
 
 The code uses the same function library as the geometry Wrangle. Layers are read and written as attributes: `@C`, `@mask`, `@N.x`; `@u` and `@v` are the 0-1 pixel coordinates (V pointing up), `@x` and `@y` the pixel coordinates and `@res` the resolution. Assigning to a layer that does not exist creates it.
 

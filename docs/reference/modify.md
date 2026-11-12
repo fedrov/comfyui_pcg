@@ -129,6 +129,8 @@ Removes the points or primitives selected by the group pattern. With *Delete Non
 
 Deletes points or primitives by comparing a single-valued attribute against a threshold, range or band, or just groups the hits.
 
+![Blast by Attribute (PCG): input and result](../images/nodes/PCG_BlastByAttribute.png)
+
 Tests a scalar numeric attribute on each element and either deletes the elements that match or, with *Output = Group*, leaves the geometry intact and puts the matching elements into a new group.
 
 Modes:
@@ -1815,6 +1817,8 @@ One seed edge is enough; giving several on the same loop does not cut it twice.
 
 Rotates geometry by the smallest rotation that takes one axis direction onto another.
 
+![Match Axis (PCG): input and result](../images/nodes/PCG_MatchAxis.png)
+
 Rotates *From Axis* onto *To Axis* with the minimal rotation, about the origin, the centroid or the bounding box center. If *Up From* and *Up To* are both non-zero, a further rotation about the main axis then also aligns the up vectors. The vector attributes `N`, `up`, `v` and `orient` are rotated along with the points.
 
 **Inputs**
@@ -2802,6 +2806,8 @@ Transform Order, Rotate Order, Shear and Pivot are provided as in Houdini's Prim
 `PCG_PrimitiveSplit` · category `PCG/modify` · Houdini: Primitive Split (SOP)
 
 Splits shared points so that primitives with different attribute values no longer share them.
+
+![Primitive Split (PCG): input and result](../images/nodes/PCG_PrimitiveSplit.png)
 
 Primitives whose primitive attribute values differ by more than **Tolerance** (strings are compared for equality) stop sharing points: a point shared by several kinds of primitives is duplicated, one copy per kind. Primitives outside `group` form one class of their own and keep sharing points among themselves.
 

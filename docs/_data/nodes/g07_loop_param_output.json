@@ -413,7 +413,8 @@
    "exposure": "Outdoor: brightness multiplier before the tone curve.",
    "clouds": "Outdoor: cumulus cover from 0 (clear) to 1 (overcast). The clouds are drawn in the sky and throw soft shadows on the scene.",
    "cloud_seed": "Outdoor: seed of the cloud pattern.",
-   "sky_samples": "Outdoor: number of directions the sky light is sampled and shadowed from, one depth map each. More is smoother and slower; 0 uses a plain hemisphere fill without sky shadows."
+   "sky_samples": "Outdoor: number of directions the sky light is sampled and shadowed from, one depth map each. More is smoother and slower; 0 uses a plain hemisphere fill without sky shadows.",
+   "compute": "Outdoor: where the shadow maps and the sky light are computed. Auto uses CUDA when available, otherwise numpy; the result differs only at float32 rounding level."
   }
  },
  "PCG_Retime": {

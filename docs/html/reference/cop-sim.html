@@ -118,6 +118,7 @@
 <h3 id="pcg-copripple" class="node"><svg class="ico big" style="color:#e0975f" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-sv_ripple"/></svg>COP Ripple (PCG)<a class="hash" href="#pcg-copripple" aria-label="Link to this section">#</a></h3>
 <p><code>PCG_COPRipple</code> · category <code>PCG/cop</code> · Houdini: Ripple Block Begin (COP), Ripple Block End (COP)</p>
 <p>Simulates 2D waves with a leapfrog wave-equation solver.</p>
+<p><img src="../../images/nodes/PCG_COPRipple.png" alt="COP Ripple (PCG): input and result" loading="lazy"></p>
 <p>Solves the 2D wave equation for Steps iterations. The Source Layer gives the initial displacement on the first run, or with a Drive Frequency keeps driving the source continuously with a sine. The Obstacle Layer defines walls. State is stored in <code>&lt;Output Layer&gt;</code>, <code>&lt;Output Layer&gt;_prev</code> and <code>&lt;Output Layer&gt;_t</code>; wire the output back in to continue the run.</p>
 <p>Wave Speed is limited to 0.707 pixels per step, the CFL stability limit. The second output is a text report.</p>
 <p><strong>Inputs</strong></p>

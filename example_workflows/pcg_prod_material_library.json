@@ -880,7 +880,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Wall: studio preview"
   },
@@ -1527,7 +1528,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "Ground_Cobble: studio preview"
   },
@@ -2129,7 +2131,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Door: studio preview"
   },
@@ -2731,7 +2734,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Roof: studio preview"
   },
@@ -3333,7 +3337,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Trim: studio preview"
   },
@@ -3935,7 +3940,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Glass: studio preview"
   },
@@ -4537,7 +4543,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Metal: studio preview"
   },
@@ -5184,7 +5191,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Sign: studio preview"
   },
@@ -5831,7 +5839,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_BrickBuff: studio preview"
   },
@@ -6478,7 +6487,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_Stucco: studio preview"
   },
@@ -7125,7 +7135,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "Ground_Asphalt: studio preview"
   },
@@ -7772,7 +7783,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_RoofFlat: studio preview"
   },
@@ -8374,7 +8386,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_FacadeFar: studio preview"
   },
@@ -8976,7 +8989,8 @@
     1.0,
     0.0,
     0,
-    32
+    32,
+    "auto"
    ],
    "title": "M_FacadeFarBrick: studio preview"
   },

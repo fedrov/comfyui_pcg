@@ -104,10 +104,33 @@ def depth_map(T, d, center, radius, res):
         iy1 = np.clip(np.floor(y1[big]), 0, res - 1).astype(np.int32)
         del x0, x1, y0, y1, on, small
         bw = ix1 - ix0 + 1
-        area = (bw * (iy1 - iy0 + 1)).astype(np.int64)
+        bh = iy1 - iy0 + 1
+        area = bw.astype(np.int64) * bh
         del ix1, iy1
+        # a triangle covering much of the map (a ground slab) is cut into horizontal strips of its bounding box, so
+        # no single entry is more than a chunk: one such triangle used to make gigabyte-sized temporaries
+        cap = 1 << 20
+        huge = np.nonzero(area > cap)[0]
+        if len(huge):
+            eb, ex0, ey0, ew, eh = [], [], [], [], []
+            for j in huge.tolist():
+                rows = max(1, cap // int(bw[j]))
+                for r0 in range(0, int(bh[j]), rows):
+                    eb.append(big[j])
+                    ex0.append(ix0[j])
+                    ey0.append(iy0[j] + r0)
+                    ew.append(bw[j])
+                    eh.append(min(rows, int(bh[j]) - r0))
+            keep = np.ones(len(big), bool)
+            keep[huge] = False
+            big = np.concatenate([big[keep], np.asarray(eb, big.dtype)])
+            ix0 = np.concatenate([ix0[keep], np.asarray(ex0, np.int32)])
+            iy0 = np.concatenate([iy0[keep], np.asarray(ey0, np.int32)])
+            bw = np.concatenate([bw[keep], np.asarray(ew, np.int32)])
+            area = np.concatenate([area[keep], np.asarray(ew, np.int64) * np.asarray(eh, np.int64)])
+        del bh
         cum = np.cumsum(area)
-        step = 1 << 20
+        step = cap
         start = 0
         while start < len(big):
             base = cum[start - 1] if start else 0
@@ -147,6 +170,167 @@ def depth_map(T, d, center, radius, res):
             np.minimum.at(depth, (py * res + px)[ok], zz[ok])
             start = stop
     return depth.reshape(res, res), meta
+
+
+# ══════════════════════════════════════════════════════════════════ torch path (pcg126)
+def torch_device(compute="auto"):
+    """
+    The torch device the depth maps and sky light run on, or None for numpy. auto = CUDA when there is one;
+    cpu = numpy; cuda = CUDA or, without it, numpy; torch_cpu = torch on the CPU (tests: same code path as CUDA).
+    """
+    c = str(compute or "auto").lower()
+    if c not in ("auto", "cpu", "cuda", "torch_cpu"):
+        raise ValueError("Compute must be one of ('auto', 'cpu', 'cuda')")
+    if c == "cpu":
+        return None
+    try:
+        import torch
+    except Exception:
+        return None
+    if c == "torch_cpu":
+        return torch.device("cpu")
+    try:
+        return torch.device("cuda") if torch.cuda.is_available() else None
+    except Exception:
+        return None
+
+
+def to_device(T, dev):
+    """soup()'s (P, tri) moved to a torch device once, for depth_map_t / sky_dome."""
+    import torch
+    P, tri = T
+    return (torch.as_tensor(np.array(P, np.float32), device=dev),
+            torch.as_tensor(np.ascontiguousarray(tri).astype(np.int64), device=dev), dev)
+
+
+def depth_map_t(Tt, d, center, radius, res):
+    """depth_map() in torch (same algorithm, float32 throughout). Returns (depth tensor (res, res), meta)."""
+    import torch
+    Pp, tri, dev = Tt
+    r, u = basis(d)
+    d = np.asarray(d, np.float64)
+    sc = res / (2.0 * radius)
+    meta = {"r": r, "u": u, "d": d, "c": np.asarray(center, np.float64), "radius": float(radius), "res": int(res)}
+    depth = torch.full((res * res,), float("inf"), device=dev, dtype=torch.float32)
+    if not len(tri):
+        return depth.reshape(res, res), meta
+    f32 = lambda a: torch.as_tensor(np.asarray(a, np.float32), device=dev)             # noqa: E731
+    Q = Pp - f32(meta["c"])
+    px_ = (Q @ f32(r)) * sc + res * 0.5
+    py_ = (Q @ f32(u)) * sc + res * 0.5
+    pz_ = radius - Q @ f32(d)
+    del Q
+    i0, i1, i2 = tri[:, 0], tri[:, 1], tri[:, 2]
+    sx = (px_[i0], px_[i1], px_[i2])
+    sy = (py_[i0], py_[i1], py_[i2])
+    z = (pz_[i0], pz_[i1], pz_[i2])
+    x0 = torch.minimum(torch.minimum(sx[0], sx[1]), sx[2])
+    x1 = torch.maximum(torch.maximum(sx[0], sx[1]), sx[2])
+    y0 = torch.minimum(torch.minimum(sy[0], sy[1]), sy[2])
+    y1 = torch.maximum(torch.maximum(sy[0], sy[1]), sy[2])
+    on = (x1 >= 0) & (x0 < res) & (y1 >= 0) & (y0 < res)
+    small = on & ((x1 - x0) < 1.5) & ((y1 - y0) < 1.5)
+    s = torch.nonzero(small)[:, 0]
+    if len(s):
+        cx = ((sx[0][s] + sx[1][s] + sx[2][s]) * (1 / 3)).long().clamp(0, res - 1)
+        cy = ((sy[0][s] + sy[1][s] + sy[2][s]) * (1 / 3)).long().clamp(0, res - 1)
+        depth.scatter_reduce_(0, cy * res + cx, torch.minimum(torch.minimum(z[0][s], z[1][s]), z[2][s]), "amin")
+    big = torch.nonzero(on & ~small)[:, 0]
+    if len(big):
+        ix0 = torch.floor(x0[big]).clamp(0, res - 1).long()
+        ix1 = torch.floor(x1[big]).clamp(0, res - 1).long()
+        iy0 = torch.floor(y0[big]).clamp(0, res - 1).long()
+        iy1 = torch.floor(y1[big]).clamp(0, res - 1).long()
+        del x0, x1, y0, y1, on, small
+        bw = ix1 - ix0 + 1
+        bh = iy1 - iy0 + 1
+        area = bw * bh
+        cap = 1 << 22 if dev.type == "cuda" else 1 << 20
+        huge = torch.nonzero(area > cap)[:, 0]
+        if len(huge):                                    # (a handful at most: strips are built on the CPU)
+            hb, hx, hy, hw, hh = (a[huge].cpu().numpy() for a in (big, ix0, iy0, bw, bh))
+            eb, ex0, ey0, ew, eh = [], [], [], [], []
+            for j in range(len(hb)):
+                rows = max(1, cap // int(hw[j]))
+                for r0 in range(0, int(hh[j]), rows):
+                    eb.append(hb[j])
+                    ex0.append(hx[j])
+                    ey0.append(hy[j] + r0)
+                    ew.append(hw[j])
+                    eh.append(min(rows, int(hh[j]) - r0))
+            keep = torch.ones(len(big), dtype=torch.bool, device=dev)
+            keep[huge] = False
+            li = lambda a: torch.as_tensor(np.asarray(a, np.int64), device=dev)           # noqa: E731
+            big = torch.cat([big[keep], li(eb)])
+            ix0 = torch.cat([ix0[keep], li(ex0)])
+            iy0 = torch.cat([iy0[keep], li(ey0)])
+            bw = torch.cat([bw[keep], li(ew)])
+            area = torch.cat([area[keep], li(ew) * li(eh)])
+        cum = torch.cumsum(area, 0)
+        cumn = cum.cpu().numpy()
+        start = 0
+        nb = len(big)
+        while start < nb:
+            base = int(cumn[start - 1]) if start else 0
+            stop = max(int(np.searchsorted(cumn, base + cap, side="right")), start + 1)
+            a = area[start:stop]
+            n = int(a.sum())
+            tid = torch.repeat_interleave(torch.arange(start, stop, device=dev), a)
+            first = torch.cumsum(a, 0) - a
+            loc = torch.arange(n, device=dev) - torch.repeat_interleave(first, a)
+            w_ = bw[tid]
+            px = ix0[tid] + loc % w_
+            py = iy0[tid] + torch.div(loc, w_, rounding_mode="floor")
+            t = big[tid]
+            ax, ay = sx[0][t], sy[0][t]
+            bx, by = sx[1][t], sy[1][t]
+            cx, cy = sx[2][t], sy[2][t]
+            qx = px.float() + 0.5
+            qy = py.float() + 0.5
+            den = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+            ok = den.abs() > 1e-12
+            den = torch.where(ok, den, torch.ones_like(den))
+            w1 = ((qx - ax) * (cy - ay) - (qy - ay) * (cx - ax)) / den
+            w2 = ((bx - ax) * (qy - ay) - (by - ay) * (qx - ax)) / den
+            w0 = 1.0 - w1 - w2
+            ad = den.abs()
+            e0 = -(0.5 * torch.hypot(cx - bx, cy - by) / ad).clamp(max=1.0)
+            e1 = -(0.5 * torch.hypot(ax - cx, ay - cy) / ad).clamp(max=1.0)
+            e2 = -(0.5 * torch.hypot(bx - ax, by - ay) / ad).clamp(max=1.0)
+            ok &= (w0 >= e0) & (w1 >= e1) & (w2 >= e2)
+            w0, w1, w2 = w0.clamp(0, 1), w1.clamp(0, 1), w2.clamp(0, 1)
+            zz = (w0 * z[0][t] + w1 * z[1][t] + w2 * z[2][t]) / (w0 + w1 + w2).clamp(min=1e-6)
+            depth.scatter_reduce_(0, (py * res + px)[ok], zz[ok], "amin")
+            start = stop
+    return depth.reshape(res, res), meta
+
+
+def _lookup_t(depth, meta, P, N, bias_texels=1.5):
+    """lookup() in torch: P, N float32 tensors on the depth map's device."""
+    import torch
+    dev = depth.device
+    res = meta["res"]
+    texel = 2.0 * meta["radius"] / res
+    f32 = lambda a: torch.as_tensor(np.asarray(a, np.float32), device=dev)             # noqa: E731
+    Q = P + N * (texel * bias_texels) - f32(meta["c"])
+    sc = res / (2.0 * meta["radius"])
+    x = (Q @ f32(meta["r"])) * sc + res * 0.5 - 0.5
+    y = (Q @ f32(meta["u"])) * sc + res * 0.5 - 0.5
+    zb = meta["radius"] - Q @ f32(meta["d"]) - texel * 0.5
+    x0 = torch.floor(x)
+    y0 = torch.floor(y)
+    fx, fy = x - x0, y - y0
+    x0, y0 = x0.long(), y0.long()
+    out = torch.zeros(len(P), device=dev)
+    flat = depth.reshape(-1)
+    inf = torch.full((1,), float("inf"), device=dev)
+    for oy, wy in ((0, 1 - fy), (1, fy)):
+        for ox, wx in ((0, 1 - fx), (1, fx)):
+            xi, yi = x0 + ox, y0 + oy
+            ins = (xi >= 0) & (xi < res) & (yi >= 0) & (yi < res)
+            dv = torch.where(ins, flat[(yi.clamp(0, res - 1) * res + xi.clamp(0, res - 1))], inf)
+            out += (zb <= dv) * (wx * wy)
+    return out
 
 
 def project(meta, P):
@@ -410,7 +594,7 @@ def dome_dirs(k=32):
     return np.stack([r * np.cos(phi), y, r * np.sin(phi)], 1)
 
 
-def sky_dome(T, P, N, center, radius, L, sky_fn, albedo_mean, k=32, res=768, sun_frac=0.5, ground=None):
+def sky_dome(T, P, N, center, radius, L, sky_fn, albedo_mean, k=32, res=768, sun_frac=0.5, device=None):
     """
     Diffuse irradiance from the sky with shadows, plus one bounce.
 
@@ -419,10 +603,9 @@ def sky_dome(T, P, N, center, radius, L, sky_fn, albedo_mean, k=32, res=768, sun
       center, radius   sphere the depth maps frame (the visible part of the scene)
       sky_fn       rays -> radiance
       albedo_mean  (3,) average linear albedo of the visible scene: the colour of the bounce
-      ground       optional ground plane height y: an infinite plane, blocks directions from below it (none here:
-                   dome directions are all upward) -- kept for symmetry
 
     Returns (E (n, 3) irradiance / pi, i.e. what multiplies albedo; vis (n,) mean cosine-weighted sky visibility).
+    device: a torch device (torch_device()) to run on, or None for numpy.
     The unoccluded value on an upward surface equals the cosine-weighted mean sky radiance, so the picture's overall
     brightness does not depend on k.
     """
@@ -437,7 +620,33 @@ def sky_dome(T, P, N, center, radius, L, sky_fn, albedo_mean, k=32, res=768, sun
     sun_e = sun_light(L) * max(float(L[1]), 0.0)
     sky_e = (rad * dirs[:, 1:2]).sum(0) * (2.0 / k)
     bounce = np.asarray(albedo_mean, np.float64) * (sun_e * sun_frac + sky_e * 0.5)
+    from .progress import Progress
+    prog = Progress(k)
+    if device is not None:
+        # the same sum on a torch device (CUDA): the triangles and the pixels go over once, the k depth maps and
+        # lookups stay there, only the result comes back
+        import torch
+        Tt = to_device(T, device)
+        Pt = torch.as_tensor(np.ascontiguousarray(P, np.float32), device=device)
+        Nt = torch.as_tensor(np.ascontiguousarray(N, np.float32), device=device)
+        Et = torch.zeros((len(P), 3), device=device)
+        vt = torch.zeros(len(P), device=device)
+        wt = torch.zeros(len(P), device=device)
+        bt = torch.as_tensor(bounce.astype(np.float32), device=device)
+        for i in range(k):
+            prog.step()
+            dmap, meta = depth_map_t(Tt, dirs[i], center, radius, res)
+            c = (Nt @ torch.as_tensor(dirs[i].astype(np.float32), device=device)).clamp(min=0.0)
+            v = _lookup_t(dmap, meta, Pt, Nt)
+            Et += (c * v)[:, None] * torch.as_tensor(rad[i].astype(np.float32), device=device)[None] \
+                + (c * (1 - v))[:, None] * bt[None]
+            vt += c * v
+            wt += c
+        E = (Et * (2.0 / k)).cpu().numpy()
+        vis, wsum = vt.cpu().numpy(), wt.cpu().numpy()
+        return E, np.where(wsum > 0, vis / np.maximum(wsum, 1e-9), 1.0).astype(np.float32)
     for i in range(k):
+        prog.step()
         dmap, meta = depth_map(T, dirs[i], center, radius, res)
         c = np.maximum(n @ dirs[i].astype(np.float32), 0.0)
         hit = c > 0
