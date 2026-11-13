@@ -8,7 +8,7 @@ COP HeightField Road Network (geo/cop/roads.py), checked against geometry.
   3. Network: three places in a row make two roads whose total is the outer distance (the middle one is on the way);
      a place behind the Block Layer is reported unreachable and skipped
   4. road_h is the ground smoothed along the road (on a plane: the plane); coordinates match HeightField to Mesh and
-     COP Rasterize Curves (the mask is 1 under the destinations)
+     COP Rasterize Curves (the mask is 1 under the destinations); road_t is the unit direction along the road
 """
 import os
 import sys
@@ -134,6 +134,13 @@ check("Rasterize Curves (xz, world) draws the road onto the same image: mask ~1 
       (round(float(m[i0 - 1:i0 + 2, j0 - 1:j0 + 2].max()), 2), round(float(m[i1 - 1:i1 + 2, j1 - 1:j1 + 2].max()), 2)))
 check("  negative control: far from the road (the opposite corners) the mask is 0",
       m[i0, j1] == 0 and m[i1, j0] == 0)
+
+T7 = np.asarray(g7.get(POINT, "road_t"), np.float64)
+D7 = np.gradient(P7[:, [0, 2]], axis=0)
+D7 /= np.linalg.norm(D7, axis=1, keepdims=True)
+check("road_t: unit length, horizontal, along the road (cosine to the point-to-point direction > 0.99)",
+      np.allclose(np.linalg.norm(T7, axis=1), 1, atol=1e-5) and np.allclose(T7[:, 1], 0)
+      and ((T7[:, [0, 2]] * D7).sum(1) > 0.99).all())
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

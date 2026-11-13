@@ -1025,7 +1025,7 @@ Plans roads the way an engineer does on a contour map, and as Project Pegasus's 
 
 The network grows like Prim's algorithm. It starts at the first destination point; each round runs Dijkstra from every road cell built so far and joins the destination that is cheapest to reach. Roads therefore branch off roads, as real networks do. Along roads that already exist steps cost Reuse Roads times as much, so new roads follow old ones where that is nearly as good. Cells where the Avoid Layer is high (rivers, cliffs) cost more, and the Block Layer closes cells above 0.5 (the sea). Destinations that cannot be reached are counted in the report and skipped.
 
-Destinations are the points of the second input, in the coordinates of COP HeightField to Mesh with Center on. The output is one polyline per joined segment, resampled every Point Spacing world units and relaxed so the grid steps become sweeping curves; no point moves more than 0.6 grid cells off the planned path, so switchbacks survive. Each point carries `road_h`, the ground smoothed along the road over Bed Smoothing world units: the bed height to cut the road into. Each prim carries `road` (its index) and `served` (the destination point it reaches). COP Rasterize Curves, with plane xz, mapping world, the same World Size and Attrib `road_h`, draws the roads back onto the image as a mask and a bed height. A 257 x 257 grid takes a few seconds per road on numpy.
+Destinations are the points of the second input, in the coordinates of COP HeightField to Mesh with Center on. The output is one polyline per joined segment, resampled every Point Spacing world units and relaxed so the grid steps become sweeping curves; no point moves more than 0.6 grid cells off the planned path, so switchbacks survive. Each point carries `road_h`, the ground smoothed along the road over Bed Smoothing world units (the bed height to cut the road into), and `road_t`, the unit direction along the road in the ground plane (offset by (-t.z, 0, t.x) for verges, ruts or kerbs). Each prim carries `road` (its index) and `served` (the destination point it reaches). COP Rasterize Curves, with plane xz, mapping world, the same World Size and Attrib `road_h`, draws the roads back onto the image as a mask and a bed height. A 257 x 257 grid takes a few seconds per road on numpy.
 
 **Inputs**
 
@@ -1038,7 +1038,7 @@ Destinations are the points of the second input, in the coordinates of COP Heigh
 
 | Output | Type | Description |
 |---|---|---|
-| `geo` | GEOMETRY | One polyline per road segment, with point attribute road_h and prim attributes road and served. |
+| `geo` | GEOMETRY | One polyline per road segment, with point attributes road_h and road_t and prim attributes road and served. |
 | `report` | STRING | Number of roads, their total length, destinations joined and unreachable. |
 
 **Parameters**

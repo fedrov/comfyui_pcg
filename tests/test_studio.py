@@ -336,5 +336,74 @@ n0 = ramp_normal(30.0, 0.0, textured=False)
 check("  negative control: without the normal map the flat mesh's (0, 1, 0)", np.allclose(n0, [0, 1, 0], atol=1e-4),
       np.round(n0, 4))
 
+sec("8. Detail maps: tiled colour and normal detail blended by a weights layer")
+
+
+def detail_run(textures, extra_layers):
+    W = 64
+    img = CopImage()
+    img.set("C", np.zeros((W, W, 1), np.float32))
+    img.set("ground_albedo", np.full((W, W, 3), 0.5, np.float32))
+    for k, v in extra_layers.items():
+        img.set(k, v.astype(np.float32))
+    mesh = _ter.to_mesh(img, "C", 1.0, 100.0)
+    mesh.set_string(PRIM, "material", ["ground"] * mesh.nprims)
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        orig(geo, rast, alb, N, *a_, **k_)
+        got["alb"], got["N"] = alb.copy(), N.copy()
+    S._apply_textures = spy
+    try:
+        _O.render_outdoor(mesh, 96, 96, cam=_R.camera(None, "perspective", eye=[0, 150, 0.01], target=[0, 0, 0],
+                                                      fov=20), ssaa=1, haze=0.0, clouds=0.0, sky_samples=0,
+                          textures=textures, tex_cop=img)
+    finally:
+        S._apply_textures = orig
+    return got
+
+
+W_ = 64
+Jd, Id = np.meshgrid(np.arange(W_), np.arange(W_))
+checker = np.where(((Jd // 8) + (Id // 8)) % 2 == 0, 0.25, 0.75)[..., None].repeat(3, -1)    # 4 x 4 squares
+wl = np.zeros((W_, W_, 4))
+wl[:, : W_ // 2, 0] = 1.0                                   # detail 1 on the left half (-X) of the uv range
+tilted = np.zeros((W_, W_, 3))
+tilted[...] = (0.5 * 0.5 + 0.5, 0.5, 0.5 * 0.866 + 0.5)     # tangent normal (0.5, 0, 0.866): 30 degrees toward +u
+base_tex = "basecolor = @{material}_albedo\n"
+full = detail_run(base_tex + "detail1 = @{material}_d1\ndetail_normal1 = @{material}_n1\n"
+                  "detail_weights = @{material}_dw\ndetail_tiling = 1",
+                  {"ground_d1": checker, "ground_dw": wl, "ground_n1": tilted})
+none = detail_run(base_tex, {})
+H_ = full["alb"].shape[0]
+row = full["alb"][H_ // 2]
+lv = full["alb"][H_ // 2 - 20:H_ // 2 + 20, 18:38, 0]       # inside the left half of the quad on screen
+rv = full["alb"][H_ // 2 - 20:H_ // 2 + 20, 58:78, 0]
+check("colour detail x2 where the weight is 1: the 0.5 base becomes 0.25 and 0.75 (the checker), "
+      "untouched where it is 0", np.allclose(sorted(set(np.round(lv.ravel(), 2)) - {0.5})[:1], [0.25], atol=0.02)
+      and np.round(lv.max(), 2) == 0.75 and np.allclose(rv, 0.5, atol=1e-3),
+      (round(float(lv.min()), 3), round(float(lv.max()), 3), round(float(rv.mean()), 3)))
+nl = full["N"][H_ // 2, 28]
+nr = full["N"][H_ // 2, 68]
+check("  detail normal: 30 degrees toward +X under weight 1 ((0.5, 0.866, 0) in the world), flat (0, 1, 0) "
+      "under weight 0", np.allclose(nl, [0.5, 0.866, 0.0], atol=0.01) and np.allclose(nr, [0, 1, 0], atol=1e-3),
+      (np.round(nl, 3), np.round(nr, 3)))
+check("  negative control: without detail slots the whole quad is the plain base (0.5) and flat",
+      np.allclose(none["alb"][H_ // 2 - 20:H_ // 2 + 20, 18:78], 0.5, atol=1e-3)
+      and np.allclose(none["N"][H_ // 2, 28], [0, 1, 0], atol=1e-3))
+tiled = detail_run(base_tex + "detail1 = @{material}_d1\ndetail_weights = @{material}_dw\ndetail_tiling = 2",
+                   {"ground_d1": checker, "ground_dw": wl})
+t1 = np.diff(np.sign(full["alb"][H_ // 2, 10:46, 0] - 0.5)) != 0     # crossings of the base value: checker edges
+t2 = np.diff(np.sign(tiled["alb"][H_ // 2, 10:46, 0] - 0.5)) != 0
+check("  detail_tiling 2 repeats the detail twice as often (twice the checker edges across the same span)",
+      t2.sum() >= 2 * t1.sum() - 1 and t1.sum() >= 1, (int(t1.sum()), int(t2.sum())))
+try:
+    S.parse_textures("detail_tiling = lots")
+    bad = False
+except ValueError:
+    bad = True
+check("  detail_tiling must be a number (a word is an error)", bad)
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

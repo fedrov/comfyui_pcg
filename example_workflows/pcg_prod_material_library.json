@@ -825,7 +825,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 80,
@@ -844,6 +844,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -890,7 +895,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    452
+    472
    ],
    "size": [
     340,
@@ -1473,7 +1478,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 86,
@@ -1492,6 +1497,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -1538,7 +1548,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    452
+    472
    ],
    "size": [
     340,
@@ -2076,7 +2086,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 92,
@@ -2095,6 +2105,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -2141,7 +2156,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    452
+    472
    ],
    "size": [
     340,
@@ -2679,7 +2694,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 98,
@@ -2698,6 +2713,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -2744,7 +2764,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    452
+    472
    ],
    "size": [
     340,
@@ -3282,7 +3302,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 104,
@@ -3301,6 +3321,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -3347,7 +3372,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3512
+    3532
    ],
    "size": [
     340,
@@ -3885,7 +3910,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 110,
@@ -3904,6 +3929,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -3950,7 +3980,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3512
+    3532
    ],
    "size": [
     340,
@@ -4488,7 +4518,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 116,
@@ -4507,6 +4537,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -4553,7 +4588,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3512
+    3532
    ],
    "size": [
     340,
@@ -5136,7 +5171,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 122,
@@ -5155,6 +5190,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -5201,7 +5241,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3512
+    3532
    ],
    "size": [
     340,
@@ -5784,7 +5824,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 128,
@@ -5803,6 +5843,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -5849,7 +5894,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    6572
+    6592
    ],
    "size": [
     340,
@@ -6432,7 +6477,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 134,
@@ -6451,6 +6496,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -6497,7 +6547,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    6572
+    6592
    ],
    "size": [
     340,
@@ -7080,7 +7130,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 140,
@@ -7099,6 +7149,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -7145,7 +7200,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    6572
+    6592
    ],
    "size": [
     340,
@@ -7728,7 +7783,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 146,
@@ -7747,6 +7802,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -7793,7 +7853,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    6572
+    6592
    ],
    "size": [
     340,
@@ -8331,7 +8391,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 152,
@@ -8350,6 +8410,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -8396,7 +8461,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    9632
+    9652
    ],
    "size": [
     340,
@@ -8934,7 +8999,7 @@
    ],
    "size": [
     340,
-    408
+    428
    ],
    "flags": {},
    "order": 158,
@@ -8953,6 +9018,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -8999,7 +9069,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    9632
+    9652
    ],
    "size": [
     340,

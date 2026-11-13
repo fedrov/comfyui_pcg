@@ -1078,8 +1078,16 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
     # on the numpy backend layers are stored as float32 anyway (put): assembling the bands in float32 halves the
     # peak of a big image (a 4096² surface writing six channels held 800 MB of float64 before the conversion)
     rdt = np.float32 if (img.backend if len(img) else bk.NUMPY) is bk.NUMPY else np.float64
+    trim = None
+    if len(bands) > 1:
+        try:                              # banded runs free a namespace of temporaries per band: hand it back
+            from ...memtrim import trim
+        except ImportError:
+            trim = None
     for r0, r1 in bands:
         py, part = _wrangle_band(img, code, seed, ch_params, r0, r1)
+        if trim is not None:
+            trim()
         for k, a in part.items():
             if k not in results:
                 results[k] = np.zeros((H, W, a.shape[1]), rdt)

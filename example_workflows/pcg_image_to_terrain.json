@@ -418,7 +418,7 @@
    ],
    "size": [
     340,
-    393
+    413
    ],
    "flags": {},
    "order": 9,
@@ -437,6 +437,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -510,7 +515,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     1140,
-    735
+    755
    ],
    "size": [
     340,

@@ -81,7 +81,8 @@ def auto_camera(geo, W, H, elev, azim, fov=35.0, margin=1.04):
 def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
-                   report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto"):
+                   report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
+                   detail_cop=None):
     """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
@@ -171,7 +172,8 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.8, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
-        S._apply_textures(geo, rast, alb, N, surf, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr)
+        S._apply_textures(geo, rast, alb, N, surf, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
+                          cop_detail=detail_cop)
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
     rast = None
     if report is not None:

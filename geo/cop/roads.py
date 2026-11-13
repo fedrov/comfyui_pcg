@@ -16,8 +16,9 @@ steeper than Max Grade costs so much that the path takes the long way round (swi
             already built x Reuse (< 1: new roads follow old ones where that is nearly as good).
   output    one polyline per joined segment, resampled every Spacing world units and relaxed (no point more than 0.6
             grid cells off the planned path, so switchbacks survive), on the
-            terrain (P.y from the height field); point attribute `road_h` = the height smoothed along the road
-            (the bed to cut it into), prim attributes `road` (index) and `served` (the destination it joins).
+            terrain (P.y from the height field); point attributes `road_h` = the height smoothed along the road
+            (the bed to cut it into) and `road_t` = the unit direction along it in the ground plane (offset by
+            (-t.z, 0, t.x) for verges, ruts, kerbs), prim attributes `road` (index) and `served` (the destination).
 
 Coordinates are those of COP HeightField to Mesh with Center on (x right, z = -v), so the curves lie on that mesh
 and COP Rasterize Curves (plane xz, mapping world, the same World Size) draws them back onto the image.
@@ -215,6 +216,10 @@ def road_network(img, points, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
     allp = np.concatenate(pts)
     g = Geometry.from_mesh(allp.astype(np.float32), [list(p) for p in prims], closed=False)   # open polylines
     g.set(POINT, "road_h", allp[:, 1].astype(np.float32))
+    # unit direction along the road in the ground plane (for verges, ruts, kerbs: offset by (-t.z, 0, t.x))
+    tan = np.concatenate([np.gradient(p_[:, [0, 2]], axis=0) if len(p_) > 1 else np.zeros((len(p_), 2)) for p_ in pts])
+    tan /= np.maximum(np.linalg.norm(tan, axis=1, keepdims=True), 1e-12)
+    g.set(POINT, "road_t", np.stack([tan[:, 0], np.zeros(len(tan)), tan[:, 1]], -1).astype(np.float32))
     g.set(PRIM, "road", np.arange(len(prims), dtype=np.int32))
     g.set(PRIM, "served", np.array([int(s[0]) for s in srv], np.int32))
     length = float(sum(np.linalg.norm(np.diff(p, axis=0), axis=1).sum() for p in pts))

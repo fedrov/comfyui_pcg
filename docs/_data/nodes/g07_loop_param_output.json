@@ -389,7 +389,8 @@
   "inputs": {
    "geo": "Geometry to render.",
    "textures_cop": "Optional COP image whose layers Textures can name with `@layer` (Studio look).",
-   "camera": "Optional camera for the Outdoor look (any Camera node; its view is rendered in perspective). Without it an automatic 35 mm camera at Elevation / Azimuth frames the geometry."
+   "camera": "Optional camera for the Outdoor look (any Camera node; its view is rendered in perspective). Without it an automatic 35 mm camera at Elevation / Azimuth frames the geometry.",
+   "detail_cop": "Optional COP image holding small tiled detail maps: detail1..4 and detail_normal1..4 in Textures read `@layer` from here (the textures image is terrain-sized; a detail tile is a few hundred pixels)."
   },
   "outputs": {
    "image": "The rendered preview as an IMAGE."
@@ -402,7 +403,7 @@
    "color_attrib": "Attribute read for the colour. Only used in Color shading.",
    "look": "Basic: fast flat shading. Studio: an object on a studio floor (orthographic, shadows, AO, textures). Outdoor: an environment shot with a perspective camera, sky, sun, haze and an optional ground plane.",
    "supersampling": "Studio: renders this many times larger and averages down, for smooth edges (2 is a good default; 3–4 are slower).",
-   "textures": "Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop.",
+   "textures": "Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop. Detail maps: `detail1`..`detail4` (tiled colour, 0.5 = no change, multiplying the base colour by 2 x detail), `detail_normal1`..`detail_normal4`, `detail_weights` (a layer on the mesh uv whose channels say how much of each detail applies) and `detail_tiling` (how many times the detail repeats across the uv range) sharpen close views of a large terrain; far away their mips average out and they fade.",
    "material_attrib": "Studio: string prim attribute holding each face's material name (used for `{material}` in Textures).",
    "uv_attrib": "Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1.",
    "sun_elevation": "Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light.",

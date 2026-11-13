@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Geometry Preview: detail maps** (Studio and Outdoor looks): `detail1..4` (tiled colour, 0.5 = no change),
+  `detail_normal1..4`, `detail_weights` (a layer on the mesh uv) and `detail_tiling`, blended like an engine's detail
+  texturing; a new `detail_cop` input holds the small tiles. Close views of a metre-per-texel terrain get their
+  centimetres; far away the detail's mips average out.
+- **World tiles: houses, ruts, detail maps and a road-level shot**. About 160 houses in the towns, along the roads and
+  facing them (instances `SM_House_A..C`, whitewashed slate-roofed proxies); wheel ruts and a grassy crown on the
+  roads; four tileable detail maps (grass, rock, gravel, litter) written for the engine and used by the previews; a
+  third camera on a road at eye height.
+- COP HeightField Road Network: point attribute `road_t`, the direction along the road (for ruts, verges, kerbs).
 - **COP HeightField Road Network**: least-cost roads over a height field that keep to a drivable grade (switchbacks
   appear by themselves on steep ground), avoid and block layers, and a network that grows by Prim's algorithm so
   roads branch off roads. Polylines on the terrain with the road-bed height per point.
@@ -21,6 +30,9 @@ All notable changes to this project are documented here. The format follows
   both preview shots (`basecolor = @{material}_albedo`, `normal = @{material}_nrm`, `roughness = @{material}_rough`).
 
 ### Changed
+- COP Rasterize Curves builds its pixel grids per segment window and stores float32: at 4096² it allocated two
+  full-image float64 grids (270 MB) per call to draw a few pixels per segment.
+- COP Wrangle in bands hands freed memory back after each band.
 - **Outdoor look: Haze is in metres** (1 = light falls to 1/e over 12 km, glowing toward the sun). It scaled with the
   bounding box, so a sea quad to the horizon pushed the haze some 600 km out and near and far ridges looked the same;
   the contact shadows (850 m wide) and the cloud-layer height had the same fault and now follow the visible scene.

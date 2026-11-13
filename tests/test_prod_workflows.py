@@ -379,8 +379,38 @@ else:
     off = (wfull["Road"][np.clip(cj + 12, 0, 1024), ci] > 0.3).mean()
     check(f"  under the Road weight: {on:.0%} of the road points; negative control 48 m to the side: {off:.0%}",
           on > 0.8 and off < 0.3)
+    # houses: in the towns by the roads, never on them, the front (local +Z) turned toward the road
+    hz = [r for r in rows if r["asset"].startswith("SM_House_")]
+    HP = np.array([[float(r["px"]), float(r["pz"])] for r in hz])
+    from scipy.spatial import cKDTree
+    kd = cKDTree(RV[:, [0, 2]])
+    dist_, nn_ = kd.query(HP)
+    check(f"houses: {len(hz)} (SM_House_A/B/C), all within 150 m of a road and none on it (nearest centre line > 4 m)",
+          len(hz) > 50 and {r["asset"] for r in hz} <= {"SM_House_A", "SM_House_B", "SM_House_C"}
+          and dist_.max() < 150 and (dist_ > 4.0).all(), (round(float(dist_.min()), 1), round(float(dist_.max()), 1)))
+    qh = np.array([[float(r[c]) for c in ("qx", "qy", "qz", "qw")] for r in hz])
+    x_, y_, z_, w_ = qh.T
+    front = np.stack([2 * (x_ * z_ + w_ * y_), 2 * (y_ * z_ - w_ * x_), 1 - 2 * (x_ * x_ + y_ * y_)], -1)[:, [0, 2]]
+    to_road = RV[nn_][:, [0, 2]] - HP
+    to_road /= np.maximum(np.linalg.norm(to_road, axis=1, keepdims=True), 1e-9)
+    facing = (front * to_road).sum(1)
+    check(f"  facing the road: {np.mean(facing > 0.5):.0%} of the fronts within 60 degrees of the way to the nearest "
+          f"road point; negative control, the backs: {np.mean(-facing > 0.5):.0%}",
+          np.mean(facing > 0.5) > 0.75 and np.mean(-facing > 0.5) < 0.1)
+    det = os.path.join(WD, "texture/detail")
+    dfiles = [f"T_Detail_{k}_{m}.png" for k in ("Grass", "Rock", "Gravel", "Litter") for m in ("Color", "Normal_GL")]
+    dimg = {f: img(os.path.join(det, f)) for f in dfiles}
+    col = [dimg[f"T_Detail_{k}_Color.png"][..., :3].astype(float) / 255 for k in ("Grass", "Rock", "Gravel", "Litter")]
+
+    def wrap_jump(a):
+        return max(np.abs(a[:, 0] - a[:, -1]).mean() / max(np.abs(np.diff(a, axis=1)).mean(), 1e-9),
+                   np.abs(a[0] - a[-1]).mean() / max(np.abs(np.diff(a, axis=0)).mean(), 1e-9))
+    check("detail maps: 8 files of 512², colour averaging about 0.5 (no change on average), seamless when tiled "
+          "(the wrapped jump within 2x a neighbour step)",
+          all(dimg[f].shape[:2] == (512, 512) for f in dfiles) and all(0.38 < c.mean() < 0.62 for c in col)
+          and all(wrap_jump(c) < 2.0 for c in col), [round(float(c.mean()), 3) for c in col])
     # the stitched 4096² images and the decoded tiles are a gigabyte or two: let them go before the next pipeline
-    del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl
+    del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl, dimg, col
     api = res = None
     gc.collect()
     _mt.trim()

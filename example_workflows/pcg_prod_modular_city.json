@@ -17187,7 +17187,7 @@
    ],
    "size": [
     520,
-    693
+    713
    ],
    "flags": {},
    "order": 328,
@@ -17207,6 +17207,11 @@
      "name": "camera",
      "type": "PCGCAM",
      "link": 335
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -17251,7 +17256,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    35528
+    35548
    ],
    "size": [
     520,
@@ -17279,7 +17284,7 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    35972
+    35992
    ],
    "size": [
     520,
@@ -17344,11 +17349,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    36266
+    36286
    ],
    "size": [
     520,
-    693
+    713
    ],
    "flags": {},
    "order": 329,
@@ -17368,6 +17373,11 @@
      "name": "camera",
      "type": "PCGCAM",
      "link": 338
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -17412,7 +17422,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    37003
+    37043
    ],
    "size": [
     520,
@@ -17440,7 +17450,7 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    37447
+    37487
    ],
    "size": [
     520,
@@ -17494,7 +17504,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    37821
+    37861
    ],
    "size": [
     520,
@@ -17552,7 +17562,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    38112
+    38152
    ],
    "size": [
     520,
@@ -17607,11 +17617,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    38531
+    38571
    ],
    "size": [
     520,
-    408
+    428
    ],
    "flags": {},
    "order": 318,
@@ -17630,6 +17640,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -17675,7 +17690,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    38983
+    39043
    ],
    "size": [
     520,

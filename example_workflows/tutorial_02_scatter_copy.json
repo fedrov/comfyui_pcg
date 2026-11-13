@@ -729,7 +729,7 @@
    ],
    "size": [
     520,
-    393
+    413
    ],
    "flags": {},
    "order": 12,
@@ -748,6 +748,11 @@
     {
      "name": "camera",
      "type": "PCGCAM",
+     "link": null
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
      "link": null
     }
    ],
@@ -793,7 +798,7 @@
    "type": "PreviewImage",
    "pos": [
     1260,
-    647
+    667
    ],
    "size": [
     520,
@@ -821,7 +826,7 @@
    "type": "PCG_Viewport",
    "pos": [
     1260,
-    1251
+    1271
    ],
    "size": [
     520,

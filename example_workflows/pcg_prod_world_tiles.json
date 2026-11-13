@@ -1,6 +1,6 @@
 {
- "last_node_id": 125,
- "last_link_id": 136,
+ "last_node_id": 164,
+ "last_link_id": 185,
  "nodes": [
   {
    "id": 1,
@@ -104,7 +104,7 @@
     526
    ],
    "flags": {},
-   "order": 17,
+   "order": 22,
    "mode": 0,
    "inputs": [
     {
@@ -146,7 +146,7 @@
     969
    ],
    "flags": {},
-   "order": 29,
+   "order": 37,
    "mode": 0,
    "inputs": [
     {
@@ -206,7 +206,7 @@
     510
    ],
    "flags": {},
-   "order": 35,
+   "order": 45,
    "mode": 0,
    "inputs": [
     {
@@ -247,7 +247,7 @@
     485
    ],
    "flags": {},
-   "order": 41,
+   "order": 53,
    "mode": 0,
    "inputs": [
     {
@@ -288,7 +288,7 @@
     654
    ],
    "flags": {},
-   "order": 46,
+   "order": 59,
    "mode": 0,
    "inputs": [
     {
@@ -333,7 +333,7 @@
     526
    ],
    "flags": {},
-   "order": 49,
+   "order": 63,
    "mode": 0,
    "inputs": [
     {
@@ -375,7 +375,7 @@
     999
    ],
    "flags": {},
-   "order": 51,
+   "order": 66,
    "mode": 0,
    "inputs": [
     {
@@ -433,7 +433,7 @@
     526
    ],
    "flags": {},
-   "order": 53,
+   "order": 76,
    "mode": 0,
    "inputs": [
     {
@@ -475,7 +475,7 @@
     890
    ],
    "flags": {},
-   "order": 54,
+   "order": 77,
    "mode": 0,
    "inputs": [
     {
@@ -612,7 +612,7 @@
     605
    ],
    "flags": {},
-   "order": 55,
+   "order": 78,
    "mode": 0,
    "inputs": [
     {
@@ -661,7 +661,7 @@
     890
    ],
    "flags": {},
-   "order": 56,
+   "order": 79,
    "mode": 0,
    "inputs": [
     {
@@ -732,7 +732,7 @@
     526
    ],
    "flags": {},
-   "order": 57,
+   "order": 80,
    "mode": 0,
    "inputs": [
     {
@@ -774,7 +774,7 @@
     960
    ],
    "flags": {},
-   "order": 58,
+   "order": 81,
    "mode": 0,
    "inputs": [
     {
@@ -835,7 +835,7 @@
     510
    ],
    "flags": {},
-   "order": 59,
+   "order": 82,
    "mode": 0,
    "inputs": [
     {
@@ -876,7 +876,7 @@
     526
    ],
    "flags": {},
-   "order": 60,
+   "order": 83,
    "mode": 0,
    "inputs": [
     {
@@ -918,7 +918,7 @@
     654
    ],
    "flags": {},
-   "order": 61,
+   "order": 84,
    "mode": 0,
    "inputs": [
     {
@@ -963,7 +963,7 @@
     526
    ],
    "flags": {},
-   "order": 62,
+   "order": 85,
    "mode": 0,
    "inputs": [
     {
@@ -1007,7 +1007,7 @@
     379
    ],
    "flags": {},
-   "order": 63,
+   "order": 86,
    "mode": 0,
    "inputs": [
     {
@@ -1062,7 +1062,7 @@
     249
    ],
    "flags": {},
-   "order": 64,
+   "order": 87,
    "mode": 0,
    "inputs": [
     {
@@ -1076,7 +1076,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      22
+      22,
+      28
      ],
      "slot_index": 0
     },
@@ -1114,7 +1115,7 @@
     476
    ],
    "flags": {},
-   "order": 65,
+   "order": 88,
    "mode": 0,
    "inputs": [
     {
@@ -1135,9 +1136,13 @@
      "links": [
       23,
       25,
-      40,
-      42,
-      61
+      31,
+      48,
+      50,
+      52,
+      53,
+      58,
+      95
      ],
      "slot_index": 0
     },
@@ -1180,7 +1185,7 @@
     724
    ],
    "flags": {},
-   "order": 66,
+   "order": 90,
    "mode": 0,
    "inputs": [
     {
@@ -1233,7 +1238,7 @@
     724
    ],
    "flags": {},
-   "order": 68,
+   "order": 94,
    "mode": 0,
    "inputs": [
     {
@@ -1252,7 +1257,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      27
+      30
      ],
      "slot_index": 0
     }
@@ -1276,23 +1281,135 @@
   },
   {
    "id": 26,
-   "type": "PCG_COPBlur",
+   "type": "PCG_Circle",
    "pos": [
     840,
     5164
    ],
    "size": [
     360,
-    510
+    303
    ],
    "flags": {},
-   "order": 70,
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      27
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Circle"
+   },
+   "widgets_values": [
+    "polygon",
+    "zx",
+    false,
+    160.0,
+    160.0,
+    24,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    false,
+    0.0,
+    0.0,
+    0.0,
+    false,
+    "open_arc",
+    0.0,
+    360.0,
+    false,
+    4
+   ],
+   "title": "Town extent (160 m)"
+  },
+  {
+   "id": 27,
+   "type": "PCG_CopyToPoints",
+   "pos": [
+    840,
+    5511
+   ],
+   "size": [
+    360,
+    375
+   ],
+   "flags": {},
+   "order": 89,
    "mode": 0,
    "inputs": [
     {
+     "name": "source",
+     "type": "GEOMETRY",
+     "link": 27
+    },
+    {
+     "name": "points",
+     "type": "GEOMETRY",
+     "link": 28
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      29
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_CopyToPoints"
+   },
+   "widgets_values": [
+    "",
+    "",
+    false,
+    0.0,
+    1.0,
+    0.0,
+    "",
+    "*",
+    "",
+    "",
+    "N v up",
+    false
+   ],
+   "title": "A disc at each town"
+  },
+  {
+   "id": 28,
+   "type": "PCG_COPRasterizeCurves",
+   "pos": [
+    840,
+    5930
+   ],
+   "size": [
+    360,
+    724
+   ],
+   "flags": {},
+   "order": 97,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 29
+    },
+    {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 27
+     "link": 30
     }
    ],
    "outputs": [
@@ -1300,7 +1417,194 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      28
+      32
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPRasterizeCurves"
+   },
+   "widgets_values": [
+    1.0,
+    "",
+    true,
+    "",
+    "xz",
+    "world",
+    4100.0,
+    "town",
+    512,
+    512
+   ],
+   "title": "Towns"
+  },
+  {
+   "id": 29,
+   "type": "PCG_COPRasterizeCurves",
+   "pos": [
+    840,
+    6698
+   ],
+   "size": [
+    360,
+    724
+   ],
+   "flags": {},
+   "order": 98,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 31
+    },
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 32
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      33
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPRasterizeCurves"
+   },
+   "widgets_values": [
+    20.0,
+    "",
+    false,
+    "",
+    "xz",
+    "world",
+    4100.0,
+    "rdn",
+    512,
+    512
+   ],
+   "title": "Near the roads (80 m)"
+  },
+  {
+   "id": 30,
+   "type": "PCG_COPBlur",
+   "pos": [
+    840,
+    7466
+   ],
+   "size": [
+    360,
+    510
+   ],
+   "flags": {},
+   "order": 99,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 33
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      34
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPBlur"
+   },
+   "widgets_values": [
+    4.0,
+    "clamp",
+    "rdn"
+   ],
+   "title": "Near the roads: soft"
+  },
+  {
+   "id": 31,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    840,
+    8020
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 100,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 34
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      35
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "rdn",
+    100.0,
+    4100.0,
+    "central",
+    false,
+    "Nrd",
+    true
+   ],
+   "title": "Toward the road (slope of the band)"
+  },
+  {
+   "id": 32,
+   "type": "PCG_COPBlur",
+   "pos": [
+    840,
+    8718
+   ],
+   "size": [
+    360,
+    510
+   ],
+   "flags": {},
+   "order": 101,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 35
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      36
      ],
      "slot_index": 0
     }
@@ -1316,24 +1620,24 @@
    "title": "Soft cut and fill slopes"
   },
   {
-   "id": 27,
+   "id": 33,
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    5718
+    9272
    ],
    "size": [
     360,
     526
    ],
    "flags": {},
-   "order": 71,
+   "order": 102,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 28
+     "link": 36
     }
    ],
    "outputs": [
@@ -1341,7 +1645,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      29
+      37
      ],
      "slot_index": 0
     }
@@ -1358,24 +1662,24 @@
    "title": "Cut the roads into the ground"
   },
   {
-   "id": 28,
+   "id": 34,
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    6288
+    9842
    ],
    "size": [
     360,
     654
    ],
    "flags": {},
-   "order": 72,
+   "order": 103,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 29
+     "link": 37
     }
    ],
    "outputs": [
@@ -1383,7 +1687,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      30
+      38
      ],
      "slot_index": 0
     }
@@ -1403,24 +1707,24 @@
    "title": "Normal (slopes, aligning rocks)"
   },
   {
-   "id": 29,
+   "id": 35,
    "type": "PCG_COPCurvature",
    "pos": [
     840,
-    6986
+    10540
    ],
    "size": [
     360,
     653
    ],
    "flags": {},
-   "order": 73,
+   "order": 104,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 30
+     "link": 38
     }
    ],
    "outputs": [
@@ -1428,7 +1732,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      31
+      39
      ],
      "slot_index": 0
     }
@@ -1449,24 +1753,24 @@
    "title": "Curvature (ridges +, hollows -, 1/m)"
   },
   {
-   "id": 30,
+   "id": 36,
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    7683
+    11237
    ],
    "size": [
     360,
     526
    ],
    "flags": {},
-   "order": 74,
+   "order": 105,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 31
+     "link": 39
     }
    ],
    "outputs": [
@@ -1474,21 +1778,22 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      32,
-      49,
-      51,
-      53,
-      63,
-      64,
-      65,
-      66,
-      67,
-      68,
-      69,
-      70,
-      71,
-      72,
-      76
+      40,
+      79,
+      81,
+      83,
+      85,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      110
      ],
      "slot_index": 0
     }
@@ -1497,7 +1802,7 @@
     "Node name for S&R": "PCG_COPWrangle"
    },
    "widgets_values": [
-    "hm = @C * 2048\ntn = normalize(set(@N.x, @N.z, -@N.y))\n@tn = tn\nsteep = 1 - @N.z\nwet = clamp(@flow, 0, 1) * @land\nhn = clamp(hm / (@C.max() * 2048), 0, 1)\n@hn = hn\n# water: the sea (below 0 m), and the trunk rivers (largest catchments) inside their beds\nsea = 1 - smoothstep(-0.6, 0.3, hm)\nbig = smoothstep(0.003, 0.05, @catchment)\nriv = @bed * smoothstep(0.25, 0.7, big)\nwater = clamp(max(sea, riv), 0, 1)\n# cliffs: above ~55 degrees everywhere; from ~45 degrees on in patches (bare outcrops in the grass)\ncliff = max(smoothstep(0.38, 0.48, steep), smoothstep(0.27, 0.35, steep) * smoothstep(0.5, 0.65, noise(set(@u * 40, @v * 40, 2.2)) + 0.2 * (noise(set(@u * 140, @v * 140, 5.5)) - 0.5)))\n# sand: the beach (0-4 m above the sea, gentle), dry river beds and gravel bars\nbeach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.08, 0.2, steep))\nsand = clamp(max(beach, @bed * (1 - smoothstep(0.25, 0.7, big))), 0, 1)\n# scree: what slumped (debris), below the cliffs\nscree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\nsoil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.30, 0.42, steep))\nclump = smoothstep(0.5, 0.62, 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06)\nwood = clamp(soil * clump, 0, 1)\n# layer the seven weights: each takes its share of what the ones above left; the road first (fords and\n# bridges cross the rivers), then water\nroad = clamp(@road, 0, 1)\n@Road = road\nrem = 1 - road\n@Water = rem * water\nrem = rem * (1 - water)\n@Sand = rem * sand\nrem = rem * (1 - sand)\n@Rock = rem * cliff\nrem = rem * (1 - cliff)\n@Sediment = rem * scree\nrem = rem * (1 - scree)\n@ForestFloor = rem * wood\n@Grass = rem * (1 - wood)\n# the verges are kept clear (the cut and fill corridor)\nclear = 1 - smoothstep(0.05, 0.4, @rdw)\n@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear\nedge_ = wood * (1 - wood) * 4\n@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn)) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n@d_rock = (0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed) * clear\n@wet = wet\n# colour (display values, made linear at the end)\nrv = noise(set(@u * 9, @v * 9, 2.6))\nbedd = 0.5 + 0.5 * sin(hm / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\nrock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.82 + 0.26 * bedd)\nrock = lerp(rock, rock * set(1.06, 0.98, 0.88), smoothstep(0.55, 0.8, noise(set(@u * 4, hm / 40, 3.3))))\nrock = rock * (1 - 0.45 * smoothstep(0.3, 0.9, wet))\n# a colour map out of the erosion masks (as in Project Pegasus): ridges and edges lighter, hollows darker\nconv = smoothstep(-0.06, 0.06, @curv)\nrock = rock * (0.78 + 0.4 * conv)\nscreec = set(0.58, 0.55, 0.50) * (0.88 + 0.24 * noise(set(@u * 80, @v * 80, 3.9)))\nsandc = lerp(set(0.66, 0.60, 0.47), set(0.50, 0.46, 0.38), @bed) * (0.92 + 0.16 * noise(set(@u * 50, @v * 50, 8.1)))\nsandc = lerp(sandc, sandc * 0.72, 1 - smoothstep(0.0, 1.2, hm))\n# grass: lush in the valleys, dry yellow-green on sunny ridges, olive heath on the high ground\ndry = clamp(0.6 * smoothstep(0.4, 0.8, noise(set(@u * 7, @v * 7, 4.4))) + 0.4 * steep * 4 - 0.9 * wet, 0, 1)\ngrass = lerp(set(0.17, 0.29, 0.09), set(0.36, 0.40, 0.17), dry)\ngrass = lerp(grass, set(0.33, 0.36, 0.20), smoothstep(0.55, 0.85, hn + 0.15 * (noise(set(@u * 12, @v * 12, 9.9)) - 0.5)))\ngrass = grass * (0.86 + 0.28 * noise(set(@u * 45, @v * 45, 7.7)))\n# darker in the gullies (damp soil, shade-loving plants): the drainage pattern reads in the colour too\ngrass = grass * (1 - 0.28 * smoothstep(0.35, 0.9, wet))\n# spurs dry and pale, hollows damp and dark; fresh sediment (the fans the water laid down) a pale silt-green\ngrass = lerp(grass * set(0.86, 0.92, 0.86), grass * set(1.12, 1.08, 0.9), conv)\ngrass = lerp(grass, set(0.46, 0.45, 0.30), 0.55 * smoothstep(0.003, 0.012, @sediment))\nwoodc = set(0.15, 0.21, 0.09) * (0.85 + 0.3 * noise(set(@u * 60, @v * 60, 1.3)))\ndeep = smoothstep(0.0, -14.0, hm)\nwaterc = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nwaterc = lerp(waterc, set(0.10, 0.19, 0.21), riv)\nroadc = set(0.60, 0.53, 0.41) * (0.9 + 0.2 * noise(set(@u * 300, @v * 300, 6.4)))\nc = grass * @Grass + woodc * @ForestFloor + screec * @Sediment + rock * @Rock + sandc * @Sand + waterc * @Water + roadc * @Road\n@albedo = (c * (0.95 + 0.1 * noise(set(@u * 150, @v * 150, 2.2)))) ** 2.2\n# the grass and rock colours on their own, for the 1 m surface textures\n@grass_c = grass\n@rock_c = rock\n",
+    "hm = @C * 2048\ntn = normalize(set(@N.x, @N.z, -@N.y))\n@tn = tn\nsteep = 1 - @N.z\nwet = clamp(@flow, 0, 1) * @land\nhn = clamp(hm / (@C.max() * 2048), 0, 1)\n@hn = hn\n# water: the sea (below 0 m), and the trunk rivers (largest catchments) inside their beds\nsea = 1 - smoothstep(-0.6, 0.3, hm)\nbig = smoothstep(0.003, 0.05, @catchment)\nriv = @bed * smoothstep(0.25, 0.7, big)\nwater = clamp(max(sea, riv), 0, 1)\n# cliffs: above ~55 degrees everywhere; from ~45 degrees on in patches (bare outcrops in the grass)\ncliff = max(smoothstep(0.38, 0.48, steep), smoothstep(0.27, 0.35, steep) * smoothstep(0.5, 0.65, noise(set(@u * 40, @v * 40, 2.2)) + 0.2 * (noise(set(@u * 140, @v * 140, 5.5)) - 0.5)))\n# sand: the beach (0-4 m above the sea, gentle), dry river beds and gravel bars\nbeach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.08, 0.2, steep))\nsand = clamp(max(beach, @bed * (1 - smoothstep(0.25, 0.7, big))), 0, 1)\n# scree: what slumped (debris), below the cliffs\nscree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\nsoil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.30, 0.42, steep))\nclump = smoothstep(0.5, 0.62, 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06)\nwood = clamp(soil * clump, 0, 1)\n# layer the seven weights: each takes its share of what the ones above left; the road first (fords and\n# bridges cross the rivers), then water\nroad = clamp(@road, 0, 1)\n@Road = road\nrem = 1 - road\n@Water = rem * water\nrem = rem * (1 - water)\n@Sand = rem * sand\nrem = rem * (1 - sand)\n@Rock = rem * cliff\nrem = rem * (1 - cliff)\n@Sediment = rem * scree\nrem = rem * (1 - scree)\n@ForestFloor = rem * wood\n@Grass = rem * (1 - wood)\n# the verges are kept clear (the cut and fill corridor)\nclear = (1 - smoothstep(0.05, 0.4, @rdw)) * (1 - 0.85 * @town)\n# houses: in the towns, along the roads (not on them), on flat dry land\n@d_house = @town * smoothstep(0.08, 0.5, @rdn) * (1 - smoothstep(0.02, 0.25, @rdw)) * (1 - smoothstep(0.03, 0.08, steep)) * (1 - water) * (1 - smoothstep(0.05, 0.3, @bed))\n@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear\nedge_ = wood * (1 - wood) * 4\n@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn)) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n@d_rock = (0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed) * clear\n@wet = wet\n# colour (display values, made linear at the end)\nrv = noise(set(@u * 9, @v * 9, 2.6))\nbedd = 0.5 + 0.5 * sin(hm / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\nrock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.82 + 0.26 * bedd)\nrock = lerp(rock, rock * set(1.06, 0.98, 0.88), smoothstep(0.55, 0.8, noise(set(@u * 4, hm / 40, 3.3))))\nrock = rock * (1 - 0.45 * smoothstep(0.3, 0.9, wet))\n# a colour map out of the erosion masks (as in Project Pegasus): ridges and edges lighter, hollows darker\nconv = smoothstep(-0.06, 0.06, @curv)\nrock = rock * (0.78 + 0.4 * conv)\nscreec = set(0.58, 0.55, 0.50) * (0.88 + 0.24 * noise(set(@u * 80, @v * 80, 3.9)))\nsandc = lerp(set(0.66, 0.60, 0.47), set(0.50, 0.46, 0.38), @bed) * (0.92 + 0.16 * noise(set(@u * 50, @v * 50, 8.1)))\nsandc = lerp(sandc, sandc * 0.72, 1 - smoothstep(0.0, 1.2, hm))\n# grass: lush in the valleys, dry yellow-green on sunny ridges, olive heath on the high ground\ndry = clamp(0.6 * smoothstep(0.4, 0.8, noise(set(@u * 7, @v * 7, 4.4))) + 0.4 * steep * 4 - 0.9 * wet, 0, 1)\ngrass = lerp(set(0.17, 0.29, 0.09), set(0.36, 0.40, 0.17), dry)\ngrass = lerp(grass, set(0.33, 0.36, 0.20), smoothstep(0.55, 0.85, hn + 0.15 * (noise(set(@u * 12, @v * 12, 9.9)) - 0.5)))\ngrass = grass * (0.86 + 0.28 * noise(set(@u * 45, @v * 45, 7.7)))\n# darker in the gullies (damp soil, shade-loving plants): the drainage pattern reads in the colour too\ngrass = grass * (1 - 0.28 * smoothstep(0.35, 0.9, wet))\n# spurs dry and pale, hollows damp and dark; fresh sediment (the fans the water laid down) a pale silt-green\ngrass = lerp(grass * set(0.86, 0.92, 0.86), grass * set(1.12, 1.08, 0.9), conv)\ngrass = lerp(grass, set(0.46, 0.45, 0.30), 0.55 * smoothstep(0.003, 0.012, @sediment))\nwoodc = set(0.15, 0.21, 0.09) * (0.85 + 0.3 * noise(set(@u * 60, @v * 60, 1.3)))\ndeep = smoothstep(0.0, -14.0, hm)\nwaterc = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nwaterc = lerp(waterc, set(0.10, 0.19, 0.21), riv)\nroadc = set(0.60, 0.53, 0.41) * (0.9 + 0.2 * noise(set(@u * 300, @v * 300, 6.4)))\nc = grass * @Grass + woodc * @ForestFloor + screec * @Sediment + rock * @Rock + sandc * @Sand + waterc * @Water + roadc * @Road\n@albedo = (c * (0.95 + 0.1 * noise(set(@u * 150, @v * 150, 2.2)))) ** 2.2\n# the grass and rock colours on their own, for the 1 m surface textures\n@grass_c = grass\n@rock_c = rock\n",
     0,
     "{}",
     0
@@ -1505,7 +1810,7 @@
    "title": "Ecology: seven weight layers + scatter densities"
   },
   {
-   "id": 31,
+   "id": 37,
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
@@ -1516,13 +1821,13 @@
     485
    ],
    "flags": {},
-   "order": 75,
+   "order": 106,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 32
+     "link": 40
     }
    ],
    "outputs": [
@@ -1530,8 +1835,8 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      33,
-      39
+      41,
+      47
      ],
      "slot_index": 0
     }
@@ -1546,7 +1851,7 @@
    "title": "Keep what the surface needs"
   },
   {
-   "id": 32,
+   "id": 38,
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
@@ -1557,13 +1862,13 @@
     485
    ],
    "flags": {},
-   "order": 90,
+   "order": 122,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 33
+     "link": 41
     }
    ],
    "outputs": [
@@ -1571,7 +1876,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      34
+      42
      ],
      "slot_index": 0
     }
@@ -1586,7 +1891,7 @@
    "title": "Height only"
   },
   {
-   "id": 33,
+   "id": 39,
    "type": "PCG_COPResize",
    "pos": [
     3100,
@@ -1597,13 +1902,13 @@
     485
    ],
    "flags": {},
-   "order": 96,
+   "order": 129,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 34
+     "link": 42
     }
    ],
    "outputs": [
@@ -1611,7 +1916,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      35
+      43
      ],
      "slot_index": 0
     }
@@ -1627,7 +1932,7 @@
    "title": "Upsample to 4096² (1 m texels)"
   },
   {
-   "id": 34,
+   "id": 40,
    "type": "PCG_COPErosion",
    "pos": [
     3100,
@@ -1638,13 +1943,13 @@
     999
    ],
    "flags": {},
-   "order": 103,
+   "order": 136,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 35
+     "link": 43
     }
    ],
    "outputs": [
@@ -1652,7 +1957,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      36
+      44
      ],
      "slot_index": 0
     }
@@ -1685,7 +1990,7 @@
    "title": "Rills at 1 m (erosion filter, to Ce)"
   },
   {
-   "id": 35,
+   "id": 41,
    "type": "PCG_COPNoise",
    "pos": [
     3100,
@@ -1696,7 +2001,7 @@
     1388
    ],
    "flags": {},
-   "order": 3,
+   "order": 4,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1704,7 +2009,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      37
+      45
      ],
      "slot_index": 0
     }
@@ -1751,7 +2056,7 @@
    "title": "Joints / stones (Worley cell edges, ~7 m)"
   },
   {
-   "id": 36,
+   "id": 42,
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
@@ -1762,18 +2067,18 @@
     530
    ],
    "flags": {},
-   "order": 107,
+   "order": 140,
    "mode": 0,
    "inputs": [
     {
      "name": "a",
      "type": "COPIMAGE",
-     "link": 36
+     "link": 44
     },
     {
      "name": "b",
      "type": "COPIMAGE",
-     "link": 37
+     "link": 45
     }
    ],
    "outputs": [
@@ -1781,7 +2086,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      38
+      46
      ],
      "slot_index": 0
     }
@@ -1797,7 +2102,7 @@
    "title": "+ joints"
   },
   {
-   "id": 37,
+   "id": 43,
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
@@ -1808,18 +2113,18 @@
     530
    ],
    "flags": {},
-   "order": 110,
+   "order": 143,
    "mode": 0,
    "inputs": [
     {
      "name": "a",
      "type": "COPIMAGE",
-     "link": 38
+     "link": 46
     },
     {
      "name": "b",
      "type": "COPIMAGE",
-     "link": 39
+     "link": 47
     }
    ],
    "outputs": [
@@ -1827,7 +2132,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      41
+      49
      ],
      "slot_index": 0
     }
@@ -1843,7 +2148,7 @@
    "title": "+ the ecology layers (resampled to 4096²)"
   },
   {
-   "id": 38,
+   "id": 44,
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
@@ -1854,18 +2159,18 @@
     724
    ],
    "flags": {},
-   "order": 113,
+   "order": 146,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 40
+     "link": 48
     },
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 41
+     "link": 49
     }
    ],
    "outputs": [
@@ -1873,7 +2178,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      43
+      51
      ],
      "slot_index": 0
     }
@@ -1896,7 +2201,7 @@
    "title": "Roads at 1 m (6 m wide)"
   },
   {
-   "id": 39,
+   "id": 45,
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
@@ -1907,18 +2212,18 @@
     724
    ],
    "flags": {},
-   "order": 115,
+   "order": 149,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 42
+     "link": 50
     },
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 43
+     "link": 51
     }
    ],
    "outputs": [
@@ -1926,7 +2231,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      44
+      57
      ],
      "slot_index": 0
     }
@@ -1949,24 +2254,207 @@
    "title": "Verges (11 m)"
   },
   {
-   "id": 40,
-   "type": "PCG_COPWrangle",
+   "id": 46,
+   "type": "PCG_Wrangle",
    "pos": [
     3100,
     6746
    ],
    "size": [
     360,
-    526
+    247
    ],
    "flags": {},
-   "order": 116,
+   "order": 91,
    "mode": 0,
    "inputs": [
     {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 52
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      54
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "@P = @P + 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Rut: left"
+  },
+  {
+   "id": 47,
+   "type": "PCG_Wrangle",
+   "pos": [
+    3100,
+    7037
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 92,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 53
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      55
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "@P = @P - 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Rut: right"
+  },
+  {
+   "id": 48,
+   "type": "PCG_Merge",
+   "pos": [
+    3100,
+    7328
+   ],
+   "size": [
+    360,
+    166
+   ],
+   "flags": {},
+   "order": 95,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 54
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 55
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      56
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Both ruts"
+  },
+  {
+   "id": 49,
+   "type": "PCG_COPRasterizeCurves",
+   "pos": [
+    3100,
+    7538
+   ],
+   "size": [
+    360,
+    724
+   ],
+   "flags": {},
+   "order": 151,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 56
+    },
+    {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 44
+     "link": 57
     }
    ],
    "outputs": [
@@ -1974,7 +2462,108 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      45
+      59
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPRasterizeCurves"
+   },
+   "widgets_values": [
+    1.0,
+    "",
+    false,
+    "",
+    "xz",
+    "world",
+    4100.0,
+    "ruts",
+    512,
+    512
+   ],
+   "title": "Ruts (1 m)"
+  },
+  {
+   "id": 50,
+   "type": "PCG_COPRasterizeCurves",
+   "pos": [
+    3100,
+    8306
+   ],
+   "size": [
+    360,
+    724
+   ],
+   "flags": {},
+   "order": 152,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 58
+    },
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 59
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      60
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPRasterizeCurves"
+   },
+   "widgets_values": [
+    1.2,
+    "",
+    false,
+    "",
+    "xz",
+    "world",
+    4100.0,
+    "crown",
+    512,
+    512
+   ],
+   "title": "Crown (1.2 m)"
+  },
+  {
+   "id": 51,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    3100,
+    9074
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 153,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 60
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      61
      ],
      "slot_index": 0
     }
@@ -1983,32 +2572,32 @@
     "Node name for S&R": "PCG_COPWrangle"
    },
    "widgets_values": [
-    "# the 1 m surface: crisp material edges, rock strata and joints, rills, mottled grass; a detail height for the normal map\nx = @u * 4100\ny = @v * 4100\nhm = @Ce * 2048\n# the erosion filter's rills and spurs (metres): what it cut or left above the 4 m surface\nero = (@Ce - @C) * 2048\nn4 = noise(set(x / 4, y / 4, 1.3))\nn15 = noise(set(x / 15, y / 15, 2.9))\nn50 = noise(set(x / 50, y / 50, 4.1))\n# joint cracks (cell edges of a Worley pattern), only in patches\ncrk = (1 - smoothstep(0.0, 0.12, (@cr + 1) * 0.5)) * smoothstep(0.45, 0.6, n15)\ngl = sqrt(@N.x * @N.x + @N.y * @N.y) + 1e-4\ns = (x * (0 - @N.y) + y * @N.x) / gl\nst = noise(set(s / 2.5, hm / 25, 5.5))\n# crisp outcrops: the rock weight pushed past a ragged threshold; spurs (ero > 0) shed their soil first\nland = 1 - @Water\nrk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\nk = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\nsd = @Sand * k\nsc = @Sediment * k\nff = @ForestFloor * k\ngr = @Grass * k\n# rock: beds of two thicknesses (5 m and 13 m, warped, terraced where the faces are hard), joint cracks, rough;\n# colour banded by bed, lichen on the tops, dark streaks down the faces\nsp = (hm + 18 * (n50 - 0.5) + 5 * (n15 - 0.5)) / 5\nband = sp - floor(sp)\nsp2 = (hm + 30 * (n50 - 0.5)) / 13 + 0.37\nband2 = sp2 - floor(sp2)\nhard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\nterr = (5 * (smoothstep(0.1, 0.9, band) - band) * (0.3 + 0.7 * hard) + 9 * (smoothstep(0.2, 0.8, band2) - band2) * (1 - 0.6 * hard)) * 0.6\n# (the terraces stay in the colour only: in the relief they crossed the rills in zigzags on every face)\n# couloirs and ribs down the faces: sharp ridged noise across the slope, stretched down it\nrib = 1 - abs(2 * noise(set(s / 7, hm / 45, 7.3)) - 1)\ndr = 0.15 * hard * terr - 0.5 * crk + 0.3 * (n4 - 0.5) + 0.8 * (n15 - 0.5) + 2.2 * rib * rib + 1.2 * (st - 0.5)\nbedc = 0.92 + 0.16 * noise(set(floor(sp) * 1.7, x / 300, 6.6))\nrock = @rock_c * bedc * (1 - 0.3 * crk) * (0.9 + 0.2 * n4)\nvarn = smoothstep(0.5, 0.75, st) * (1 - 0.5 * smoothstep(0.6, 0.9, band))\nrock = lerp(rock, rock * set(0.55, 0.52, 0.5), 0.6 * varn)\nrock = lerp(rock, rock * set(1.18, 1.0, 0.78), 0.6 * smoothstep(0.5, 0.7, n50) * (1 - varn))\n# ledge tops catch the light and the debris: lighter; the faces under them darker\nrock = rock * (0.85 + 0.3 * smoothstep(0.75, 0.95, band))\nlich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * smoothstep(0.75, 0.9, @N.z + 0.15 * band)\nrock = lerp(rock, set(0.62, 0.62, 0.52), 0.5 * lich)\n# grass: mottled at 4 / 15 / 50 m, greener and darker in the rills, dry on the spurs, bare soil where the rill walls are steep\ng = @grass_c * (0.72 + 0.4 * n15 + 0.2 * n4)\n# patches of a cooler, darker green (fern, scrub) and of a warmer one, at 50 m\ng = lerp(g, g * set(0.75, 0.92, 0.85), smoothstep(0.55, 0.7, n50))\ng = lerp(g, g * set(1.1, 1.0, 0.8), smoothstep(0.55, 0.7, 1 - n50) * 0.6)\ng = lerp(g, g * set(1.06, 1.04, 0.9), smoothstep(0.5, 2.0, ero) * 0.3)\ng = lerp(g, g * set(0.82, 0.92, 0.8), smoothstep(-0.5, -2.0, ero) * 0.4)\nsoilc = set(0.42, 0.35, 0.26) * (0.85 + 0.3 * n4)\nbare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\ng = lerp(g, soilc, 0.85 * bare)\ndg = 0.25 * (n4 - 0.5) + 0.15 * (n15 - 0.5)\n# forest floor, scree (stones and gaps), sand (wet at the waterline), water\nwood = set(0.14, 0.17, 0.08) * (0.75 + 0.5 * n4)\nstn = (@cr + 1) * 0.5\nscr = set(0.56, 0.53, 0.48) * (0.7 + 0.45 * smoothstep(0.0, 0.25, stn)) * (0.85 + 0.3 * n15)\ndsc = 0.35 * smoothstep(0.0, 0.3, stn)\nsand = lerp(set(0.68, 0.62, 0.49), set(0.40, 0.37, 0.31), @bed) * (0.92 + 0.12 * n4 + 0.08 * n15)\nsand = lerp(sand, sand * 0.68, 1 - smoothstep(0.0, 1.5, hm))\ndeep = smoothstep(0.0, -14.0, hm)\nwat = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nc = rock * rk + g * gr + wood * ff + scr * sc + sand * sd + wat * @Water\n# the detail height (metres) for the normal map: rills strongest on soil, ledges and joints on rock\nem = 0.2 + 0.4 * smoothstep(0.3, 0.7, n50)\ndh = (em * ero * (1 - rk) * land + dr * rk + dg * gr + dsc * sc)\n# rills a little darker than the spurs between them\nc = c * (1 + 0.04 * clamp(ero, -2, 2) * land)\n# the roads, drawn at 1 m (the Road weight at 4 m is only a blur here): the other layers fill the rest,\n# a worn verge, then packed dirt with gravel; flat in the normal map\nwsum = rk + gr + ff + sc + sd + @Water\nc = c / max(wsum, 0.05)\nverge = clamp(@rdv - @rd, 0, 1) * land\nc = lerp(c, c * set(0.9, 0.86, 0.78) + set(0.05, 0.04, 0.03), 0.6 * verge)\nroadc = set(0.60, 0.53, 0.41) * (0.82 + 0.22 * n4 + 0.12 * (crk - 0.3)) * (1 - 0.15 * @wet)\nc = lerp(c, roadc, @rd * land)\ndh = dh * (1 - @rdv * land)\n@terrain_albedo = clamp(c, 0, 1) ** 2.2\n@dh = dh\n@terrain_rough = lerp(lerp(0.92 - 0.15 * @wet * rk, 0.05, @Water), 0.85, @rd * land)\n@sea_rough = 0.05 + 0 * x\n",
+    "# the 1 m surface: crisp material edges, rock strata and joints, rills, mottled grass; a detail height for the normal map\nx = @u * 4100\ny = @v * 4100\nhm = @Ce * 2048\n# the erosion filter's rills and spurs (metres): what it cut or left above the 4 m surface\nero = (@Ce - @C) * 2048\nn4 = noise(set(x / 4, y / 4, 1.3))\nn15 = noise(set(x / 15, y / 15, 2.9))\nn50 = noise(set(x / 50, y / 50, 4.1))\n# joint cracks (cell edges of a Worley pattern), only in patches\ncrk = (1 - smoothstep(0.0, 0.12, (@cr + 1) * 0.5)) * smoothstep(0.45, 0.6, n15)\ngl = sqrt(@N.x * @N.x + @N.y * @N.y) + 1e-4\ns = (x * (0 - @N.y) + y * @N.x) / gl\nst = noise(set(s / 2.5, hm / 25, 5.5))\n# crisp outcrops: the rock weight pushed past a ragged threshold; spurs (ero > 0) shed their soil first\nland = 1 - @Water\nrk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\nk = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\nsd = @Sand * k\nsc = @Sediment * k\nff = @ForestFloor * k\ngr = @Grass * k\n# rock: beds of two thicknesses (5 m and 13 m, warped, terraced where the faces are hard), joint cracks, rough;\n# colour banded by bed, lichen on the tops, dark streaks down the faces\nsp = (hm + 18 * (n50 - 0.5) + 5 * (n15 - 0.5)) / 5\nband = sp - floor(sp)\nsp2 = (hm + 30 * (n50 - 0.5)) / 13 + 0.37\nband2 = sp2 - floor(sp2)\nhard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\nterr = (5 * (smoothstep(0.1, 0.9, band) - band) * (0.3 + 0.7 * hard) + 9 * (smoothstep(0.2, 0.8, band2) - band2) * (1 - 0.6 * hard)) * 0.6\n# (the terraces stay in the colour only: in the relief they crossed the rills in zigzags on every face)\n# couloirs and ribs down the faces: sharp ridged noise across the slope, stretched down it\nrib = 1 - abs(2 * noise(set(s / 7, hm / 45, 7.3)) - 1)\ndr = 0.15 * hard * terr - 0.5 * crk + 0.3 * (n4 - 0.5) + 0.8 * (n15 - 0.5) + 2.2 * rib * rib + 1.2 * (st - 0.5)\nbedc = 0.92 + 0.16 * noise(set(floor(sp) * 1.7, x / 300, 6.6))\nrock = @rock_c * bedc * (1 - 0.3 * crk) * (0.9 + 0.2 * n4)\nvarn = smoothstep(0.5, 0.75, st) * (1 - 0.5 * smoothstep(0.6, 0.9, band))\nrock = lerp(rock, rock * set(0.55, 0.52, 0.5), 0.6 * varn)\nrock = lerp(rock, rock * set(1.18, 1.0, 0.78), 0.6 * smoothstep(0.5, 0.7, n50) * (1 - varn))\n# ledge tops catch the light and the debris: lighter; the faces under them darker\nrock = rock * (0.85 + 0.3 * smoothstep(0.75, 0.95, band))\nlich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * smoothstep(0.75, 0.9, @N.z + 0.15 * band)\nrock = lerp(rock, set(0.62, 0.62, 0.52), 0.5 * lich)\n# grass: mottled at 4 / 15 / 50 m, greener and darker in the rills, dry on the spurs, bare soil where the rill walls are steep\ng = @grass_c * (0.72 + 0.4 * n15 + 0.2 * n4)\n# patches of a cooler, darker green (fern, scrub) and of a warmer one, at 50 m\ng = lerp(g, g * set(0.75, 0.92, 0.85), smoothstep(0.55, 0.7, n50))\ng = lerp(g, g * set(1.1, 1.0, 0.8), smoothstep(0.55, 0.7, 1 - n50) * 0.6)\ng = lerp(g, g * set(1.06, 1.04, 0.9), smoothstep(0.5, 2.0, ero) * 0.3)\ng = lerp(g, g * set(0.82, 0.92, 0.8), smoothstep(-0.5, -2.0, ero) * 0.4)\nsoilc = set(0.42, 0.35, 0.26) * (0.85 + 0.3 * n4)\nbare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\ng = lerp(g, soilc, 0.85 * bare)\ndg = 0.25 * (n4 - 0.5) + 0.15 * (n15 - 0.5)\n# forest floor, scree (stones and gaps), sand (wet at the waterline), water\nwood = set(0.14, 0.17, 0.08) * (0.75 + 0.5 * n4)\nstn = (@cr + 1) * 0.5\nscr = set(0.56, 0.53, 0.48) * (0.7 + 0.45 * smoothstep(0.0, 0.25, stn)) * (0.85 + 0.3 * n15)\ndsc = 0.35 * smoothstep(0.0, 0.3, stn)\nsand = lerp(set(0.68, 0.62, 0.49), set(0.40, 0.37, 0.31), @bed) * (0.92 + 0.12 * n4 + 0.08 * n15)\nsand = lerp(sand, sand * 0.68, 1 - smoothstep(0.0, 1.5, hm))\ndeep = smoothstep(0.0, -14.0, hm)\nwat = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nc = rock * rk + g * gr + wood * ff + scr * sc + sand * sd + wat * @Water\n# the detail height (metres) for the normal map: rills strongest on soil, ledges and joints on rock\nem = 0.2 + 0.4 * smoothstep(0.3, 0.7, n50)\ndh = (em * ero * (1 - rk) * land + dr * rk + dg * gr + dsc * sc)\n# rills a little darker than the spurs between them\nc = c * (1 + 0.04 * clamp(ero, -2, 2) * land)\n# the roads, drawn at 1 m (the Road weight at 4 m is only a blur here): the other layers fill the rest,\n# a worn verge, then packed dirt with gravel; flat in the normal map\nwsum = rk + gr + ff + sc + sd + @Water\nc = c / max(wsum, 0.05)\nverge = clamp(@rdv - @rd, 0, 1) * land\nc = lerp(c, c * set(0.9, 0.86, 0.78) + set(0.05, 0.04, 0.03), 0.6 * verge)\nroadc = set(0.60, 0.53, 0.41) * (0.82 + 0.22 * n4 + 0.12 * (crk - 0.3)) * (1 - 0.15 * @wet)\nc = lerp(c, roadc, @rd * land)\nruts = @ruts * @rd * land\nc = lerp(c, c * set(0.6, 0.56, 0.5), 0.9 * ruts)\ncrown = @crown * @rd * land * (1 - ruts)\nc = lerp(c, set(0.36, 0.40, 0.20) * (0.8 + 0.3 * n4), 0.75 * crown)\ndh = dh * (1 - @rdv * land) - 0.08 * ruts + 0.03 * crown\n@terrain_albedo = clamp(c, 0, 1) ** 2.2\n@dh = dh\n@terrain_rough = lerp(lerp(0.92 - 0.15 * @wet * rk, 0.05, @Water), 0.85, @rd * land)\n@sea_rough = 0.05 + 0 * x\n# how much of each detail map applies (grass, rock, gravel: scree / sand / road, litter: forest floor)\ndwr = @rd * land\n@terrain_dw = set(gr * (1 - dwr), rk * (1 - dwr), (sc + sd) * (1 - dwr) + dwr, ff * (1 - dwr))\n",
     0,
     "{}",
-    128
+    64
    ],
    "title": "Surface: albedo, roughness, detail height"
   },
   {
-   "id": 41,
+   "id": 52,
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    7316
+    9644
    ],
    "size": [
     360,
     654
    ],
    "flags": {},
-   "order": 117,
+   "order": 154,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 45
+     "link": 61
     }
    ],
    "outputs": [
@@ -2016,7 +2605,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      46
+      62
      ],
      "slot_index": 0
     }
@@ -2036,24 +2625,24 @@
    "title": "Detail height -> normal map"
   },
   {
-   "id": 42,
+   "id": 53,
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    8014
+    10342
    ],
    "size": [
     360,
     485
    ],
    "flags": {},
-   "order": 118,
+   "order": 155,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 46
+     "link": 62
     }
    ],
    "outputs": [
@@ -2061,10 +2650,11 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      47,
-      48,
-      130,
-      134
+      63,
+      64,
+      172,
+      177,
+      182
      ],
      "slot_index": 0
     }
@@ -2074,29 +2664,29 @@
    },
    "widgets_values": [
     "keep",
-    "terrain_albedo terrain_nrm terrain_rough sea_rough"
+    "terrain_albedo terrain_nrm terrain_rough sea_rough terrain_dw"
    ],
    "title": "The texture set"
   },
   {
-   "id": 43,
+   "id": 54,
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    8543
+    10871
    ],
    "size": [
     360,
     434
    ],
    "flags": {},
-   "order": 119,
+   "order": 156,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 47
+     "link": 63
     }
    ],
    "outputs": [
@@ -2136,24 +2726,24 @@
    "title": "BaseColor: 4×4 tiles of 1024² (sRGB)"
   },
   {
-   "id": 44,
+   "id": 55,
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    9021
+    11349
    ],
    "size": [
     360,
     434
    ],
    "flags": {},
-   "order": 120,
+   "order": 157,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 48
+     "link": 64
     }
    ],
    "outputs": [
@@ -2193,7 +2783,801 @@
    "title": "Normal (OpenGL): 4×4 tiles of 1024²"
   },
   {
-   "id": 45,
+   "id": 56,
+   "type": "PCG_COPNoise",
+   "pos": [
+    3100,
+    11827
+   ],
+   "size": [
+    360,
+    1263
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      65
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPNoise"
+   },
+   "widgets_values": [
+    512,
+    512,
+    "value",
+    "none",
+    4.0,
+    3,
+    2.0,
+    0.5,
+    0.0,
+    0.0,
+    1,
+    false,
+    0.0,
+    0.0,
+    0.0,
+    "C",
+    0,
+    "auto",
+    0.0,
+    0.0,
+    0,
+    "euclidean",
+    1.0,
+    false,
+    false,
+    false,
+    0.5,
+    0.5,
+    1.0,
+    1.0,
+    false,
+    0.0,
+    false,
+    1.0
+   ],
+   "title": "Detail canvas (512², one 4 m tile)"
+  },
+  {
+   "id": 57,
+   "type": "PCG_COPWrangle",
+   "pos": [
+    3100,
+    13134
+   ],
+   "size": [
+    360,
+    526
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 65
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      66
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWrangle"
+   },
+   "widgets_values": [
+    "x = @u\ny = @v\n# grass: tufts and blades\ng1 = pnoise(set(x * 24, y * 24, 1.1), 24)\ng2 = pnoise(set(x * 64, y * 64, 2.2), 64)\ng3 = pnoise(set(x * 160, y * 160, 3.3), 160)\ntuft = smoothstep(0.42, 0.72, 0.6 * g1 + 0.3 * g2 + 0.2 * g3)\n@det_grass = set(0.5, 0.52, 0.46) * (0.8 + 0.4 * tuft) * (0.92 + 0.16 * g3)\n@h_grass = 0.05 * tuft + 0.01 * g3\n# rock: grain, cracks (ridged noise), weathered patches\nr1 = 1 - abs(2 * pnoise(set(x * 6, y * 6, 4.4), 6) - 1)\nr2 = 1 - abs(2 * pnoise(set(x * 14, y * 14, 5.5), 14) - 1)\ncrack = max(smoothstep(0.9, 0.98, r1), 0.6 * smoothstep(0.92, 0.99, r2))\ngrain = pnoise(set(x * 120, y * 120, 6.6), 120)\npatch = pnoise(set(x * 4, y * 4, 7.7), 4)\n@det_rock = set(0.5, 0.5, 0.5) * (0.88 + 0.2 * grain + 0.08 * patch) * (1 - 0.35 * crack)\n@h_rock = 0.03 * grain + 0.06 * patch - 0.04 * crack\n# gravel: stones with dark gaps\ns1 = pnoise(set(x * 40, y * 40, 8.8), 40)\ns2 = pnoise(set(x * 90, y * 90, 9.9), 90)\nstone = smoothstep(0.5, 0.62, s1 + 0.35 * (s2 - 0.5))\n@det_gravel = set(0.5, 0.49, 0.47) * (0.65 + 0.55 * stone + 0.15 * s2)\n@h_gravel = 0.035 * stone + 0.005 * s2\n# leaf litter: patches of warm brown leaves and dark soil\nl1 = pnoise(set(x * 20, y * 20, 11.1), 20)\nl2 = pnoise(set(x * 70, y * 70, 12.2), 70)\nleaf = smoothstep(0.45, 0.6, l1 + 0.4 * (l2 - 0.5))\n@det_litter = lerp(set(0.42, 0.42, 0.40), set(0.58, 0.5, 0.4), leaf) * (0.85 + 0.3 * l2)\n@h_litter = 0.02 * leaf + 0.01 * l2",
+    0,
+    "{}",
+    0
+   ],
+   "title": "Detail maps: grass, rock, gravel, litter"
+  },
+  {
+   "id": 58,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    3100,
+    13704
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 38,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 66
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      67
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "h_grass",
+    1.0,
+    4.0,
+    "central",
+    true,
+    "nrm_grass",
+    true
+   ],
+   "title": "Detail normal: grass"
+  },
+  {
+   "id": 59,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    3100,
+    14402
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 46,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 67
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      68
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "h_rock",
+    1.0,
+    4.0,
+    "central",
+    true,
+    "nrm_rock",
+    true
+   ],
+   "title": "Detail normal: rock"
+  },
+  {
+   "id": 60,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    3100,
+    15100
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 54,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 68
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      69
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "h_gravel",
+    1.0,
+    4.0,
+    "central",
+    true,
+    "nrm_gravel",
+    true
+   ],
+   "title": "Detail normal: gravel"
+  },
+  {
+   "id": 61,
+   "type": "PCG_COPHeightToNormal",
+   "pos": [
+    3100,
+    15798
+   ],
+   "size": [
+    360,
+    654
+   ],
+   "flags": {},
+   "order": 60,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 69
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      70
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPHeightToNormal"
+   },
+   "widgets_values": [
+    "h_litter",
+    1.0,
+    4.0,
+    "central",
+    true,
+    "nrm_litter",
+    true
+   ],
+   "title": "Detail normal: litter"
+  },
+  {
+   "id": 62,
+   "type": "PCG_COPLayerEdit",
+   "pos": [
+    3100,
+    16496
+   ],
+   "size": [
+    360,
+    485
+   ],
+   "flags": {},
+   "order": 64,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 70
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "links": [
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      173,
+      178,
+      183
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPLayerEdit"
+   },
+   "widgets_values": [
+    "keep",
+    "det_grass det_rock det_gravel det_litter nrm_grass nrm_rock nrm_gravel nrm_litter"
+   ],
+   "title": "The detail set"
+  },
+  {
+   "id": 63,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    17025
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 67,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 71
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Grass_Color",
+    "det_grass",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Grass: colour (linear, 0.5 = no change)"
+  },
+  {
+   "id": 64,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    17503
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 68,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 72
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Grass_Normal_GL",
+    "nrm_grass",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Grass: normal (OpenGL)"
+  },
+  {
+   "id": 65,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    17981
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 69,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 73
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Rock_Color",
+    "det_rock",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Rock: colour (linear, 0.5 = no change)"
+  },
+  {
+   "id": 66,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    18459
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 70,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 74
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Rock_Normal_GL",
+    "nrm_rock",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Rock: normal (OpenGL)"
+  },
+  {
+   "id": 67,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    18937
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 71,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 75
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Gravel_Color",
+    "det_gravel",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Gravel: colour (linear, 0.5 = no change)"
+  },
+  {
+   "id": 68,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    19415
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 72,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 76
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Gravel_Normal_GL",
+    "nrm_gravel",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Gravel: normal (OpenGL)"
+  },
+  {
+   "id": 69,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    19893
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 73,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 77
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Litter_Color",
+    "det_litter",
+    "png",
+    "8",
+    "linear",
+    "clamp",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Litter: colour (linear, 0.5 = no change)"
+  },
+  {
+   "id": 70,
+   "type": "PCG_COPWriteFile",
+   "pos": [
+    3100,
+    20371
+   ],
+   "size": [
+    360,
+    434
+   ],
+   "flags": {},
+   "order": 74,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 78
+    }
+   ],
+   "outputs": [
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPWriteFile"
+   },
+   "widgets_values": [
+    "pcg/world/texture/detail/T_Detail_Litter_Normal_GL",
+    "nrm_litter",
+    "png",
+    "8",
+    "linear",
+    "signed",
+    0.0,
+    1.0,
+    "+y",
+    1,
+    1,
+    false,
+    0,
+    true,
+    1.0
+   ],
+   "title": "Detail Litter: normal (OpenGL)"
+  },
+  {
+   "id": 71,
    "type": "PCG_COPLayerToPoints",
    "pos": [
     1260,
@@ -2204,13 +3588,13 @@
     379
    ],
    "flags": {},
-   "order": 76,
+   "order": 107,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 49
+     "link": 79
     }
    ],
    "outputs": [
@@ -2218,7 +3602,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      50
+      80
      ],
      "slot_index": 0
     }
@@ -2248,7 +3632,7 @@
    "title": "Trees: scatter by woodland density"
   },
   {
-   "id": 46,
+   "id": 72,
    "type": "PCG_Wrangle",
    "pos": [
     1260,
@@ -2259,13 +3643,13 @@
     247
    ],
    "flags": {},
-   "order": 91,
+   "order": 123,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 50
+     "link": 80
     },
     {
      "name": "geo1",
@@ -2288,8 +3672,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      55,
-      114
+      88,
+      154
      ],
      "slot_index": 0
     }
@@ -2307,7 +3691,7 @@
    "title": "Trees: asset / orientation / size"
   },
   {
-   "id": 47,
+   "id": 73,
    "type": "PCG_COPLayerToPoints",
    "pos": [
     1260,
@@ -2318,13 +3702,13 @@
     379
    ],
    "flags": {},
-   "order": 77,
+   "order": 108,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 51
+     "link": 81
     }
    ],
    "outputs": [
@@ -2332,7 +3716,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      52
+      82
      ],
      "slot_index": 0
     }
@@ -2362,7 +3746,7 @@
    "title": "Bushes: woodland edges, wet ground, heath"
   },
   {
-   "id": 48,
+   "id": 74,
    "type": "PCG_Wrangle",
    "pos": [
     1260,
@@ -2373,13 +3757,13 @@
     247
    ],
    "flags": {},
-   "order": 92,
+   "order": 124,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 52
+     "link": 82
     },
     {
      "name": "geo1",
@@ -2402,8 +3786,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      56,
-      115
+      89,
+      155
      ],
      "slot_index": 0
     }
@@ -2421,7 +3805,7 @@
    "title": "Bushes"
   },
   {
-   "id": 49,
+   "id": 75,
    "type": "PCG_COPLayerToPoints",
    "pos": [
     1680,
@@ -2432,13 +3816,13 @@
     379
    ],
    "flags": {},
-   "order": 78,
+   "order": 109,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 53
+     "link": 83
     }
    ],
    "outputs": [
@@ -2446,7 +3830,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      54
+      84
      ],
      "slot_index": 0
     }
@@ -2476,7 +3860,7 @@
    "title": "Rocks: scree, cliff feet, river beds"
   },
   {
-   "id": 50,
+   "id": 76,
    "type": "PCG_Wrangle",
    "pos": [
     1680,
@@ -2487,13 +3871,13 @@
     247
    ],
    "flags": {},
-   "order": 93,
+   "order": 125,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 54
+     "link": 84
     },
     {
      "name": "geo1",
@@ -2516,8 +3900,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      57,
-      116
+      90,
+      156
      ],
      "slot_index": 0
     }
@@ -2535,39 +3919,205 @@
    "title": "Rocks (using the 4 from the rock pipeline)"
   },
   {
-   "id": 51,
-   "type": "PCG_Merge",
+   "id": 77,
+   "type": "PCG_COPLayerToPoints",
    "pos": [
     1680,
     714
    ],
    "size": [
     360,
+    379
+   ],
+   "flags": {},
+   "order": 110,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "cop",
+     "type": "COPIMAGE",
+     "link": 85
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      86
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_COPLayerToPoints"
+   },
+   "widgets_values": [
+    "scatter",
+    "",
+    0.5,
+    1,
+    12000,
+    "d_house",
+    "C",
+    2048.0,
+    "Nrd d_house",
+    "xz",
+    4100.0,
+    0.0,
+    6,
+    "",
+    "",
+    true,
+    true
+   ],
+   "title": "Houses: in the towns, by the roads"
+  },
+  {
+   "id": 78,
+   "type": "PCG_AdaptivePrune",
+   "pos": [
+    1680,
+    1137
+   ],
+   "size": [
+    360,
+    249
+   ],
+   "flags": {},
+   "order": 126,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 86
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      87
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_AdaptivePrune"
+   },
+   "widgets_values": [
+    "",
+    16.0,
+    "",
+    "random",
+    "",
+    6,
+    "delete",
+    "pruned"
+   ],
+   "title": "Houses at least 16 m apart"
+  },
+  {
+   "id": 79,
+   "type": "PCG_Wrangle",
+   "pos": [
+    1680,
+    1430
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 130,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 87
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      91,
+      157
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "names = np.array([\"SM_House_A\", \"SM_House_B\", \"SM_House_C\"])\ns@name = names[(rand(@ptnum + 0.2) * 3).astype(int)]\n# the front (+Z of the asset) faces the road: up the slope of the blurred road band (tangent space x, v -> world x, -z)\nf = set(0 - @Nrd.x, 0 * @Nrd.x, @Nrd.y)\nf = where(length(f) > 1e-6, f, set(0, 0, 1))\n@N = normalize(f)\n@up = set(0, 1, 0)\n@pscale = 0.85 + 0.35 * rand(@ptnum + 4.4)",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Houses: asset / facing the road / size"
+  },
+  {
+   "id": 80,
+   "type": "PCG_Merge",
+   "pos": [
+    1680,
+    1721
+   ],
+   "size": [
+    360,
     166
    ],
    "flags": {},
-   "order": 97,
+   "order": 137,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 55
+     "link": 88
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 56
+     "link": 89
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 57
+     "link": 90
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": null
+     "link": 91
     },
     {
      "name": "geo5",
@@ -2585,7 +4135,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      58
+      92
      ],
      "slot_index": 0
     }
@@ -2597,24 +4147,24 @@
    "title": "All instances"
   },
   {
-   "id": 52,
+   "id": 81,
    "type": "PCG_Transform",
    "pos": [
     1680,
-    924
+    1931
    ],
    "size": [
     360,
     363
    ],
    "flags": {},
-   "order": 104,
+   "order": 141,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 58
+     "link": 92
     }
    ],
    "outputs": [
@@ -2622,7 +4172,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      59
+      93
      ],
      "slot_index": 0
     }
@@ -2658,24 +4208,24 @@
    "title": "Move origin to the north-west corner"
   },
   {
-   "id": 53,
+   "id": 82,
    "type": "PCG_Blast",
    "pos": [
     1680,
-    1331
+    2338
    ],
    "size": [
     360,
     136
    ],
    "flags": {},
-   "order": 108,
+   "order": 144,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 59
+     "link": 93
     }
    ],
    "outputs": [
@@ -2683,7 +4233,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      60
+      94
      ],
      "slot_index": 0
     }
@@ -2699,24 +4249,24 @@
    "title": "Remove points in the half cell outside the border"
   },
   {
-   "id": 54,
+   "id": 83,
    "type": "PCG_ExportInstances",
    "pos": [
     1680,
-    1511
+    2518
    ],
    "size": [
     360,
     279
    ],
    "flags": {},
-   "order": 111,
+   "order": 147,
    "mode": 0,
    "inputs": [
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 60
+     "link": 94
     }
    ],
    "outputs": [
@@ -2743,24 +4293,24 @@
    "title": "Instance table: 1024 m tiles"
   },
   {
-   "id": 55,
+   "id": 84,
    "type": "PCG_Transform",
    "pos": [
     1680,
-    1834
+    2841
    ],
    "size": [
     360,
     363
    ],
    "flags": {},
-   "order": 67,
+   "order": 93,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 61
+     "link": 95
     }
    ],
    "outputs": [
@@ -2768,7 +4318,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      62
+      96
      ],
      "slot_index": 0
     }
@@ -2804,24 +4354,24 @@
    "title": "Roads: origin to the north-west corner"
   },
   {
-   "id": 56,
+   "id": 85,
    "type": "PCG_ExportMesh",
    "pos": [
     1680,
-    2241
+    3248
    ],
    "size": [
     360,
     363
    ],
    "flags": {},
-   "order": 69,
+   "order": 96,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 62
+     "link": 96
     }
    ],
    "outputs": [
@@ -2848,7 +4398,7 @@
    "title": "Road centre lines (OBJ polylines)"
   },
   {
-   "id": 57,
+   "id": 86,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -2859,13 +4409,13 @@
     434
    ],
    "flags": {},
-   "order": 79,
+   "order": 111,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 63
+     "link": 97
     }
    ],
    "outputs": [
@@ -2905,7 +4455,7 @@
    "title": "Height: 16-bit, 4×4 tiles with shared edges"
   },
   {
-   "id": 58,
+   "id": 87,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -2916,13 +4466,13 @@
     434
    ],
    "flags": {},
-   "order": 80,
+   "order": 112,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 64
+     "link": 98
     }
    ],
    "outputs": [
@@ -2962,7 +4512,7 @@
    "title": "Height: full-map r16"
   },
   {
-   "id": 59,
+   "id": 88,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -2973,13 +4523,13 @@
     434
    ],
    "flags": {},
-   "order": 81,
+   "order": 113,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 65
+     "link": 99
     }
    ],
    "outputs": [
@@ -3019,7 +4569,7 @@
    "title": "Weight: Grass"
   },
   {
-   "id": 60,
+   "id": 89,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3030,13 +4580,13 @@
     434
    ],
    "flags": {},
-   "order": 82,
+   "order": 114,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 66
+     "link": 100
     }
    ],
    "outputs": [
@@ -3076,7 +4626,7 @@
    "title": "Weight: ForestFloor"
   },
   {
-   "id": 61,
+   "id": 90,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3087,13 +4637,13 @@
     434
    ],
    "flags": {},
-   "order": 83,
+   "order": 115,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 67
+     "link": 101
     }
    ],
    "outputs": [
@@ -3133,7 +4683,7 @@
    "title": "Weight: Sediment"
   },
   {
-   "id": 62,
+   "id": 91,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3144,13 +4694,13 @@
     434
    ],
    "flags": {},
-   "order": 84,
+   "order": 116,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 68
+     "link": 102
     }
    ],
    "outputs": [
@@ -3190,7 +4740,7 @@
    "title": "Weight: Rock"
   },
   {
-   "id": 63,
+   "id": 92,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3201,13 +4751,13 @@
     434
    ],
    "flags": {},
-   "order": 85,
+   "order": 117,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 69
+     "link": 103
     }
    ],
    "outputs": [
@@ -3247,7 +4797,7 @@
    "title": "Weight: Sand"
   },
   {
-   "id": 64,
+   "id": 93,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3258,13 +4808,13 @@
     434
    ],
    "flags": {},
-   "order": 86,
+   "order": 118,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 70
+     "link": 104
     }
    ],
    "outputs": [
@@ -3304,7 +4854,7 @@
    "title": "Weight: Water"
   },
   {
-   "id": 65,
+   "id": 94,
    "type": "PCG_COPWriteFile",
    "pos": [
     2100,
@@ -3315,13 +4865,13 @@
     434
    ],
    "flags": {},
-   "order": 87,
+   "order": 119,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 71
+     "link": 105
     }
    ],
    "outputs": [
@@ -3361,7 +4911,7 @@
    "title": "Weight: Road"
   },
   {
-   "id": 66,
+   "id": 95,
    "type": "PCG_COPLight",
    "pos": [
     2520,
@@ -3372,13 +4922,13 @@
     1059
    ],
    "flags": {},
-   "order": 88,
+   "order": 120,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 72
+     "link": 106
     }
    ],
    "outputs": [
@@ -3386,7 +4936,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      73
+      107
      ],
      "slot_index": 0
     }
@@ -3416,7 +4966,7 @@
    "title": "Minimap (with shadows)"
   },
   {
-   "id": 67,
+   "id": 96,
    "type": "PCG_COPWrangle",
    "pos": [
     2520,
@@ -3427,13 +4977,13 @@
     686
    ],
    "flags": {},
-   "order": 94,
+   "order": 127,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 73
+     "link": 107
     }
    ],
    "outputs": [
@@ -3441,7 +4991,7 @@
      "name": "cop",
      "type": "COPIMAGE",
      "links": [
-      74
+      108
      ],
      "slot_index": 0
     }
@@ -3458,7 +5008,7 @@
    "title": "Draw tile lines"
   },
   {
-   "id": 68,
+   "id": 97,
    "type": "PCG_COPWriteFile",
    "pos": [
     2520,
@@ -3469,13 +5019,13 @@
     434
    ],
    "flags": {},
-   "order": 98,
+   "order": 131,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 74
+     "link": 108
     }
    ],
    "outputs": [
@@ -3489,7 +5039,7 @@
      "name": "preview",
      "type": "IMAGE",
      "links": [
-      75
+      109
      ],
      "slot_index": 1
     }
@@ -3517,7 +5067,7 @@
    "title": "Minimap PNG"
   },
   {
-   "id": 69,
+   "id": 98,
    "type": "PreviewImage",
    "pos": [
     2520,
@@ -3528,13 +5078,13 @@
     580
    ],
    "flags": {},
-   "order": 105,
+   "order": 138,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 75
+     "link": 109
     }
    ],
    "outputs": [],
@@ -3545,7 +5095,7 @@
    "title": "Minimap (yellow lines = tiles)"
   },
   {
-   "id": 70,
+   "id": 99,
    "type": "PCG_COPHeightfieldToMesh",
    "pos": [
     2520,
@@ -3556,13 +5106,13 @@
     254
    ],
    "flags": {},
-   "order": 89,
+   "order": 121,
    "mode": 0,
    "inputs": [
     {
      "name": "cop",
      "type": "COPIMAGE",
-     "link": 76
+     "link": 110
     }
    ],
    "outputs": [
@@ -3570,7 +5120,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      77
+      111
      ],
      "slot_index": 0
     }
@@ -3590,7 +5140,7 @@
    "title": "Full-map mesh (one point per sample)"
   },
   {
-   "id": 71,
+   "id": 100,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -3601,13 +5151,13 @@
     247
    ],
    "flags": {},
-   "order": 95,
+   "order": 128,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 77
+     "link": 111
     },
     {
      "name": "geo1",
@@ -3630,7 +5180,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      78
+      112
      ],
      "slot_index": 0
     }
@@ -3648,7 +5198,7 @@
    "title": "Cd to display colour; flat sea"
   },
   {
-   "id": 72,
+   "id": 101,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -3659,13 +5209,13 @@
     247
    ],
    "flags": {},
-   "order": 99,
+   "order": 132,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 78
+     "link": 112
     },
     {
      "name": "geo1",
@@ -3688,7 +5238,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      126
+      168
      ],
      "slot_index": 0
     }
@@ -3706,7 +5256,7 @@
    "title": "Material: terrain"
   },
   {
-   "id": 73,
+   "id": 102,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -3717,7 +5267,7 @@
     304
    ],
    "flags": {},
-   "order": 4,
+   "order": 6,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -3725,7 +5275,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      79
+      113
      ],
      "slot_index": 0
     }
@@ -3752,7 +5302,7 @@
    "title": "Pine trunk"
   },
   {
-   "id": 74,
+   "id": 103,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -3763,13 +5313,13 @@
     195
    ],
    "flags": {},
-   "order": 18,
+   "order": 24,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 79
+     "link": 113
     }
    ],
    "outputs": [
@@ -3777,7 +5327,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      84
+      118
      ],
      "slot_index": 0
     }
@@ -3810,7 +5360,7 @@
    "title": "Pine trunk colour"
   },
   {
-   "id": 75,
+   "id": 104,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -3821,7 +5371,7 @@
     304
    ],
    "flags": {},
-   "order": 5,
+   "order": 7,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -3829,7 +5379,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      80
+      114
      ],
      "slot_index": 0
     }
@@ -3856,7 +5406,7 @@
    "title": "Pine tier 1"
   },
   {
-   "id": 76,
+   "id": 105,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -3867,13 +5417,13 @@
     195
    ],
    "flags": {},
-   "order": 19,
+   "order": 25,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 80
+     "link": 114
     }
    ],
    "outputs": [
@@ -3881,7 +5431,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      85
+      119
      ],
      "slot_index": 0
     }
@@ -3914,7 +5464,7 @@
    "title": "Pine tier 1 colour"
   },
   {
-   "id": 77,
+   "id": 106,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -3925,7 +5475,7 @@
     304
    ],
    "flags": {},
-   "order": 6,
+   "order": 8,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -3933,7 +5483,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      81
+      115
      ],
      "slot_index": 0
     }
@@ -3960,7 +5510,7 @@
    "title": "Pine tier 2"
   },
   {
-   "id": 78,
+   "id": 107,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -3971,13 +5521,13 @@
     195
    ],
    "flags": {},
-   "order": 20,
+   "order": 26,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 81
+     "link": 115
     }
    ],
    "outputs": [
@@ -3985,7 +5535,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      86
+      120
      ],
      "slot_index": 0
     }
@@ -4018,7 +5568,7 @@
    "title": "Pine tier 2 colour"
   },
   {
-   "id": 79,
+   "id": 108,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -4029,7 +5579,7 @@
     304
    ],
    "flags": {},
-   "order": 7,
+   "order": 9,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -4037,7 +5587,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      82
+      116
      ],
      "slot_index": 0
     }
@@ -4064,7 +5614,7 @@
    "title": "Pine tier 3"
   },
   {
-   "id": 80,
+   "id": 109,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -4075,13 +5625,13 @@
     195
    ],
    "flags": {},
-   "order": 21,
+   "order": 27,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 82
+     "link": 116
     }
    ],
    "outputs": [
@@ -4089,7 +5639,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      87
+      121
      ],
      "slot_index": 0
     }
@@ -4122,7 +5672,7 @@
    "title": "Pine tier 3 colour"
   },
   {
-   "id": 81,
+   "id": 110,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -4133,7 +5683,7 @@
     304
    ],
    "flags": {},
-   "order": 8,
+   "order": 10,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -4141,7 +5691,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      83
+      117
      ],
      "slot_index": 0
     }
@@ -4168,7 +5718,7 @@
    "title": "Pine tip"
   },
   {
-   "id": 82,
+   "id": 111,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -4179,13 +5729,13 @@
     195
    ],
    "flags": {},
-   "order": 22,
+   "order": 28,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 83
+     "link": 117
     }
    ],
    "outputs": [
@@ -4193,7 +5743,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      88
+      122
      ],
      "slot_index": 0
     }
@@ -4226,7 +5776,7 @@
    "title": "Pine tip colour"
   },
   {
-   "id": 83,
+   "id": 112,
    "type": "PCG_Merge",
    "pos": [
     2520,
@@ -4237,33 +5787,33 @@
     166
    ],
    "flags": {},
-   "order": 30,
+   "order": 39,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 84
+     "link": 118
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 85
+     "link": 119
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 86
+     "link": 120
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 87
+     "link": 121
     },
     {
      "name": "geo5",
      "type": "GEOMETRY",
-     "link": 88
+     "link": 122
     },
     {
      "name": "geo6",
@@ -4276,7 +5826,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      89
+      123
      ],
      "slot_index": 0
     }
@@ -4288,7 +5838,7 @@
    "title": "Pine proxy"
   },
   {
-   "id": 84,
+   "id": 113,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -4299,13 +5849,13 @@
     247
    ],
    "flags": {},
-   "order": 36,
+   "order": 47,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 89
+     "link": 123
     },
     {
      "name": "geo1",
@@ -4328,7 +5878,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      90
+      124
      ],
      "slot_index": 0
     }
@@ -4346,7 +5896,7 @@
    "title": "Proxy: pine"
   },
   {
-   "id": 85,
+   "id": 114,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -4357,13 +5907,13 @@
     247
    ],
    "flags": {},
-   "order": 42,
+   "order": 55,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 90
+     "link": 124
     },
     {
      "name": "geo1",
@@ -4386,7 +5936,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      110
+      149
      ],
      "slot_index": 0
     }
@@ -4404,7 +5954,7 @@
    "title": "pine: darker low in the crown"
   },
   {
-   "id": 86,
+   "id": 115,
    "type": "PCG_Sphere",
    "pos": [
     2520,
@@ -4415,7 +5965,7 @@
     270
    ],
    "flags": {},
-   "order": 9,
+   "order": 11,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -4423,7 +5973,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      91
+      125
      ],
      "slot_index": 0
     }
@@ -4451,7 +6001,7 @@
    "title": "Broadleaf cluster"
   },
   {
-   "id": 87,
+   "id": 116,
    "type": "PCG_PointJitter",
    "pos": [
     2520,
@@ -4462,13 +6012,13 @@
     295
    ],
    "flags": {},
-   "order": 23,
+   "order": 29,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 91
+     "link": 125
     }
    ],
    "outputs": [
@@ -4476,7 +6026,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      93
+      127
      ],
      "slot_index": 0
     }
@@ -4501,7 +6051,7 @@
    "title": "Lumpy cluster"
   },
   {
-   "id": 88,
+   "id": 117,
    "type": "PCG_Add",
    "pos": [
     2520,
@@ -4512,7 +6062,7 @@
     255
    ],
    "flags": {},
-   "order": 10,
+   "order": 12,
    "mode": 0,
    "inputs": [
     {
@@ -4526,7 +6076,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      92
+      126
      ],
      "slot_index": 0
     }
@@ -4555,7 +6105,7 @@
    "title": "Crown cluster centres"
   },
   {
-   "id": 89,
+   "id": 118,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -4566,13 +6116,13 @@
     247
    ],
    "flags": {},
-   "order": 24,
+   "order": 30,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 92
+     "link": 126
     },
     {
      "name": "geo1",
@@ -4595,7 +6145,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      94
+      128
      ],
      "slot_index": 0
     }
@@ -4613,7 +6163,7 @@
    "title": "Cluster sizes"
   },
   {
-   "id": 90,
+   "id": 119,
    "type": "PCG_CopyToPoints",
    "pos": [
     2520,
@@ -4624,18 +6174,18 @@
     375
    ],
    "flags": {},
-   "order": 31,
+   "order": 40,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 93
+     "link": 127
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 94
+     "link": 128
     }
    ],
    "outputs": [
@@ -4643,7 +6193,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      95
+      129
      ],
      "slot_index": 0
     }
@@ -4668,7 +6218,7 @@
    "title": "Broadleaf crown"
   },
   {
-   "id": 91,
+   "id": 120,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -4679,13 +6229,13 @@
     195
    ],
    "flags": {},
-   "order": 37,
+   "order": 48,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 95
+     "link": 129
     }
    ],
    "outputs": [
@@ -4693,7 +6243,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      98
+      132
      ],
      "slot_index": 0
     }
@@ -4726,7 +6276,7 @@
    "title": "Broadleaf green"
   },
   {
-   "id": 92,
+   "id": 121,
    "type": "PCG_Tube",
    "pos": [
     2520,
@@ -4737,7 +6287,7 @@
     304
    ],
    "flags": {},
-   "order": 11,
+   "order": 13,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -4745,7 +6295,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      96
+      130
      ],
      "slot_index": 0
     }
@@ -4772,7 +6322,7 @@
    "title": "Broadleaf trunk"
   },
   {
-   "id": 93,
+   "id": 122,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -4783,13 +6333,13 @@
     195
    ],
    "flags": {},
-   "order": 25,
+   "order": 31,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 96
+     "link": 130
     }
    ],
    "outputs": [
@@ -4797,7 +6347,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      97
+      131
      ],
      "slot_index": 0
     }
@@ -4830,7 +6380,7 @@
    "title": "Broadleaf trunk colour"
   },
   {
-   "id": 94,
+   "id": 123,
    "type": "PCG_Merge",
    "pos": [
     2520,
@@ -4841,18 +6391,18 @@
     166
    ],
    "flags": {},
-   "order": 43,
+   "order": 56,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 97
+     "link": 131
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 98
+     "link": 132
     },
     {
      "name": "geo3",
@@ -4880,7 +6430,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      99
+      133
      ],
      "slot_index": 0
     }
@@ -4892,7 +6442,7 @@
    "title": "Broadleaf proxy"
   },
   {
-   "id": 95,
+   "id": 124,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -4903,13 +6453,13 @@
     247
    ],
    "flags": {},
-   "order": 47,
+   "order": 61,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 99
+     "link": 133
     },
     {
      "name": "geo1",
@@ -4932,7 +6482,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      100
+      134
      ],
      "slot_index": 0
     }
@@ -4950,7 +6500,7 @@
    "title": "Proxy: broad"
   },
   {
-   "id": 96,
+   "id": 125,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -4961,13 +6511,13 @@
     247
    ],
    "flags": {},
-   "order": 50,
+   "order": 65,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 100
+     "link": 134
     },
     {
      "name": "geo1",
@@ -4990,7 +6540,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      111
+      150
      ],
      "slot_index": 0
     }
@@ -5008,7 +6558,7 @@
    "title": "broad: darker low in the crown"
   },
   {
-   "id": 97,
+   "id": 126,
    "type": "PCG_Sphere",
    "pos": [
     2520,
@@ -5019,7 +6569,7 @@
     270
    ],
    "flags": {},
-   "order": 12,
+   "order": 14,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -5027,7 +6577,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      101
+      135
      ],
      "slot_index": 0
     }
@@ -5055,7 +6605,7 @@
    "title": "Bush"
   },
   {
-   "id": 98,
+   "id": 127,
    "type": "PCG_PointJitter",
    "pos": [
     2520,
@@ -5066,13 +6616,13 @@
     295
    ],
    "flags": {},
-   "order": 26,
+   "order": 32,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 101
+     "link": 135
     }
    ],
    "outputs": [
@@ -5080,7 +6630,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      102
+      136
      ],
      "slot_index": 0
     }
@@ -5105,7 +6655,7 @@
    "title": "Bush lumps"
   },
   {
-   "id": 99,
+   "id": 128,
    "type": "PCG_Transform",
    "pos": [
     2520,
@@ -5116,13 +6666,13 @@
     363
    ],
    "flags": {},
-   "order": 32,
+   "order": 41,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 102
+     "link": 136
     }
    ],
    "outputs": [
@@ -5130,7 +6680,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      103
+      137
      ],
      "slot_index": 0
     }
@@ -5166,7 +6716,7 @@
    "title": "Bush on the ground"
   },
   {
-   "id": 100,
+   "id": 129,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -5177,13 +6727,13 @@
     195
    ],
    "flags": {},
-   "order": 38,
+   "order": 49,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 103
+     "link": 137
     }
    ],
    "outputs": [
@@ -5191,7 +6741,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      104
+      138
      ],
      "slot_index": 0
     }
@@ -5224,7 +6774,7 @@
    "title": "Bush green"
   },
   {
-   "id": 101,
+   "id": 130,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -5235,13 +6785,13 @@
     247
    ],
    "flags": {},
-   "order": 44,
+   "order": 57,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 104
+     "link": 138
     },
     {
      "name": "geo1",
@@ -5264,7 +6814,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      105
+      139
      ],
      "slot_index": 0
     }
@@ -5282,7 +6832,7 @@
    "title": "Proxy: bush"
   },
   {
-   "id": 102,
+   "id": 131,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -5293,13 +6843,13 @@
     247
    ],
    "flags": {},
-   "order": 48,
+   "order": 62,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 105
+     "link": 139
     },
     {
      "name": "geo1",
@@ -5322,7 +6872,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      112
+      151
      ],
      "slot_index": 0
     }
@@ -5340,7 +6890,7 @@
    "title": "bush: darker low in the crown"
   },
   {
-   "id": 103,
+   "id": 132,
    "type": "PCG_Sphere",
    "pos": [
     2520,
@@ -5351,7 +6901,7 @@
     270
    ],
    "flags": {},
-   "order": 13,
+   "order": 15,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -5359,7 +6909,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      106
+      140
      ],
      "slot_index": 0
     }
@@ -5387,7 +6937,7 @@
    "title": "Rock"
   },
   {
-   "id": 104,
+   "id": 133,
    "type": "PCG_PointJitter",
    "pos": [
     2520,
@@ -5398,13 +6948,13 @@
     295
    ],
    "flags": {},
-   "order": 27,
+   "order": 33,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 106
+     "link": 140
     }
    ],
    "outputs": [
@@ -5412,7 +6962,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      107
+      141
      ],
      "slot_index": 0
     }
@@ -5437,7 +6987,7 @@
    "title": "Rock: angular"
   },
   {
-   "id": 105,
+   "id": 134,
    "type": "PCG_Transform",
    "pos": [
     2520,
@@ -5448,13 +6998,13 @@
     363
    ],
    "flags": {},
-   "order": 33,
+   "order": 42,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 107
+     "link": 141
     }
    ],
    "outputs": [
@@ -5462,7 +7012,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      108
+      142
      ],
      "slot_index": 0
     }
@@ -5498,7 +7048,7 @@
    "title": "Rock: squat"
   },
   {
-   "id": 106,
+   "id": 135,
    "type": "PCG_Color",
    "pos": [
     2520,
@@ -5509,13 +7059,13 @@
     195
    ],
    "flags": {},
-   "order": 39,
+   "order": 50,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 108
+     "link": 142
     }
    ],
    "outputs": [
@@ -5523,7 +7073,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      109
+      143
      ],
      "slot_index": 0
     }
@@ -5556,7 +7106,7 @@
    "title": "Rock grey"
   },
   {
-   "id": 107,
+   "id": 136,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
@@ -5567,13 +7117,13 @@
     247
    ],
    "flags": {},
-   "order": 45,
+   "order": 58,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 109
+     "link": 143
     },
     {
      "name": "geo1",
@@ -5596,7 +7146,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      113
+      152
      ],
      "slot_index": 0
     }
@@ -5614,39 +7164,247 @@
    "title": "Proxy: rock"
   },
   {
-   "id": 108,
-   "type": "PCG_Merge",
+   "id": 137,
+   "type": "PCG_Box",
    "pos": [
     2520,
     14293
    ],
    "size": [
     520,
+    220
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      144
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    9.0,
+    5.0,
+    6.0,
+    1.0,
+    0.0,
+    2.5,
+    0.0,
+    2,
+    2,
+    2,
+    0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "House walls (9 x 5 x 6 m)"
+  },
+  {
+   "id": 138,
+   "type": "PCG_Color",
+   "pos": [
+    2520,
+    14557
+   ],
+   "size": [
+    520,
+    195
+   ],
+   "flags": {},
+   "order": 34,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 144
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      146
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "point",
+    "",
+    "constant",
+    0.84,
+    0.82,
+    0.76,
+    0,
+    "",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Whitewashed walls"
+  },
+  {
+   "id": 139,
+   "type": "PCG_Box",
+   "pos": [
+    2520,
+    14796
+   ],
+   "size": [
+    520,
+    220
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      145
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Box"
+   },
+   "widgets_values": [
+    9.6,
+    4.6,
+    4.6,
+    1.0,
+    0.0,
+    5.0,
+    0.0,
+    2,
+    2,
+    2,
+    45.0,
+    0,
+    0,
+    "polygon"
+   ],
+   "title": "House roof (a box turned 45 degrees: a gable)"
+  },
+  {
+   "id": 140,
+   "type": "PCG_Color",
+   "pos": [
+    2520,
+    15060
+   ],
+   "size": [
+    520,
+    195
+   ],
+   "flags": {},
+   "order": 35,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 145
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      147
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Color"
+   },
+   "widgets_values": [
+    "point",
+    "",
+    "constant",
+    0.2,
+    0.2,
+    0.22,
+    0,
+    "",
+    "0:0,0,1 0.5:0,1,0 1:1,0,0",
+    "linear",
+    true,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    "Cd"
+   ],
+   "title": "Slate roof"
+  },
+  {
+   "id": 141,
+   "type": "PCG_Merge",
+   "pos": [
+    2520,
+    15299
+   ],
+   "size": [
+    520,
     166
    ],
    "flags": {},
-   "order": 52,
+   "order": 43,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 110
+     "link": 146
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 111
+     "link": 147
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 112
+     "link": null
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": 113
+     "link": null
     },
     {
      "name": "geo5",
@@ -5664,7 +7422,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      121
+      148
      ],
      "slot_index": 0
     }
@@ -5673,27 +7431,27 @@
     "Node name for S&R": "PCG_Merge"
    },
    "widgets_values": [],
-   "title": "Proxy library"
+   "title": "House proxy"
   },
   {
-   "id": 109,
+   "id": 142,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    14503
+    15509
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 100,
+   "order": 51,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 114
+     "link": 148
     },
     {
      "name": "geo1",
@@ -5716,7 +7474,127 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      117
+      153
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "prim",
+    "s@kind = \"house\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Proxy: house"
+  },
+  {
+   "id": 143,
+   "type": "PCG_Merge",
+   "pos": [
+    2520,
+    15800
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 75,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": 149
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": 150
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": 151
+    },
+    {
+     "name": "geo4",
+     "type": "GEOMETRY",
+     "link": 152
+    },
+    {
+     "name": "geo5",
+     "type": "GEOMETRY",
+     "link": 153
+    },
+    {
+     "name": "geo6",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      163
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Merge"
+   },
+   "widgets_values": [],
+   "title": "Proxy library"
+  },
+  {
+   "id": 144,
+   "type": "PCG_Wrangle",
+   "pos": [
+    2520,
+    16010
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 133,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 154
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      158
      ],
      "slot_index": 0
     }
@@ -5734,24 +7612,24 @@
    "title": "Trees → pine / broad"
   },
   {
-   "id": 110,
+   "id": 145,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    14794
+    16301
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 101,
+   "order": 134,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 115
+     "link": 155
     },
     {
      "name": "geo1",
@@ -5774,7 +7652,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      118
+      159
      ],
      "slot_index": 0
     }
@@ -5792,24 +7670,24 @@
    "title": "Bushes → bush"
   },
   {
-   "id": 111,
+   "id": 146,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    15085
+    16592
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 102,
+   "order": 135,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 116
+     "link": 156
     },
     {
      "name": "geo1",
@@ -5832,7 +7710,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      119
+      160
      ],
      "slot_index": 0
     }
@@ -5850,39 +7728,97 @@
    "title": "Rocks → rock"
   },
   {
-   "id": 112,
+   "id": 147,
+   "type": "PCG_Wrangle",
+   "pos": [
+    2520,
+    16883
+   ],
+   "size": [
+    520,
+    247
+   ],
+   "flags": {},
+   "order": 139,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 157
+    },
+    {
+     "name": "geo1",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo2",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "geo3",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      161
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Wrangle"
+   },
+   "widgets_values": [
+    "point",
+    "s@kind = \"house\"",
+    "",
+    0,
+    "{}"
+   ],
+   "title": "Houses → house"
+  },
+  {
+   "id": 148,
    "type": "PCG_Merge",
    "pos": [
     2520,
-    15376
+    17174
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 106,
+   "order": 142,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 117
+     "link": 158
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 118
+     "link": 159
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 119
+     "link": 160
     },
     {
      "name": "geo4",
      "type": "GEOMETRY",
-     "link": null
+     "link": 161
     },
     {
      "name": "geo5",
@@ -5900,7 +7836,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      120
+      162
      ],
      "slot_index": 0
     }
@@ -5912,24 +7848,24 @@
    "title": "Proxy points"
   },
   {
-   "id": 113,
+   "id": 149,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    15586
+    17384
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 109,
+   "order": 145,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 120
+     "link": 162
     },
     {
      "name": "geo1",
@@ -5952,7 +7888,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      122
+      164
      ],
      "slot_index": 0
     }
@@ -5970,29 +7906,29 @@
    "title": "Per-instance tint"
   },
   {
-   "id": 114,
+   "id": 150,
    "type": "PCG_CopyToPoints",
    "pos": [
     2520,
-    15877
+    17675
    ],
    "size": [
     520,
     375
    ],
    "flags": {},
-   "order": 112,
+   "order": 148,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "GEOMETRY",
-     "link": 121
+     "link": 163
     },
     {
      "name": "points",
      "type": "GEOMETRY",
-     "link": 122
+     "link": 164
     }
    ],
    "outputs": [
@@ -6000,7 +7936,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      127
+      169
      ],
      "slot_index": 0
     }
@@ -6025,18 +7961,18 @@
    "title": "Place the proxies"
   },
   {
-   "id": 115,
+   "id": 151,
    "type": "PCG_Grid",
    "pos": [
     2520,
-    16296
+    18094
    ],
    "size": [
     520,
     245
    ],
    "flags": {},
-   "order": 14,
+   "order": 18,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -6044,7 +7980,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      123
+      165
      ],
      "slot_index": 0
     }
@@ -6069,24 +8005,24 @@
    "title": "Sea to the horizon"
   },
   {
-   "id": 116,
+   "id": 152,
    "type": "PCG_Transform",
    "pos": [
     2520,
-    16585
+    18383
    ],
    "size": [
     520,
     363
    ],
    "flags": {},
-   "order": 28,
+   "order": 36,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 123
+     "link": 165
     }
    ],
    "outputs": [
@@ -6094,7 +8030,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      124
+      166
      ],
      "slot_index": 0
     }
@@ -6130,24 +8066,24 @@
    "title": "Just under the map's sea level"
   },
   {
-   "id": 117,
+   "id": 153,
    "type": "PCG_Color",
    "pos": [
     2520,
-    16992
+    18790
    ],
    "size": [
     520,
     195
    ],
    "flags": {},
-   "order": 34,
+   "order": 44,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 124
+     "link": 166
     }
    ],
    "outputs": [
@@ -6155,7 +8091,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      125
+      167
      ],
      "slot_index": 0
     }
@@ -6188,24 +8124,24 @@
    "title": "Deep water"
   },
   {
-   "id": 118,
+   "id": 154,
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    17231
+    19029
    ],
    "size": [
     520,
     247
    ],
    "flags": {},
-   "order": 40,
+   "order": 52,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 125
+     "link": 167
     },
     {
      "name": "geo1",
@@ -6228,7 +8164,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      128
+      170
      ],
      "slot_index": 0
     }
@@ -6246,34 +8182,34 @@
    "title": "Material: sea"
   },
   {
-   "id": 119,
+   "id": 155,
    "type": "PCG_Merge",
    "pos": [
     2520,
-    17522
+    19320
    ],
    "size": [
     520,
     166
    ],
    "flags": {},
-   "order": 114,
+   "order": 150,
    "mode": 0,
    "inputs": [
     {
      "name": "geo1",
      "type": "GEOMETRY",
-     "link": 126
+     "link": 168
     },
     {
      "name": "geo2",
      "type": "GEOMETRY",
-     "link": 127
+     "link": 169
     },
     {
      "name": "geo3",
      "type": "GEOMETRY",
-     "link": 128
+     "link": 170
     },
     {
      "name": "geo4",
@@ -6296,8 +8232,9 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      129,
-      133
+      171,
+      176,
+      181
      ],
      "slot_index": 0
     }
@@ -6309,18 +8246,18 @@
    "title": "Terrain + instance proxies + sea"
   },
   {
-   "id": 120,
+   "id": 156,
    "type": "PCG_Camera",
    "pos": [
     2520,
-    17732
+    19530
    ],
    "size": [
     520,
     250
    ],
    "flags": {},
-   "order": 15,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
@@ -6334,7 +8271,7 @@
      "name": "cam",
      "type": "PCGCAM",
      "links": [
-      131
+      174
      ],
      "slot_index": 0
     },
@@ -6374,34 +8311,39 @@
    "title": "Camera: from the air, south-west of the island"
   },
   {
-   "id": 121,
+   "id": 157,
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    18026
+    19824
    ],
    "size": [
     520,
-    668
+    838
    ],
    "flags": {},
-   "order": 121,
+   "order": 158,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 129
+     "link": 171
     },
     {
      "name": "textures_cop",
      "type": "COPIMAGE",
-     "link": 130
+     "link": 172
     },
     {
      "name": "camera",
      "type": "PCGCAM",
-     "link": 131
+     "link": 174
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": 173
     }
    ],
    "outputs": [
@@ -6409,7 +8351,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      132
+      175
      ],
      "slot_index": 0
     }
@@ -6426,7 +8368,7 @@
     "Cd",
     "outdoor",
     2,
-    "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough",
+    "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\ndetail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\ndetail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\ndetail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025",
     "material",
     "uv",
     28.0,
@@ -6442,24 +8384,24 @@
    ]
   },
   {
-   "id": 122,
+   "id": 158,
    "type": "PreviewImage",
    "pos": [
     2520,
-    18738
+    20706
    ],
    "size": [
     520,
     400
    ],
    "flags": {},
-   "order": 123,
+   "order": 161,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 132
+     "link": 175
     }
    ],
    "outputs": [],
@@ -6470,18 +8412,18 @@
    "title": "Whole world"
   },
   {
-   "id": 123,
+   "id": 159,
    "type": "PCG_Camera",
    "pos": [
     2520,
-    19182
+    21150
    ],
    "size": [
     520,
     250
    ],
    "flags": {},
-   "order": 16,
+   "order": 20,
    "mode": 0,
    "inputs": [
     {
@@ -6495,7 +8437,7 @@
      "name": "cam",
      "type": "PCGCAM",
      "links": [
-      135
+      179
      ],
      "slot_index": 0
     },
@@ -6535,34 +8477,39 @@
    "title": "Camera: low, up a valley toward the peaks"
   },
   {
-   "id": 124,
+   "id": 160,
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    19476
+    21444
    ],
    "size": [
     520,
-    668
+    838
    ],
    "flags": {},
-   "order": 122,
+   "order": 159,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 133
+     "link": 176
     },
     {
      "name": "textures_cop",
      "type": "COPIMAGE",
-     "link": 134
+     "link": 177
     },
     {
      "name": "camera",
      "type": "PCGCAM",
-     "link": 135
+     "link": 179
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": 178
     }
    ],
    "outputs": [
@@ -6570,7 +8517,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      136
+      180
      ],
      "slot_index": 0
     }
@@ -6587,7 +8534,7 @@
     "Cd",
     "outdoor",
     2,
-    "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough",
+    "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\ndetail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\ndetail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\ndetail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025",
     "material",
     "uv",
     20.0,
@@ -6603,24 +8550,24 @@
    ]
   },
   {
-   "id": 125,
+   "id": 161,
    "type": "PreviewImage",
    "pos": [
     2520,
-    20188
+    22326
    ],
    "size": [
     520,
     400
    ],
    "flags": {},
-   "order": 124,
+   "order": 162,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 136
+     "link": 180
     }
    ],
    "outputs": [],
@@ -6629,6 +8576,172 @@
    },
    "widgets_values": [],
    "title": "In the valley"
+  },
+  {
+   "id": 162,
+   "type": "PCG_Camera",
+   "pos": [
+    2520,
+    22770
+   ],
+   "size": [
+    520,
+    250
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "cam",
+     "type": "PCGCAM",
+     "links": [
+      184
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_Camera"
+   },
+   "widgets_values": [
+    "perspective",
+    "look_at",
+    1600,
+    900,
+    55.0,
+    2.0,
+    25.0,
+    35.0,
+    5.0,
+    1.15,
+    77.9,
+    84.6,
+    -5.3,
+    540.5,
+    14.6,
+    376.9,
+    0.0,
+    1.0,
+    0.0,
+    0.01,
+    0.0
+   ],
+   "title": "Camera: on the road, toward the peak"
+  },
+  {
+   "id": 163,
+   "type": "PCG_PreviewImage",
+   "pos": [
+    2520,
+    23064
+   ],
+   "size": [
+    520,
+    838
+   ],
+   "flags": {},
+   "order": 160,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 181
+    },
+    {
+     "name": "textures_cop",
+     "type": "COPIMAGE",
+     "link": 182
+    },
+    {
+     "name": "camera",
+     "type": "PCGCAM",
+     "link": 184
+    },
+    {
+     "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": 183
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      185
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_PreviewImage"
+   },
+   "widgets_values": [
+    1600,
+    900,
+    10.0,
+    0.0,
+    "color",
+    "Cd",
+    "outdoor",
+    2,
+    "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\ndetail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\ndetail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\ndetail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025",
+    "material",
+    "uv",
+    15.0,
+    124.0,
+    1.0,
+    false,
+    "0.32 0.31 0.27",
+    1.0,
+    0.45,
+    3,
+    32,
+    "auto"
+   ]
+  },
+  {
+   "id": 164,
+   "type": "PreviewImage",
+   "pos": [
+    2520,
+    23946
+   ],
+   "size": [
+    520,
+    400
+   ],
+   "flags": {},
+   "order": 163,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 185
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "On the road"
   }
  ],
  "links": [
@@ -6842,790 +8955,798 @@
   ],
   [
    27,
+   26,
+   0,
+   27,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   28,
+   22,
+   0,
+   27,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   29,
+   27,
+   0,
+   28,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   30,
    25,
    0,
-   26,
-   0,
-   "COPIMAGE"
-  ],
-  [
    28,
-   26,
-   0,
-   27,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   29,
-   27,
-   0,
-   28,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   30,
-   28,
-   0,
-   29,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   31,
-   29,
-   0,
-   30,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   32,
-   30,
-   0,
-   31,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   33,
-   31,
-   0,
-   32,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   34,
-   32,
-   0,
-   33,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   35,
-   33,
-   0,
-   34,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   36,
-   34,
-   0,
-   36,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   37,
-   35,
-   0,
-   36,
    1,
    "COPIMAGE"
   ],
   [
-   38,
-   36,
+   31,
+   23,
    0,
+   29,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   32,
+   28,
+   0,
+   29,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   33,
+   29,
+   0,
+   30,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   34,
+   30,
+   0,
+   31,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   35,
+   31,
+   0,
+   32,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   36,
+   32,
+   0,
+   33,
+   0,
+   "COPIMAGE"
+  ],
+  [
    37,
+   33,
+   0,
+   34,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   38,
+   34,
+   0,
+   35,
    0,
    "COPIMAGE"
   ],
   [
    39,
-   31,
+   35,
    0,
-   37,
-   1,
+   36,
+   0,
    "COPIMAGE"
   ],
   [
    40,
-   23,
+   36,
    0,
-   38,
+   37,
    0,
-   "GEOMETRY"
+   "COPIMAGE"
   ],
   [
    41,
    37,
    0,
    38,
-   1,
+   0,
    "COPIMAGE"
   ],
   [
    42,
-   23,
-   0,
-   39,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   43,
    38,
    0,
    39,
-   1,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   43,
+   39,
+   0,
+   40,
+   0,
    "COPIMAGE"
   ],
   [
    44,
-   39,
-   0,
    40,
+   0,
+   42,
    0,
    "COPIMAGE"
   ],
   [
    45,
-   40,
-   0,
    41,
    0,
+   42,
+   1,
    "COPIMAGE"
   ],
   [
    46,
-   41,
-   0,
    42,
+   0,
+   43,
    0,
    "COPIMAGE"
   ],
   [
    47,
-   42,
+   37,
    0,
    43,
-   0,
+   1,
    "COPIMAGE"
   ],
   [
    48,
-   42,
+   23,
    0,
    44,
    0,
-   "COPIMAGE"
+   "GEOMETRY"
   ],
   [
    49,
-   30,
+   43,
    0,
-   45,
-   0,
+   44,
+   1,
    "COPIMAGE"
   ],
   [
    50,
-   45,
+   23,
    0,
-   46,
+   45,
    0,
    "GEOMETRY"
   ],
   [
    51,
-   30,
+   44,
    0,
-   47,
-   0,
+   45,
+   1,
    "COPIMAGE"
   ],
   [
    52,
-   47,
+   23,
    0,
-   48,
+   46,
    0,
    "GEOMETRY"
   ],
   [
    53,
-   30,
+   23,
    0,
-   49,
+   47,
    0,
-   "COPIMAGE"
+   "GEOMETRY"
   ],
   [
    54,
-   49,
+   46,
    0,
-   50,
+   48,
    0,
    "GEOMETRY"
   ],
   [
    55,
-   46,
+   47,
    0,
-   51,
-   0,
+   48,
+   1,
    "GEOMETRY"
   ],
   [
    56,
    48,
    0,
-   51,
-   1,
+   49,
+   0,
    "GEOMETRY"
   ],
   [
    57,
-   50,
+   45,
    0,
-   51,
-   2,
-   "GEOMETRY"
+   49,
+   1,
+   "COPIMAGE"
   ],
   [
    58,
-   51,
+   23,
    0,
-   52,
+   50,
    0,
    "GEOMETRY"
   ],
   [
    59,
+   49,
+   0,
+   50,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   60,
+   50,
+   0,
+   51,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   61,
+   51,
+   0,
+   52,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   62,
    52,
    0,
    53,
    0,
-   "GEOMETRY"
-  ],
-  [
-   60,
-   53,
-   0,
-   54,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   61,
-   23,
-   0,
-   55,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   62,
-   55,
-   0,
-   56,
-   0,
-   "GEOMETRY"
+   "COPIMAGE"
   ],
   [
    63,
-   30,
+   53,
    0,
-   57,
+   54,
    0,
    "COPIMAGE"
   ],
   [
    64,
-   30,
+   53,
+   0,
+   55,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   65,
+   56,
+   0,
+   57,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   66,
+   57,
    0,
    58,
    0,
    "COPIMAGE"
   ],
   [
-   65,
-   30,
+   67,
+   58,
    0,
    59,
    0,
    "COPIMAGE"
   ],
   [
-   66,
-   30,
+   68,
+   59,
    0,
    60,
    0,
    "COPIMAGE"
   ],
   [
-   67,
-   30,
+   69,
+   60,
    0,
    61,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   68,
-   30,
-   0,
-   62,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   69,
-   30,
-   0,
-   63,
    0,
    "COPIMAGE"
   ],
   [
    70,
-   30,
+   61,
+   0,
+   62,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   71,
+   62,
+   0,
+   63,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   72,
+   62,
    0,
    64,
    0,
    "COPIMAGE"
   ],
   [
-   71,
-   30,
+   73,
+   62,
    0,
    65,
    0,
    "COPIMAGE"
   ],
   [
-   72,
-   30,
-   0,
-   66,
-   0,
-   "COPIMAGE"
-  ],
-  [
-   73,
-   66,
-   0,
-   67,
-   0,
-   "COPIMAGE"
-  ],
-  [
    74,
-   67,
+   62,
    0,
-   68,
+   66,
    0,
    "COPIMAGE"
   ],
   [
    75,
+   62,
+   0,
+   67,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   76,
+   62,
+   0,
    68,
-   1,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   77,
+   62,
+   0,
    69,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   78,
+   62,
+   0,
+   70,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   79,
+   36,
+   0,
+   71,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   80,
+   71,
+   0,
+   72,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   81,
+   36,
+   0,
+   73,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   82,
+   73,
+   0,
+   74,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   83,
+   36,
+   0,
+   75,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   84,
+   75,
+   0,
+   76,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   85,
+   36,
+   0,
+   77,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   86,
+   77,
+   0,
+   78,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   87,
+   78,
+   0,
+   79,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   88,
+   72,
+   0,
+   80,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   89,
+   74,
+   0,
+   80,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   90,
+   76,
+   0,
+   80,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   91,
+   79,
+   0,
+   80,
+   3,
+   "GEOMETRY"
+  ],
+  [
+   92,
+   80,
+   0,
+   81,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   93,
+   81,
+   0,
+   82,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   94,
+   82,
+   0,
+   83,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   95,
+   23,
+   0,
+   84,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   96,
+   84,
+   0,
+   85,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   97,
+   36,
+   0,
+   86,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   98,
+   36,
+   0,
+   87,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   99,
+   36,
+   0,
+   88,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   100,
+   36,
+   0,
+   89,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   101,
+   36,
+   0,
+   90,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   102,
+   36,
+   0,
+   91,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   103,
+   36,
+   0,
+   92,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   104,
+   36,
+   0,
+   93,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   105,
+   36,
+   0,
+   94,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   106,
+   36,
+   0,
+   95,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   107,
+   95,
+   0,
+   96,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   108,
+   96,
+   0,
+   97,
+   0,
+   "COPIMAGE"
+  ],
+  [
+   109,
+   97,
+   1,
+   98,
    0,
    "IMAGE"
   ],
   [
-   76,
-   30,
+   110,
+   36,
    0,
-   70,
+   99,
    0,
    "COPIMAGE"
   ],
   [
-   77,
-   70,
-   0,
-   71,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   78,
-   71,
-   0,
-   72,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   79,
-   73,
-   0,
-   74,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   80,
-   75,
-   0,
-   76,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   81,
-   77,
-   0,
-   78,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   82,
-   79,
-   0,
-   80,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   83,
-   81,
-   0,
-   82,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   84,
-   74,
-   0,
-   83,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   85,
-   76,
-   0,
-   83,
-   1,
-   "GEOMETRY"
-  ],
-  [
-   86,
-   78,
-   0,
-   83,
-   2,
-   "GEOMETRY"
-  ],
-  [
-   87,
-   80,
-   0,
-   83,
-   3,
-   "GEOMETRY"
-  ],
-  [
-   88,
-   82,
-   0,
-   83,
-   4,
-   "GEOMETRY"
-  ],
-  [
-   89,
-   83,
-   0,
-   84,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   90,
-   84,
-   0,
-   85,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   91,
-   86,
-   0,
-   87,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   92,
-   88,
-   0,
-   89,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   93,
-   87,
-   0,
-   90,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   94,
-   89,
-   0,
-   90,
-   1,
-   "GEOMETRY"
-  ],
-  [
-   95,
-   90,
-   0,
-   91,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   96,
-   92,
-   0,
-   93,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   97,
-   93,
-   0,
-   94,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   98,
-   91,
-   0,
-   94,
-   1,
-   "GEOMETRY"
-  ],
-  [
-   99,
-   94,
-   0,
-   95,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   100,
-   95,
-   0,
-   96,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   101,
-   97,
-   0,
-   98,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   102,
-   98,
-   0,
-   99,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   103,
-   99,
-   0,
-   100,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   104,
-   100,
-   0,
-   101,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   105,
-   101,
-   0,
-   102,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   106,
-   103,
-   0,
-   104,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   107,
-   104,
-   0,
-   105,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   108,
-   105,
-   0,
-   106,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   109,
-   106,
-   0,
-   107,
-   0,
-   "GEOMETRY"
-  ],
-  [
-   110,
-   85,
-   0,
-   108,
-   0,
-   "GEOMETRY"
-  ],
-  [
    111,
-   96,
+   99,
    0,
-   108,
-   1,
+   100,
+   0,
    "GEOMETRY"
   ],
   [
    112,
-   102,
+   100,
    0,
-   108,
-   2,
+   101,
+   0,
    "GEOMETRY"
   ],
   [
    113,
-   107,
+   102,
    0,
-   108,
-   3,
+   103,
+   0,
    "GEOMETRY"
   ],
   [
    114,
-   46,
+   104,
    0,
-   109,
+   105,
    0,
    "GEOMETRY"
   ],
   [
    115,
-   48,
+   106,
    0,
-   110,
+   107,
    0,
    "GEOMETRY"
   ],
   [
    116,
-   50,
+   108,
    0,
-   111,
+   109,
    0,
    "GEOMETRY"
   ],
   [
    117,
-   109,
+   110,
+   0,
+   111,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   118,
+   103,
    0,
    112,
    0,
    "GEOMETRY"
   ],
   [
-   118,
-   110,
+   119,
+   105,
    0,
    112,
    1,
    "GEOMETRY"
   ],
   [
-   119,
-   111,
+   120,
+   107,
    0,
    112,
    2,
    "GEOMETRY"
   ],
   [
-   120,
-   112,
-   0,
-   113,
-   0,
-   "GEOMETRY"
-  ],
-  [
    121,
-   108,
+   109,
    0,
-   114,
-   0,
+   112,
+   3,
    "GEOMETRY"
   ],
   [
    122,
-   113,
+   111,
    0,
-   114,
-   1,
+   112,
+   4,
    "GEOMETRY"
   ],
   [
    123,
-   115,
+   112,
    0,
-   116,
+   113,
    0,
    "GEOMETRY"
   ],
   [
    124,
-   116,
+   113,
    0,
-   117,
+   114,
    0,
    "GEOMETRY"
   ],
   [
    125,
+   115,
+   0,
+   116,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   126,
    117,
    0,
    118,
@@ -7633,19 +9754,11 @@
    "GEOMETRY"
   ],
   [
-   126,
-   72,
-   0,
-   119,
-   0,
-   "GEOMETRY"
-  ],
-  [
    127,
-   114,
+   116,
    0,
    119,
-   1,
+   0,
    "GEOMETRY"
   ],
   [
@@ -7653,44 +9766,44 @@
    118,
    0,
    119,
-   2,
+   1,
    "GEOMETRY"
   ],
   [
    129,
    119,
    0,
-   121,
+   120,
    0,
    "GEOMETRY"
   ],
   [
    130,
-   42,
-   0,
-   121,
-   1,
-   "COPIMAGE"
-  ],
-  [
-   131,
-   120,
-   0,
-   121,
-   2,
-   "PCGCAM"
-  ],
-  [
-   132,
    121,
    0,
    122,
    0,
-   "IMAGE"
+   "GEOMETRY"
+  ],
+  [
+   131,
+   122,
+   0,
+   123,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   132,
+   120,
+   0,
+   123,
+   1,
+   "GEOMETRY"
   ],
   [
    133,
-   119,
+   123,
    0,
    124,
    0,
@@ -7698,25 +9811,417 @@
   ],
   [
    134,
-   42,
-   0,
    124,
+   0,
+   125,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   135,
+   126,
+   0,
+   127,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   136,
+   127,
+   0,
+   128,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   137,
+   128,
+   0,
+   129,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   138,
+   129,
+   0,
+   130,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   139,
+   130,
+   0,
+   131,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   140,
+   132,
+   0,
+   133,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   141,
+   133,
+   0,
+   134,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   142,
+   134,
+   0,
+   135,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   143,
+   135,
+   0,
+   136,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   144,
+   137,
+   0,
+   138,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   145,
+   139,
+   0,
+   140,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   146,
+   138,
+   0,
+   141,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   147,
+   140,
+   0,
+   141,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   148,
+   141,
+   0,
+   142,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   149,
+   114,
+   0,
+   143,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   150,
+   125,
+   0,
+   143,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   151,
+   131,
+   0,
+   143,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   152,
+   136,
+   0,
+   143,
+   3,
+   "GEOMETRY"
+  ],
+  [
+   153,
+   142,
+   0,
+   143,
+   4,
+   "GEOMETRY"
+  ],
+  [
+   154,
+   72,
+   0,
+   144,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   155,
+   74,
+   0,
+   145,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   156,
+   76,
+   0,
+   146,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   157,
+   79,
+   0,
+   147,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   158,
+   144,
+   0,
+   148,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   159,
+   145,
+   0,
+   148,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   160,
+   146,
+   0,
+   148,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   161,
+   147,
+   0,
+   148,
+   3,
+   "GEOMETRY"
+  ],
+  [
+   162,
+   148,
+   0,
+   149,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   163,
+   143,
+   0,
+   150,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   164,
+   149,
+   0,
+   150,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   165,
+   151,
+   0,
+   152,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   166,
+   152,
+   0,
+   153,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   167,
+   153,
+   0,
+   154,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   168,
+   101,
+   0,
+   155,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   169,
+   150,
+   0,
+   155,
+   1,
+   "GEOMETRY"
+  ],
+  [
+   170,
+   154,
+   0,
+   155,
+   2,
+   "GEOMETRY"
+  ],
+  [
+   171,
+   155,
+   0,
+   157,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   172,
+   53,
+   0,
+   157,
    1,
    "COPIMAGE"
   ],
   [
-   135,
-   123,
+   173,
+   62,
    0,
-   124,
+   157,
+   3,
+   "COPIMAGE"
+  ],
+  [
+   174,
+   156,
+   0,
+   157,
    2,
    "PCGCAM"
   ],
   [
-   136,
-   124,
+   175,
+   157,
    0,
-   125,
+   158,
+   0,
+   "IMAGE"
+  ],
+  [
+   176,
+   155,
+   0,
+   160,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   177,
+   53,
+   0,
+   160,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   178,
+   62,
+   0,
+   160,
+   3,
+   "COPIMAGE"
+  ],
+  [
+   179,
+   159,
+   0,
+   160,
+   2,
+   "PCGCAM"
+  ],
+  [
+   180,
+   160,
+   0,
+   161,
+   0,
+   "IMAGE"
+  ],
+  [
+   181,
+   155,
+   0,
+   163,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   182,
+   53,
+   0,
+   163,
+   1,
+   "COPIMAGE"
+  ],
+  [
+   183,
+   62,
+   0,
+   163,
+   3,
+   "COPIMAGE"
+  ],
+  [
+   184,
+   162,
+   0,
+   163,
+   2,
+   "PCGCAM"
+  ],
+  [
+   185,
+   163,
+   0,
+   164,
    0,
    "IMAGE"
   ]

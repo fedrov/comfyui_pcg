@@ -1929,6 +1929,9 @@ class PCG_PreviewImage:
             "sky_samples": _i(32, 0, 128),
             # pcg126, appended: where the outdoor look's shadow maps and sky light are computed
             "compute": (["auto", "cpu", "cuda"], {"tooltip": "auto = CUDA when available, else numpy"}),
+            # appended: small tiled detail maps (detail1..4 / detail_normal1..4 = '@layer' read from here; the
+            # textures image is terrain-sized, a detail tile is a few hundred pixels)
+            "detail_cop": ("COPIMAGE",),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
@@ -1938,7 +1941,7 @@ class PCG_PreviewImage:
             material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
-            compute="auto"):
+            compute="auto", detail_cop=None):
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")
@@ -1954,12 +1957,12 @@ class PCG_PreviewImage:
                                      supersampling, textures, output_dir(), material_attrib, uv_attrib,
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
                                      tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
-                                     sky_samples=sky_samples, compute=compute)
+                                     sky_samples=sky_samples, compute=compute, detail_cop=detail_cop)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,
                                     supersampling, textures, output_dir(), material_attrib, uv_attrib,
-                                    tex_cop=textures_cop)
+                                    tex_cop=textures_cop, detail_cop=detail_cop)
         else:
             img = convert.render_preview(geo, width, height, elevation, azimuth,
                                          shading, color_attrib)

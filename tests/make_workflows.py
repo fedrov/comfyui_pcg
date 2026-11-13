@@ -1374,8 +1374,12 @@ def rock_assets():
 
 
 # ═══════════════════════════════════════════════════ Production 2: open-world terrain tiles
-TERRAIN_TEXTURES = "basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough"
-CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)   # a ridge south-west of the main peak
+TERRAIN_TEXTURES = ("basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\n"
+                    "detail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\n"
+                    "detail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\n"
+                    "detail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025")
+CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)
+CAM3 = (540.5, 14.6, 376.9, 77.9, 84.6, -5.3)    # on the south-east road, 1.8 m above it, along it toward the main peak   # a ridge south-west of the main peak
 
 
 def world_tiles():
@@ -1532,14 +1536,14 @@ def world_tiles():
     tp = C("PCG_COPLayerToPoints", title="Town candidates", mode="scatter", count=150, density_layer="d_town",
            height_layer="C", height_scale=2048.0, attribs="d_town", plane="xz", world_size=4100.0, rand_seed=4)
     g.link(ts, "cop", tp, "cop")
-    tn = C("PCG_AdaptivePrune", title="Towns at least 500 m apart (flattest first)", radius=500.0,
+    towns = C("PCG_AdaptivePrune", title="Towns at least 500 m apart (flattest first)", radius=500.0,
            priority="attribute", priority_attribute="d_town", mode="delete")
-    g.link(tp, "geo", tn, "geo")
+    g.link(tp, "geo", towns, "geo")
     rn = C("PCG_COPRoadNetwork", title="Road network (10% grade, off the river beds)", strength=2048.0,
            world_size=4100.0, step=2, max_grade=0.10, grade_weight=4.0, avoid_layer="bed", avoid_cost=6.0,
            block_layer="noroad", reuse=0.4, smooth=2, spacing=4.0, profile=80.0)
     g.link(ts, "cop", rn, "cop")
-    g.link(tn, "geo", rn, "points")
+    g.link(towns, "geo", rn, "points")
     rw = C("PCG_COPRasterizeCurves", title="Road corridor + bed height (28 m)", width=7.0, attrib="road_h",
            plane="xz", mapping="world", world_size=4100.0, out_layer="rdw")
     g.link(rn, "geo", rw, "geo")
@@ -1548,8 +1552,28 @@ def world_tiles():
            world_size=4100.0, out_layer="road")
     g.link(rn, "geo", rc, "geo")
     g.link(rw, "cop", rc, "cop")
+    # the towns (160 m discs) and the ground near the roads (80 m band, blurred: its slope points to the road, which
+    # turns the houses to face it)
+    tci = C("PCG_Circle", title="Town extent (160 m)", prim_type="polygon", orientation="zx", radius_x=160.0,
+            radius_y=160.0, divisions=24)
+    tcp = C("PCG_CopyToPoints", title="A disc at each town", transform_using_orientations=False)
+    g.link(tci, "geo", tcp, "source")
+    g.link(towns, "geo", tcp, "points")
+    rt = C("PCG_COPRasterizeCurves", title="Towns", width=1.0, fill=True, plane="xz", mapping="world",
+           world_size=4100.0, out_layer="town")
+    g.link(tcp, "geo", rt, "geo")
+    g.link(rc, "cop", rt, "cop")
+    rnn = C("PCG_COPRasterizeCurves", title="Near the roads (80 m)", width=20.0, plane="xz", mapping="world",
+            world_size=4100.0, out_layer="rdn")
+    g.link(rn, "geo", rnn, "geo")
+    g.link(rt, "cop", rnn, "cop")
+    bln = C("PCG_COPBlur", title="Near the roads: soft", sigma_pixels=4.0, border="clamp", layers="rdn")
+    g.link(rnn, "cop", bln, "cop")
+    ndn = C("PCG_COPHeightToNormal", title="Toward the road (slope of the band)", layer="rdn", strength=100.0,
+            world_size=4100.0, out_layer="Nrd")
+    g.link(bln, "cop", ndn, "cop")
     rbw = C("PCG_COPBlur", title="Soft cut and fill slopes", sigma_pixels=1.5, border="clamp", layers="rdw")
-    g.link(rc, "cop", rbw, "cop")
+    g.link(ndn, "cop", rbw, "cop")
     cut = C("PCG_COPWrangle", title="Cut the roads into the ground", code=(
         "# the road bed (the ground smoothed along the road) replaces the ground in the corridor, blending out over\n"
         "# the cut and fill slopes; the sea is left alone\n"
@@ -1604,7 +1628,9 @@ def world_tiles():
         '@ForestFloor = rem * wood\n'
         '@Grass = rem * (1 - wood)\n'
         '# the verges are kept clear (the cut and fill corridor)\n'
-        'clear = 1 - smoothstep(0.05, 0.4, @rdw)\n'
+        'clear = (1 - smoothstep(0.05, 0.4, @rdw)) * (1 - 0.85 * @town)\n'
+        '# houses: in the towns, along the roads (not on them), on flat dry land\n'
+        '@d_house = @town * smoothstep(0.08, 0.5, @rdn) * (1 - smoothstep(0.02, 0.25, @rdw)) * (1 - smoothstep(0.03, 0.08, steep)) * (1 - water) * (1 - smoothstep(0.05, 0.3, @bed))\n'
         '@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear\n'
         'edge_ = wood * (1 - wood) * 4\n'
         '@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn)) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n'
@@ -1677,7 +1703,23 @@ def world_tiles():
            world_size=4100.0, out_layer="rdv")
     g.link(rn, "geo", sv, "geo")
     g.link(sr, "cop", sv, "cop")
-    sf = S("PCG_COPWrangle", title="Surface: albedo, roughness, detail height", rows_per_pass=128, code=(
+    # wheel ruts 1.1 m either side of the centre (the road's road_t gives the side), a grassy crown between them
+    rul = S("PCG_Wrangle", title="Rut: left", code="@P = @P + 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)")
+    g.link(rn, "geo", rul, "geo")
+    rur = S("PCG_Wrangle", title="Rut: right", code="@P = @P - 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)")
+    g.link(rn, "geo", rur, "geo")
+    rum = S("PCG_Merge", title="Both ruts")
+    g.link(rul, "geo", rum, "geo1")
+    g.link(rur, "geo", rum, "geo2")
+    sru = S("PCG_COPRasterizeCurves", title="Ruts (1 m)", width=1.0, plane="xz", mapping="world",
+            world_size=4100.0, out_layer="ruts")
+    g.link(rum, "geo", sru, "geo")
+    g.link(sv, "cop", sru, "cop")
+    scw = S("PCG_COPRasterizeCurves", title="Crown (1.2 m)", width=1.2, plane="xz", mapping="world",
+            world_size=4100.0, out_layer="crown")
+    g.link(rn, "geo", scw, "geo")
+    g.link(sru, "cop", scw, "cop")
+    sf = S("PCG_COPWrangle", title="Surface: albedo, roughness, detail height", rows_per_pass=64, code=(
         '# the 1 m surface: crisp material edges, rock strata and joints, rills, mottled grass; a detail height for the normal map\n'
         'x = @u * 4100\n'
         'y = @v * 4100\n'
@@ -1755,18 +1797,25 @@ def world_tiles():
         'c = lerp(c, c * set(0.9, 0.86, 0.78) + set(0.05, 0.04, 0.03), 0.6 * verge)\n'
         'roadc = set(0.60, 0.53, 0.41) * (0.82 + 0.22 * n4 + 0.12 * (crk - 0.3)) * (1 - 0.15 * @wet)\n'
         'c = lerp(c, roadc, @rd * land)\n'
-        'dh = dh * (1 - @rdv * land)\n'
+        'ruts = @ruts * @rd * land\n'
+        'c = lerp(c, c * set(0.6, 0.56, 0.5), 0.9 * ruts)\n'
+        'crown = @crown * @rd * land * (1 - ruts)\n'
+        'c = lerp(c, set(0.36, 0.40, 0.20) * (0.8 + 0.3 * n4), 0.75 * crown)\n'
+        'dh = dh * (1 - @rdv * land) - 0.08 * ruts + 0.03 * crown\n'
         '@terrain_albedo = clamp(c, 0, 1) ** 2.2\n'
         '@dh = dh\n'
         '@terrain_rough = lerp(lerp(0.92 - 0.15 * @wet * rk, 0.05, @Water), 0.85, @rd * land)\n'
         '@sea_rough = 0.05 + 0 * x\n'
+        '# how much of each detail map applies (grass, rock, gravel: scree / sand / road, litter: forest floor)\n'
+        'dwr = @rd * land\n'
+        '@terrain_dw = set(gr * (1 - dwr), rk * (1 - dwr), (sc + sd) * (1 - dwr) + dwr, ff * (1 - dwr))\n'
 ))
-    g.link(sv, "cop", sf, "cop")
+    g.link(scw, "cop", sf, "cop")
     sn = S("PCG_COPHeightToNormal", title="Detail height -> normal map", layer="dh", strength=1.0,
            world_size=4100.0, out_layer="terrain_nrm")
     g.link(sf, "cop", sn, "cop")
     surf = S("PCG_COPLayerEdit", title="The texture set", op="keep",
-             spec="terrain_albedo terrain_nrm terrain_rough sea_rough")
+             spec="terrain_albedo terrain_nrm terrain_rough sea_rough terrain_dw")
     g.link(sn, "cop", surf, "cop")
     tb = S("PCG_COPWriteFile", title="BaseColor: 4×4 tiles of 1024² (sRGB)",
            filename="pcg/world/texture/T_Terrain_BaseColor_x{tx}_y{ty}", channels="terrain_albedo",
@@ -1776,6 +1825,60 @@ def world_tiles():
            filename="pcg/world/texture/T_Terrain_Normal_GL_x{tx}_y{ty}", channels="terrain_nrm",
            format="png", bit_depth="8", remap="signed", tiles_x=4, tiles_y=4)
     g.link(surf, "cop", tn, "cop")
+    # detail maps: four tileable 4 m tiles (512²) for close views -- grass tufts, rock grain and cracks, gravel,
+    # leaf litter -- multiplied onto the 1 m colour by the weights in terrain_dw (an engine's detail texturing).
+    # Colour 0.5 = no change; heights (metres) become their normal maps. Written for the engine too
+    dc0 = S("PCG_COPNoise", title="Detail canvas (512², one 4 m tile)", resolution_x=512, resolution_y=512,
+            amplitude=0.0, bias=0.0)
+    dcw = S("PCG_COPWrangle", title="Detail maps: grass, rock, gravel, litter", code=(
+        "x = @u\n"
+        "y = @v\n"
+        "# grass: tufts and blades\n"
+        "g1 = pnoise(set(x * 24, y * 24, 1.1), 24)\n"
+        "g2 = pnoise(set(x * 64, y * 64, 2.2), 64)\n"
+        "g3 = pnoise(set(x * 160, y * 160, 3.3), 160)\n"
+        "tuft = smoothstep(0.42, 0.72, 0.6 * g1 + 0.3 * g2 + 0.2 * g3)\n"
+        "@det_grass = set(0.5, 0.52, 0.46) * (0.8 + 0.4 * tuft) * (0.92 + 0.16 * g3)\n"
+        "@h_grass = 0.05 * tuft + 0.01 * g3\n"
+        "# rock: grain, cracks (ridged noise), weathered patches\n"
+        "r1 = 1 - abs(2 * pnoise(set(x * 6, y * 6, 4.4), 6) - 1)\n"
+        "r2 = 1 - abs(2 * pnoise(set(x * 14, y * 14, 5.5), 14) - 1)\n"
+        "crack = max(smoothstep(0.9, 0.98, r1), 0.6 * smoothstep(0.92, 0.99, r2))\n"
+        "grain = pnoise(set(x * 120, y * 120, 6.6), 120)\n"
+        "patch = pnoise(set(x * 4, y * 4, 7.7), 4)\n"
+        "@det_rock = set(0.5, 0.5, 0.5) * (0.88 + 0.2 * grain + 0.08 * patch) * (1 - 0.35 * crack)\n"
+        "@h_rock = 0.03 * grain + 0.06 * patch - 0.04 * crack\n"
+        "# gravel: stones with dark gaps\n"
+        "s1 = pnoise(set(x * 40, y * 40, 8.8), 40)\n"
+        "s2 = pnoise(set(x * 90, y * 90, 9.9), 90)\n"
+        "stone = smoothstep(0.5, 0.62, s1 + 0.35 * (s2 - 0.5))\n"
+        "@det_gravel = set(0.5, 0.49, 0.47) * (0.65 + 0.55 * stone + 0.15 * s2)\n"
+        "@h_gravel = 0.035 * stone + 0.005 * s2\n"
+        "# leaf litter: patches of warm brown leaves and dark soil\n"
+        "l1 = pnoise(set(x * 20, y * 20, 11.1), 20)\n"
+        "l2 = pnoise(set(x * 70, y * 70, 12.2), 70)\n"
+        "leaf = smoothstep(0.45, 0.6, l1 + 0.4 * (l2 - 0.5))\n"
+        "@det_litter = lerp(set(0.42, 0.42, 0.40), set(0.58, 0.5, 0.4), leaf) * (0.85 + 0.3 * l2)\n"
+        "@h_litter = 0.02 * leaf + 0.01 * l2"))
+    g.link(dc0, "cop", dcw, "cop")
+    prev = dcw
+    for k_ in ("grass", "rock", "gravel", "litter"):
+        hn_ = S("PCG_COPHeightToNormal", title=f"Detail normal: {k_}", layer=f"h_{k_}", strength=1.0, world_size=4.0,
+                tile=True, out_layer=f"nrm_{k_}")
+        g.link(prev, "cop", hn_, "cop")
+        prev = hn_
+    dset = S("PCG_COPLayerEdit", title="The detail set", op="keep",
+             spec="det_grass det_rock det_gravel det_litter nrm_grass nrm_rock nrm_gravel nrm_litter")
+    g.link(prev, "cop", dset, "cop")
+    for k_ in ("Grass", "Rock", "Gravel", "Litter"):
+        wd = S("PCG_COPWriteFile", title=f"Detail {k_}: colour (linear, 0.5 = no change)",
+               filename=f"pcg/world/texture/detail/T_Detail_{k_}_Color", channels=f"det_{k_.lower()}",
+               format="png", bit_depth="8")
+        g.link(dset, "cop", wd, "cop")
+        wn = S("PCG_COPWriteFile", title=f"Detail {k_}: normal (OpenGL)",
+               filename=f"pcg/world/texture/detail/T_Detail_{k_}_Normal_GL", channels=f"nrm_{k_.lower()}",
+               format="png", bit_depth="8", remap="signed")
+        g.link(dset, "cop", wn, "cop")
 
     # ③ Distribution
     def scatter(col, title, count, dens, seed):
@@ -1819,10 +1922,29 @@ def world_tiles():
         "@pscale = 0.8 + 3.0 * pow(rand(@ptnum + 5.5), 2)\n"
         "@P.y -= 0.25 * @pscale"))
     g.link(rocks, "geo", rw, "geo")
+    hs_ = E("PCG_COPLayerToPoints", title="Houses: in the towns, by the roads", mode="scatter", count=12000,
+            density_layer="d_house", height_layer="C", height_scale=2048.0, attribs="Nrd d_house", plane="xz",
+            world_size=4100.0, rand_seed=6)
+    g.link(bio, "cop", hs_, "cop")
+    hp_ = E("PCG_AdaptivePrune", title="Houses at least 16 m apart", radius=16.0, priority="random", rand_seed=6,
+            mode="delete")
+    g.link(hs_, "geo", hp_, "geo")
+    hw = E("PCG_Wrangle", title="Houses: asset / facing the road / size", code=(
+        'names = np.array(["SM_House_A", "SM_House_B", "SM_House_C"])\n'
+        "s@name = names[(rand(@ptnum + 0.2) * 3).astype(int)]\n"
+        "# the front (+Z of the asset) faces the road: up the slope of the blurred road band (tangent space x, v -> "
+        "world x, -z)\n"
+        "f = set(0 - @Nrd.x, 0 * @Nrd.x, @Nrd.y)\n"
+        "f = where(length(f) > 1e-6, f, set(0, 0, 1))\n"
+        "@N = normalize(f)\n"
+        "@up = set(0, 1, 0)\n"
+        "@pscale = 0.85 + 0.35 * rand(@ptnum + 4.4)"))
+    g.link(hp_, "geo", hw, "geo")
     allp = E("PCG_Merge", title="All instances")
     g.link(tw, "geo", allp, "geo1")
     g.link(bw, "geo", allp, "geo2")
     g.link(rw, "geo", allp, "geo3")
+    g.link(hw, "geo", allp, "geo4")
     corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=2048.0, tz=2048.0)
     g.link(allp, "geo", corner, "geo")
     # Scatter works by pixel area (each sample covers 4 m square), so the outermost ring scatters half a cell beyond the terrain border -
@@ -1950,14 +2072,24 @@ def world_tiles():
     rkc = G("PCG_Color", title="Rock grey", attribute_class="point", r=0.44, g=0.42, b=0.39)
     g.link(rkt, "geo", rkc, "geo")
     rockp = named(G, rkc, "rock")
-    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp])
+    hwl = G("PCG_Box", title="House walls (9 x 5 x 6 m)", size_x=9.0, size_y=5.0, size_z=6.0, cy=2.5)
+    hwc = G("PCG_Color", title="Whitewashed walls", attribute_class="point", r=0.84, g=0.82, b=0.76)
+    g.link(hwl, "geo", hwc, "geo")
+    hrf = G("PCG_Box", title="House roof (a box turned 45 degrees: a gable)", size_x=9.6, size_y=4.6, size_z=4.6,
+            cy=5.0, rx=45.0)
+    hrc = G("PCG_Color", title="Slate roof", attribute_class="point", r=0.20, g=0.20, b=0.22)
+    g.link(hrf, "geo", hrc, "geo")
+    housep = named(G, merge_n(G, "House proxy", [hwc, hrc]), "house")
+    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp, housep])
     kt = G("PCG_Wrangle", title="Trees → pine / broad", code='s@kind = where(np.char.startswith(@name.astype(str), "Tree_Pine"), "pine", "broad")')
     g.link(tw, "geo", kt, "geo")
     kb = G("PCG_Wrangle", title="Bushes → bush", code='s@kind = "bush"')
     g.link(bw, "geo", kb, "geo")
     kr = G("PCG_Wrangle", title="Rocks → rock", code='s@kind = "rock"')
     g.link(rw, "geo", kr, "geo")
-    kall = merge_n(G, "Proxy points", [kt, kb, kr])
+    kh = G("PCG_Wrangle", title="Houses → house", code='s@kind = "house"')
+    g.link(hw, "geo", kh, "geo")
+    kall = merge_n(G, "Proxy points", [kt, kb, kr, kh])
     tint = G("PCG_Wrangle", title="Per-instance tint", code=(
         "# brightness 0.75..1.2, and a drift toward yellow-green or blue-green\n"
         "b = 0.75 + 0.45 * rand(@ptnum + 11.1)\n"
@@ -1988,6 +2120,7 @@ def world_tiles():
            ground_plane=False, clouds=0.3, cloud_seed=3)
     g.link(mg, "geo", pr, "geo")
     g.link(surf, "cop", pr, "textures_cop")
+    g.link(dset, "cop", pr, "detail_cop")
     g.link(cam, "cam", pr, "camera")
     pv = G("PreviewImage", title="Whole world", size=[520, 400])
     g.link(pr, "image", pv, "images")
@@ -1999,9 +2132,24 @@ def world_tiles():
             ground_plane=False, clouds=0.45, cloud_seed=3)
     g.link(mg, "geo", pr2, "geo")
     g.link(surf, "cop", pr2, "textures_cop")
+    g.link(dset, "cop", pr2, "detail_cop")
     g.link(cam2, "cam", pr2, "camera")
     pv2 = G("PreviewImage", title="In the valley", size=[520, 400])
     g.link(pr2, "image", pv2, "images")
+    # on a road at eye height, toward the main peak: the close view that the 1 m textures, the detail maps, the ruts
+    # and the houses are for
+    cam3 = G("PCG_Camera", title="Camera: on the road, toward the peak", projection="perspective",
+             mode="look_at", resolution_x=1600, resolution_y=900, fov=55.0, eye_x=CAM3[0], eye_y=CAM3[1],
+             eye_z=CAM3[2], target_x=CAM3[3], target_y=CAM3[4], target_z=CAM3[5])
+    pr3 = G("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
+            look="outdoor", textures=TERRAIN_TEXTURES, sun_elevation=15.0, sun_azimuth=124.0, haze=1.0,
+            ground_plane=False, clouds=0.45, cloud_seed=3)
+    g.link(mg, "geo", pr3, "geo")
+    g.link(surf, "cop", pr3, "textures_cop")
+    g.link(dset, "cop", pr3, "detail_cop")
+    g.link(cam3, "cam", pr3, "camera")
+    pv3 = G("PreviewImage", title="On the road", size=[520, 400])
+    g.link(pr3, "image", pv3, "images")
     return g
 
 

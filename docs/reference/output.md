@@ -278,6 +278,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | `geo` | GEOMETRY | Geometry to render. |
 | `textures_cop` *(optional)* | COPIMAGE | Optional COP image whose layers Textures can name with `@layer` (Studio look). |
 | `camera` *(optional)* | PCGCAM | Optional camera for the Outdoor look (any Camera node; its view is rendered in perspective). Without it an automatic 35 mm camera at Elevation / Azimuth frames the geometry. |
+| `detail_cop` *(optional)* | COPIMAGE | Optional COP image holding small tiled detail maps: detail1..4 and detail_normal1..4 in Textures read `@layer` from here (the textures image is terrain-sized; a detail tile is a few hundred pixels). |
 
 **Outputs**
 
@@ -296,7 +297,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | Shading `shading` | menu | Normal | How the surface is coloured. Normal shows face normals as colour, Lambert is a grey model with simple lighting, Color shows the colour attribute times lighting. Options: Normal (`normal`), Lambert (Gray) (`lambert`), Color (Cd) (`color`). *Hidden when look ≠ basic.* |
 | Color Attribute `color_attrib` | string | `Cd` | Attribute read for the colour. Only used in Color shading. *Hidden when shading ≠ color look = basic.* |
 | Supersampling `supersampling` | int [1..4] | 2 | Studio: renders this many times larger and averages down, for smooth edges (2 is a good default; 3–4 are slower). *Hidden when look = basic.* |
-| Textures `textures` | string | *(empty)* | Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop. *Hidden when look = basic.* |
+| Textures `textures` | string | *(empty)* | Studio: one `slot = path` per line. Slots: `basecolor`, `normal` (tangent space, OpenGL +Y), `orm` (R = AO, G = roughness, B = metallic, as Export Mesh packs it), or `ao` / `roughness` / `metallic` on their own. `orm`, `roughness` or `metallic` switch the surface to PBR shading. `{material}` in a path is replaced by the face's material name; `@layer` (or `@ao roughness metallic`) reads the COP image on textures_cop. Detail maps: `detail1`..`detail4` (tiled colour, 0.5 = no change, multiplying the base colour by 2 x detail), `detail_normal1`..`detail_normal4`, `detail_weights` (a layer on the mesh uv whose channels say how much of each detail applies) and `detail_tiling` (how many times the detail repeats across the uv range) sharpen close views of a large terrain; far away their mips average out and they fade. *Hidden when look = basic.* |
 | Material Attribute `material_attrib` | string | `material` | Studio: string prim attribute holding each face's material name (used for `{material}` in Textures). *Hidden when look = basic.* |
 | UV Attribute `uv_attrib` | string | `uv` | Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1. *Hidden when look = basic.* |
 

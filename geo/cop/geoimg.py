@@ -242,7 +242,7 @@ def rasterize_curves(img=None, geo=None, width=2.0, width_attrib="",
     """
     out, like = _base(img, xres, yres)
     W, H = out.xres, out.yres
-    cov = np.zeros((H, W))
+    cov = np.zeros((H, W), np.float32)
     if geo is None or geo.npoints == 0:
         put(out, str(out_layer).strip() or "curves", cov, like)
         return out
@@ -265,11 +265,13 @@ def rasterize_curves(img=None, geo=None, width=2.0, width_attrib="",
         if a_ is None:
             raise ValueError(f"Geometry has no point attribute '{at}'")
         av = np.asarray(a_, np.float64).reshape(len(P), -1)
-        attr = np.zeros((H, W, av.shape[1]))
-        best = np.full((H, W), np.inf)
-    inside = np.zeros((H, W), bool)
-    J, I = np.meshgrid(np.arange(W, dtype=np.float64),
-                       np.arange(H, dtype=np.float64))
+        attr = np.zeros((H, W, av.shape[1]), np.float32)
+        best = np.full((H, W), np.inf, np.float32)
+    inside = np.zeros((H, W), bool) if fill else None
+    # pixel-coordinate grids are made per window (a full-image pair was 270 MB at 4096², for a few pixels per segment)
+
+    def grid(y0, y1, x0, x1):
+        return np.meshgrid(np.arange(x0, x1, dtype=np.float64), np.arange(y0, y1, dtype=np.float64))
     for pi in range(geo.nprims):
         idx = np.asarray(geo.prim_points(pi))
         if idx.size < 2:
@@ -278,16 +280,23 @@ def rasterize_curves(img=None, geo=None, width=2.0, width_attrib="",
         segs = list(zip(idx[:-1], idx[1:])) + ([(idx[-1], idx[0])] if closed
                                                else [])
         if fill and closed:
-            # Even-odd rule: cast a ray from the pixel centre towards +x and count crossings with edges
-            cnt = np.zeros((H, W), np.int64)
-            for a, b in segs:
-                ya, yb = py[a], py[b]
-                if ya == yb:
-                    continue
-                crs = ((I >= min(ya, yb)) & (I < max(ya, yb)))
-                xt = px[a] + (I - ya) / (yb - ya) * (px[b] - px[a])
-                cnt += crs & (xt > J)
-            inside ^= (cnt % 2 == 1)
+            # Even-odd rule: cast a ray from the pixel centre towards +x and count crossings with edges (within the
+            # polygon's bounding box: nothing outside it is inside)
+            by0 = int(max(math.floor(py[idx].min()), 0))
+            by1 = int(min(math.ceil(py[idx].max()) + 1, H))
+            bx0 = int(max(math.floor(px[idx].min()), 0))
+            bx1 = int(min(math.ceil(px[idx].max()) + 1, W))
+            if by0 < by1 and bx0 < bx1:
+                J, I = grid(by0, by1, bx0, bx1)
+                cnt = np.zeros(J.shape, np.int64)
+                for a, b in segs:
+                    ya, yb = py[a], py[b]
+                    if ya == yb:
+                        continue
+                    crs = ((I >= min(ya, yb)) & (I < max(ya, yb)))
+                    xt = px[a] + (I - ya) / (yb - ya) * (px[b] - px[a])
+                    cnt += crs & (xt > J)
+                inside[by0:by1, bx0:bx1] ^= (cnt % 2 == 1)
         for a, b in segs:
             hw = 0.5 * float(width) * max(wmul[a], wmul[b]) + 1.5
             x0 = int(max(math.floor(min(px[a], px[b]) - hw), 0))
@@ -296,7 +305,7 @@ def rasterize_curves(img=None, geo=None, width=2.0, width_attrib="",
             y1 = int(min(math.ceil(max(py[a], py[b]) + hw) + 1, H))
             if x0 >= x1 or y0 >= y1:
                 continue
-            sj, si = J[y0:y1, x0:x1], I[y0:y1, x0:x1]
+            sj, si = grid(y0, y1, x0, x1)
             d, t = _seg_dist(sj, si, px[a], py[a], px[b], py[b])
             wl = float(width) * (wmul[a] * (1 - t) + wmul[b] * t)
             c = np.clip(wl * 0.5 - d + 0.5, 0, 1)
@@ -308,7 +317,8 @@ def rasterize_curves(img=None, geo=None, width=2.0, width_attrib="",
                     + av[b][None, None, :] * t[..., None]
                 attr[sl] = np.where(closer[..., None], val, attr[sl])
                 best[sl] = np.where(closer, d, best[sl])
-    cov = np.maximum(cov, inside.astype(np.float64))
+    if inside is not None:
+        cov = np.maximum(cov, inside.astype(np.float32))
     name = str(out_layer).strip() or "curves"
     put(out, name, cov, like)
     if av is not None:
