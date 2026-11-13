@@ -47,46 +47,59 @@ from .core import Geometry, POINT, VERTEX, PRIM, is_string
 
 
 # ═══════════════════════════════════════════════════════════ per-corner normals / tangents
-def corner_normals(geo):
-    """(NV, 3) per-corner normals: vertex N > point N > area-weighted point normals computed on the spot."""
+def corner_normals(geo, vids=None):
+    """
+    (NV, 3) per-corner normals: vertex N > point N > area-weighted point normals computed on the spot.
+    vids: only these corners (an index array), in that order.
+    """
+    vp = geo.vertex_point if vids is None else geo.vertex_point[vids]
     vn = geo.get(VERTEX, "N")
     if vn is not None and vn.shape[1] >= 3:
-        N = np.asarray(vn[:, :3], np.float64)
+        N = np.asarray(vn[:, :3] if vids is None else vn[vids, :3], np.float64)
     else:
         pn = geo.get(POINT, "N")
         if pn is None or pn.shape[1] < 3:
             from .ops import compute_normals
             pn = compute_normals(geo, add_to="point").get(POINT, "N")
-        N = np.asarray(pn[:, :3], np.float64)[geo.vertex_point]
+        N = np.asarray(pn[:, :3], np.float64)[vp]
     ln = np.linalg.norm(N, axis=1, keepdims=True)
     bad = ln[:, 0] < 1e-8
     if bad.any():
         # the incoming N contains zero vectors (newly created points from convex hull, boolean etc. can't interpolate normals): compute these corners on the spot
         from .ops import compute_normals
         fresh = np.asarray(compute_normals(geo, add_to="point").get(POINT, "N"),
-                           np.float64)[geo.vertex_point]
+                           np.float64)[vp]
         N[bad] = fresh[bad]
         ln = np.linalg.norm(N, axis=1, keepdims=True)
     return N / np.where(ln < 1e-12, 1.0, ln)
 
 
-def corner_uv(geo, name="uv"):
+def corner_uv(geo, name="uv", vids=None):
     a = geo.get(VERTEX, name)
     if a is not None and a.shape[1] >= 2:
-        return np.asarray(a[:, :2], np.float64)
+        return np.asarray(a[:, :2] if vids is None else a[vids, :2], np.float64)
     p = geo.get(POINT, name)
     if p is not None and p.shape[1] >= 2:
-        return np.asarray(p[:, :2], np.float64)[geo.vertex_point]
+        return np.asarray(p[:, :2], np.float64)[geo.vertex_point if vids is None else geo.vertex_point[vids]]
     return None
 
 
-def _wedges(geo, *cols):
-    """Group corners by (point number, all columns bitwise equal). Returns (NV,) group ids and the group count."""
-    parts = [geo.vertex_point.astype(np.float64)[:, None]]
-    for c in cols:
-        if c is not None:
-            parts.append(np.round(np.asarray(c, np.float64), 7))
-    key = np.ascontiguousarray(np.concatenate(parts, 1))
+def _wedges(geo, *cols, vids=None, dt=np.float64):
+    """
+    Group corners by (point number, all columns bitwise equal). Returns (NV,) group ids and the group count.
+    vids: the cols are for these corners only.
+    """
+    vp = geo.vertex_point if vids is None else geo.vertex_point[vids]
+    cs = [np.asarray(c, dt) for c in cols if c is not None]
+    cs = [c[:, None] if c.ndim == 1 else c for c in cs]
+    # float32 keys only while point numbers are exact in float32 (below 2**24)
+    kdt = dt if dt != np.float64 and (len(vp) == 0 or int(vp.max()) < 1 << 24) else np.float64
+    key = np.empty((len(vp), 1 + sum(c.shape[1] for c in cs)), kdt)      # filled in place: no list + concatenate copy
+    key[:, 0] = vp
+    j = 1
+    for c in cs:
+        np.round(c, 7, out=key[:, j:j + c.shape[1]])
+        j += c.shape[1]
     _, inv = np.unique(key.view(np.dtype((np.void, key.dtype.itemsize * key.shape[1]))),
                        return_inverse=True)
     inv = inv.reshape(-1)
@@ -102,36 +115,67 @@ def corner_frames(geo, uv_name="uv", tri=None, cor=None):
     dP/du, dP/dv from uv (naturally area-weighted -- just summed without normalizing), accumulated onto the same wedge
     (corners with identical point + uv + normal), then orthogonalized against N.
     """
-    N = corner_normals(geo)
-    uv = corner_uv(geo, uv_name)
-    nv = geo.nvertices
-    T4 = np.zeros((nv, 4))
-    if uv is None or nv == 0:
-        return N, T4
     if tri is None:
         from .spatial import tri_soup
         tri, _, cor = tri_soup(geo)
+    return _frames(geo, uv_name, tri, cor, None)
+
+
+def corner_frames_subset(geo, uv_name, tri, cor, tri_mask):
+    """
+    corner_frames for the corners of the triangles in tri_mask only: (vids, N, T4) with vids the sorted global
+    corner numbers and N / T4 their rows. The Preview's normal maps use it on one material's triangles -- the
+    whole scene's frames (a forest of instanced proxies included) took gigabytes and half a minute for one terrain.
+    Wedges are formed among these triangles only, so at a border with another material the tangent is that of this
+    material's side (as an engine that splits the mesh by material computes it).
+    """
+    tri, cor = tri[tri_mask], cor[tri_mask]
+    vids = np.unique(cor)
+    loc = np.searchsorted(vids, cor)
+    N, T4 = _frames(geo, uv_name, tri, loc, vids, np.float32)    # for the screen: float32 halves the peak
+    return vids, N, T4
+
+
+def _frames(geo, uv_name, tri, cor, vids, dt=np.float64):
+    N = corner_normals(geo, vids).astype(dt, copy=False)
+    uv = corner_uv(geo, uv_name, vids)
+    if uv is not None:
+        uv = uv.astype(dt, copy=False)
+    nv = geo.nvertices if vids is None else len(vids)
+    T4 = np.zeros((nv, 4), dt)
+    if uv is None or nv == 0:
+        return N, T4
     if not len(tri):
         return N, T4
-    P = np.asarray(geo.get(POINT, "P"), np.float64)
-    p0, p1, p2 = P[tri[:, 0]], P[tri[:, 1]], P[tri[:, 2]]
-    t0, t1, t2 = uv[cor[:, 0]], uv[cor[:, 1]], uv[cor[:, 2]]
-    e1, e2 = p1 - p0, p2 - p0
-    d1, d2 = t1 - t0, t2 - t0
+    # wedges first, then the per-triangle vectors with their temporaries dropped as soon as they are used: the same
+    # arithmetic, a fraction of the peak (a 1025² terrain has 6 M corners)
+    wid, nw = _wedges(geo, uv, N, vids=vids, dt=dt)
+    P = geo.get(POINT, "P")
+    p0 = np.asarray(P[tri[:, 0]], dt)
+    e1 = np.asarray(P[tri[:, 1]], dt) - p0
+    e2 = np.asarray(P[tri[:, 2]], dt) - p0
+    del p0
+    t0 = uv[cor[:, 0]]
+    d1, d2 = uv[cor[:, 1]] - t0, uv[cor[:, 2]] - t0
+    del t0
     det = d1[:, 0] * d2[:, 1] - d1[:, 1] * d2[:, 0]
     # don't divide by |det|: direction set by sign(det), naturally weighted by area (|e1 x e2|)
-    sgn = np.where(det < 0, -1.0, 1.0)
-    Tu = (e1 * d2[:, 1:2] - e2 * d1[:, 1:2]) * sgn[:, None]
-    Bv = (e2 * d1[:, 0:1] - e1 * d2[:, 0:1]) * sgn[:, None]
-    wid, nw = _wedges(geo, uv, N)
-    accT = np.zeros((nw, 3))
-    accB = np.zeros((nw, 3))
+    sgn = np.where(det < 0, -1.0, 1.0)[:, None]
+    del det
+    accT = np.zeros((nw, 3), dt)
+    accB = np.zeros((nw, 3), dt)
+    Tu = (e1 * d2[:, 1:2] - e2 * d1[:, 1:2]) * sgn
     for k in range(3):
         np.add.at(accT, wid[cor[:, k]], Tu)
+    del Tu
+    Bv = (e2 * d1[:, 0:1] - e1 * d2[:, 0:1]) * sgn
+    del e1, e2, d1, d2, sgn
+    for k in range(3):
         np.add.at(accB, wid[cor[:, k]], Bv)
+    del Bv
     T = accT[wid]
-    B = accB[wid]
-    T = T - (T * N).sum(1, keepdims=True) * N
+    del accT
+    T -= (T * N).sum(1, keepdims=True) * N
     ln = np.linalg.norm(T, axis=1, keepdims=True)
     bad = ln[:, 0] < 1e-12
     if bad.any():                              # corners with degenerate uv: take any direction perpendicular to N
@@ -139,8 +183,10 @@ def corner_frames(geo, uv_name="uv", tri=None, cor=None):
         t = a - (a * N[bad]).sum(1, keepdims=True) * N[bad]
         T[bad] = t
         ln[bad] = np.linalg.norm(t, axis=1, keepdims=True)
-    T = T / ln
-    w = np.sign((np.cross(N, T) * B).sum(1))
+    T /= ln
+    del ln
+    w = np.sign((np.cross(N, T) * accB[wid]).sum(1))
+    del accB
     T4[:, :3] = T
     T4[:, 3] = np.where(w == 0, 1.0, w)
     return N, T4

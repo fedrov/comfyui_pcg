@@ -867,6 +867,20 @@ c2, m2 = dilate_ref(col * msk[..., None], msk, 5)
 check("edge padding computes only that ring: when islands don't touch the image border, bit-identical to the old whole-image roll",
       np.array_equal(m1, m2) and np.allclose(c1, c2))
 
+sec("Write File preview: big images are previewed at a fraction")
+_big = CopImage(4100, 6)    # (file rows top-down: the preview is the COP image flipped)
+_v = np.random.default_rng(3).random((6, 4100, 1)).astype(np.float32)
+_big.set("C", _v)
+_rep, _pv = IF.write(_big, TMP, "t/big", "C", "png", "8")
+_want = np.repeat(_v[::-1, :4098].reshape(2, 3, 1366, 3, 1).mean((1, 3)), 3, -1)
+check("4100 px wide: preview 1366 px (a third, box average), the file full size",
+      _pv.shape == (2, 1366, 3) and np.allclose(_pv, _want, atol=1e-6) and _rep["source_size"] == [4100, 6])
+_small = CopImage(2048, 4)
+_small.set("C", _v[:4, :2048])
+_rep2, _pv2 = IF.write(_small, TMP, "t/small", "C", "png", "8")
+check("  negative control: 2048 px is shown as it is", _pv2.shape == (4, 2048, 3)
+      and np.allclose(_pv2[..., 0], _v[:4, :2048, 0][::-1]))
+
 shutil.rmtree(TMP, ignore_errors=True)
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

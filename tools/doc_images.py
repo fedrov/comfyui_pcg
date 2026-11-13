@@ -1709,6 +1709,24 @@ _cop("COPRetile", lambda: g("COPPattern", kind="tile", resolution_x=256, resolut
 _cop("COPLensDistort", lambda: g("COPPattern", kind="tile", resolution_x=256, resolution_y=256),
      layer_in="pattern", layer_out="pattern", k1=-0.35)
 _cop("COPContour", _smooth, layer_out="contour", interval=0.05)
+
+
+def _roads():
+    """Hills 2 km wide and 300 m high, six destinations: the roads (red) wind up the slopes in switchbacks."""
+    t = _noise(octaves=3, frequency=2.5)
+    pts = points([[-800, 0, -750], [750, 0, 700], [800, 0, -700], [-750, 0, 750], [0, 0, 0], [-100, 0, -850]])
+    rd = run("COPRoadNetwork", cop=t, points=pts, strength=300.0, world_size=2000.0, step=2, max_grade=0.08)[0]
+    ras = g("COPRasterizeCurves", geo=rd, cop=t, width=2.5, plane="xz", mapping="world", world_size=2000.0,
+            out_layer="road")
+    nn = g("COPHeightToNormal", cop=ras, strength=300.0, world_size=2000.0, out_layer="N")
+    out = g("COPWrangle", cop=nn, code=(
+        "sh = clamp(@N.x * 0.5 + @N.y * 0.5 + @N.z * 0.7, 0, 1)\n"
+        "base = set(0.55, 0.62, 0.45) * (0.35 + 0.75 * sh)\n"
+        "@vis = lerp(base, set(0.85, 0.2, 0.12), @road)"))
+    return {"in": [t], "out": out, "layer_in": "C", "layer_out": "vis"}
+
+
+cop_recipe("COPRoadNetwork", _roads)
 _cop("COPDerivative", _smooth, layer_out="C_magnitude", mode="magnitude")
 _cop("COPThermalErosion", _smooth, layer_out="debris", strength=3.0, iterations=120)
 _cop("COPStreamPower", _smooth, strength=3.0, iterations=200)

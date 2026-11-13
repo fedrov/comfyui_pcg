@@ -6,7 +6,8 @@ pcg123: the Outdoor look of Geometry Preview (geo/outdoor.py), checked against g
      negative control: the projection through a shifted camera does not match
   3. Sun shadow: on the ground plane the shadow lies on the side away from the sun (sun in +X -> darker at -X), and
      moves with Sun Azimuth; with the ground plane off the ground pixels are sky
-  4. Aerial perspective: a far ground pixel moves toward the horizon colour as Haze grows; Haze 0 leaves it alone
+  4. Aerial perspective: a far ground pixel moves toward the horizon colour as Haze grows; Haze 0 leaves it alone;
+     Haze is in metres (a 60 km quad out of view does not change it)
   5. Automatic camera frames the geometry (the box spans most of the frame) for any Elevation / Azimuth
   6. The node: look = outdoor with and without a camera, PBR textures from a COP image, a bad Ground Color raises
 """
@@ -120,6 +121,20 @@ check("far ground moves toward the horizon colour as Haze grows (0 > 1 > 6 in di
 near0 = O.render_outdoor(tall, W, H, cam=lowcam, ssaa=1, haze=0.0)[H - 3, W // 2]
 near6 = O.render_outdoor(tall, W, H, cam=lowcam, ssaa=1, haze=6.0)[H - 3, W // 2]
 check("  the ground at the camera's feet barely changes", np.abs(near0 - near6).max() < 0.05)
+
+# Haze is in metres: a wall 6 km away hazes the same whether or not the scene also holds a quad 60 km wide out of
+# view (a sea to the horizon used to stretch the haze over the bounding box: 600 km)
+from comfyui_pcg.geo import ops as _ops  # noqa: E402
+wall = _ops.transform(build.box(), scale=(3000.0, 1500.0, 10.0), translate=(0.0, 750.0, -6000.0))
+sea = _ops.transform(build.box(), scale=(60000.0, 1.0, 60000.0), translate=(0.0, -5.0, 40000.0))
+fcam = R.camera(None, "perspective", eye=(0, 300, 0), target=(0, 700, -6000), fov=20)
+wpix = {}
+for name, gg, hz in (("wall", wall, 1.0), ("wall+sea", _ops.merge(wall, sea), 1.0), ("wall, haze 0", wall, 0.0)):
+    wpix[name] = O.render_outdoor(gg, 32, 32, cam=fcam, ssaa=1, ground=False, haze=hz, sky_samples=0)[16, 16]
+check("Haze in metres: a wall 6 km away hazes the same with a 60 km quad in the scene (out of view)",
+      np.abs(wpix["wall"] - wpix["wall+sea"]).max() < 0.02, (wpix["wall"].round(3), wpix["wall+sea"].round(3)))
+check("  negative control: with Haze 0 that wall is clearly different (the haze is really there)",
+      np.abs(wpix["wall"] - wpix["wall, haze 0"]).max() > 0.05, wpix["wall, haze 0"].round(3))
 
 print("\n[5. Automatic camera]")
 okf = True

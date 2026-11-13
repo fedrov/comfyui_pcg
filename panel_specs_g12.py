@@ -1077,7 +1077,7 @@ SPECS = {
             "sun_azimuth": {"label": "Sun Azimuth", "section": "Outdoor", "hide": "{ look != outdoor }",
                             "help": "World space: 0 = the sun in +Z, 90 = in +X"},
             "haze": {"label": "Haze", "section": "Outdoor", "hide": "{ look != outdoor }",
-                     "help": "Aerial perspective: how fast distant surfaces fade toward the horizon colour (0 = none)"},
+                     "help": "Aerial perspective in metres: at 1, light falls to 1/e over 12 km, glowing toward the sun (0 = none)"},
             "ground_plane": {"label": "Ground Plane", "section": "Outdoor", "hide": "{ look != outdoor }",
                              "help": "A ground to the horizon at the bottom of the geometry"},
             "ground_color": {"label": "Ground Color", "section": "Outdoor",

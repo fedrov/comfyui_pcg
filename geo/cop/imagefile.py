@@ -47,9 +47,17 @@ DEPTHS = ("8", "16", "32")
 ENCODES = ("linear", "srgb")
 REMAPS = ("clamp", "signed", "normalize", "range")
 NORMAL_Y = ("+y", "-y")
+PREVIEW_MAX = 2048          # longest side of the preview output (the files are always full size)
 
 
 # ═══════════════════════════════════════════════════════════ channels
+def _layer_native(img, name):
+    """Layer -> numpy (H, W, C) in its own dtype (float32 on the numpy backend), no float64 copy."""
+    from . import backend as _bk
+    a = img.need(name)
+    return np.asarray(_bk.backend_of(a).to_numpy(a))
+
+
 def gather(img, channels):
     """Assemble (H, W, C) float64 per the Channels spec, C ≤ 4. Returns (array, source of each channel)."""
     toks = str(channels).split()
@@ -60,7 +68,7 @@ def gather(img, channels):
     for t in toks:
         try:
             v = float(t)
-            cols.append(np.full((H, W), v))
+            cols.append(np.full((H, W), v, np.float32 if np.float32(v) == v else np.float64))
             src.append(t)
             continue
         except ValueError:
@@ -68,7 +76,7 @@ def gather(img, channels):
         name, _, comp = t.partition(".")
         if name not in img:
             raise KeyError(f"no layer '{name}' (available: {img.names})")
-        a = getn(img, name)
+        a = _layer_native(img, name)
         if comp:
             k = "xyzw".find(comp) if comp in "xyzw" else "rgba".find(comp)
             if k < 0 or k >= a.shape[2]:
@@ -81,7 +89,12 @@ def gather(img, channels):
                 src.append(f"{name}.{'xyzw'[k]}" if a.shape[2] > 1 else name)
     if len(cols) > 4:
         raise ValueError(f"at most 4 channels; Channels expands to {len(cols)}: {src}")
-    return np.stack(cols, -1).astype(np.float64), src
+    # float32 layers stay float32 (an exact copy of what the image holds, half the memory of float64 on a 4096² set)
+    dt = np.float32 if all(c.dtype == np.float32 for c in cols) else np.float64
+    out = np.empty(cols[0].shape + (len(cols),), dt)
+    for k, c in enumerate(cols):
+        out[..., k] = c
+    return out, src
 
 
 def srgb_encode(x):
@@ -275,20 +288,32 @@ def write(img, outdir, filename="pcg/tex/{index}", channels="C", fmt="png",
     a, src = gather(img, channels)
     if normal_y == "-y" and a.shape[2] >= 2:
         a[..., 1] = -a[..., 1]
+    # the encoding runs tile by tile in float64 (elementwise, so the same numbers as on the whole image; Normalize
+    # takes its range from the whole image first): a 4096² sRGB BaseColor peaked at 2 GB of whole-image float64
+    # temporaries
+    floatfmt = fmt == "exr" or (fmt == "raw" and bits == 32)
     rng = None
-    if fmt == "exr" or (fmt == "raw" and bits == 32):
-        # float formats are written as is (linear), only the normal flip is applied; srgb makes no sense in float
-        data = a
-        if mode != "clamp":
-            data, rng = remap(a, mode, in_min, in_max)
+    if mode == "normalize":
+        lo_, hi_ = float(a.min()), float(a.max())
+        mode_t = "range"
     else:
-        data, rng = remap(a, mode, in_min, in_max)
+        lo_, hi_, mode_t = in_min, in_max, mode
+    if not floatfmt or mode != "clamp":
+        rng = remap(np.zeros((1, 1, 1)), mode_t, lo_, hi_)[1]
+
+    def process(t):
+        t = np.asarray(t, np.float64)
+        if floatfmt:
+            return t if mode == "clamp" else remap(t, mode_t, lo_, hi_)[0]
+        d = remap(t, mode_t, lo_, hi_)[0]
         if encode == "srgb":
-            k = min(3, data.shape[2])
-            data = data.copy()
-            data[..., :k] = srgb_encode(data[..., :k])
-    data = data[::-1]                                  # COP row 0 at the bottom, file row 0 at the top
-    H, W = data.shape[:2]
+            k = min(3, d.shape[2])
+            d[..., :k] = srgb_encode(d[..., :k])
+        return d
+
+    src_rows = a[::-1]                                 # COP row 0 at the bottom, file row 0 at the top
+    H, W = src_rows.shape[:2]
+    shown = np.zeros((H, W, 3 if a.shape[2] >= 3 else 1), np.float32)
     files = []
     for j, i, rs, cs in tile_slices(H, W, tiles_x, tiles_y, shared_edge):
         name = _fmt_name(filename, index=int(index), tx=i, ty=j,
@@ -297,7 +322,8 @@ def write(img, outdir, filename="pcg/tex/{index}", channels="C", fmt="png",
         rel = name + ext
         full = os.path.join(outdir, rel)
         os.makedirs(os.path.dirname(full) or ".", exist_ok=True)
-        t = data[rs, cs]
+        t = process(src_rows[rs, cs])
+        shown[rs, cs] = t[..., :shown.shape[2]]
         if fmt == "png":
             blob = encode_png(t, bits)
         elif fmt == "exr":
@@ -308,6 +334,7 @@ def write(img, outdir, filename="pcg/tex/{index}", channels="C", fmt="png",
             f.write(blob)
         files.append({"file": rel.replace("\\", "/"), "tx": i, "ty": j,
                       "width": int(t.shape[1]), "height": int(t.shape[0])})
+        del t
     vs = float(value_scale)
     rep = {"format": fmt, "bits": bits, "channels": src, "encode": encode,
            "remap": mode, "range": list(rng) if rng else None,
@@ -325,5 +352,13 @@ def write(img, outdir, filename="pcg/tex/{index}", channels="C", fmt="png",
         with open(os.path.join(outdir, side + ".json"), "w", encoding="utf-8") as f:
             json.dump(rep, f, ensure_ascii=False, indent=1)
         rep["sidecar"] = (side + ".json").replace("\\", "/")
-    pv = data[..., :3] if data.shape[2] >= 3 else np.repeat(data[..., :1], 3, -1)
+    pv = shown
+    # the preview is for looking at: an image bigger than 2048 px is shown at a whole-number fraction (box average).
+    # A 4096² texture set's full-size preview was 200 MB of float32 kept in ComfyUI's cache per Write File node
+    k = -(-max(pv.shape[:2]) // PREVIEW_MAX)
+    if k > 1:
+        h_, w_ = pv.shape[0] // k * k, pv.shape[1] // k * k
+        pv = pv[:h_, :w_].reshape(h_ // k, k, w_ // k, k, -1).mean((1, 3))
+    if pv.shape[2] == 1:
+        pv = np.repeat(pv, 3, -1)
     return rep, np.clip(pv, 0, 1).astype(np.float32)

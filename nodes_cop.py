@@ -2191,6 +2191,56 @@ class PCG_COPFlowAccumulation:
         return (out, msg)
 
 
+class PCG_COPRoadNetwork:
+    """
+    Roads on a height field: least-cost paths that keep to a drivable grade, joined into one network (what Project
+    Pegasus's path tool and a road engineer with a contour map do). A step costs its length x (1 + Grade Weight x
+    (grade / Max Grade)^2), more than Max Grade costs 25x as much, so a road climbs a hillside in switchbacks rather
+    than straight up. The network grows like Prim's algorithm: from the first destination, each round runs Dijkstra
+    from every road cell built so far and joins the cheapest destination -- roads branch off roads. Along roads that
+    exist, steps cost x Reuse, so new roads follow old ones. Cells where the Avoid Layer is high (rivers, cliffs)
+    cost more; the Block Layer (> 0.5, e.g. the sea) is closed.
+
+    Destinations are the points of the second input, in the coordinates of COP HeightField to Mesh (Center on); the
+    first one starts the network. Output: one smoothed polyline per joined segment on the terrain, `road_h` per point
+    (the ground smoothed along the road over Profile world units: the bed to cut it into), prims `road` and `served`.
+    COP Rasterize Curves (plane xz, mapping world, the same World Size, Attrib road_h) draws them back as a mask and a
+    bed height. Step coarsens the grid (every Step pixels; each cell links to every step up to 4 cells away, so a road can
+    hold its grade across a steep slope); a 257 x 257 grid takes a few seconds per road on numpy.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "cop": (COP,),
+            "points": (GEO,),
+            "layer": ("STRING", {"default": "C"}),
+            "strength": _f(1.0, -1e4, 1e4, 0.01),
+            "world_size": _f(1.0, 1e-6, 1e6, 0.1),
+            "step": _i(4, 1, 64),
+            "max_grade": _f(0.12, 0.005, 2.0, 0.005),
+            "grade_weight": _f(4.0, 0.0, 100.0, 0.1),
+            "avoid_layer": ("STRING", {"default": ""}),
+            "avoid_cost": _f(4.0, 0.0, 1000.0, 0.1),
+            "block_layer": ("STRING", {"default": ""}),
+            "reuse": _f(0.4, 0.01, 1.0, 0.01),
+            "smooth": _i(2, 0, 6),
+            "spacing": _f(4.0, 0.01, 1e5, 0.1),
+            "profile": _f(40.0, 0.0, 1e5, 1.0),
+        }}
+    RETURN_TYPES = (GEO, "STRING")
+    RETURN_NAMES = ("geo", "report")
+    FUNCTION = "run"; CATEGORY = CAT + "/cop"
+
+    def run(self, cop, points, layer, strength, world_size, step, max_grade, grade_weight, avoid_layer,
+            avoid_cost, block_layer, reuse, smooth, spacing, profile):
+        from .geo.cop import roads as _rd
+        g, rep = _rd.road_network(cop, points, layer, strength, world_size, step, max_grade, grade_weight,
+                                  avoid_layer, avoid_cost, block_layer, reuse, smooth, spacing, profile)
+        msg = (f"{rep.get('roads', 0)} roads, {rep.get('length', 0.0):.0f} long; {rep.get('joined', 0)} destinations "
+               f"joined, {rep.get('unreachable', 0)} unreachable")
+        return (g, msg)
+
+
 class PCG_COPStreamPower:
     """
     Fluvial erosion (stream power law, FastScape-style implicit solve). ∂h/∂t = U − K·A^m·S.
@@ -2226,6 +2276,8 @@ class PCG_COPStreamPower:
             "out_layer": ("STRING", {"default": "C"}),
             "flow_layer": ("STRING", {"default": "flow"}),
             "rand_seed": _i(0, 0, 2 ** 31 - 1),
+            # appended: K per pixel (hard / soft rock); empty = K everywhere, as before
+            "erodibility_layer": ("STRING", {"default": ""}),
         }}
     RETURN_TYPES = (COP, "STRING")
     RETURN_NAMES = ("cop", "report")
@@ -2233,11 +2285,11 @@ class PCG_COPStreamPower:
 
     def run(self, cop, layer, strength, world_size, iterations, routing,
             erodibility, area_exponent, uplift, uplift_layer, diffusion,
-            tile, base_layer, out_layer, flow_layer, rand_seed=0):
+            tile, base_layer, out_layer, flow_layer, rand_seed=0, erodibility_layer=""):
         out, rep = _cflw.stream_power(
             cop, layer, strength, world_size, iterations, erodibility,
             area_exponent, uplift, uplift_layer, diffusion, tile, base_layer,
-            out_layer, flow_layer, routing, rand_seed)
+            out_layer, flow_layer, routing, rand_seed, erodibility_layer=erodibility_layer)
         if not rep:
             return (out, "")
         msg = (f"{rep['iterations']} steps; topological batches in the last step {rep['batches']}; "

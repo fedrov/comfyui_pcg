@@ -124,15 +124,38 @@ class Executor:
     Runs a prompt graph. `expansions` records how many expansions happened; tests use it to check the number of tail-recursion rounds.
     """
 
-    def __init__(self, prompt, classes, max_expansions=10000):
+    def __init__(self, prompt, classes, max_expansions=10000, release=False):
+        """
+        release: drop a top-level node's outputs once every node reading them has run (like ComfyUI with its cache
+        off), and remember the node as done -- a later run() of it returns None instead of computing it again. For
+        big pipelines whose checks read the files they wrote, not the outputs: keeping every output of the open-world
+        example (4096² texture chain, the full-map meshes) does not fit in 8 GB next to its render.
+        """
         self.classes = classes
         self.root = _Scope(prompt)
         self.expansions = 0
         self.max_expansions = max_expansions
         self.calls = []                  # [(class_type, node_id), ...] in execution order
+        self.release = bool(release)
+        self.done = set()
+        self.readers = {}
+        if self.release:
+            for node in self.root.prompt.values():
+                for v in (node.get("inputs") or {}).values():
+                    if is_link(v):
+                        self.readers[str(v[0])] = self.readers.get(str(v[0]), 0) + 1
 
     def run(self, node_id):
+        if self.release and str(node_id) in self.done:
+            return None
         return self._eval(self.root, str(node_id))
+
+    def _consumed(self, nid):
+        """A top-level reader of nid has run: when it was the last one, nid's outputs go."""
+        n = self.readers.get(nid, 0) - 1
+        self.readers[nid] = n
+        if n <= 0:
+            self.root.cache.pop(nid, None)
 
     # ── Internals ─────────────────────────────────────────────────────
     def _eval(self, scope, nid):
@@ -236,6 +259,13 @@ class Executor:
             out = tuple(res)
 
         own.cache[nid] = out
+        if self.release and own is self.root:
+            self.done.add(nid)
+            for v in inputs.values():
+                if is_link(v) and str(v[0]) in own.prompt:
+                    self._consumed(str(v[0]))
+            if self.readers.get(nid, 0) <= 0:
+                own.cache.pop(nid, None)          # nothing reads it: only its side effects (files, previews) mattered
         return out
 
 # ══════════════════════════════════════════════════════════════════ Unwrapping

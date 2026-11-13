@@ -2,7 +2,7 @@
 
 Height field generation, erosion, masks and terrain tools.
 
-23 nodes.
+24 nodes.
 
 [Back to the reference index](README.md)
 
@@ -23,6 +23,7 @@ Height field generation, erosion, masks and terrain tools.
 - [COP HeightField Mask by Feature (PCG)](#pcg-copmaskbyfeature) — Builds a mask from terrain features: slope, direction, height, curvature and occlusion.
 - [COP HeightField Mask by Object (PCG)](#pcg-cophfmaskbyobject) — Projects a geometry vertically onto a height field and outputs a mask of where it covers, crosses, floats above or is buried below the ground.
 - [COP HeightField Project (PCG)](#pcg-cophfproject) — Projects geometry down onto a height field, or, with no geometry connected, transforms the height field in 3D and projects it back.
+- [COP HeightField Road Network (PCG)](#pcg-coproadnetwork) — Builds a road network over a height field: least-cost paths that keep to a drivable grade, branching off one another.
 - [COP HeightField Splat Map (PCG)](#pcg-copsplatmap) — Derives a set of grass, sediment, rock, snow and water material masks that sum to one from a terrain.
 - [COP HeightField Stream Power Erosion (PCG)](#pcg-copstreampower) — Erodes a height layer by simulating the stream power law with an implicit solver.
 - [COP HeightField Terrace (PCG)](#pcg-copterrace) — Turns a height layer into terraces with flat treads and steep risers.
@@ -1010,6 +1011,66 @@ The grid convention is the one of HeightField to Mesh: xz plane, centered, width
 
 ---
 
+### COP HeightField Road Network (PCG)
+
+<a id="pcg-coproadnetwork"></a>
+
+`PCG_COPRoadNetwork` · category `PCG/cop`
+
+Builds a road network over a height field: least-cost paths that keep to a drivable grade, branching off one another.
+
+![COP HeightField Road Network (PCG): input and result](../images/nodes/PCG_COPRoadNetwork.png)
+
+Plans roads the way an engineer does on a contour map, and as Project Pegasus's path tool does. Each step of a path costs its length times (1 + Grade Weight x (grade / Max Grade)^2), and a step steeper than Max Grade costs 25 times as much, so roads climb hillsides in switchbacks instead of going straight up. The planning grid is the height field taken every Grid Step pixels, with every grid step up to 4 cells (48 directions): a road has to cross a slope four times steeper than Max Grade at 1:4, a direction 8 or 16 neighbours do not have.
+
+The network grows like Prim's algorithm. It starts at the first destination point; each round runs Dijkstra from every road cell built so far and joins the destination that is cheapest to reach. Roads therefore branch off roads, as real networks do. Along roads that already exist steps cost Reuse Roads times as much, so new roads follow old ones where that is nearly as good. Cells where the Avoid Layer is high (rivers, cliffs) cost more, and the Block Layer closes cells above 0.5 (the sea). Destinations that cannot be reached are counted in the report and skipped.
+
+Destinations are the points of the second input, in the coordinates of COP HeightField to Mesh with Center on. The output is one polyline per joined segment, resampled every Point Spacing world units and relaxed so the grid steps become sweeping curves; no point moves more than 0.6 grid cells off the planned path, so switchbacks survive. Each point carries `road_h`, the ground smoothed along the road over Bed Smoothing world units: the bed height to cut the road into. Each prim carries `road` (its index) and `served` (the destination point it reaches). COP Rasterize Curves, with plane xz, mapping world, the same World Size and Attrib `road_h`, draws the roads back onto the image as a mask and a bed height. A 257 x 257 grid takes a few seconds per road on numpy.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image containing the height layer (and optional avoid / block layers). |
+| `points` | GEOMETRY | Destinations, in HeightField to Mesh coordinates (Center on). The first one starts the network. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | One polyline per road segment, with point attribute road_h and prim attributes road and served. |
+| `report` | STRING | Number of roads, their total length, destinations joined and unreachable. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Height Layer `layer` | string | `C` | Layer holding the height. |
+| Height Scale `strength` | float [-10000.0..10000.0] | 1 | Multiplier applied to the height values (height value x strength = world height). |
+| World Size `world_size` | float [1e-06..] | 1 | World width of the whole image. |
+| Grid Step `step` | int [1..64] | 4 | Plan on every Step-th pixel. 4 on a 1025 image gives a 257 x 257 grid; each cell links to every grid step up to 4 cells away. |
+
+*Cost*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Max Grade `max_grade` | float [0.005..2.0] | 0.12 | The steepest grade a road takes willingly (rise over run). Steeper steps cost 25 times as much. |
+| Grade Weight `grade_weight` | float [0.0..100.0] | 4 | How strongly the grade adds to the cost below Max Grade. 0 makes the shortest path that stays under Max Grade. |
+| Reuse Roads `reuse` | float [0.01..1.0] | 0.4 | Cost factor along roads already built. Lower values make new roads follow existing ones longer. |
+| Avoid Layer `avoid_layer` | string | *(empty)* | Layer whose value raises the cost of a cell (for example rivers or rock). Empty = none. |
+| Avoid Cost `avoid_cost` | float [0.0..1000.0] | 4 | Cost is multiplied by (1 + Avoid Cost x the Avoid Layer value). |
+| Block Layer `block_layer` | string | *(empty)* | Cells where this layer is above 0.5 are closed. Empty = none. |
+
+*Output*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Smooth `smooth` | int [0..6] | 2 | Relaxing strength (12 Laplacian passes per unit), with each point held within 0.6 grid cells of the planned path. 0 keeps the grid path. |
+| Point Spacing `spacing` | float [0.01..] | 4 | Distance between output points, in world units. |
+| Bed Smoothing `profile` | float [0.0..] | 40 | Length in world units over which road_h averages the ground along the road. |
+
+---
+
 ### COP HeightField Splat Map (PCG)
 
 <a id="pcg-copsplatmap"></a>
@@ -1100,7 +1161,7 @@ Erodes a height layer by simulating the stream power law with an implicit solver
 
 Solves `dh/dt = U - K * A^m * S` (uplift minus erodibility times drainage area to the m times slope) in the FastScape manner. Unlike an erosion filter, this is a simulation that recomputes flow routing every step, so large rivers cut deep while hillslopes barely change, and a continuous, hierarchical river network that reaches the outlets develops.
 
-Two uses: with Uplift 0, carve valleys into existing terrain (tens of iterations); with Uplift above 0, build mountains from noise as uplift and erosion balance (hundreds of iterations). The Uplift Layer multiplies uplift (raise only the middle for a mountain range). Slope Diffusion rounds hillslopes and dulls ridges.
+Two uses: with Uplift 0, carve valleys into existing terrain (tens of iterations); with Uplift above 0, build mountains from noise as uplift and erosion balance (hundreds of iterations). The Uplift Layer multiplies uplift (raise only the middle for a mountain range). Slope Diffusion rounds hillslopes and dulls ridges. The Erodibility Layer varies K per pixel: hard rock (below 1) stands as cliffs and plateaus, soft rock (above 1) is worn into lowlands.
 
 The implicit scheme is stable for any step size and creates no new pits (depressions are filled once at the start and lakes are filled as sediment). Outlets are fixed base level. D8 routing pulls rivers into straight lines at 0 and 45 degrees; Rho8 randomly picks diagonals each step, which is unbiased on average (reproducible with a fixed seed). Across the lakes filled at the start the water follows the drowned valley under the fill (as in Flow Accumulation) instead of the epsilon slope of pit filling, which used to draw ruler-straight rivers across every filled flat. CPU only, around 0.2 s per step at 512x512.
 
@@ -1133,6 +1194,7 @@ The second output is a text report. The Flow Layer receives the drainage area of
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | Erodibility (K) `erodibility` | float [0.0..10.0] | 0.02 | K in the equation: how fast the terrain erodes. |
+| Erodibility Layer `erodibility_layer` | string | *(empty)* | Multiplies K per pixel (hard rock below 1, soft above). At equilibrium the slope is U / (K A^m), so hard bands stand steeper and higher as cliffs and plateaus, and soft ground wears into broad lowlands. Empty = K everywhere. |
 | Area Exponent (m) `area_exponent` | float [0.0..2.0] | 0.5 | m in the equation: how strongly drainage area deepens channels. |
 | Slope Diffusion `diffusion` | float [0.0..0.25] | 0 | Slope diffusion that rounds hillslopes and blunts divides. |
 | Flow Routing `routing` | menu | Rho8 (Randomized) | Flow routing: D8 or Rho8, which randomizes the diagonal choice to avoid straight 0/45 degree rivers. Options: D8 (`d8`), Rho8 (Randomized) (`rho8`). |

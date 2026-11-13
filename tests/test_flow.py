@@ -590,6 +590,30 @@ check("Flow Layer: catchment area from the last step, outlet sum = whole image a
           - 1.0 * hq.shape[0] / hq.shape[1]) < 1e-12)
 
 # ═══════════════════════════════════════════════════ 5. Errors / backends / nodes
+sec("Stream power: erodibility layer (hard / soft rock)")
+_kw = dict(iterations=60, uplift=1e-3, routing="d8")
+_a, _ = FL.stream_power(himg(h0), erodibility=0.05 * 0.6, **_kw)
+_b, _ = FL.stream_power(himg(h0, kk=np.full(h0.shape, 0.6)), erodibility=0.05, erodibility_layer="kk", **_kw)
+check("a constant layer c is exactly K·c everywhere (same heights)", np.allclose(L(_a, "C"), L(_b, "C"), atol=1e-12))
+_c, _ = FL.stream_power(himg(h0), erodibility=0.05, **_kw)
+_d, _ = FL.stream_power(himg(h0, kk=np.ones(h0.shape)), erodibility=0.05, erodibility_layer="kk", **_kw)
+check("  a layer of ones changes nothing", np.allclose(L(_c, "C"), L(_d, "C"), atol=1e-12))
+# steady state: slope = U / (K A^m). Hard rock in the left half (K x 0.25) stands higher than the soft right half
+_hard = np.where(np.arange(h0.shape[1])[None, :] < h0.shape[1] // 2, 0.25, 1.0) * np.ones(h0.shape)
+_e, _ = FL.stream_power(himg(h0, kk=_hard), erodibility=0.05, erodibility_layer="kk", iterations=400, uplift=1e-3,
+                        routing="d8")
+_he = L(_e, "C")
+_w = h0.shape[1] // 2
+check("  hard left half (K/4) stands well above the soft right half at equilibrium",
+      _he[4:-4, 4:_w - 4].mean() > 1.8 * _he[4:-4, _w + 4:-4].mean(),
+      (round(float(_he[4:-4, 4:_w - 4].mean()), 4), round(float(_he[4:-4, _w + 4:-4].mean()), 4)))
+_f, _ = FL.stream_power(himg(h0, kk=np.ones(h0.shape)), erodibility=0.05, erodibility_layer="kk", iterations=400,
+                        uplift=1e-3, routing="d8")
+_hf = L(_f, "C")
+check("    negative control: with a uniform layer the halves are alike (ratio under 1.3)",
+      max(_hf[4:-4, 4:_w - 4].mean(), _hf[4:-4, _w + 4:-4].mean())
+      < 1.3 * min(_hf[4:-4, 4:_w - 4].mean(), _hf[4:-4, _w + 4:-4].mean()))
+
 sec("Errors / backends / nodes")
 im = himg(hq)
 err("unknown Method", lambda: FL.flow_accumulation(im, method="x"), "Method")

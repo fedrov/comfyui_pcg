@@ -566,7 +566,7 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
                  iterations=100, erodibility=0.02, m=0.5, uplift=0.0,
                  uplift_layer="", diffusion=0.0, tile=False, base_layer="",
                  out_layer=DEFAULT_LAYER, flow_layer="flow", routing="rho8",
-                 rand_seed=0, trace=None):
+                 rand_seed=0, trace=None, erodibility_layer=""):
     """
     Fluvial erosion (stream power law), FastScape-style implicit solve (Braun & Willett 2013).
     Returns (image, report).
@@ -607,6 +607,9 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
 
     ━━ Parameters
       erodibility  K. At m = 0.5, K is dimensionless, so results agree across resolutions / world scales
+      erodibility_layer  K is multiplied by this layer per pixel (hard rock < 1 < soft rock): at equilibrium the
+                   slope is U / (K A^m), so hard bands stand steeper and higher -- cliffs, plateaus -- and soft ground
+                   wears into broad lowlands
       m            exponent of catchment area; in geomorphology m/n ≈ 0.5
       uplift       uplift per step (world units). 0 = cut only, no growth: carve river valleys into
                    existing terrain. If uplift_layer is given it's multiplied in (0-1, e.g. uplift only the middle)
@@ -658,6 +661,10 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
     ul = str(uplift_layer).strip()
     if ul:
         U = U * np.clip(_np(img.need(ul))[:, :, 0].ravel(), 0.0, None)
+    Kmap = None
+    kl = str(erodibility_layer).strip()
+    if kl:                # hard and soft rock: K times this layer (0..); hard bands stand as cliffs, soft ground is worn low
+        Kmap = np.clip(_np(img.need(kl))[:, :, 0].ravel().astype(np.float64), 0.0, None)
     U[smf] = 0.0        # outlets aren't updated anyway (rcv = -1); this line just keeps U itself honest
     h_raw = h
     h = priority_fill(h, sm, tile)
@@ -712,7 +719,7 @@ def stream_power(img, layer=DEFAULT_LAYER, strength=1.0, world_size=1.0,
         for b, r in reversed(lr):                    # upstream hands over first
             np.add.at(A, r, A[b])
         F = np.zeros(N)
-        F[src] = K * A[src] ** float(m) / (dist[src] * texel)
+        F[src] = (K if Kmap is None else K * Kmap[src]) * A[src] ** float(m) / (dist[src] * texel)
         hf = hf + 0.0                                # copy, don't modify the previous step's
         for b, r in lr:
             hr = hf[r]

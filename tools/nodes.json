@@ -167,6 +167,7 @@
 "PCG_COPResize": "PCG/cop",
 "PCG_COPRetile": "PCG/cop",
 "PCG_COPRipple": "PCG/cop",
+"PCG_COPRoadNetwork": "PCG/cop",
 "PCG_COPSDFFromMask": "PCG/cop",
 "PCG_COPSDFOps": "PCG/cop",
 "PCG_COPScatterShapes": "PCG/cop",

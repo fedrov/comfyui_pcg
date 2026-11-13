@@ -3649,7 +3649,7 @@ class PCG_COPWriteFile:
     `ao roughness metallic`); Encode srgb for albedo; Remap signed for normals, normalize for height
     (the range is written to a .json alongside; when tiling, all tiles share one range); Normal Y -y is the DirectX convention;
     Tiles + Shared Edge cut by the terrain tiling convention (adjacent tiles share the row of pixels on the edge). In file names
-    {index} {tx} {ty} {tile} are replaced. The second output is what was written (8-bit preview).
+    {index} {tx} {ty} {tile} are replaced. The second output is what was written (8-bit preview; above 2048 px shown at a whole-number fraction, box-averaged -- the files are always full size).
     """
     OUTPUT_NODE = True
     RETURN_TYPES = ("STRING", "IMAGE")

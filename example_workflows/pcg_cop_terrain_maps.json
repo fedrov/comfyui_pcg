@@ -143,7 +143,7 @@
    ],
    "size": [
     360,
-    944
+    969
    ],
    "flags": {},
    "order": 3,
@@ -189,7 +189,8 @@
     "",
     "C",
     "flow",
-    11
+    11,
+    ""
    ],
    "title": "River valleys (Stream Power)"
   },
@@ -198,7 +199,7 @@
    "type": "PCG_COPStrata",
    "pos": [
     420,
-    988
+    1013
    ],
    "size": [
     360,
@@ -249,7 +250,7 @@
    "type": "PCG_COPThermalErosion",
    "pos": [
     420,
-    1819
+    1844
    ],
    "size": [
     360,

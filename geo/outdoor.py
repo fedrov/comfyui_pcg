@@ -29,6 +29,9 @@ from . import skylight as K
 GROUND_DEFAULT = (0.32, 0.31, 0.27)
 
 
+HAZE_METRES = 12000.0        # Haze 1: light falls to 1/e over 12 km (a clear, slightly hazy day)
+
+
 def sun_dir(elev, azim):
     e, a = np.radians(float(elev)), np.radians(float(azim))
     return np.array([np.cos(e) * np.sin(a), np.sin(e), np.cos(e) * np.cos(a)])
@@ -80,6 +83,11 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto"):
     """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
+    try:                                   # start from a trimmed heap: the render needs a few GB of buffers
+        from ..memtrim import trim as _trim
+        _trim()
+    except ImportError:
+        pass
     from . import render as R
     from .convert import _attrib_image
     k = max(1, min(int(ssaa), 4))
@@ -210,7 +218,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     # coarse mesh; the normal offset in sun_shadow handles the acne)
     t_ = np.clip((FN @ L32 + 0.02) / 0.12, 0.0, 1.0)
     sh = sh * (t_ * t_ * (3 - 2 * t_))
-    cam_h = max(radius * 1.2, 600.0)
+    cam_h = max(sr_ * 1.2, 600.0)                           # cloud layer height: by the visible scene, not the bbox
     if clouds > 0:
         for s0 in range(0, len(vi[0]), step):
             so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
@@ -221,7 +229,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     dmed = float(np.median(dist[surf])) if surf.any() else radius
     px_world = dmed * 2 * th / H * k
     Ps, Ns, vs = P[sub], N[sub], valid[sub]
-    occ = S._ssao(Ps.astype(np.float32), Ns.astype(np.float32), vs, px_world, max(radius * 0.02, px_world * 3))
+    occ = S._ssao(Ps.astype(np.float32), Ns.astype(np.float32), vs, px_world, max(sr_ * 0.01, px_world * 3))
     occ = occ ** 0.6                                         # contact detail only: the dome carries the large scale
     sun = K.sun_light(L)
     sky_fn = lambda d: K.sky(d, L, sun=False) * (1.0 - 0.25 * float(np.clip(clouds, 0, 1)))  # noqa: E731
@@ -271,10 +279,12 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
             Hh /= np.linalg.norm(Hh, axis=1, keepdims=True)
             spec = np.clip((n_ * Hh).sum(1), 0, 1) ** 40 * 0.08
             lin = alb[so] * (sun * lit[:, None] + amb * occ_s[:, None]) + (spec * lit)[:, None] * sun
-        # aerial perspective: in-scattered horizon light over distance (relative to the scene size); haze 0 = none
+        # aerial perspective in metres: Haze 1 = light falls to 1/e over HAZE_METRES; the haze glows toward the sun
+        # (forward scattering). It used to scale with the bounding box, which a sea quad to the horizon made 60 km wide:
+        # the haze then started some 600 km out, and near and far ridges looked the same
         ds = dist[so].astype(np.float64)
-        f = 1.0 - np.exp(-float(haze) * np.maximum(ds - cam_d * 0.6, 0.0) / (radius * 14.0 + cam_d * 3.0))
-        fogc = sky_radiance(_flat(Dv), L, sun=False)
+        f = 1.0 - np.exp(-float(haze) * ds / HAZE_METRES)
+        fogc = _haze_colour(Dv, L, sun)
         lin_img[so] = lin * (1 - f[:, None]) + fogc * f[:, None]
     sk_all = np.nonzero(~valid)
     for s0 in range(0, len(sk_all[0]), step):
@@ -282,6 +292,16 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         Dk = D[sk].astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     return _develop(lin_img, exposure, k)
+
+
+def _haze_colour(Dv, L, sun):
+    """In-scattered light of the haze along view rays Dv (n, 3): the horizon sky, plus a forward-scattering glow
+    around the sun (a Henyey-Greenstein-like lobe) and a little sunlight from every direction."""
+    base = sky_radiance(_flat(Dv), L, sun=False)
+    mu = np.clip(Dv @ L, -1.0, 1.0)[:, None]
+    g = 0.76
+    hg = (1 - g * g) / (4 * np.pi * np.power(1 + g * g - 2 * g * mu, 1.5))      # 1/(4 pi) .. ~7.7 at mu = 1
+    return base * 0.9 + np.asarray(sun)[None] * (0.015 + 0.03 * hg)
 
 
 def _develop(lin, exposure, k):

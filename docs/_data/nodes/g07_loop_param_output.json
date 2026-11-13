@@ -407,7 +407,7 @@
    "uv_attrib": "Studio: uv attribute (vertex or point) used to look up the textures; uv repeats outside 0..1.",
    "sun_elevation": "Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light.",
    "sun_azimuth": "Outdoor: the sun's direction in world space (0 = toward +Z, 90 = toward +X), so the light stays put when the camera moves.",
-   "haze": "Outdoor: aerial perspective, how fast distant surfaces fade toward the horizon colour; 0 turns it off.",
+   "haze": "Outdoor: aerial perspective in metres. At 1, light from a surface falls to 1/e over 12 km (3 gives 4 km: a hazy day); the haze glows toward the sun. 0 turns it off.",
    "ground_plane": "Outdoor: add a ground plane to the horizon at the bottom of the geometry, so a block of buildings sits in a landscape.",
    "ground_color": "Outdoor: colour of the ground plane, three numbers 0..1.",
    "exposure": "Outdoor: brightness multiplier before the tone curve.",

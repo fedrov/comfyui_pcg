@@ -180,11 +180,11 @@ class _Img:
     FUNCTION = "run"
 
     def run(self, images, filename_prefix=None):
-        IMGS.append((filename_prefix, images))
+        IMGS.append((filename_prefix, tuple(getattr(images, "shape", ()))))   # the shape only: the images themselves stayed for the whole run
         return ()
 
 
-def run(name, cwd):
+def run(name, cwd, release=False):
     wf = MW.WORKFLOWS[name]().to_ui()
     pr = MW.validate_ui(wf)
     api = MW.ui_to_api(wf)
@@ -195,8 +195,13 @@ def run(name, cwd):
     os.chdir(cwd)
     t0 = time.time()
     try:
-        ex = fakecomfy.Executor(api, classes)
-        res = {nid: ex.run(nid) for nid in api}
+        ex = fakecomfy.Executor(api, classes, release=release)
+        if release:                     # outputs are not collected either: holding them would undo the release
+            res = None
+            for nid in api:
+                ex.run(nid)
+        else:
+            res = {nid: ex.run(nid) for nid in api}
     finally:
         os.chdir(old)
     return api, res, pr, time.time() - t0
@@ -208,7 +213,179 @@ else:
     CWD = tempfile.mkdtemp(prefix="pcg_prod_")
     OUT = os.path.join(CWD, "output")
 
-    # ═══════════════════════════════════════════════ 1. Material library (runs first: the kit's textures point to it)
+    # ═══════════════════════════════════════════════ 4. Open-world terrain tiles (run first)
+    # runs first, while the process is small: its peak (the 4096² texture chain, then the preview renders) is the
+    # highest of the four, and what the other pipelines leave behind would push it over 6 GB
+    sec("Open-world terrain tiles")
+    gc.collect()
+    from comfyui_pcg import memtrim as _mt
+    _mt.trim()                          # and give the freed heap back (glibc keeps it otherwise)
+    print(f"  (process memory before the run: {int(open('/proc/self/statm').read().split()[1]) * 4096 >> 20} MB)"
+          if os.path.exists("/proc/self/statm") else "")
+    # the checks read the written files; outputs are let go once read (the 4096² texture chain and the full-map
+    # meshes do not all fit in 8 GB beside the preview render)
+    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True)
+    check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
+    WD = os.path.join(OUT, "pcg/world")
+    tiles = {(i, j): img(os.path.join(WD, f"height/Height_x{i}_y{j}.png"))[..., 0].astype(np.int64)
+             for i in range(4) for j in range(4)}
+    check("height: 16 tiles of 16-bit PNG, 257² each", len(tiles) == 16
+          and all(t.shape == (257, 257) for t in tiles.values())
+          and img(os.path.join(WD, "height/Height_x0_y0.png")).dtype == np.uint16)
+    check("  shared edges of left/right and top/bottom neighbouring tiles bit-identical",
+          all(np.array_equal(tiles[(i, j)][:, -1], tiles[(i + 1, j)][:, 0])
+              for i in range(3) for j in range(4))
+          and all(np.array_equal(tiles[(i, j)][-1], tiles[(i, j + 1)][0])
+                  for i in range(4) for j in range(3)))
+    full = np.fromfile(os.path.join(WD, "height/Height_full.r16"), "<u2").reshape(1025, 1025)
+    st = np.zeros((1025, 1025), np.int64)
+    for (i, j), t in tiles.items():
+        st[j * 256:j * 256 + 257, i * 256:i * 256 + 257] = t
+    check("  the 16 tiles stitched back = the full r16 image (bit-exact)", np.array_equal(st, full))
+    hj = json.load(open(os.path.join(WD, "height/Height.json"), encoding="utf-8"))
+    lo_m, hi_m = hj["range_scaled"]
+    check("  the sidecar is called Height.json, range_scaled is in metres (= range × 2048)",
+          np.allclose([lo_m, hi_m], np.array(hj["range"]) * 2048) and hi_m - lo_m > 100,
+          (round(lo_m, 1), round(hi_m, 1)))
+    Hm = lo_m + full / 65535.0 * (hi_m - lo_m)
+    layers = ("Grass", "ForestFloor", "Sediment", "Rock", "Sand", "Water", "Road")
+    okw = True
+    for i in range(4):
+        for j in range(4):
+            s = sum(img(os.path.join(WD, f"weight/{L}_x{i}_y{j}.png"))[..., 0].astype(int)
+                    for L in layers)
+            okw &= np.abs(s - 255).max() <= 4
+    check("weights: the seven layers sum to ≈ 255 per pixel (each 8-bit layer rounded on its own, off by ≤ 4)", okw)
+    # 1 m surface textures: 16 BaseColor + 16 normal tiles of 1024²; stitched, they follow the weight maps
+    TD = os.path.join(WD, "texture")
+    bct = {(i, j): img(os.path.join(TD, f"T_Terrain_BaseColor_x{i}_y{j}.png"))[..., :3] for i in range(4) for j in range(4)}
+    nmt = {(i, j): img(os.path.join(TD, f"T_Terrain_Normal_GL_x{i}_y{j}.png"))[..., :3] for i in range(4) for j in range(4)}
+    check("textures: 16 BaseColor and 16 Normal_GL tiles, 1024² 8-bit",
+          all(t.shape == (1024, 1024, 3) and t.dtype == np.uint8 for t in list(bct.values()) + list(nmt.values())))
+    BC = np.zeros((4096, 4096, 3), np.float32)
+    NM = np.zeros((4096, 4096, 3), np.float32)
+    for (i, j), t in bct.items():
+        BC[j * 1024:(j + 1) * 1024, i * 1024:(i + 1) * 1024] = t
+        NM[j * 1024:(j + 1) * 1024, i * 1024:(i + 1) * 1024] = nmt[(i, j)]
+    nv = NM / np.float32(255.0) * 2 - 1
+    lnv = np.linalg.norm(nv, axis=-1)
+    check("  the normal map decodes to unit vectors facing out (z > 0), and has relief (not a flat (0, 0, 1))",
+          abs(np.median(lnv) - 1) < 0.02 and (nv[..., 2] > 0).mean() > 0.999 and np.percentile(nv[..., 2], 5) < 0.97,
+          (round(float(np.median(lnv)), 3), round(float(np.percentile(nv[..., 2], 5)), 3)))
+    wfull = {}
+    for L in ("Water", "Rock", "Grass", "Road"):
+        a = np.zeros((1025, 1025))
+        for i in range(4):
+            for j in range(4):
+                a[j * 256:j * 256 + 257, i * 256:i * 256 + 257] = img(os.path.join(WD, f"weight/{L}_x{i}_y{j}.png"))[..., 0]
+        wfull[L] = a / 255.0
+    # texel (r, c) of the 4096² set -> nearest weight sample (both cover the map edge to edge, by pixel centre)
+    rr = np.minimum(((np.arange(4096) + 0.5) * 1025 / 4096).astype(int), 1024)
+    BCs = BC[::8, ::8]
+    sub = rr[::8]
+
+    def mean_rgb(L, thr=0.97):
+        m = wfull[L][np.ix_(sub, sub)] > thr
+        return BCs[m].mean(0), int(m.sum())
+    wat, nw = mean_rgb("Water")
+    grs, ng = mean_rgb("Grass")
+    rck, nr = mean_rgb("Rock", 0.9)
+    sat = lambda c: float((c.max() - c.min()) / max(c.max(), 1e-9))     # noqa: E731
+
+    def is_rock(c):
+        return c[0] >= c[2] and sat(c) < 0.3            # grey-brown: little colour
+
+    def is_grass(c):
+        return c[1] >= c[0] and c[1] > c[2] and sat(c) > 0.35
+    check("  BaseColor follows the weights: water blue (b > r), grass green (g highest, saturated), rock grey-brown "
+          "(r ≥ b, saturation < 0.3)",
+          nw > 100 and ng > 100 and nr > 20 and wat[2] > wat[0] and is_grass(grs) and is_rock(rck),
+          (wat.round(), grs.round(), rck.round(), round(sat(grs), 2), round(sat(rck), 2)))
+    check("    negative control: the grass texels fail the rock test, the rock texels the grass test",
+          not is_rock(grs) and not is_grass(rck))
+    idx = json.load(open(os.path.join(WD, "instances/Instances_index.json"), encoding="utf-8"))
+    rows, okt = [], True
+    for f in idx["files"]:
+        tx, ty = f["tile"]
+        rr = list(csv.DictReader(open(os.path.join(OUT, f["file"]), encoding="utf-8")))
+        okt &= len(rr) == f["count"] and 0 <= tx < 4 and 0 <= ty < 4
+        for r in rr:
+            x, z = float(r["px"]), float(r["pz"])
+            okt &= int(x // 1024) == tx and int(z // 1024) == ty
+        rows += rr
+    check("instances: the master table is called Instances_index.json, tile numbers all in 0..3, each tile only has its own points, counts match",
+          okt and len(rows) == idx["count"] > 1000, len(rows))
+    xs = np.array([float(r["px"]) for r in rows])
+    zs = np.array([float(r["pz"]) for r in rows])
+    check("  all instances within 0..4096 (points half a cell beyond the border removed)",
+          xs.min() >= 0 and xs.max() < 4096 and zs.min() >= 0 and zs.max() < 4096)
+
+    def hgt(x, z, off=0.0):
+        u, v = x / 4.0 + off, z / 4.0
+        i0 = np.clip(np.floor(u).astype(int), 0, 1023)
+        j0 = np.clip(np.floor(v).astype(int), 0, 1023)
+        fu, fv = u - i0, v - j0
+        return (Hm[j0, i0] * (1 - fu) * (1 - fv) + Hm[j0, i0 + 1] * fu * (1 - fv)
+                + Hm[j0 + 1, i0] * (1 - fu) * fv + Hm[j0 + 1, i0 + 1] * fu * fv)
+
+    ys = np.array([float(r["py"]) for r in rows])
+    rock = np.array([r["asset"].startswith("SM_Rock_") for r in rows])
+    sc = np.array([float(r["sx"]) for r in rows])
+    exp = hgt(xs, zs) - np.where(rock, 0.25 * sc, 0.0)
+    err_ = np.abs(ys - exp)
+    check("  instance y = terrain height decoded via Height.json (rocks buried 0.25·pscale by convention), "
+          "99% within < 0.5 m", np.percentile(err_, 99) < 0.5,
+          (round(float(np.median(err_)), 3), round(float(np.percentile(err_, 99)), 3)))
+    err2 = np.abs(ys - (hgt(xs, zs, 3.0) - np.where(rock, 0.25 * sc, 0.0)))
+    check("    negative control: offset by 3 samples (12 m) and compared again, much worse", np.median(err2) > 5 * np.median(err_),
+          round(float(np.median(err2)), 3))
+    assets = {r["asset"] for r in rows}
+    check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",
+          {a for a in assets if a.startswith("SM_Rock_")} == {f"SM_Rock_{k:02d}" for k in range(4)})
+    q = np.array([[float(r[c]) for c in ("qx", "qy", "qz", "qw")] for r in rows])
+    check("  quaternions unit length", np.allclose(np.linalg.norm(q, axis=1), 1, atol=1e-5))
+
+    # roads: OBJ polylines on the cut road bed, at a drivable grade, under the Road weight
+    vs_, ls_ = [], []
+    for ln in open(os.path.join(WD, "roads/Roads.obj"), encoding="utf-8"):
+        if ln.startswith("v "):
+            vs_.append([float(t) for t in ln.split()[1:4]])
+        elif ln.startswith("l "):
+            ls_.append([int(t) - 1 for t in ln.split()[1:]])
+    RV = np.array(vs_)
+    rl = [RV[i] for i in ls_]
+    rlen = sum(float(np.linalg.norm(np.diff(p[:, [0, 2]], axis=0), axis=1).sum()) for p in rl)
+    check(f"roads: {len(rl)} polylines, {rlen / 1000:.1f} km, all inside the map", len(rl) >= 5 and rlen > 5000
+          and RV[:, 0].min() >= 0 and RV[:, 0].max() < 4096 and RV[:, 2].min() >= 0 and RV[:, 2].max() < 4096)
+    dz = np.abs(RV[:, 1] - hgt(RV[:, 0], RV[:, 2]))
+    check("  on the cut bed: the road height matches the height files (median < 0.5 m, 95 % < 2 m)",
+          np.median(dz) < 0.5 and np.percentile(dz, 95) < 2.0,
+          (round(float(np.median(dz)), 3), round(float(np.percentile(dz, 95)), 3)))
+    gr_ = np.concatenate([np.abs(np.diff(p[:, 1])) / np.maximum(np.linalg.norm(np.diff(p[:, [0, 2]], axis=0), axis=1),
+                                                                 1e-6) for p in rl])
+    longest = max(rl, key=len)
+    a_, b_ = longest[0], longest[-1]
+    tt = np.linspace(0, 1, 400)[:, None]
+    sx = a_[None, [0, 2]] * (1 - tt) + b_[None, [0, 2]] * tt
+    sg = hgt(sx[:, 0], sx[:, 1])
+    straight = np.abs(np.diff(sg)) / np.maximum(np.linalg.norm(np.diff(sx, axis=0), axis=1), 1e-6)
+    check("  at a drivable grade: 95 % of the road under 16 % (planned at 10 % on an 8 m grid)", np.percentile(gr_, 95) < 0.16,
+          round(float(np.percentile(gr_, 95)), 3))
+    check("    negative control: the straight line between the ends of the longest road is much steeper",
+          np.percentile(straight, 95) > 1.5 * np.percentile(gr_, 95), round(float(np.percentile(straight, 95)), 3))
+    ci = np.clip((RV[:, 0] / 4.0).astype(int), 0, 1024)
+    cj = np.clip((RV[:, 2] / 4.0).astype(int), 0, 1024)
+    on = (wfull["Road"][cj, ci] > 0.3).mean()
+    off = (wfull["Road"][np.clip(cj + 12, 0, 1024), ci] > 0.3).mean()
+    check(f"  under the Road weight: {on:.0%} of the road points; negative control 48 m to the side: {off:.0%}",
+          on > 0.8 and off < 0.3)
+    # the stitched 4096² images and the decoded tiles are a gigabyte or two: let them go before the next pipeline
+    del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl
+    api = res = None
+    gc.collect()
+    _mt.trim()
+
+    # ═══════════════════════════════════════════════ 1. Material library (before the kit: its textures point to it)
     sec("Material library")
     api, res, pr, dt = run("pcg_prod_material_library", CWD)
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
@@ -494,83 +671,6 @@ else:
     check("the height map sidecar is called T_Rock_Height.json, all four are listed in it, range is the real displacement",
           len(hj["files"]) == 4 and hj["range"][0] < 0 < hj["range"][1])
 
-    # ═══════════════════════════════════════════════ 4. Open-world terrain tiles
-    sec("Open-world terrain tiles")
-    res = api = None                    # let the previous pipeline's node outputs go before the next one runs
-    gc.collect()
-    api, res, pr, dt = run("pcg_prod_world_tiles", CWD)
-    check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
-    WD = os.path.join(OUT, "pcg/world")
-    tiles = {(i, j): img(os.path.join(WD, f"height/Height_x{i}_y{j}.png"))[..., 0].astype(np.int64)
-             for i in range(4) for j in range(4)}
-    check("height: 16 tiles of 16-bit PNG, 257² each", len(tiles) == 16
-          and all(t.shape == (257, 257) for t in tiles.values())
-          and img(os.path.join(WD, "height/Height_x0_y0.png")).dtype == np.uint16)
-    check("  shared edges of left/right and top/bottom neighbouring tiles bit-identical",
-          all(np.array_equal(tiles[(i, j)][:, -1], tiles[(i + 1, j)][:, 0])
-              for i in range(3) for j in range(4))
-          and all(np.array_equal(tiles[(i, j)][-1], tiles[(i, j + 1)][0])
-                  for i in range(4) for j in range(3)))
-    full = np.fromfile(os.path.join(WD, "height/Height_full.r16"), "<u2").reshape(1025, 1025)
-    st = np.zeros((1025, 1025), np.int64)
-    for (i, j), t in tiles.items():
-        st[j * 256:j * 256 + 257, i * 256:i * 256 + 257] = t
-    check("  the 16 tiles stitched back = the full r16 image (bit-exact)", np.array_equal(st, full))
-    hj = json.load(open(os.path.join(WD, "height/Height.json"), encoding="utf-8"))
-    lo_m, hi_m = hj["range_scaled"]
-    check("  the sidecar is called Height.json, range_scaled is in metres (= range × 2048)",
-          np.allclose([lo_m, hi_m], np.array(hj["range"]) * 2048) and hi_m - lo_m > 100,
-          (round(lo_m, 1), round(hi_m, 1)))
-    Hm = lo_m + full / 65535.0 * (hi_m - lo_m)
-    layers = ("Grass", "ForestFloor", "Sediment", "Rock", "Sand", "Water")
-    okw = True
-    for i in range(4):
-        for j in range(4):
-            s = sum(img(os.path.join(WD, f"weight/{L}_x{i}_y{j}.png"))[..., 0].astype(int)
-                    for L in layers)
-            okw &= np.abs(s - 255).max() <= 4
-    check("weights: the six layers sum to ≈ 255 per pixel (each 8-bit layer rounded on its own, off by ≤ 4)", okw)
-    idx = json.load(open(os.path.join(WD, "instances/Instances_index.json"), encoding="utf-8"))
-    rows, okt = [], True
-    for f in idx["files"]:
-        tx, ty = f["tile"]
-        rr = list(csv.DictReader(open(os.path.join(OUT, f["file"]), encoding="utf-8")))
-        okt &= len(rr) == f["count"] and 0 <= tx < 4 and 0 <= ty < 4
-        for r in rr:
-            x, z = float(r["px"]), float(r["pz"])
-            okt &= int(x // 1024) == tx and int(z // 1024) == ty
-        rows += rr
-    check("instances: the master table is called Instances_index.json, tile numbers all in 0..3, each tile only has its own points, counts match",
-          okt and len(rows) == idx["count"] > 1000, len(rows))
-    xs = np.array([float(r["px"]) for r in rows])
-    zs = np.array([float(r["pz"]) for r in rows])
-    check("  all instances within 0..4096 (points half a cell beyond the border removed)",
-          xs.min() >= 0 and xs.max() < 4096 and zs.min() >= 0 and zs.max() < 4096)
-
-    def hgt(x, z, off=0.0):
-        u, v = x / 4.0 + off, z / 4.0
-        i0 = np.clip(np.floor(u).astype(int), 0, 1023)
-        j0 = np.clip(np.floor(v).astype(int), 0, 1023)
-        fu, fv = u - i0, v - j0
-        return (Hm[j0, i0] * (1 - fu) * (1 - fv) + Hm[j0, i0 + 1] * fu * (1 - fv)
-                + Hm[j0 + 1, i0] * (1 - fu) * fv + Hm[j0 + 1, i0 + 1] * fu * fv)
-
-    ys = np.array([float(r["py"]) for r in rows])
-    rock = np.array([r["asset"].startswith("SM_Rock_") for r in rows])
-    sc = np.array([float(r["sx"]) for r in rows])
-    exp = hgt(xs, zs) - np.where(rock, 0.25 * sc, 0.0)
-    err_ = np.abs(ys - exp)
-    check("  instance y = terrain height decoded via Height.json (rocks buried 0.25·pscale by convention), "
-          "99% within < 0.5 m", np.percentile(err_, 99) < 0.5,
-          (round(float(np.median(err_)), 3), round(float(np.percentile(err_, 99)), 3)))
-    err2 = np.abs(ys - (hgt(xs, zs, 3.0) - np.where(rock, 0.25 * sc, 0.0)))
-    check("    negative control: offset by 3 samples (12 m) and compared again, much worse", np.median(err2) > 5 * np.median(err_),
-          round(float(np.median(err2)), 3))
-    assets = {r["asset"] for r in rows}
-    check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",
-          {a for a in assets if a.startswith("SM_Rock_")} == {f"SM_Rock_{k:02d}" for k in range(4)})
-    q = np.array([[float(r[c]) for c in ("qx", "qy", "qz", "qw")] for r in rows])
-    check("  quaternions unit length", np.allclose(np.linalg.norm(q, axis=1), 1, atol=1e-5))
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

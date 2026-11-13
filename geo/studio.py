@@ -462,24 +462,60 @@ def _shade_pbr(alb, n, V, Ldir, key, lit, amb, occ, rough, metal, env=None, spec
 def _cop_texture(cop, layer, slot):
     """
     COP layer -> (H, W, 3) like load_texture: basecolor is already linear; a normal layer is re-encoded to 0..1.
-    Several names ('ao roughness metallic') take the first channel of each, packed in that order.
+    Several names ('ao roughness metallic') take the first channel of each, packed in that order. A single-value slot
+    (ao / roughness / metallic) stays one channel. Read as float32 without a float64 copy: a 4096² terrain set is
+    hundreds of megabytes per layer.
     """
-    from .cop.pixel import getn
+    from .cop import backend as _bk
     if cop is None:
         raise ValueError(f"Textures: '@{layer}' needs a COP image connected to the textures input")
+
+    def get(n):
+        a = cop.need(str(n).strip())
+        return np.asarray(_bk.backend_of(a).to_numpy(a), np.float32)
     names = str(layer).split()
     if len(names) > 1:
-        a = np.concatenate([getn(cop, n)[..., :1] for n in names[:3]], -1)
+        a = np.concatenate([get(n)[..., :1] for n in names[:3]], -1)
         if a.shape[2] < 3:
-            a = np.concatenate([a, np.zeros(a.shape[:2] + (3 - a.shape[2],))], -1)
+            a = np.concatenate([a, np.zeros(a.shape[:2] + (3 - a.shape[2],), np.float32)], -1)
     else:
-        a = getn(cop, layer)
+        a = get(layer)
+        if slot in ("ao", "roughness", "metallic"):
+            return np.ascontiguousarray(a[..., :1])
     if a.shape[2] == 1:
         a = np.repeat(a, 3, -1)
     a = a[..., :3]
     if slot == "normal" and a.min() < -1e-6:          # signed (-1..1, as COP Bake Textures writes it)
-        a = a * 0.5 + 0.5
+        a = a * np.float32(0.5) + np.float32(0.5)
     return np.ascontiguousarray(a, np.float32)
+
+
+def _material_frames(geo, rast, tgt, uvattr, mattr_values, mat):
+    """
+    Tangent frames (N, T, handedness) at the pixels tgt, from the corner frames of this material's triangles only
+    (meshexport.corner_frames_subset): computing them for the whole scene cost gigabytes for one normal-mapped terrain
+    under a forest of proxies. mattr_values None = every triangle.
+    """
+    from .meshexport import corner_frames_subset
+    src = rast["src"]
+    if mattr_values is None:
+        tri_mask = np.ones(len(src), bool)
+    else:
+        names = np.asarray(mattr_values)[:, 0]
+        prim_ok = np.fromiter((str(x) == mat for x in names), bool, len(names)) if names.dtype == object \
+            else names.astype(str) == mat
+        tri_mask = prim_ok[src]
+    vids, Nc, T4 = corner_frames_subset(geo, uvattr, rast["tri"], rast["cor"], tri_mask)
+    t = rast["hit"][tgt]
+    w = rast["bary"][tgt]
+    ids = np.searchsorted(vids, rast["cor"][t])
+    ids = np.minimum(ids, len(vids) - 1)
+
+    def interp(V):
+        V = np.asarray(V, np.float32)
+        return (V[ids[:, 0]] * w[:, 0:1] + V[ids[:, 1]] * w[:, 1:2] + V[ids[:, 2]] * w[:, 2:3]).astype(np.float32)
+    hand = T4[ids[:, 0], 3]
+    return interp(Nc), interp(T4[:, :3]), np.where(hand == 0, 1.0, hand).astype(np.float32)
 
 
 def _masked_interp(rast, idx, values, corner):
@@ -535,7 +571,7 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         dimg = np.maximum(dimg, np.pad(d, pad, mode="edge"))
     du = dimg[idx]
     del uvi, dimg
-    frames = None
+    frames = {}
     cache = {}
     for mi, mat in enumerate(str(x) for x in mats):
         sel = pm == mi
@@ -571,17 +607,13 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
             if slot in ("ao", "roughness", "metallic"):
                 pbr[slot][tgt] = v[:, 0]
                 continue
-            if frames is None:
-                from .meshexport import corner_frames
-                Nc, T4 = corner_frames(geo, uvattr, rast["tri"], rast["cor"])
-                hand = T4[rast["cor"][hit[idx], 0], 3]
-                frames = (_masked_interp(rast, idx, Nc, True), _masked_interp(rast, idx, T4[:, :3], True),
-                          np.where(hand == 0, 1.0, hand).astype(np.float32))
-            Nn, Tt, hand = frames
-            n0 = Nn[sel] / np.maximum(np.linalg.norm(Nn[sel], axis=-1, keepdims=True), 1e-12)
-            t0 = Tt[sel] - (Tt[sel] * n0).sum(-1, keepdims=True) * n0
+            if mi not in frames:
+                frames[mi] = _material_frames(geo, rast, tgt, uvattr, a if len(mats) > 1 or mat else None, mat)
+            Nn, Tt, hand = frames[mi]
+            n0 = Nn / np.maximum(np.linalg.norm(Nn, axis=-1, keepdims=True), 1e-12)
+            t0 = Tt - (Tt * n0).sum(-1, keepdims=True) * n0
             t0 /= np.maximum(np.linalg.norm(t0, axis=-1, keepdims=True), 1e-12)
-            b0 = np.cross(n0, t0) * hand[sel][:, None]
+            b0 = np.cross(n0, t0) * hand[:, None]
             ts = v * 2.0 - 1.0
             ts /= np.maximum(np.linalg.norm(ts, axis=-1, keepdims=True), 1e-12)   # far mips average to shorter vectors
             nw = t0 * ts[:, 0:1] + b0 * ts[:, 1:2] + n0 * ts[:, 2:3]

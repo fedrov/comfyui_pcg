@@ -5,6 +5,42 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **COP HeightField Road Network**: least-cost roads over a height field that keep to a drivable grade (switchbacks
+  appear by themselves on steep ground), avoid and block layers, and a network that grows by Prim's algorithm so
+  roads branch off roads. Polylines on the terrain with the road-bed height per point.
+- **World tiles: roads**. Town sites on flat low ground joined by a road network at a 10 % grade, cut into the
+  terrain (bed, cut and fill), a Road weight layer, verges cleared of trees, roads at 1 m in the surface textures,
+  and the centre lines written as OBJ polylines.
+- **COP HeightField Stream Power Erosion: Erodibility Layer**. K per pixel: hard rock (below 1) stands as cliffs,
+  crags and plateaus, soft rock (above 1) wears into broad valleys.
+- **World tiles: 1 m terrain textures**. The ecology is taken to 4096² and detailed there: rock outcrops with crisp,
+  ragged edges, couloirs and ribs, joints, colour bands, lichen and dark streaks down the faces; rills from the erosion filter;
+  grass mottled at three scales, greener in the rills and drier on the spurs; gravel and wet sand. A detail height
+  becomes a tangent-space normal map. Written as 4 × 4 tiles of 1024² (BaseColor sRGB, Normal OpenGL) and used by
+  both preview shots (`basecolor = @{material}_albedo`, `normal = @{material}_nrm`, `roughness = @{material}_rough`).
+
+### Changed
+- **Outdoor look: Haze is in metres** (1 = light falls to 1/e over 12 km, glowing toward the sun). It scaled with the
+  bounding box, so a sea quad to the horizon pushed the haze some 600 km out and near and far ridges looked the same;
+  the contact shadows (850 m wide) and the cloud-layer height had the same fault and now follow the visible scene.
+- **World tiles: a new island**. A ridged spine and a rock-hardness map under Stream Power (sharp ridges, a main peak,
+  crags on hard rock, broad valleys on soft), buttresses and couloirs cut down the steep faces, rock only above
+  about 55 degrees, terraces gone from the rock relief; both shots lit from the side.
+  Erosion follows Houdini's erode - distort - erode recipe with the rock map as HeightField Erode's hardness, and the
+  colour reads the terrain like Project Pegasus's colour map: curvature (ridges light, hollows dark) and sediment fans.
+- **Normal maps in the preview cost a fraction of the memory**: tangent frames are computed for the textured
+  material's triangles only, not the whole scene (a normal-mapped terrain under 48,000 proxy trees took 5.8 GB and
+  28 s for its frames; now about 1 GB), and COP texture layers are read as float32 without a float64 copy.
+- **Freed memory goes back to the system after long nodes** (Linux): glibc kept what a 4096² COP Wrangle run in
+  bands had freed (1.7 GB for a 384 MB result), and ComfyUI's output cache piled it up node after node.
+- COP Wrangle run in bands (*Rows per Pass*) converts only each band's rows to float64: it converted the whole layer
+  on every access, a 400 MB copy per layer per band on a 4096² image (the surface textures now take half the time).
+  The bands are assembled in float32 on the numpy backend (the layers are stored as float32 anyway).
+- COP Write File's *preview* output is at most 2048 px on its longest side (box average); the files are full size.
+- COP Write File encodes tile by tile (same bytes as before): an sRGB 4096² BaseColor no longer peaks at 2 GB of
+  whole-image float64 temporaries.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added

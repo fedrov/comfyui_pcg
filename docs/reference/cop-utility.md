@@ -1059,7 +1059,7 @@ Before a PNG or RAW 16 is written, `Remap` brings values into 0-1: Clamp, Signed
 
 Tiles splits the image in X x Y files; with `Shared Edge` neighbouring tiles share their border row or column of pixels (the terrain tile convention), which requires (width - 1) to be divisible by the X tile count (and likewise for height). In the file name `{index}` is replaced by `Index`, `{tx}` and `{ty}` by the tile coordinates and `{tile}` by `ty x tiles X + tx`; `{tx:02}` pads to two digits.
 
-The first output is a JSON report (files, channels, range and so on); the second is an 8-bit preview of what was written.
+The first output is a JSON report (files, channels, range and so on); the second is an 8-bit preview of what was written (an image larger than 2048 px is previewed at a whole-number fraction, box-averaged; the files are always full size).
 
 **Inputs**
 

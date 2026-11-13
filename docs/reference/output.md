@@ -306,7 +306,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 |---|---|---|---|
 | Sun Elevation `sun_elevation` | float [1.0..90.0] | 35 | Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light. *Hidden when look ≠ outdoor.* |
 | Sun Azimuth `sun_azimuth` | float [-360.0..360.0] | 135 | Outdoor: the sun's direction in world space (0 = toward +Z, 90 = toward +X), so the light stays put when the camera moves. *Hidden when look ≠ outdoor.* |
-| Haze `haze` | float [0.0..20.0] | 1 | Outdoor: aerial perspective, how fast distant surfaces fade toward the horizon colour; 0 turns it off. *Hidden when look ≠ outdoor.* |
+| Haze `haze` | float [0.0..20.0] | 1 | Outdoor: aerial perspective in metres. At 1, light from a surface falls to 1/e over 12 km (3 gives 4 km: a hazy day); the haze glows toward the sun. 0 turns it off. *Hidden when look ≠ outdoor.* |
 | Clouds `clouds` | float [0.0..1.0] | 0 | Outdoor: cumulus cover from 0 (clear) to 1 (overcast). The clouds are drawn in the sky and throw soft shadows on the scene. *Hidden when look ≠ outdoor.* |
 | Cloud Seed `cloud_seed` | int [0..] | 0 | Outdoor: seed of the cloud pattern. *Hidden when look ≠ outdoor } { clouds = 0.* |
 | Sky Samples `sky_samples` | int [0..128] | 32 | Outdoor: number of directions the sky light is sampled and shadowed from, one depth map each. More is smoother and slower; 0 uses a plain hemisphere fill without sky shadows. *Hidden when look ≠ outdoor.* |

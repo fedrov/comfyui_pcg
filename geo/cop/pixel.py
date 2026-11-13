@@ -1075,11 +1075,14 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
     bands = [(r, min(r + step, H)) for r in range(0, H, step)]
     py = None
     results = {}
+    # on the numpy backend layers are stored as float32 anyway (put): assembling the bands in float32 halves the
+    # peak of a big image (a 4096² surface writing six channels held 800 MB of float64 before the conversion)
+    rdt = np.float32 if (img.backend if len(img) else bk.NUMPY) is bk.NUMPY else np.float64
     for r0, r1 in bands:
         py, part = _wrangle_band(img, code, seed, ch_params, r0, r1)
         for k, a in part.items():
             if k not in results:
-                results[k] = np.zeros((H, W, a.shape[1]))
+                results[k] = np.zeros((H, W, a.shape[1]), rdt)
             elif results[k].shape[2] != a.shape[1]:
                 raise RuntimeError(f"@{k} has {a.shape[1]} channels in one band and {results[k].shape[2]} in another")
             results[k][r0:r1] = a.reshape(r1 - r0, W, -1)
@@ -1097,12 +1100,18 @@ def _wrangle_band(img, code, seed, ch_params, r0, r1):
     cache = {}
     dirty = set()
 
+    def _rows(name):
+        # only this band's rows go to float64: getn() converted the whole layer on every access, which on a 4096²
+        # image run in bands was a 400 MB copy per layer per band (most of the time and the memory of the node)
+        a = img.need(str(name).strip() or DEFAULT_LAYER)
+        return np.asarray(bk.backend_of(a).to_numpy(a)[r0:r1], np.float64)
+
     class _L:
         def __getitem__(self, name):
             if name in cache:
                 return _cols(cache[name])
             if name in img:
-                a = getn(img, name)[r0:r1].reshape(N, -1).copy()
+                a = _rows(name).reshape(N, -1).copy()
             else:
                 a = np.zeros((N, 1))
             cache[name] = a
@@ -1151,7 +1160,7 @@ def _wrangle_band(img, code, seed, ch_params, r0, r1):
     part = {}
     for k in cache:
         if k in dirty or k in img and not np.array_equal(
-                cache[k], getn(img, k)[r0:r1].reshape(N, -1)):
+                cache[k], _rows(k).reshape(N, -1)):
             a = cache[k]
             if a.shape[0] != N:
                 raise RuntimeError(f"@{k} has shape {a.shape}, not (pixel count, channels)")

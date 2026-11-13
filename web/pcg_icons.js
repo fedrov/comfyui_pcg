@@ -2080,6 +2080,16 @@ export const GLYPHS = {
     c.globalAlpha = 0.4; poly(c, pts, true, true); c.globalAlpha = 1;
     poly(c, pts, false, false);
   },
+  // Road Network: a road winding up between contour lines, a branch off it to a second place
+  road_network(c) {
+    c.globalAlpha = 0.35;
+    poly(c, [-0.95, 0.35, -0.4, 0.05, 0.3, 0.15, 0.95, -0.15], false, false);
+    poly(c, [-0.95, -0.25, -0.3, -0.55, 0.4, -0.45, 0.95, -0.75], false, false);
+    c.globalAlpha = 1;
+    poly(c, [-0.75, 0.8, -0.1, 0.55, 0.55, 0.35, -0.3, 0.05, 0.1, -0.3, 0.65, -0.65], false, false);
+    poly(c, [0.55, 0.35, 0.85, 0.75], false, false);
+    dots(c, [-0.75, 0.8, 0.65, -0.65, 0.85, 0.75], 0.13);
+  },
   // Splat Map: a piece of land divided into several materials of different shades, tiling it exactly
   splat(c) {
     const A = [[-0.9, -0.9, 0.9, -0.9, 0.9, -0.2, 0.1, 0.1, -0.9, -0.3],
@@ -3021,7 +3031,7 @@ export const NODE_GLYPH = {
   COPHistogram: "histogram", COPSegment: "segment", COPCompare: "compare",
   COPMaskByFeature: "hf_mask", COPTerrace: "terrace",
   COPThermalErosion: "slump", COPHeightfieldToMesh: "hf_mesh",
-  COPFlowAccumulation: "flow_acc", COPStreamPower: "stream_power",
+  COPFlowAccumulation: "flow_acc", COPStreamPower: "stream_power", COPRoadNetwork: "road_network",
   COPHydraulicErosion: "hydro", COPHeightfieldErode: "hydro",
   COPSplatMap: "splat", RegionalPrompt: "region_prompt",
   COPHeightfieldFromDepth: "from_depth",

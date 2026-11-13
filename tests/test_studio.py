@@ -279,5 +279,62 @@ def agree(Bv):
 check("  T, bitangent, N reconstruct the high-poly normal from normal_ts", agree(B) > 0.998, round(agree(B), 5))
 check("  negative control: with the bitangent flipped they do not", agree(-B) < agree(B) - 0.005, round(agree(-B), 5))
 
+sec("7. Normal maps on one material: frames of that material's triangles only")
+from comfyui_pcg.geo import outdoor as _O, render as _R  # noqa: E402
+from comfyui_pcg.geo.cop import heightmap as _hm, terrain as _ter  # noqa: E402
+from comfyui_pcg.geo.meshexport import corner_frames, corner_frames_subset  # noqa: E402
+from comfyui_pcg.geo.spatial import tri_soup  # noqa: E402
+sph = ops.compute_normals(build.sphere(radius=1.0, cols=24, rows=16), add_to="point")
+Ps = np.asarray(sph.get(POINT, "P"), np.float64)
+sph.set(VERTEX, "uv", (np.c_[np.arctan2(Ps[:, 2], Ps[:, 0]) / (2 * np.pi) + 0.5,
+                             Ps[:, 1] * 0.5 + 0.5][sph.vertex_point]).astype(np.float32))
+tri_, _, cor_ = tri_soup(sph)
+Nf, Tf = corner_frames(sph, "uv", tri_, cor_)
+vids, Ns, Ts = corner_frames_subset(sph, "uv", tri_, cor_, np.ones(len(tri_), bool))
+check("all triangles: the subset frames are the whole mesh's, corner for corner (float32 for the screen: to 2e-6)",
+      len(vids) == sph.nvertices and np.allclose(Ns, Nf[vids], atol=2e-6) and np.allclose(Ts, Tf[vids], atol=2e-6))
+two = ops.merge(sph, ops.transform(sph, translate=(5, 0, 0)))
+tri2, src2, cor2 = tri_soup(two)
+vids2, N2, T2 = corner_frames_subset(two, "uv", tri2, cor2, src2 < sph.nprims)
+check("  one of two separate parts: that part's own frames, and only its corners",
+      np.array_equal(vids2, np.arange(sph.nvertices)) and np.allclose(T2, Tf, atol=2e-6) and np.allclose(N2, Nf, atol=2e-6))
+
+
+def ramp_normal(a, b, textured=True):
+    """Shaded normal at the frame centre: a flat 100 m Heightfield to Mesh with the normal map of h = a*u + b*v."""
+    W = 64
+    J, I = np.meshgrid((np.arange(W) + 0.5) / W, (np.arange(W) + 0.5) / W)
+    img = CopImage()
+    img.set("C", np.zeros((W, W, 1), np.float32))
+    img.set("h", (a * J + b * I)[..., None].astype(np.float32))
+    img = _hm.height_to_normal(img, "h", 1.0, 100.0, out_layer="ground_nrm")
+    mesh = _ter.to_mesh(img, "C", 1.0, 100.0)
+    mesh.set_string(PRIM, "material", ["ground"] * mesh.nprims)
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        orig(geo, rast, alb, N, *a_, **k_)
+        got["N"] = N[N.shape[0] // 2, N.shape[1] // 2].copy()
+    S._apply_textures = spy
+    try:
+        _O.render_outdoor(mesh, 48, 48, cam=_R.camera(None, "perspective", eye=[0, 150, 0.01], target=[0, 0, 0],
+                                                      fov=20), ssaa=1, haze=0.0, clouds=0.0,
+                          textures="normal = @{material}_nrm" if textured else "basecolor = @{material}_none",
+                          tex_cop=img)
+    finally:
+        S._apply_textures = orig
+    return got["N"]
+
+
+for a, b in ((30.0, 0.0), (0.0, 30.0), (-20.0, 10.0)):
+    want = np.array([-a, 100.0, b]) / np.linalg.norm([-a, 100.0, b])     # h rises along +u = +X and +v = -Z
+    n = ramp_normal(a, b)
+    check(f"  terrain normal map of the ramp h = {a:g} u + {b:g} v (100 m): the analytic normal {np.round(want, 3)}",
+          np.allclose(n, want, atol=2e-3), np.round(n, 4))
+n0 = ramp_normal(30.0, 0.0, textured=False)
+check("  negative control: without the normal map the flat mesh's (0, 1, 0)", np.allclose(n0, [0, 1, 0], atol=1e-4),
+      np.round(n0, 4))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

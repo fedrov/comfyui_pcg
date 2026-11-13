@@ -883,9 +883,32 @@ SPECS = {
     },
 
     # ── Stream Power erosion (flow.stream_power): d8 does not read the seed; Uplift Layer has no effect when Uplift = 0
+    "PCG_COPRoadNetwork": {
+        "order": ["layer", "strength", "world_size", "step",
+                  "max_grade", "grade_weight", "reuse",
+                  "avoid_layer", "avoid_cost", "block_layer",
+                  "smooth", "spacing", "profile"],
+        "inputs": {
+            "layer": {"label": "Height Layer"},
+            "strength": {"label": "Height Scale"},
+            "world_size": {"label": "World Size"},
+            "step": {"label": "Grid Step", "help": "Plan on every Step-th pixel (steps up to 4 cells)"},
+            "max_grade": {"label": "Max Grade", "section": "Cost", "help": "Rise over run; steeper steps cost 25x"},
+            "grade_weight": {"label": "Grade Weight", "section": "Cost"},
+            "reuse": {"label": "Reuse Roads", "section": "Cost", "help": "Cost factor along roads already built"},
+            "avoid_layer": {"label": "Avoid Layer", "section": "Cost"},
+            "avoid_cost": {"label": "Avoid Cost", "section": "Cost"},
+            "block_layer": {"label": "Block Layer", "section": "Cost", "help": "> 0.5 is closed (the sea)"},
+            "smooth": {"label": "Smooth", "section": "Output", "help": "Relaxing; switchbacks are kept"},
+            "spacing": {"label": "Point Spacing", "section": "Output"},
+            "profile": {"label": "Bed Smoothing", "section": "Output",
+                        "help": "World units along the road over which road_h averages the ground"},
+        },
+    },
+
     "PCG_COPStreamPower": {
         "order": ["layer", "strength", "world_size", "iterations",
-                  "erodibility", "area_exponent", "diffusion", "routing", "rand_seed",
+                  "erodibility", "erodibility_layer", "area_exponent", "diffusion", "routing", "rand_seed",
                   "uplift", "uplift_layer",
                   "tile", "base_layer",
                   "out_layer", "flow_layer"],
@@ -895,6 +918,8 @@ SPECS = {
             "world_size": {"label": "World Size"},
             "iterations": {"label": "Iterations"},
             "erodibility": {"label": "Erodibility (K)", "section": "Erosion"},
+            "erodibility_layer": {"label": "Erodibility Layer", "section": "Erosion",
+                                  "help": "K is multiplied by it per pixel: < 1 hard rock (cliffs, plateaus), > 1 soft"},
             "area_exponent": {"label": "Area Exponent (m)", "section": "Erosion"},
             "diffusion": {"label": "Slope Diffusion", "section": "Erosion"},
             "routing": {"label": "Flow Routing", "section": "Erosion",

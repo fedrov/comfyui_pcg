@@ -36,6 +36,11 @@ attach_cop_preview(NODE_CLASS_MAPPINGS)
 from .panel import attach_panels
 attach_panels(NODE_CLASS_MAPPINGS)
 
+# After a node that ran for more than a quarter of a second, freed memory goes back to the OS (glibc keeps it otherwise,
+# and ComfyUI's cache of every output piles the slack up). Outermost layer. See memtrim.py
+from .memtrim import attach_memtrim
+attach_memtrim(NODE_CLASS_MAPPINGS)
+
 # Frontend assets directory. ComfyUI mounts it at /extensions/<package name>/
 WEB_DIRECTORY = "./web"
 
