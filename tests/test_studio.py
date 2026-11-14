@@ -405,5 +405,83 @@ except ValueError:
     bad = True
 check("  detail_tiling must be a number (a word is an error)", bad)
 
+sec("9. Detail maps projected from the three axes (detail_triplanar)")
+
+
+def ramp_run(textures, layers, slope=5.0):
+    """A heightfield ramp rising along +x at the given slope (100 x 100 units, top-down uv), seen from the -x side."""
+    W = 64
+    img = CopImage()
+    img.set("C", np.repeat((np.arange(W) / (W - 1) * slope)[None, :, None], W, 0).astype(np.float32))
+    img.set("ground_albedo", np.full((W, W, 3), 0.5, np.float32))
+    for k, v in layers.items():
+        img.set(k, v.astype(np.float32))
+    mesh = _ter.to_mesh(img, "C", 100.0, 100.0)
+    mesh.set_string(PRIM, "material", ["ground"] * mesh.nprims)
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        orig(geo, rast, alb, N, *a_, **k_)
+        got["alb"], got["N"] = alb.copy(), N.copy()
+    S._apply_textures = spy
+    try:
+        _O.render_outdoor(mesh, 96, 96, cam=_R.camera(None, "perspective", eye=[-700, 250, 0.01],
+                                                      target=[0, 250, 0], fov=40), ssaa=1, haze=0.0, clouds=0.0,
+                          sky_samples=0, textures=textures, tex_cop=img)
+    finally:
+        S._apply_textures = orig
+    return got
+
+
+wall_all = np.zeros((W_, W_, 4))
+wall_all[..., 0] = 1.0
+dslots = "detail1 = @{material}_d1\ndetail_normal1 = @{material}_n1\ndetail_weights = @{material}_dw\n"
+lay = {"ground_d1": checker, "ground_dw": wall_all, "ground_n1": tilted}
+uvm = ramp_run(base_tex + dslots + "detail_tiling = 1", lay)
+trm = ramp_run(base_tex + dslots + "detail_triplanar = 100", lay)
+col_u = uvm["alb"][10:86, 48, 0]
+col_t = trm["alb"][10:86, 48, 0]
+e_u = int((np.diff(np.sign(col_u - 0.5)) != 0).sum())
+e_t = int((np.diff(np.sign(col_t - 0.5)) != 0).sum())
+check("on a 1:5 slope the top-down uv stretches a tile 5x up the slope; projected from the side it is one tile "
+      "per 100 units of height (5x the checker edges up the screen)", e_u >= 1 and 3.5 <= e_t / max(e_u, 1) <= 6.5,
+      (e_u, e_t))
+n0 = np.array([-5.0, 1.0, 0.0]) / np.sqrt(26.0)
+bw = np.abs(n0) ** 4 / (np.abs(n0) ** 4).sum()
+pert = bw[0] * (0.5 / 0.866) * np.array([0.0, 0.0, 1.0])          # the x plane's u axis is +z
+pert -= pert.dot(n0) * n0
+want = (n0 + pert) / np.linalg.norm(n0 + pert)
+nt = trm["N"][48, 48]
+nu = uvm["N"][48, 48]
+check("  detail normal on the slope: 30 degrees toward the x plane's u axis (+z), as the formula says",
+      np.allclose(nt, want, atol=0.02), (np.round(nt, 3), np.round(want, 3)))
+check("  negative control: with the uv the same map tilts it along the uv tangent (+x on the slope), not +z",
+      abs(nu[2]) < 0.05 and not np.allclose(nu, want, atol=0.1), np.round(nu, 3))
+flat_t = detail_run(base_tex + "detail1 = @{material}_d1\ndetail_normal1 = @{material}_n1\n"
+                    "detail_weights = @{material}_dw\ndetail_triplanar = 100",
+                    {"ground_d1": checker, "ground_dw": wl, "ground_n1": tilted})
+check("  on flat ground the top plane is the terrain's uv (u east, v north): same colour and normal as uv mode",
+      np.allclose(flat_t["alb"][H_ // 2 - 20:H_ // 2 + 20, 18:78], full["alb"][H_ // 2 - 20:H_ // 2 + 20, 18:78],
+                  atol=0.03) and np.allclose(flat_t["N"][H_ // 2, 28], [0.5, 0.866, 0.0], atol=0.02),
+      np.round(flat_t["N"][H_ // 2, 28], 3))
+S._DETAIL_BLOCK = 97                                     # many blocks: the same pixels, in pieces
+try:
+    full_b = detail_run(base_tex + "detail1 = @{material}_d1\ndetail_normal1 = @{material}_n1\n"
+                        "detail_weights = @{material}_dw\ndetail_tiling = 1",
+                        {"ground_d1": checker, "ground_dw": wl, "ground_n1": tilted})
+    trm_b = ramp_run(base_tex + dslots + "detail_triplanar = 100", lay)
+finally:
+    S._DETAIL_BLOCK = 1 << 20
+check("  detail mapped in blocks of 97 pixels: the same colour and normals as in one block (uv and triplanar)",
+      np.allclose(full_b["alb"], full["alb"], atol=1e-6) and np.allclose(full_b["N"], full["N"], atol=1e-6)
+      and np.allclose(trm_b["alb"], trm["alb"], atol=1e-6) and np.allclose(trm_b["N"], trm["N"], atol=1e-6))
+try:
+    S.parse_textures("detail_triplanar = big")
+    bad = False
+except ValueError:
+    bad = True
+check("  detail_triplanar must be a number", bad)
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

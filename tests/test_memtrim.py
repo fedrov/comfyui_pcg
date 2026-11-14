@@ -47,7 +47,7 @@ check("  the signature shows through (no *args, **kwargs)", "size" in str(sig) o
 print("── 2. Only after long nodes")
 calls = []
 real = MT.trim
-MT.trim = lambda: calls.append(1) or True
+MT.trim = lambda collect=False: calls.append(collect) or True
 
 
 class Slow:
@@ -65,6 +65,11 @@ r = Slow().run(0.6)
 check("a node of 0.6 s: result unchanged, trim called once", r == (0.6,) and len(calls) == 1, len(calls))
 Slow().run(0.0)
 check("  negative control: a quick node does not trim", len(calls) == 1, len(calls))
+check("  a node under 3 s trims without a garbage collection", calls == [False], calls)
+MT._COLLECT_S = 0.3
+Slow().run(0.6)
+MT._COLLECT_S = 3.0
+check("  a node over the collect threshold collects first (cycles), then trims", calls == [False, True], calls)
 MT.trim = real
 
 print("── 3. Memory comes back (Linux, glibc)")
@@ -126,6 +131,37 @@ for rel in (True, False):
     else:
         check("  negative control: by default every output stays cached", len(ex.root.cache) == 3
               and outs["1"] == (1,) and COUNT == {1: 1, 10: 1, 100: 1})
+
+# an array held only by a reference cycle waits for Python's full collection; trim(collect=True) runs it
+import gc as _gc  # noqa: E402
+import weakref as _wr  # noqa: E402
+import numpy as np  # noqa: E402
+from comfyui_pcg import memtrim as _MT  # noqa: E402
+
+
+class _Holder:
+    pass
+
+
+def _cycle():
+    h = _Holder()
+    h.a = np.ones(1000)
+    h.me = h                                      # the cycle
+    return _wr.ref(h)
+
+
+_gc.disable()
+try:
+    r1 = _cycle()
+    _MT.trim()
+    kept = r1() is not None
+    r2 = _cycle()
+    _MT.trim(collect=True)
+    freed = r2() is None
+finally:
+    _gc.enable()
+check("trim(collect=True) frees what only a reference cycle held; negative control, plain trim() leaves it",
+      freed and kept, (freed, kept))
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

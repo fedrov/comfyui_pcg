@@ -1377,7 +1377,8 @@ def rock_assets():
 TERRAIN_TEXTURES = ("basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\n"
                     "detail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\n"
                     "detail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\n"
-                    "detail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025")
+                    "detail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025\n"
+                    "detail_triplanar = 4")
 CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)
 CAM3 = (540.5, 14.6, 376.9, 77.9, 84.6, -5.3)    # on the south-east road, 1.8 m above it, along it toward the main peak   # a ridge south-west of the main peak
 
@@ -1817,6 +1818,22 @@ def world_tiles():
     surf = S("PCG_COPLayerEdit", title="The texture set", op="keep",
              spec="terrain_albedo terrain_nrm terrain_rough sea_rough terrain_dw")
     g.link(sn, "cop", surf, "cop")
+    # preview grass for the road camera (an engine draws grass itself, from the grass weight): a 280 m window of the
+    # 1 m surface around the camera, one tuft per sample of a density that is the grass weight (and a little on the
+    # forest floor), 40 per m² at the camera falling as 1 / distance² to 2 per m² (far tufts are under a pixel; the
+    # textures carry the grass there) and to none at 140 m
+    gt = 4100.0 / 4096
+    gcj = round((CAM3[0] + 2050.0) / gt - 0.5)
+    gci = round((2050.0 - CAM3[2]) / gt - 0.5)
+    GN = 280
+    gcr = S("PCG_COPCrop", title="Grass: the 280 m around the road camera", x=gcj - GN // 2, y=gci - GN // 2,
+            resolution_x=GN, resolution_y=GN, border="clamp", mode="discard_reframe")
+    g.link(sn, "cop", gcr, "cop")
+    gcd = S("PCG_COPWrangle", title="Grass density (tufts / 40 per m²)", code=(
+        f"r = length(set(@u - 0.5, @v - 0.5)) * {GN * gt:.1f}\n"
+        "g = clamp(@terrain_dw.x + 0.35 * @terrain_dw.w, 0, 1)\n"
+        "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))"))
+    g.link(gcr, "cop", gcd, "cop")
     tb = S("PCG_COPWriteFile", title="BaseColor: 4×4 tiles of 1024² (sRGB)",
            filename="pcg/world/texture/T_Terrain_BaseColor_x{tx}_y{ty}", channels="terrain_albedo",
            format="png", bit_depth="8", encode="srgb", tiles_x=4, tiles_y=4)
@@ -2031,8 +2048,11 @@ def world_tiles():
         g.link(node, "geo", n_, "geo")
         if top <= 0:
             return n_
-        sh_ = col("PCG_Wrangle", title=f"{name}: darker low in the crown",
-                  code=f"@Cd = @Cd * (0.5 + 0.65 * smoothstep(0.15, 1.0, @P.y / {top}))")
+        # foliage normals: out from the middle of the crown and tilted up (the crown shades as one soft volume
+        # under the sky, not as a cluster of facets)
+        sh_ = col("PCG_Wrangle", title=f"{name}: darker low in the crown, soft crown normals",
+                  code=(f"@Cd = @Cd * (0.5 + 0.65 * smoothstep(0.15, 1.0, @P.y / {top}))\n"
+                        f"@N = normalize(normalize(@P - set(0, {0.6 * top:.2f}, 0)) + set(0, 0.6, 0))"))
         g.link(n_, "geo", sh_, "geo")
         return sh_
     trunk = (0.20, 0.15, 0.11)
@@ -2081,6 +2101,37 @@ def world_tiles():
     g.link(hrf, "geo", hrc, "geo")
     housep = named(G, merge_n(G, "House proxy", [hwc, hrc]), "house")
     plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp, housep])
+    # a grass tuft: six blades (triangles) leaning out, 0.3-0.5 m; dark at the base, light at the tips, and the
+    # ground's up as their normal, so from either side a blade shades like the ground it grows from
+    tuft = G("PCG_Add", title="Grass tuft: six blades", points=(
+        "0.029 0 0.024\n0.031 0 -0.020\n0.183 0.479 0.011\n0.001 0 0.037\n0.036 0 0.010\n0.120 0.360 0.154\n"
+        "-0.029 0 0.023\n0.013 0 0.035\n-0.051 0.464 0.179\n-0.030 0 -0.022\n-0.030 0 0.022\n-0.123 0.361 0.002\n"
+        "0 0 -0.037\n-0.036 0 -0.011\n-0.091 0.389 -0.120\n0.034 0 -0.014\n-0.003 0 -0.037\n0.097 0.499 -0.158"),
+        use_pattern=True, pattern="0-2\n3-5\n6-8\n9-11\n12-14\n15-17")
+    tufc = G("PCG_Wrangle", title="Tuft: lighter to the tips, the ground's normal", code=(
+        "f = smoothstep(0, 0.45, @P.y)\n"
+        "@Cd = lerp(set(0.85, 0.85, 0.85), set(1.2, 1.18, 1.02), f)\n"
+        "@N = set(0, 1, 0) + 0 * @P"))
+    g.link(tuft, "geo", tufc, "geo")
+    gsc = G("PCG_COPLayerToPoints", title="Grass: one tuft per sample", mode="scatter", count=392000,
+            density_layer="gd", height_layer="C", height_scale=2048.0, attribs="terrain_albedo", plane="xz",
+            world_size=GN * gt, rand_seed=9)
+    g.link(gcd, "cop", gsc, "cop")
+    gmv = G("PCG_Transform", title="Grass: the window back in place", tx=-2050.0 + (gcj - GN // 2 + GN / 2) * gt,
+            tz=2050.0 - (gci - GN // 2 + GN / 2) * gt)
+    g.link(gsc, "geo", gmv, "geo")
+    gpw = G("PCG_Wrangle", title="Grass: turn, size, the ground's colour", code=(
+        "a = rand(@ptnum + 0.7) * 2 * PI\n"
+        "@N = set(sin(a), 0 * a, cos(a))\n"
+        "@up = set(0, 1, 0)\n"
+        "@pscale = 0.6 + 0.7 * rand(@ptnum + 3.1)\n"
+        "# the albedo is linear; Cd is a display colour\n"
+        "@Cd = pow(clamp(@terrain_albedo, 0, 1), 1 / 2.2) * (0.85 + 0.3 * rand(@ptnum + 5.3))\n"
+        "@P.y -= 0.04"))
+    g.link(gmv, "geo", gpw, "geo")
+    grass = G("PCG_CopyToPoints", title="Grass tufts", target_point_attributes="Cd", multiply_attributes="Cd")
+    g.link(tufc, "geo", grass, "source")
+    g.link(gpw, "geo", grass, "points")
     kt = G("PCG_Wrangle", title="Trees → pine / broad", code='s@kind = where(np.char.startswith(@name.astype(str), "Tree_Pine"), "pine", "broad")')
     g.link(tw, "geo", kt, "geo")
     kb = G("PCG_Wrangle", title="Bushes → bush", code='s@kind = "bush"')
@@ -2144,7 +2195,10 @@ def world_tiles():
     pr3 = G("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=TERRAIN_TEXTURES, sun_elevation=15.0, sun_azimuth=124.0, haze=1.0,
             ground_plane=False, clouds=0.45, cloud_seed=3)
-    g.link(mg, "geo", pr3, "geo")
+    mg3 = G("PCG_Merge", title="+ grass around the road camera")
+    g.link(mg, "geo", mg3, "geo1")
+    g.link(grass, "geo", mg3, "geo2")
+    g.link(mg3, "geo", pr3, "geo")
     g.link(surf, "cop", pr3, "textures_cop")
     g.link(dset, "cop", pr3, "detail_cop")
     g.link(cam3, "cam", pr3, "camera")

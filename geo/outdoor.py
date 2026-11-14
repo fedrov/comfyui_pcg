@@ -86,7 +86,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
-        _trim()
+        _trim(collect=True)                # arrays held by reference cycles too
     except ImportError:
         pass
     from . import render as R
@@ -139,8 +139,10 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     off[m] = 0.5 * np.sqrt(ar[pid])
     del pn, ar, pid
     N = S._smooth_normals(geo, rast, FN)
+    # a face seen from behind turns its normals to the viewer; an authored normal that already faces the viewer stays
+    # (grass and foliage cards carry the ground's up as N, so both sides of a blade shade like the ground)
     flip = (FN * D).sum(-1) > 0
-    N[flip] *= -1
+    N[flip & ((N * D).sum(-1) > 0)] *= -1
     FN[flip] *= -1
 
     lo, hi = (np.asarray(v, np.float64) for v in geo.bbox())
@@ -173,7 +175,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
         S._apply_textures(geo, rast, alb, N, surf, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                          cop_detail=detail_cop)
+                          cop_detail=detail_cop, P=P)
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
     rast = None
     if report is not None:

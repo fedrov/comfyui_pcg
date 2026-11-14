@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Geometry Preview: triplanar detail** (`detail_triplanar = size`): the detail maps projected from the three axes,
+  blended by the normal, so on a cliff they keep their shape instead of streaking down the slope along a top-down uv.
+- **World tiles: grass and softer trees in the road view**. Grass tufts (six-bladed, the ground's colour, 40 per m²
+  at the camera thinning to 2 per m² and none past 140 m) from the grass weight around the road camera, preview
+  only (an engine draws its grass from the weight map); tree and bush proxies get soft crown normals; the terrain's
+  detail is triplanar.
 - **Geometry Preview: detail maps** (Studio and Outdoor looks): `detail1..4` (tiled colour, 0.5 = no change),
   `detail_normal1..4`, `detail_weights` (a layer on the mesh uv) and `detail_tiling`, blended like an engine's detail
   texturing; a new `detail_cop` input holds the small tiles. Close views of a metre-per-texel terrain get their
@@ -30,6 +36,13 @@ All notable changes to this project are documented here. The format follows
   both preview shots (`basecolor = @{material}_albedo`, `normal = @{material}_nrm`, `roughness = @{material}_rough`).
 
 ### Changed
+- Memory: after a node of more than 3 s, and before an outdoor preview render, the garbage collector runs before the
+  heap is trimmed: arrays held only by reference cycles had waited for Python's rare full collection, and 2 GB of
+  them were still held when the open-world example's first preview started. Detail maps are applied in blocks of a
+  million pixels.
+- Geometry Preview (Studio, Outdoor): a face seen from behind keeps an authored normal that already faces the viewer
+  (it used to be flipped away): grass blades and foliage cards with the ground's up as `N` shade like the ground from
+  both sides. Without an authored `N`, or with one facing away, nothing changes.
 - COP Rasterize Curves builds its pixel grids per segment window and stores float32: at 4096² it allocated two
   full-image float64 grids (270 MB) per call to draw a few pixels per segment.
 - COP Wrangle in bands hands freed memory back after each band.

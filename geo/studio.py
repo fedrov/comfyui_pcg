@@ -57,9 +57,10 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              # weights layer, multiplying the base colour (0.5 = no change) and bending the normal
              "detail1", "detail2", "detail3", "detail4",
              "detail_normal1", "detail_normal2", "detail_normal3", "detail_normal4",
-             "detail_weights", "detail_tiling")
+             "detail_weights", "detail_tiling", "detail_triplanar")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
+_DETAIL_BLOCK = 1 << 20          # pixels per block of detail mapping
 
 
 def parse_textures(text):
@@ -76,7 +77,9 @@ def parse_textures(text):
     on the mesh uv whose channels 1..4 say how much of each detail applies (where they sum below 1 the rest is
     untouched); detail_tiling how many times the detail repeats across the uv range (a number). They sharpen close
     views of a large terrain whose own texture is a metre or so per texel; far away the detail's mips average to
-    0.5 and flat, so it fades by itself.
+    0.5 and flat, so it fades by itself. detail_triplanar = a size in world units projects the detail from the
+    three axes instead (one tile per that size, blended by the normal): on a cliff the uv of a top-down terrain
+    stretches a tile into streaks down the slope; projected from the side it keeps its shape.
     """
     out = {}
     for line in str(text or "").splitlines():
@@ -88,11 +91,11 @@ def parse_textures(text):
         k, v = (x.strip() for x in line.split("=", 1))
         if k.lower() not in TEX_SLOTS or not v:
             raise ValueError(f"Textures: slot must be one of {TEX_SLOTS} with a path, got {line!r}")
-        if k.lower() == "detail_tiling":
+        if k.lower() in ("detail_tiling", "detail_triplanar"):
             try:
                 float(v)
             except ValueError:
-                raise ValueError(f"Textures: detail_tiling takes a number, got {v!r}") from None
+                raise ValueError(f"Textures: {k.lower()} takes a number, got {v!r}") from None
         out[k.lower()] = v
     return out
 
@@ -267,8 +270,10 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     N = _smooth_normals(geo, rast).astype(np.float32)
     FN = R._face_normals(geo, rast).astype(np.float32)
     # make normals face the camera (double-sided surfaces, flipped faces); the geometric normal decides
+    # a face seen from behind turns its normals to the viewer; an authored normal that already faces the viewer stays
+    # (grass and foliage cards carry the ground's up as N, so both sides of a blade shade like the ground)
     flip = (FN * fwd).sum(-1) > 0
-    N[flip] *= -1
+    N[flip & ((N * fwd).sum(-1) > 0)] *= -1
     FN[flip] *= -1
 
     # ground plane: y just below the object, catches shadow / AO only
@@ -302,7 +307,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
         _apply_textures(geo, rast, alb, N, m, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                        cop_detail=detail_cop)
+                        cop_detail=detail_cop, P=P)
     use_pbr = any(sl in tex for sl in _PBR_SLOTS)
     rast = None                                   # bary / z / hit are not needed past this point
     if report is not None:
@@ -548,7 +553,8 @@ def _masked_interp(rast, idx, values, corner):
     return (V[ids[:, 0]] * w[:, 0:1] + V[ids[:, 1]] * w[:, 1:2] + V[ids[:, 2]] * w[:, 2:3]).astype(np.float32)
 
 
-def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None):
+def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None,
+                    P=None):
     """
     BaseColor into alb and tangent-space normal maps into N, per face material. The tangent frames are the
     per-corner set Export Mesh writes and COP Bake Textures bakes against (meshexport.corner_frames), so a baked
@@ -594,6 +600,9 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     del uvi, dimg
     frames = {}
     cache = {}
+    tri = None
+    if float(tex.get("detail_triplanar", "0") or 0) > 0 and "detail_weights" in tex and P is not None:
+        tri = _triplanar_coords(P, N, hit, idx, float(tex["detail_triplanar"]))
 
     def fetch(pattern, slot, mat):
         """The mip chain for this slot's texture on this material, or None (missing: listed in the report)."""
@@ -653,22 +662,78 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
             nw = t0 * ts[:, 0:1] + b0 * ts[:, 1:2] + n0 * ts[:, 2:3]
             N[tgt] = nw / np.maximum(np.linalg.norm(nw, axis=-1, keepdims=True), 1e-12)
         if "detail_weights" in tex:
-            _apply_detail(tex, fetch, frame_of, mi, mat, sel, tgt, uv, du, alb, N)
+            # in blocks of pixels: each detail map makes (n, 3) float64 temporaries, a few hundred MB apiece over
+            # a supersampled frame
+            fr_ = frame_of(mi, mat, tgt) if any(k_.startswith("detail_normal") for k_ in tex) and tri is None else None
+            on_ = np.nonzero(sel)[0]
+            blk = _DETAIL_BLOCK
+            for b0 in range(0, len(on_), blk):
+                sb = np.zeros_like(sel)
+                sb[on_[b0:b0 + blk]] = True
+                tb_ = (idx[0][sb], idx[1][sb])
+                fb_ = None if fr_ is None else (lambda *_x, r_=slice(b0, b0 + blk): tuple(v_[r_] for v_ in fr_))
+                _apply_detail(tex, fetch, fb_, mi, mat, sb, tb_, uv, du, alb, N, tri)
 
 
-def _apply_detail(tex, fetch, frame_of, mi, mat, sel, tgt, uv, du, alb, N):
-    """Detail maps on one material's pixels: see parse_textures."""
+# triplanar planes: (u axis, v axis) in world space; the top plane matches a terrain's uv (u east, v north = -z)
+_TRI_AXES = (((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)),       # seen along x
+             ((1.0, 0.0, 0.0), (0.0, 0.0, -1.0)),      # seen along y (from above)
+             ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0)))       # seen along z
+
+
+def _triplanar_coords(P, N, hit, idx, size):
+    """
+    Per plane, for the covered pixels (positions in idx) that it weighs on: (positions, uv = P / size on the plane's
+    axes, mip footprint = the uv change to the next pixel, as for the mesh uv -- across a face edge too, since P is
+    continuous --, blend weight, u axis, v axis). The weights are |n|^4 of the shading normal, normalised: that
+    sharpens the seams to a narrow band around 45 degrees. A side plane covers a few % of a terrain, so it keeps
+    only those pixels (float32: a supersampled frame has millions).
+    """
+    n_ = np.abs(N[idx]).astype(np.float32) ** 4
+    n_ /= np.maximum(n_.sum(-1, keepdims=True), 1e-12)
+    out = []
+    for a_, (U, V) in enumerate(_TRI_AXES):
+        pos = np.nonzero(n_[:, a_] > 1e-3)[0]
+        if not len(pos):
+            continue
+        U, V = np.asarray(U, np.float32), np.asarray(V, np.float32)
+        img = np.stack([P @ U, P @ V], -1) / np.float32(size)
+        d_ = np.zeros(hit.shape, np.float32)
+        for ax in (0, 1):
+            d = np.abs(np.diff(img, axis=ax)).max(-1)
+            d = np.where((np.diff(hit, axis=ax) == 0) | (d < 0.5), d, 0.0)    # not across a silhouette
+            pad = [(0, 1) if k_ == ax else (0, 0) for k_ in range(2)]
+            d_ = np.maximum(d_, np.pad(d, pad, mode="edge"))
+        at = (idx[0][pos], idx[1][pos])
+        out.append((pos, img[at], d_[at], n_[pos, a_], U.astype(np.float64), V.astype(np.float64)))
+        del img, d_
+    return out
+
+
+def _apply_detail(tex, fetch, frame_of, mi, mat, sel, tgt, uv, du, alb, N, tri=None):
+    """Detail maps on one material's pixels: see parse_textures. tri: _triplanar_coords (world projection) or None
+    (the mesh uv x detail_tiling)."""
     wch = fetch(tex["detail_weights"], "detail_weights", mat)
     if wch is None:
         return
     w = sample_mip(wch, uv[sel], du[sel] * max(wch[0].shape[:2]))
     w = np.clip(w, 0.0, 1.0)
-    tiling = float(tex.get("detail_tiling", "1"))
-    uvd = uv[sel] * tiling
-    dud = du[sel] * tiling
-    mult = np.ones((len(uvd), 3))
-    nts = np.zeros((len(uvd), 3))
-    wsum = np.zeros(len(uvd))
+    if tri is not None:
+        # this material's share of each plane: its pixels' positions among the selected ones
+        at_sel = np.cumsum(sel) - 1
+        planes = []
+        for pos, uvp, fpp, wp, U, V in tri:
+            m_ = sel[pos]
+            if m_.any():
+                planes.append((uvp[m_].astype(np.float64), fpp[m_].astype(np.float64), U, V,
+                               wp[m_].astype(np.float64), at_sel[pos[m_]]))
+    else:
+        tiling = float(tex.get("detail_tiling", "1"))
+        planes = [(uv[sel] * tiling, du[sel] * tiling, None, None, np.ones(len(w)), slice(None))]
+    mult = np.ones((len(w), 3))
+    nts = np.zeros((len(w), 3))          # uv mode: the tangent-space normal, weighted
+    pert = np.zeros((len(w), 3))         # triplanar: the world-space tilt, weighted
+    wsum = np.zeros(len(w))
     have_n = False
     for k in range(4):
         if k >= w.shape[1]:
@@ -679,17 +744,32 @@ def _apply_detail(tex, fetch, frame_of, mi, mat, sel, tgt, uv, du, alb, N):
         if f"detail{k + 1}" in tex:
             ch = fetch(tex[f"detail{k + 1}"], f"detail{k + 1}", mat)
             if ch is not None:
-                d = sample_mip(ch, uvd, dud * max(ch[0].shape[:2]))
-                mult += wk[:, None] * (2.0 * d - 1.0)
+                for uvd, dud, U, V, pw, on in planes:
+                    d = sample_mip(ch, uvd, dud * max(ch[0].shape[:2]))
+                    mult[on] += (wk[on] * pw)[:, None] * (2.0 * d - 1.0)
         if f"detail_normal{k + 1}" in tex:
             ch = fetch(tex[f"detail_normal{k + 1}"], f"detail_normal{k + 1}", mat)
             if ch is not None:
-                d = sample_mip(ch, uvd, dud * max(ch[0].shape[:2])) * 2.0 - 1.0
-                nts += wk[:, None] * d
+                for uvd, dud, U, V, pw, on in planes:
+                    d = sample_mip(ch, uvd, dud * max(ch[0].shape[:2])) * 2.0 - 1.0
+                    if U is None:
+                        nts[on] += wk[on, None] * d
+                    else:
+                        # a tangent-space normal (x along the plane's u, y along its v) tilts the surface by
+                        # x U + y V (over z): the gradient of the detail's height, the same from either side
+                        dz = np.maximum(d[:, 2:3], 0.2)
+                        pert[on] += (wk[on] * pw)[:, None] * (d[:, 0:1] * U + d[:, 1:2] * V) / dz
                 wsum += wk
                 have_n = True
     alb[tgt] = alb[tgt] * np.clip(mult, 0.0, 4.0)
     if not have_n:
+        return
+    if tri is not None:
+        n0 = N[tgt].astype(np.float64)
+        n0 /= np.maximum(np.linalg.norm(n0, axis=-1, keepdims=True), 1e-12)
+        pert -= (pert * n0).sum(-1, keepdims=True) * n0          # tilt only, within the surface
+        nw = n0 + pert
+        N[tgt] = nw / np.maximum(np.linalg.norm(nw, axis=-1, keepdims=True), 1e-12)
         return
     # the weighted detail normal (flat where the weights are 0) bends the shaded normal about its own frame
     nts += (1.0 - np.clip(wsum, 0.0, 1.0))[:, None] * np.array([0.0, 0.0, 1.0])

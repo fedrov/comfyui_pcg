@@ -1071,7 +1071,8 @@ SPECS = {
                          "help": "basecolor / normal / orm (or ao, roughness, metallic) = path, relative to the output folder; "
                                  "{material} = the face's material; @layer reads textures_cop. orm / roughness / "
                                  "metallic switch to PBR shading; detail1..4, detail_normal1..4, detail_weights, "
-                                 "detail_tiling = tiled detail maps blended by weights"},
+                                 "detail_tiling = tiled detail maps blended by weights; detail_triplanar = size: "
+                                 "project them from the three axes"},
             "material_attrib": {"label": "Material Attribute", "hide": "{ look == basic }"},
             "uv_attrib": {"label": "UV Attribute", "hide": "{ look == basic }"},
             "sun_elevation": {"label": "Sun Elevation", "section": "Outdoor", "hide": "{ look != outdoor }"},

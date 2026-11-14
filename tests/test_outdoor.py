@@ -194,5 +194,40 @@ cd = diffuse[30:45, 40:56].mean((0, 1))
 check("PBR from textures_cop: a polished metal sphere reflects the blue sky (bluer than the plain sphere)",
       (cm[2] - cm[0]) > (cd[2] - cd[0]) + 0.03, (np.round(cm, 3), np.round(cd, 3)))
 
+
+# a face seen from behind (and from a little above) turns its normal to the viewer -- unless an authored N already
+# faces the viewer (grass blades carry the ground's up as N and must shade like the ground from both sides)
+def back_normal(n_attr):
+    tri = Geometry.from_mesh(np.array([[-1, 0, 0], [1, 0, 0], [0, 2, 0]], np.float32), [[0, 1, 2]])
+    tri.set(POINT, "uv", np.array([[0, 0], [1, 0], [0.5, 1]], np.float32))
+    if n_attr is not None:
+        tri.set(POINT, "N", np.tile(np.asarray(n_attr, np.float32), (3, 1)))
+    fz = float((O.np.cross(np.array([2.0, 0, 0]), np.array([1.0, 2, 0])))[2])     # the face normal's z
+    eye_z = -6.0 * np.sign(fz)                                                       # behind the face
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        got["N"] = N.copy()
+    S._apply_textures = spy
+    try:
+        img = nrun("COPConstant", resolution_x=4, resolution_y=4, layer="base", device="numpy")
+        O.render_outdoor(tri, 64, 64, cam=R.camera(None, "perspective", eye=[0, 1.6, eye_z], target=[0, 0.8, 0],
+                                                   fov=40), ssaa=1, haze=0.0, clouds=0.0, sky_samples=0,
+                         ground=False, textures="basecolor = @base", tex_cop=img)
+    finally:
+        S._apply_textures = orig
+    return got["N"][32, 32], np.sign(fz)
+
+
+n_up, _ = back_normal([0, 1, 0])
+n_none, fs = back_normal(None)
+n_away, _ = back_normal([0, 0, fs])
+check("seen from behind: an authored N that faces the viewer (the ground's up) is kept",
+      np.allclose(n_up, [0, 1, 0], atol=1e-3), np.round(n_up, 3))
+check("  without N the face normal turns to the viewer, and an authored N facing away is flipped (as before)",
+      np.allclose(n_none, [0, 0, -fs], atol=1e-3) and np.allclose(n_away, [0, 0, -fs], atol=1e-3),
+      (np.round(n_none, 3), np.round(n_away, 3)))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

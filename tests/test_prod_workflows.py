@@ -184,7 +184,9 @@ class _Img:
         return ()
 
 
-def run(name, cwd, release=False):
+def run(name, cwd, release=False, capture=None):
+    """capture: {node title: fn(outputs) -> summary}; the summaries go to capture["got"] (the outputs themselves are
+    not kept, so a release run stays released)."""
     wf = MW.WORKFLOWS[name]().to_ui()
     pr = MW.validate_ui(wf)
     api = MW.ui_to_api(wf)
@@ -196,6 +198,17 @@ def run(name, cwd, release=False):
     t0 = time.time()
     try:
         ex = fakecomfy.Executor(api, classes, release=release)
+        if capture:
+            ids = {str(n["id"]): n.get("title") for n in wf["nodes"] if n.get("title") in capture}
+            got = capture.setdefault("got", {})
+            ev = ex._eval
+
+            def _eval(scope, nid, ev=ev):
+                out = ev(scope, nid)
+                if nid in ids and ids[nid] not in got:
+                    got[ids[nid]] = capture[ids[nid]](out)
+                return out
+            ex._eval = _eval
         if release:                     # outputs are not collected either: holding them would undo the release
             res = None
             for nid in api:
@@ -224,7 +237,13 @@ else:
           if os.path.exists("/proc/self/statm") else "")
     # the checks read the written files; outputs are let go once read (the 4096² texture chain and the full-map
     # meshes do not all fit in 8 GB beside the preview render)
-    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True)
+    def _grass(out):
+        g_ = out[0]
+        return {"P": np.asarray(g_.get(POINT, "P"), np.float32).copy(), "N": np.asarray(g_.get(POINT, "N"),
+                                                                                       np.float32).copy(),
+                "prims": g_.nprims}
+    cap = {"Grass tufts": _grass}
+    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap)
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     WD = os.path.join(OUT, "pcg/world")
     tiles = {(i, j): img(os.path.join(WD, f"height/Height_x{i}_y{j}.png"))[..., 0].astype(np.int64)
@@ -397,6 +416,34 @@ else:
     check(f"  facing the road: {np.mean(facing > 0.5):.0%} of the fronts within 60 degrees of the way to the nearest "
           f"road point; negative control, the backs: {np.mean(-facing > 0.5):.0%}",
           np.mean(facing > 0.5) > 0.75 and np.mean(-facing > 0.5) < 0.1)
+    # grass (preview only): tufts around the road camera, dense at the camera, on the ground, off the road
+    gg_ = cap["got"].get("Grass tufts")
+    if gg_ is None:
+        check("grass: the Grass tufts node ran", False)
+    else:
+        GP = gg_["P"].reshape(-1, 18, 3)
+        base = GP[:, [0, 1, 3, 4, 6, 7, 9, 10, 12, 13, 15, 16]].mean(1)
+        ntuft = len(base)
+        rr = np.hypot(base[:, 0] - MW.CAM3[0], base[:, 2] - MW.CAM3[2])
+        check(f"grass: {ntuft} tufts of six blades, all within 141 m of the road camera",
+              30000 < ntuft < 90000 and gg_["prims"] == 6 * ntuft and rr.max() < 141.0, round(float(rr.max()), 1))
+        near = (rr < 10).sum() / (np.pi * 100)
+        far = ((rr > 60) & (rr < 100)).sum() / (np.pi * (100 ** 2 - 60 ** 2))
+        check(f"  {near:.1f} per m² within 10 m of the camera, {far:.2f} per m² at 60-100 m (1 / distance², floor 2)",
+              near > 5 * far and far > 0.2, (round(near, 2), round(far, 3)))
+        gz = np.abs(base[:, 1] + 0.04 - hgt(base[:, 0] + 2048, base[:, 2] + 2048))
+        check("  on the ground: tuft bases at the height files' height (median < 0.15 m)", np.median(gz) < 0.15,
+              round(float(np.median(gz)), 3))
+        kr = cKDTree(RV[:, [0, 2]] - 2048.0)
+        d_on = kr.query(base[:, [0, 2]])[0]
+        ang = np.random.default_rng(3).random(ntuft) * 2 * np.pi
+        ctrl = np.stack([MW.CAM3[0] + rr * np.cos(ang), MW.CAM3[2] + rr * np.sin(ang)], -1)
+        d_ct = kr.query(ctrl)[0]
+        check(f"  off the road: {np.mean(d_on < 2):.1%} of the tufts within 2 m of a centre line; negative control, "
+              f"the same distances from the camera at random bearings: {np.mean(d_ct < 2):.1%}",
+              np.mean(d_on < 2) < 0.01 and np.mean(d_ct < 2) > 0.05)
+        check("  every blade carries the ground's up as N", np.allclose(gg_["N"], [0, 1, 0], atol=1e-5))
+        del GP, base, gg_
     det = os.path.join(WD, "texture/detail")
     dfiles = [f"T_Detail_{k}_{m}.png" for k in ("Grass", "Rock", "Gravel", "Litter") for m in ("Color", "Normal_GL")]
     dimg = {f: img(os.path.join(det, f)) for f in dfiles}
