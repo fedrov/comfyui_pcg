@@ -485,7 +485,7 @@
    ],
    "size": [
     520,
-    413
+    433
    ],
    "flags": {},
    "order": 8,
@@ -508,6 +508,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -554,7 +559,7 @@
    "type": "PreviewImage",
    "pos": [
     1260,
-    457
+    477
    ],
    "size": [
     520,
@@ -582,7 +587,7 @@
    "type": "PCG_Viewport",
    "pos": [
     1260,
-    1061
+    1081
    ],
    "size": [
     520,

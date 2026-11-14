@@ -2269,7 +2269,7 @@
    ],
    "size": [
     520,
-    428
+    448
    ],
    "flags": {},
    "order": 43,
@@ -2292,6 +2292,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -2339,7 +2344,7 @@
    "type": "SaveImage",
    "pos": [
     2520,
-    3567
+    3587
    ],
    "size": [
     520,
@@ -2513,11 +2518,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    3851
+    3871
    ],
    "size": [
     520,
-    413
+    433
    ],
    "flags": {},
    "order": 33,
@@ -2540,6 +2545,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -2587,7 +2597,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    4308
+    4348
    ],
    "size": [
     520,
@@ -2615,7 +2625,7 @@
    "type": "PCG_Blast",
    "pos": [
     2520,
-    4612
+    4652
    ],
    "size": [
     520,
@@ -2656,7 +2666,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    4792
+    4832
    ],
    "size": [
     520,
@@ -2717,7 +2727,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    5199
+    5239
    ],
    "size": [
     520,
@@ -2778,11 +2788,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    5606
+    5646
    ],
    "size": [
     520,
-    428
+    448
    ],
    "flags": {},
    "order": 44,
@@ -2805,6 +2815,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -2852,7 +2867,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    6078
+    6138
    ],
    "size": [
     520,
@@ -2880,7 +2895,7 @@
    "type": "PCG_Viewport",
    "pos": [
     2520,
-    6542
+    6602
    ],
    "size": [
     520,

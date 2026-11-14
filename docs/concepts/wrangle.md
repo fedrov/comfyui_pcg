@@ -101,7 +101,7 @@ All of numpy is available as `np`, and Python's `math` as `math`. On top of that
 | Element-wise min / max | `min(a, b)`, `max(a, b)` (these replace Python's built-ins, which would compare whole arrays) |
 | Vectors | `set(...)` / `vector(...)` / `vector2(...)` / `vector4(...)`, `length length2 distance distance2 normalize cross dot` |
 | Selection | `where(cond, a, b)` |
-| Noise and random | `noise(p)` (Perlin, 0..1, like VEX), `vnoise(p)` (3 components), `pnoise(p, period)` (periodic Perlin, see below), `rand(seed)` |
+| Noise and random | `noise(p)` (Perlin, 0..1, like VEX), `vnoise(p)` (3 components), `pnoise(p, period)` (periodic Perlin, see below), `worley(p)` / `pworley(p, period)` and `worley_dir(p)` / `pworley_dir(p, period)` (cellular, see below), `rand(seed)` |
 | Strings | `sprintf(fmt, ...)` (one string per element when an argument is per-element; `%d %02d %s %.3f`), `itoa(x)` |
 | Geometry queries | `point([input,] name, index)`, `prim(...)`, `vertex(...)`, `detail([input,] name)`, `npoints([input])`, `nprims([input])`, `nvertices([input])`, `ninputs()`, `getbbox_min([input])`, `getbbox_max`, `getbbox_size`, `getbbox_center` |
 | Panel parameters | `ch(name, default)`, `chf`, `chi`, `chs`, `chv` |
@@ -109,6 +109,8 @@ All of numpy is available as `np`, and Python's `math` as `math`. On top of that
 **`rand(x)`** follows VEX: the argument is a seed, not a count, and the same seed gives the same number. The node's **Rand Seed** parameter is mixed in, so changing it re-rolls every `rand()` call; the seed itself is available as the variable `seed`. `rand(0)` with Rand Seed 0 returns exactly 0; use `rand(@ptnum + 1)` or a non-zero Rand Seed if that matters. Different calls with the same argument return the same number, so offset the argument: `rand(@ptnum + 0.37)`.
 
 **`noise(p)`** is Perlin noise in 0..1 (mostly 0.3 to 0.7). **`pnoise(p, period)`** is the same noise repeating every `period` units (a number, or a 3-vector of whole numbers; 0 = not periodic on that axis). In a COP Wrangle `pnoise(set(@u * 8, @v * 8, 0), set(8, 8, 0))` tiles on all four sides of the image, which `noise()` does not.
+
+**`worley(p)`** is cellular noise: one feature point in each unit cell, and per position `set(f1, f2, id)`: the distances to the nearest two feature points and the nearest one's cell id (0..1, the same everywhere in that cell). **`worley_dir(p)`** is the vector from the position to the nearest feature point. **`pworley` / `pworley_dir`** wrap the cells like `pnoise`, so they tile. They build stones, cracks and leaves: `f2 - f1` is 0 on a cell border and grows toward the middle (a crack line where it is small, a stone's rounded top from `sqrt(1 - (f1 / r)²)`), `rand(id)` gives each cell its own colour or size, and `worley_dir` gives each cell its own frame (turn it by `rand(id)` and every clump of blades or leaf points its own way). Calling both functions on the same position costs one evaluation. A 2-vector position (`worley(set(x, y))`) gives the 2D pattern, three times faster.
 
 **Reading other elements and inputs.** `point(name, index)` reads one element (`point("P", 0)`) or, with a column of indices, one per element (`point(0, "P", @ptnum + 1)`). Wrangle has three optional inputs `geo1`, `geo2`, `geo3` besides `geo`; the query functions take the input number as an optional first argument: `point(1, "P", 0)`, `npoints(2)`, `getbbox_size(3)`. Without a number they read input 0. A missing attribute reads as 0.
 

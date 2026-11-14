@@ -825,7 +825,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 80,
@@ -848,6 +848,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -895,7 +900,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    472
+    492
    ],
    "size": [
     340,
@@ -1478,7 +1483,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 86,
@@ -1501,6 +1506,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -1548,7 +1558,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    472
+    492
    ],
    "size": [
     340,
@@ -2086,7 +2096,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 92,
@@ -2109,6 +2119,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -2156,7 +2171,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    472
+    492
    ],
    "size": [
     340,
@@ -2694,7 +2709,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 98,
@@ -2717,6 +2732,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -2764,7 +2784,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    472
+    492
    ],
    "size": [
     340,
@@ -3302,7 +3322,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 104,
@@ -3325,6 +3345,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -3372,7 +3397,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3532
+    3552
    ],
    "size": [
     340,
@@ -3910,7 +3935,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 110,
@@ -3933,6 +3958,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -3980,7 +4010,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3532
+    3552
    ],
    "size": [
     340,
@@ -4518,7 +4548,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 116,
@@ -4541,6 +4571,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -4588,7 +4623,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3532
+    3552
    ],
    "size": [
     340,
@@ -5171,7 +5206,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 122,
@@ -5194,6 +5229,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -5241,7 +5281,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3532
+    3552
    ],
    "size": [
     340,
@@ -5824,7 +5864,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 128,
@@ -5847,6 +5887,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -5894,7 +5939,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    6592
+    6612
    ],
    "size": [
     340,
@@ -6477,7 +6522,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 134,
@@ -6500,6 +6545,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -6547,7 +6597,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    6592
+    6612
    ],
    "size": [
     340,
@@ -7130,7 +7180,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 140,
@@ -7153,6 +7203,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -7200,7 +7255,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    6592
+    6612
    ],
    "size": [
     340,
@@ -7783,7 +7838,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 146,
@@ -7806,6 +7861,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -7853,7 +7913,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    6592
+    6612
    ],
    "size": [
     340,
@@ -8391,7 +8451,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 152,
@@ -8414,6 +8474,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -8461,7 +8526,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    9652
+    9672
    ],
    "size": [
     340,
@@ -8999,7 +9064,7 @@
    ],
    "size": [
     340,
-    428
+    448
    ],
    "flags": {},
    "order": 158,
@@ -9022,6 +9087,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -9069,7 +9139,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    9652
+    9672
    ],
    "size": [
     340,

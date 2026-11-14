@@ -242,7 +242,10 @@ else:
         return {"P": np.asarray(g_.get(POINT, "P"), np.float32).copy(), "N": np.asarray(g_.get(POINT, "N"),
                                                                                        np.float32).copy(),
                 "prims": g_.nprims}
-    cap = {"Grass tufts": _grass}
+    def _pts(out):
+        return np.asarray(out[0].get(POINT, "P"), np.float32).copy()
+    cap = {"Grass tufts": _grass, "Close range: material terrain": _pts, "Material: terrain": _pts,
+           "Terrain: full map + close range": lambda out: out[0].npoints}
     api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap)
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     WD = os.path.join(OUT, "pcg/world")
@@ -431,9 +434,18 @@ else:
         far = ((rr > 60) & (rr < 100)).sum() / (np.pi * (100 ** 2 - 60 ** 2))
         check(f"  {near:.1f} per m² within 10 m of the camera, {far:.2f} per m² at 60-100 m (1 / distance², floor 2)",
               near > 5 * far and far > 0.2, (round(near, 2), round(far, 3)))
-        gz = np.abs(base[:, 1] + 0.04 - hgt(base[:, 0] + 2048, base[:, 2] + 2048))
-        check("  on the ground: tuft bases at the height files' height (median < 0.15 m)", np.median(gz) < 0.15,
-              round(float(np.median(gz)), 3))
+        dP_ = cap["got"].get("Close range: material terrain")
+        if dP_ is not None:                        # the camera stands on the close-range terrain (2 m grid)
+            x0_, x1_, z0_, z1_ = MW.DETAIL_WINDOW
+            o_ = np.lexsort((dP_[:, 0], dP_[:, 2]))
+            gh = dP_[o_, 1].reshape(int((z1_ - z0_) / 2) + 1, int((x1_ - x0_) / 2) + 1)
+            from scipy.ndimage import map_coordinates
+            ground = map_coordinates(gh, [(base[:, 2] - z0_) / 2, (base[:, 0] - x0_) / 2], order=1)
+        else:
+            ground = hgt(base[:, 0] + 2048, base[:, 2] + 2048)
+        gz = np.abs(base[:, 1] + 0.04 - ground)
+        check("  on the ground: tuft bases on the terrain they stand on (the close-range mesh; median < 0.15 m)",
+              np.median(gz) < 0.15, round(float(np.median(gz)), 3))
         kr = cKDTree(RV[:, [0, 2]] - 2048.0)
         d_on = kr.query(base[:, [0, 2]])[0]
         ang = np.random.default_rng(3).random(ntuft) * 2 * np.pi
@@ -444,20 +456,86 @@ else:
               np.mean(d_on < 2) < 0.01 and np.mean(d_ct < 2) > 0.05)
         check("  every blade carries the ground's up as N", np.allclose(gg_["N"], [0, 1, 0], atol=1e-5))
         del GP, base, gg_
-    det = os.path.join(WD, "texture/detail")
-    dfiles = [f"T_Detail_{k}_{m}.png" for k in ("Grass", "Rock", "Gravel", "Litter") for m in ("Color", "Normal_GL")]
-    dimg = {f: img(os.path.join(det, f)) for f in dfiles}
-    col = [dimg[f"T_Detail_{k}_Color.png"][..., :3].astype(float) / 255 for k in ("Grass", "Rock", "Gravel", "Litter")]
+    # close-range terrain: a 2 m mesh over the road view, meeting the 4 m full-map mesh without a crack at its border,
+    # with the detail relief inside
+    dP, cP = cap["got"].get("Close range: material terrain"), cap["got"].get("Material: terrain")
+    if dP is None or cP is None:
+        check("close-range terrain: both meshes ran", False)
+    else:
+        x0_, x1_, z0_, z1_ = MW.DETAIL_WINDOW
+        nx, nz = int((x1_ - x0_) / 2) + 1, int((z1_ - z0_) / 2) + 1
+        cg = cP[:1025 * 1025].reshape(1025, 1025, 3)          # rows: z = 2048 - 4 r; columns: x = 4 c - 2048
+
+        def coarse(x, z):
+            from scipy.ndimage import map_coordinates
+            return map_coordinates(cg[..., 1], [(2048 - z) / 4, (x + 2048) / 4], order=1)
+        brd = (np.abs(dP[:, 0] - x0_) < 0.01) | (np.abs(dP[:, 0] - x1_) < 0.01) | (np.abs(dP[:, 2] - z0_) < 0.01) \
+            | (np.abs(dP[:, 2] - z1_) < 0.01)
+        on4 = brd & (np.abs(np.mod(dP[:, 0], 4)) < 0.01) & (np.abs(np.mod(dP[:, 2], 4)) < 0.01)
+        dbrd = np.abs(dP[on4, 1] - coarse(dP[on4, 0], dP[on4, 2]))
+        inner = (dP[:, 0] > x0_ + 60) & (dP[:, 0] < x1_ - 60) & (dP[:, 2] > z0_ + 60) & (dP[:, 2] < z1_ - 60) \
+            & (dP[:, 1] > 1.0)
+        din = dP[inner, 1] - coarse(dP[inner, 0], dP[inner, 2])
+        check(f"close-range terrain: {nx} x {nz} points on a 2 m grid; on its border it meets the full-map mesh "
+              f"(max {dbrd.max():.3f} m); inside, the detail relief (std {din.std():.2f} m off the 4 m surface)",
+              len(dP) == nx * nz and dbrd.max() < 0.1 and din.std() > 0.3,
+              (len(dP), round(float(dbrd.max()), 3), round(float(din.std()), 3)))
+        hole = (cg[..., 0] > x0_ + 0.5) & (cg[..., 0] < x1_ - 0.5) & (cg[..., 2] > z0_ + 0.5) & (cg[..., 2] < z1_ - 0.5)
+        nm_ = cap["got"].get("Terrain: full map + close range")
+        check("  the full-map mesh is cut where the close-range one lies (no double surface): merged = full map - "
+              "its points inside the window + the close-range points", hole.sum() > 0
+              and nm_ == 1025 * 1025 - int(hole.sum()) + nx * nz, (nm_, int(hole.sum())))
+        del dP, cP, cg, din
+    # the terrain layers: the library (seamless tiles), the splat maps (summing to 1 with the water, matching the
+    # coarse weights) and the macro map (1x on average)
+    LD = os.path.join(WD, "texture/layers")
+    names = [n for n, _ in MW.LAYERS]
+    lfiles = [f"T_Layer_{n}_{m}.png" for n in names for m in ("Color", "Normal_GL", "Height", "Roughness")]
+    col = [img(os.path.join(LD, f"T_Layer_{n}_Color.png"))[..., :3].astype(float) / 255 for n in names]
+    hts = [img(os.path.join(LD, f"T_Layer_{n}_Height.png"))[..., 0].astype(float) / 255 for n in names]
+    nrm_ = [img(os.path.join(LD, f"T_Layer_{n}_Normal_GL.png"))[..., :2].astype(float) / 255 * 2 - 1 for n in names]
 
     def wrap_jump(a):
         return max(np.abs(a[:, 0] - a[:, -1]).mean() / max(np.abs(np.diff(a, axis=1)).mean(), 1e-9),
                    np.abs(a[0] - a[-1]).mean() / max(np.abs(np.diff(a, axis=0)).mean(), 1e-9))
-    check("detail maps: 8 files of 512², colour averaging about 0.5 (no change on average), seamless when tiled "
-          "(the wrapped jump within 2x a neighbour step)",
-          all(dimg[f].shape[:2] == (512, 512) for f in dfiles) and all(0.38 < c.mean() < 0.62 for c in col)
-          and all(wrap_jump(c) < 2.0 for c in col), [round(float(c.mean()), 3) for c in col])
+    check(f"layer library: {len(names)} materials x 4 maps, 512², seamless when tiled (the wrapped jump within 2x a "
+          "neighbour step), heights spanning 0..1, colour and relief in each",
+          all(os.path.exists(os.path.join(LD, f)) for f in lfiles) and all(c.shape[:2] == (512, 512) for c in col)
+          and all(wrap_jump(c) < 2.0 for c in col) and all(h.min() < 0.05 and h.max() > 0.95 for h in hts)
+          and all(c.std() > 0.02 for c in col) and all(np.linalg.norm(n_, axis=-1).mean() > 0.02 for n_ in nrm_),
+          [round(float(wrap_jump(c)), 2) for c in col])
+    SP = np.zeros((2048, 2048, 12))
+    MC = np.zeros((2048, 2048, 3))
+    for i in range(4):
+        for j in range(4):
+            for k in range(3):
+                t_ = img(os.path.join(WD, f"texture/T_Terrain_Splat{k}_x{i}_y{j}.png"))
+                SP[j * 512:(j + 1) * 512, i * 512:(i + 1) * 512, 4 * k:4 * k + 4] = t_[..., :4] / 255.0
+            MC[j * 512:(j + 1) * 512, i * 512:(i + 1) * 512] = \
+                img(os.path.join(WD, f"texture/T_Terrain_Macro_x{i}_y{j}.png"))[..., :3] / 255.0
+    ssum = SP.sum(-1)
+    rs = np.minimum(((np.arange(1025) + 0.5) * 2048 / 1025).astype(int), 2047)
+    sub_ = SP[np.ix_(rs, rs)]
+    land = wfull["Water"] < 0.05
+    check("splat maps: 3 RGBA x 16 tiles of 512², twelve weights that sum to 1 on land (the water takes the rest) "
+          "and never above it", SP.shape[2] == 12 and np.median(ssum[np.ix_(rs, rs)][land]) > 0.97
+          and np.percentile(ssum, 99.9) < 1.06, (round(float(np.median(ssum[np.ix_(rs, rs)][land])), 3),
+                                               round(float(np.percentile(ssum, 99.9)), 3)))
+    rk_ = wfull["Rock"] > 0.8
+    gr_ = wfull["Grass"] > 0.8
+    gsoil = sub_[..., [0, 1, 2, 4]].sum(-1)              # grass, moss and the bare soil between
+    check("  they follow the coarse weights: the rock layers where Rock > 0.8, grass / moss / soil where Grass > 0.8; "
+          "negative control, each set is low where the other lies",
+          sub_[..., 8:11].sum(-1)[rk_].mean() > 0.6 and gsoil[gr_].mean() > 0.6
+          and sub_[..., 8:11].sum(-1)[gr_].mean() < 0.15 and gsoil[rk_].mean() < 0.3,
+          (round(float(sub_[..., 8:11].sum(-1)[rk_].mean()), 2), round(float(gsoil[gr_].mean()), 2)))
+    mland = MC[np.ix_(rs, rs)][land]
+    check("  macro map: 1x on average over the land (stored halved: median about 0.5), and varied",
+          0.35 < np.median(mland) < 0.65 and mland.std() > 0.03, (round(float(np.median(mland)), 3),
+                                                                round(float(mland.std()), 3)))
+    del SP, MC, ssum, sub_, mland, hts, gsoil
     # the stitched 4096² images and the decoded tiles are a gigabyte or two: let them go before the next pipeline
-    del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl, dimg, col
+    del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl, col, nrm_
     api = res = None
     gc.collect()
     _mt.trim()

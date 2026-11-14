@@ -418,7 +418,7 @@
    ],
    "size": [
     340,
-    413
+    433
    ],
    "flags": {},
    "order": 9,
@@ -441,6 +441,11 @@
     },
     {
      "name": "detail_cop",
+     "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "splat_cop",
      "type": "COPIMAGE",
      "link": null
     }
@@ -515,7 +520,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     1140,
-    755
+    775
    ],
    "size": [
     340,

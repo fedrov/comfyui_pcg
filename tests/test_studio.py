@@ -483,5 +483,151 @@ except ValueError:
     bad = True
 check("  detail_triplanar must be a number", bad)
 
+
+sec("10. Anisotropic texture filtering")
+
+
+def grazing(aniso):
+    """A flat 100 x 100 quad with a fine checker (64 squares across), seen at a grazing angle."""
+    W = 256
+    img = CopImage()
+    img.set("C", np.zeros((W, W, 1), np.float32))
+    J, I = np.meshgrid(np.arange(W), np.arange(W))
+    img.set("ground_albedo", np.repeat(np.where(((J // 4) + (I // 4)) % 2 == 0, 0.2, 0.8)[..., None], 3, -1)
+            .astype(np.float32))
+    mesh = _ter.to_mesh(img, "C", 1.0, 100.0)
+    mesh.set_string(PRIM, "material", ["ground"] * mesh.nprims)
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        orig(geo, rast, alb, N, *a_, **k_)
+        got["alb"] = alb.copy()
+    S._apply_textures, old = spy, S._ANISO
+    S._ANISO = aniso
+    try:
+        _O.render_outdoor(mesh, 128, 96, cam=_R.camera(None, "perspective", eye=[0, 6, 60], target=[0, 0, 0], fov=40),
+                          ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, textures="basecolor = @{material}_albedo",
+                          tex_cop=img)
+    finally:
+        S._apply_textures, S._ANISO = orig, old
+    return got["alb"][..., 0]
+
+
+iso, ani = grazing(1.0), grazing(8.0)
+same = grazing(1.0)
+band = slice(30, 40)                                    # a band of the plane well into the distance (row 0 = bottom)
+c_iso, c_ani = float(iso[band, 20:108].std()), float(ani[band, 20:108].std())
+check("at a grazing angle the footprint takes the short axis (up to 8x): the checker keeps its contrast; "
+      "negative control, the long axis (isotropic) blurs it toward grey", c_ani > 1.5 * c_iso and c_ani > 0.05,
+      (round(c_iso, 3), round(c_ani, 3)))
+far = slice(30, 40)
+check("  a dense mesh is filtered in the distance (across face edges): far rows fade toward the mean 0.5 under "
+      "isotropic filtering instead of keeping the full checker (the footprint used to be 0 there)",
+      float(same[far, 20:108].std()) < 0.15 and abs(float(same[far, 20:108].mean()) - 0.5) < 0.05,
+      round(float(same[far, 20:108].std()), 3))
+
+
+sec("11. Terrain layers: tiled maps blended by masks (an engine's landscape material)")
+
+
+def layer_run(textures, surf_layers, lib_layers, n=96):
+    W = 64
+    img = CopImage()
+    img.set("C", np.zeros((W, W, 1), np.float32))
+    img.set("ground_albedo", np.full((W, W, 3), 0.5, np.float32))
+    for k, v in surf_layers.items():
+        img.set(k, np.asarray(v, np.float32))
+    if "ground_w2" not in surf_layers:                  # a second splat map (layers 5..8), empty
+        img.set("ground_w2", np.zeros((W, W, 4), np.float32))
+    lib = CopImage()
+    for k, v in lib_layers.items():
+        lib.set(k, np.asarray(v, np.float32))
+    mesh = _ter.to_mesh(img, "C", 1.0, 100.0)
+    mesh.set_string(PRIM, "material", ["ground"] * mesh.nprims)
+    got = {}
+    orig = S._apply_textures
+
+    def spy(geo, rast, alb, N, *a_, **k_):
+        orig(geo, rast, alb, N, *a_, **k_)
+        got["alb"], got["N"], got["rough"] = alb.copy(), N.copy(), a_[7]["roughness"].copy()
+    S._apply_textures = spy
+    try:
+        _O.render_outdoor(mesh, n, n, cam=_R.camera(None, "perspective", eye=[0, 150, 0.01], target=[0, 0, 0],
+                                                    fov=20), ssaa=1, haze=0.0, clouds=0.0, sky_samples=0,
+                          textures=textures, tex_cop=img, detail_cop=lib)
+    finally:
+        S._apply_textures = orig
+    return got
+
+
+def solid(c, R_=32):
+    return np.tile(np.asarray(c, np.float32), (R_, R_, 1))
+
+
+wts = np.zeros((W_, W_, 4))
+wts[:, :W_ // 3, 0] = 1.0                       # left third: layer 1
+wts[:, W_ // 3:2 * W_ // 3, 1] = 1.0            # middle: layer 2
+wts[:, 2 * W_ // 3:, :] = 0.0                    # right third: no layer (the base colour shows)
+L2 = ("basecolor = @{material}_albedo\nlayer1 = @red\nlayer2 = @blue\nlayer_weights = @{material}_w @{material}_w2\n")
+red, blue = (0.6, 0.2, 0.1), (0.1, 0.2, 0.6)
+r1 = layer_run(L2, {"ground_w": wts}, {"red": solid(red), "blue": solid(blue)})
+Hn = r1["alb"].shape[0]
+row = r1["alb"][Hn // 2]
+check("masks pick the layers (two splat maps named, '@a @b'): red where weight 1 is set, blue where weight 2 is, "
+      "the base colour (0.5) where none",
+      np.allclose(row[8], red, atol=0.01) and np.allclose(row[48], blue, atol=0.01)
+      and np.allclose(row[88], 0.5, atol=0.01), (np.round(row[8], 3), np.round(row[48], 3), np.round(row[88], 3)))
+half = np.zeros((W_, W_, 4))
+half[..., 0] = half[..., 1] = 0.5
+r2 = layer_run(L2, {"ground_w": half}, {"red": solid(red), "blue": solid(blue)})
+check("  weights 0.5 / 0.5 blend the colours half and half", np.allclose(r2["alb"][Hn // 2, 48],
+                                                                      (np.array(red) + blue) / 2, atol=0.01))
+w5 = np.zeros((W_, W_, 4))
+w5[..., 0] = 1.0
+L5 = "basecolor = @{material}_albedo\nlayer5 = @red\nlayer_weights = @{material}_w @{material}_w2\n"
+r5 = layer_run(L5, {"ground_w": np.zeros((W_, W_, 4)), "ground_w2": w5}, {"red": solid(red)})
+check("  the second splat map's first channel is layer 5", np.allclose(r5["alb"][Hn // 2, 48], red, atol=0.01))
+hb = np.zeros((W_, W_, 4))
+hb[..., 0], hb[..., 1] = 0.4, 0.6
+LH = L2 + "layer1_height = @hi\nlayer2_height = @lo\n"
+lib = {"red": solid(red), "blue": solid(blue), "hi": solid((1.0, 1.0, 1.0)), "lo": solid((0.0, 0.0, 0.0))}
+rh = layer_run(LH + "layer_blend = 0.2", {"ground_w": hb}, lib)
+rl = layer_run(LH, {"ground_w": hb}, lib)
+check("  height blend (layer_blend 0.2): the higher layer (red, height 1) covers the lower one even at weight 0.4; "
+      "negative control, without it the colour is the 40 / 60 mix",
+      np.allclose(rh["alb"][Hn // 2, 48], red, atol=0.01)
+      and np.allclose(rl["alb"][Hn // 2, 48], 0.4 * np.array(red) + 0.6 * np.array(blue), atol=0.01))
+J2, I2 = np.meshgrid(np.arange(32), np.arange(32))
+chk = np.repeat(np.where(((J2 // 8) + (I2 // 8)) % 2 == 0, 0.2, 0.8)[..., None], 3, -1)   # 4 x 4 squares per tile
+one = np.zeros((W_, W_, 4))
+one[..., 0] = 1.0
+LS = "basecolor = @{material}_albedo\nlayer1 = @chk\nlayer_weights = @{material}_w\nlayer1_size = "
+s25 = layer_run(LS + "25", {"ground_w": one}, {"chk": chk})
+s50 = layer_run(LS + "50", {"ground_w": one}, {"chk": chk})
+e25 = int((np.diff(np.sign(s25["alb"][Hn // 2, 10:86, 0] - 0.5)) != 0).sum())
+e50 = int((np.diff(np.sign(s50["alb"][Hn // 2, 10:86, 0] - 0.5)) != 0).sum())
+check("  layerN_size is metres per tile in world space: 25 m tiles give twice the checker edges of 50 m ones",
+      e50 >= 2 and abs(e25 - 2 * e50) <= 2, (e25, e50))
+tilted_n = solid((0.5 * 0.5 + 0.5, 0.5, 0.5 * 0.866 + 0.5))
+LN = ("basecolor = @{material}_albedo\nlayer1 = @red\nlayer1_normal = @tn\nlayer1_rough = @rg\n"
+      "layer_weights = @{material}_w\nlayer_macro = @{material}_mac\nroughness = @{material}_r\n")
+rn = layer_run(LN, {"ground_w": wts, "ground_mac": np.full((W_, W_, 3), 0.5), "ground_r": np.full((W_, W_, 1), 0.9)},
+               {"red": solid(red), "tn": tilted_n, "rg": solid((0.3, 0.3, 0.3))})
+check("  a layer's normal map tilts the surface in world space (30 degrees toward +x on flat ground), its roughness "
+      "replaces the base one, the macro multiplies its colour (0.5 -> half); untouched where its weight is 0",
+      np.allclose(rn["N"][Hn // 2, 8], [0.5, 0.866, 0], atol=0.02) and abs(rn["rough"][Hn // 2, 8] - 0.3) < 0.01
+      and np.allclose(rn["alb"][Hn // 2, 8], np.array(red) * 0.5, atol=0.01)
+      and np.allclose(rn["N"][Hn // 2, 88], [0, 1, 0], atol=1e-3) and abs(rn["rough"][Hn // 2, 88] - 0.9) < 0.01,
+      (np.round(rn["N"][Hn // 2, 8], 3), round(float(rn["rough"][Hn // 2, 8]), 3)))
+try:
+    S.parse_textures("layer3_size = wide")
+    bad = False
+except ValueError:
+    bad = True
+check("  layerN_size must be a number; layer slots are accepted by the parser",
+      bad and set(S.parse_textures("layer12 = @a\nlayer12_normal = @b\nlayer_weights = @w").keys())
+      == {"layer12", "layer12_normal", "layer_weights"})
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

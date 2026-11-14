@@ -357,6 +357,84 @@ def perlin3_periodic(p, period):
     return res * 0.5 + 0.5
 
 
+def _cell_hash(X, Y, Z, salt):
+    """Integer lattice cell -> uint64 (splitmix64 finaliser on a mixed key): deterministic, vectorised."""
+    with np.errstate(over="ignore"):
+        k = (X.astype(np.uint64) * np.uint64(0x9E3779B97F4A7C15)) ^ (Y.astype(np.uint64) * np.uint64(0xC2B2AE3D27D4EB4F)) \
+            ^ (Z.astype(np.uint64) * np.uint64(0x165667B19E3779F9)) ^ np.uint64(salt * 0x27D4EB2F165667C5 & 0xFFFFFFFFFFFFFFFF)
+        k ^= k >> np.uint64(30)
+        k *= np.uint64(0xBF58476D1CE4E5B9)
+        k ^= k >> np.uint64(27)
+        k *= np.uint64(0x94D049BB133111EB)
+        k ^= k >> np.uint64(31)
+    return k
+
+
+def worley3_periodic(p, period=0, jitter=1.0):
+    """
+    Cellular (Worley) noise: one feature point per unit cell (jittered by Jitter), and per position the distances
+    to the nearest two, f1 <= f2, the nearest one's cell id (0..1, the same anywhere in that cell) and the vector
+    from the position to it. Period wraps the lattice like pnoise (a number or a 3-vector of integers, 0 = not
+    periodic), so the cells tile: a cell cut by the tile edge is the same cell on the other side.
+    -> (f1, f2, id, to_feature (N, 3)).
+
+    The building block of stones, cracks, cobbles, leaves and scales: f2 - f1 is 0 on a cell border and grows
+    toward the middle (stones with rounded tops, crack lines), id gives each cell its own colour or size, and
+    to_feature gives each cell its own local frame (a clump of blades turned its own way). A 2-vector position
+    (set(x, y)) gives the 2D pattern, three times faster; to_feature is then (N, 2).
+    """
+    p = np.atleast_2d(np.asarray(p, np.float64))
+    if p.shape[-1] == 1:
+        p = np.repeat(p, 3, -1)
+    dim = 2 if p.shape[-1] == 2 else 3       # set(x, y): the 2D pattern, 9 cells instead of 27 (3x faster)
+    p = p[:, :dim]
+    per = np.asarray(period, np.float64).reshape(-1)
+    per = np.broadcast_to(per if per.size in (1, 3) else per[:1], (3,))
+    per = np.maximum(np.rint(per), 0).astype(np.int64)
+    base = np.floor(p).astype(np.int64)
+    n = len(p)
+    f1 = np.full(n, np.inf)
+    f2 = np.full(n, np.inf)
+    cid = np.zeros(n)
+    vec = np.zeros((n, dim))
+    jit = float(jitter)
+    inv = 1.0 / 2.0 ** 53
+    zero = np.zeros(n, np.int64)
+    for dz in ((-1, 0, 1) if dim == 3 else (0,)):
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                c = base + np.array([dx, dy, dz][:dim])
+                w = [c[:, k] % per[k] if per[k] > 0 else c[:, k] for k in range(dim)] + ([] if dim == 3 else [zero])
+                h = _cell_hash(w[0], w[1], w[2], 1)
+                h2 = _cell_hash(w[0], w[1], w[2], 2)       # three 21-bit fractions: the feature point in the cell
+                fp = np.stack([((h2 >> np.uint64(21 * k)) & np.uint64(0x1FFFFF)).astype(np.float64) / 2097152.0
+                               for k in range(dim)], -1)
+                d = c + 0.5 + (fp - 0.5) * jit - p
+                dist = np.sqrt((d * d).sum(-1))
+                closer = dist < f1
+                f2 = np.where(closer, f1, np.minimum(f2, dist))
+                f1 = np.where(closer, dist, f1)
+                cid = np.where(closer, (h >> np.uint64(11)).astype(np.float64) * inv, cid)
+                vec = np.where(closer[:, None], d, vec)
+    return f1, f2, cid, vec
+
+
+def _worley_memo(p, period, memo):
+    """worley3_periodic, remembering the last two calls in memo (a list that lives as long as one wrangle's
+    namespace): pworley(q, n) and pworley_dir(q, n) on the same q -- the usual pair -- cost one evaluation. Keyed by
+    the bytes of q, not its identity (each set(...) builds a new array)."""
+    import hashlib
+    a = np.ascontiguousarray(np.atleast_2d(np.asarray(p, np.float64)))
+    key = (hashlib.blake2b(a.tobytes(), digest_size=16).digest(), a.shape, str(np.asarray(period).tolist()))
+    for k, v in memo:
+        if k == key:
+            return v
+    v = worley3_periodic(a, period)
+    memo.insert(0, (key, v))
+    del memo[2:]
+    return v
+
+
 class Vec(np.ndarray):
     """
     ndarray with .x/.y/.z/.w.
@@ -657,6 +735,7 @@ def _namespace(seed=0, ch_params=None, geo=None, inputs=None):
         out = [str(fmt) % tuple(cell(c, i) for c in cols) for i in range(n)]
         return np.asarray(out, dtype=object).astype(str).reshape(-1, 1)
 
+    _wm = []                                     # pworley / pworley_dir memo of this namespace
     ns.update(
         sprintf=_sprintf,
         itoa=lambda x: _sprintf("%d", x),
@@ -692,6 +771,11 @@ def _namespace(seed=0, ch_params=None, geo=None, inputs=None):
         # noise
         noise=perlin3,
         pnoise=perlin3_periodic,
+        # cellular: set(f1, f2, cell id) and the vector to the nearest feature point; p... wraps like pnoise
+        worley=lambda p: _V(np.stack(_worley_memo(p, 0, _wm)[:3], -1)),
+        pworley=lambda p, period: _V(np.stack(_worley_memo(p, period, _wm)[:3], -1)),
+        worley_dir=lambda p: _V(_worley_memo(p, 0, _wm)[3]),
+        pworley_dir=lambda p, period: _V(_worley_memo(p, period, _wm)[3]),
         vnoise=lambda p: _V(np.stack(
             [perlin3(np.asarray(p, np.float64)),
              perlin3(np.asarray(p, np.float64) + 31.7),

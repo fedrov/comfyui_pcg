@@ -116,5 +116,40 @@ P = g.get(POINT, "P")
 check("SOP Wrangle: rand(@id) + noise(@P) per point",
       h.shape == (81, 1) and np.allclose(h[:, 0], WR._hash01(np.arange(81) % 5, 1) + WR.perlin3(P)), h.shape)
 
+
+print("\n[worley / pworley: cellular noise]")
+rng = np.random.default_rng(5)
+q = rng.random((4000, 3)) * np.array([6.0, 6.0, 2.0])
+f1, f2, cid, dv = WR.worley3_periodic(q, 0)
+check("f1 <= f2, and the vector to the feature point is f1 long", (f1 <= f2 + 1e-12).all()
+      and np.allclose(np.linalg.norm(dv, axis=1), f1))
+g1 = WR.worley3_periodic(q + dv, 0)
+check("  the point it leads to is a feature point (f1 = 0 there) of the same cell (same id)",
+      np.allclose(g1[0], 0, atol=1e-9) and np.allclose(g1[2], cid))
+check("  f1 is under a cell diagonal (sqrt 3): the own cell's feature point bounds it", f1.max() < np.sqrt(3))
+pf = WR.worley3_periodic(q, 6)
+pg = WR.worley3_periodic(q + np.array([6.0, -12.0, 0.0]), 6)
+nf = WR.worley3_periodic(q + np.array([6.0, -12.0, 0.0]), 0)
+check("pworley(p, 6) repeats every 6 units: f1, f2 and id equal", np.allclose(pf[0], pg[0]) and np.allclose(pf[1], pg[1])
+      and np.array_equal(pf[2], pg[2]))
+check("  negative control: worley(p) (not periodic) is different there", not np.allclose(f1, nf[0], atol=1e-3))
+q2 = rng.random((3000, 2)) * 5
+a2 = WR.worley3_periodic(q2, 5)
+b2 = WR.worley3_periodic(q2 + np.array([5.0, 10.0]), 5)
+c3 = WR.worley3_periodic(np.c_[q2, np.zeros(len(q2))], 5)
+check("a 2-vector gives the 2D pattern: it tiles, |dir| = f1 with dir (N, 2), and it is not the 3D one cut at z = 0",
+      np.allclose(a2[0], b2[0]) and np.array_equal(a2[2], b2[2]) and a2[3].shape == (3000, 2)
+      and np.allclose(np.linalg.norm(a2[3], axis=1), a2[0]) and not np.allclose(a2[0], c3[0], atol=1e-3))
+img = CopImage(96, 64)
+t = PX.wrangle(img, "w = pworley(set(@u * 6, @v * 4, 0.5), set(6, 4, 0))\n@f = w.x\n@e = w.y - w.x\n"
+               "@d = length(pworley_dir(set(@u * 6, @v * 4, 0.5), set(6, 4, 0)))", 0, {})
+f_, d_ = t.get("f")[..., 0], t.get("d")[..., 0]
+sr = [np.abs(f_[:, 0] - f_[:, -1]).mean() / np.abs(np.diff(f_, axis=1)).mean(),
+      np.abs(f_[0] - f_[-1]).mean() / np.abs(np.diff(f_, axis=0)).mean()]
+check("COP Wrangle: pworley tiles (the jump across the wrapped edge is like a step between pixels)",
+      max(sr) < 2.0, [round(x, 2) for x in sr])
+check("  pworley and pworley_dir agree (|dir| = f1) and e = f2 - f1 >= 0", np.allclose(d_, f_, atol=1e-5)
+      and (t.get("e") >= -1e-9).all())
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

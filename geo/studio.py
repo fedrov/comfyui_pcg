@@ -23,6 +23,7 @@ margin), so wide images of wide subjects are filled.
 from __future__ import annotations
 
 import os
+import re
 
 import numpy as np
 
@@ -60,7 +61,13 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              "detail_weights", "detail_tiling", "detail_triplanar")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
+# terrain layers (an engine's landscape material): layerN = a tiled colour, layerN_normal / _rough / _height its other
+# maps, layerN_size metres per tile; layer_weights the masks (channels of the named layers, in order: one per layer),
+# layer_blend the height-blend depth, layer_macro a colour multiplier on the uv (macro variation)
+_LAYER_SLOT = re.compile(r"layer(\d+(_normal|_rough|_height|_size)?|_weights|_blend|_macro|_antitile)")
 _DETAIL_BLOCK = 1 << 20          # pixels per block of detail mapping
+_UV_SEAM = 0.05                  # a uv jump between neighbouring pixels larger than this is a seam, not a footprint
+_ANISO = 8.0                     # anisotropic texture filtering: the most texels one pixel's footprint is stretched over
 
 
 def parse_textures(text):
@@ -80,6 +87,17 @@ def parse_textures(text):
     0.5 and flat, so it fades by itself. detail_triplanar = a size in world units projects the detail from the
     three axes instead (one tile per that size, blended by the normal): on a cliff the uv of a top-down terrain
     stretches a tile into streaks down the slope; projected from the side it keeps its shape.
+
+    Terrain layers, as an engine's landscape material: layer1, layer2 ... are full-colour tiled maps (read linear from
+    a COP image on detail_cop, sRGB from a file), each with optional layerN_normal, layerN_rough, layerN_height
+    (0..1, for height blending) and layerN_size (metres per tile, default 4); they are projected in world space from
+    the three axes (blended by the normal, so cliffs are not stretched). layer_weights = '@w0 @w1 ...' names the
+    mask layers on the uv (on splat_cop when one is connected, else the textures image): their channels, in order, are the weights of layer1, layer2 ... (an RGBA splat map holds
+    four). layer_blend = depth blends by height (the stones of the gravel show through the grass at a seam instead of
+    a soft fade; 0 = by weight). layer_macro = '@name' multiplies the layered colour (macro variation: wet ground,
+    sun-bleached spurs). layer_antitile = 0..1 mixes in a second sample of each map, 3.7 times larger and turned 37
+    degrees (colour, roughness, height), so the repeat does not line up across a mountainside. Where the weights sum
+    below 1 the base colour shows.
     """
     out = {}
     for line in str(text or "").splitlines():
@@ -89,9 +107,11 @@ def parse_textures(text):
         if "=" not in line:
             raise ValueError(f"Textures: expected 'slot = path', got {line!r}")
         k, v = (x.strip() for x in line.split("=", 1))
-        if k.lower() not in TEX_SLOTS or not v:
-            raise ValueError(f"Textures: slot must be one of {TEX_SLOTS} with a path, got {line!r}")
-        if k.lower() in ("detail_tiling", "detail_triplanar"):
+        if (k.lower() not in TEX_SLOTS and not _LAYER_SLOT.fullmatch(k.lower())) or not v:
+            raise ValueError(f"Textures: slot must be one of {TEX_SLOTS} or layer1.. / layer1_normal .. / "
+                             f"layer_weights / layer_blend / layer_macro with a path, got {line!r}")
+        if k.lower() in ("detail_tiling", "detail_triplanar", "layer_blend", "layer_antitile") or re.fullmatch(r"layer\d+_(size|triplanar)",
+                                                                                            k.lower()):
             try:
                 float(v)
             except ValueError:
@@ -224,7 +244,8 @@ def _ssao(P, N, valid, px_world, radius_world, samples=12):
 # ─────────────────────────────────────────────────────────────── main
 def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib="Cd",
                   ssaa=2, textures="", tex_root=None, material_attrib="material", uv_attrib="uv",
-                  shadows=True, ao=True, ground=True, report=None, tex_cop=None, detail_cop=None):
+                  shadows=True, ao=True, ground=True, report=None, tex_cop=None, detail_cop=None,
+                  splat_cop=None):
     """
     (H, W, 3) float32 sRGB 0..1, row 0 = top (ComfyUI IMAGE). If report is a dict it receives the texture files
     used and the ones not found ("used" / "missing").
@@ -307,7 +328,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
         _apply_textures(geo, rast, alb, N, m, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                        cop_detail=detail_cop, P=P)
+                        cop_detail=detail_cop, P=P, cop_splat=splat_cop)
     use_pbr = any(sl in tex for sl in _PBR_SLOTS)
     rast = None                                   # bary / z / hit are not needed past this point
     if report is not None:
@@ -554,7 +575,7 @@ def _masked_interp(rast, idx, values, corner):
 
 
 def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None,
-                    P=None):
+                    P=None, cop_splat=None):
     """
     BaseColor into alb and tangent-space normal maps into N, per face material. The tangent frames are the
     per-corner set Export Mesh writes and COP Bake Textures bakes against (meshexport.corner_frames), so a baked
@@ -590,25 +611,68 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     # uv change per pixel (screen-space derivative, within the same face only) -> footprint for mip selection
     uvi = np.zeros(hit.shape + (2,), np.float32)
     uvi[idx] = uv
-    dimg = np.zeros(hit.shape, np.float32)
+    # per screen axis; the footprint is the shorter one, but at least 1 / _ANISO of the longer (anisotropic
+    # filtering, as GPUs do): a surface seen at a grazing angle -- or a cliff under a top-down terrain uv, where one
+    # texel spans metres down the slope -- takes the mip of its long axis otherwise and goes blurry
+    # (across a face edge too when the uv is continuous there: on a dense mesh -- a terrain of millions of
+    # triangles, a pixel or two each in the distance -- nearly every neighbour is another face, and "same face only"
+    # left the footprint 0 and the far texture unfiltered; only a jump, a uv seam, is left out)
+    dax = []
     for ax in (0, 1):
         d = np.abs(np.diff(uvi, axis=ax)).max(-1)
-        d = np.where(np.diff(hit, axis=ax) == 0, d, 0.0)
+        d = np.where((np.diff(hit, axis=ax) == 0) | ((d < _UV_SEAM) & (np.diff(hit >= 0, axis=ax) == 0)), d, 0.0)
         pad = [(0, 1) if a_ == ax else (0, 0) for a_ in range(2)]
-        dimg = np.maximum(dimg, np.pad(d, pad, mode="edge"))
-    du = dimg[idx]
-    del uvi, dimg
+        dax.append(np.pad(d, pad, mode="edge")[idx])
+    del uvi
+    lo_, hi_ = np.minimum(dax[0], dax[1]), np.maximum(dax[0], dax[1])
+    du = np.where(lo_ > 0, np.maximum(lo_, hi_ / _ANISO), hi_)
+    del dax, lo_, hi_
     frames = {}
     cache = {}
     tri = None
     if float(tex.get("detail_triplanar", "0") or 0) > 0 and "detail_weights" in tex and P is not None:
         tri = _triplanar_coords(P, N, hit, idx, float(tex["detail_triplanar"]))
+    layers = sorted(int(k_[5:]) for k_ in tex if re.fullmatch(r"layer\d+", k_))
+    tri1 = None
+    if layers and "layer_weights" in tex:
+        if P is None:
+            raise ValueError("Textures: terrain layers need the surface positions (Studio / Outdoor look)")
+        tri1 = _triplanar_coords(P, N, hit, idx, 1.0)       # world projection at 1 unit per tile; scaled per layer
+
+    def fetch_weights(pattern, mat):
+        """The mask layers stacked channel by channel (layer_weights = '@a @b ...'), as one mip chain."""
+        path = pattern.replace("{material}", mat)
+        if not path.startswith("@"):
+            raise ValueError("Textures: layer_weights takes COP layers ('@w0 @w1 ...')")
+        names = [n_.lstrip("@") for n_ in path.split()]
+        wc = cop_splat if cop_splat is not None else cop
+        if wc is None or any(n_ not in wc for n_ in names):
+            report["missing"].append(path)
+            return None
+        key = (path, "layer_weights")
+        if key not in cache:
+            from .cop import backend as _bk
+            # 8-bit: twelve weights of a big terrain are hundreds of megabytes as float32 mip chains
+            parts = [np.asarray(_bk.backend_of(wc.need(n_)).to_numpy(wc.need(n_)), np.float32) for n_ in names]
+            q = np.concatenate([np.rint(np.clip(p_, 0, 1) * 255).astype(np.uint8) for p_ in parts], -1)
+            del parts
+            ch = [q]
+            while min(ch[-1].shape[:2]) > 1:
+                t_ = ch[-1]
+                H_, W_ = (t_.shape[0] // 2) * 2, (t_.shape[1] // 2) * 2
+                ch.append(np.rint(t_[:H_, :W_].reshape(H_ // 2, 2, W_ // 2, 2, -1).mean((1, 3))).astype(np.uint8))
+            cache[key] = ch
+        report["used"].append(path)
+        return cache[key]
 
     def fetch(pattern, slot, mat):
         """The mip chain for this slot's texture on this material, or None (missing: listed in the report)."""
         path = pattern.replace("{material}", mat)
         key = (path, slot)
-        src = cop_detail if (cop_detail is not None and slot.startswith("detail") and slot != "detail_weights") else cop
+        src = cop_detail if (cop_detail is not None and slot.startswith(("detail", "layer"))
+                             and slot not in ("detail_weights", "layer_weights", "layer_macro")) else cop
+        if slot == "layer_macro" and cop_splat is not None:
+            src = cop_splat
         if path.startswith("@"):
             # a layer named per material ('@{material}_albedo') that the image does not have: like a missing
             # file, those faces keep their Cd -- lets one image texture the terrain and leave the trees alone
@@ -623,7 +687,8 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
                 report["missing"].append(path)
                 return None
             if key not in cache:
-                cache[key] = mip_chain(load_texture(path, root, srgb=(slot == "basecolor")))
+                cache[key] = mip_chain(load_texture(path, root, srgb=(slot == "basecolor"
+                                                                      or re.fullmatch(r"layer\d+", slot) is not None)))
         report["used"].append(path)
         return cache[key]
 
@@ -636,7 +701,7 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         sel = pm == mi
         tgt = (idx[0][sel], idx[1][sel])
         for slot, pattern in tex.items():
-            if slot in _DETAIL_SLOTS:
+            if slot in _DETAIL_SLOTS or slot.startswith("layer"):
                 continue
             ch = fetch(pattern, slot, mat)
             if ch is None:
@@ -673,6 +738,15 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
                 tb_ = (idx[0][sb], idx[1][sb])
                 fb_ = None if fr_ is None else (lambda *_x, r_=slice(b0, b0 + blk): tuple(v_[r_] for v_ in fr_))
                 _apply_detail(tex, fetch, fb_, mi, mat, sb, tb_, uv, du, alb, N, tri)
+        if tri1 is not None:
+            wch = fetch_weights(tex["layer_weights"], mat)
+            if wch is not None:
+                on_ = np.nonzero(sel)[0]
+                for b0 in range(0, len(on_), _DETAIL_BLOCK):
+                    sb = np.zeros_like(sel)
+                    sb[on_[b0:b0 + _DETAIL_BLOCK]] = True
+                    _apply_layers(tex, layers, wch, fetch, mat, sb, (idx[0][sb], idx[1][sb]), uv, du, alb, N, pbr,
+                                  tri1)
 
 
 # triplanar planes: (u axis, v axis) in world space; the top plane matches a terrain's uv (u east, v north = -z)
@@ -782,6 +856,119 @@ def _apply_detail(tex, fetch, frame_of, mi, mat, sel, tgt, uv, du, alb, N, tri=N
     b0 = np.cross(n0, t0) * hand[:, None]
     nw = t0 * nts[:, 0:1] + b0 * nts[:, 1:2] + n0 * nts[:, 2:3]
     N[tgt] = nw / np.maximum(np.linalg.norm(nw, axis=-1, keepdims=True), 1e-12)
+
+
+def _apply_layers(tex, layers, wch, fetch, mat, sel, tgt, uv, du, alb, N, pbr, tri1):
+    """Terrain layers on one block of a material's pixels: see parse_textures."""
+    w = np.clip(sample_mip(wch, uv[sel], du[sel] * max(wch[0].shape[:2])) / 255.0, 0.0, 1.0)   # 8-bit chain
+    n = len(w)
+    at_sel = np.cumsum(sel) - 1
+    # this block's share of each projection plane: slot[i] = the row of pixel i in that plane, -1 = not on it
+    planes = []
+    for pos, uvp, fpp, wp, U, V in tri1:
+        m_ = sel[pos]
+        if m_.any():
+            slot_ = np.full(n, -1, np.int64)
+            slot_[at_sel[pos[m_]]] = np.arange(int(m_.sum()))
+            planes.append((slot_, uvp[m_].astype(np.float64), fpp[m_].astype(np.float64), wp[m_].astype(np.float64),
+                           U, V))
+
+    anti = float(tex.get("layer_antitile", "0") or 0)
+    ca_, sa_ = np.cos(0.6458), np.sin(0.6458)           # 37 degrees
+
+    def sample(chain, rows, size):
+        """World-projected sample of a layer map at the pixels rows (indices in this block): -> (len(rows), C).
+        With layer_antitile a second sample, 3.7 times larger and turned 37 degrees, is mixed in: the repeat of the
+        tile then no longer lines up into a grid across a mountainside."""
+        out = np.zeros((len(rows), chain[0].shape[2]))
+        res = max(chain[0].shape[:2])
+        for slot_, uvp, fpp, wp, U, V in planes:
+            j = slot_[rows]
+            m_ = j >= 0
+            if m_.any():
+                jj = j[m_]
+                v_ = sample_mip(chain, uvp[jj] / size, fpp[jj] / size * res)
+                if anti > 0:
+                    q = uvp[jj] / (3.7 * size)
+                    q = np.stack([q[:, 0] * ca_ - q[:, 1] * sa_, q[:, 0] * sa_ + q[:, 1] * ca_], -1) + 0.37
+                    v_ = v_ * (1 - anti) + anti * sample_mip(chain, q, fpp[jj] / (3.7 * size) * res)
+                out[m_] += wp[jj, None] * v_
+        return out
+
+    def tilt(chain, rows, size):
+        """The layer's normal map as a world-space tilt (x along each plane's u, y along its v, over z)."""
+        out = np.zeros((len(rows), 3))
+        res = max(chain[0].shape[:2])
+        for slot_, uvp, fpp, wp, U, V in planes:
+            j = slot_[rows]
+            m_ = j >= 0
+            if m_.any():
+                jj = j[m_]
+                d = sample_mip(chain, uvp[jj] / size, fpp[jj] / size * res) * 2.0 - 1.0
+                out[m_] += wp[jj, None] * (d[:, 0:1] * U + d[:, 1:2] * V) / np.maximum(d[:, 2:3], 0.2)
+        return out
+
+    use = [(k, k - 1) for k in layers if k - 1 < w.shape[1] and (w[:, k - 1] > 1e-4).any()]   # layerN = channel N
+    if not use:
+        return
+    sizes = {k: float(tex.get(f"layer{k}_size", "4") or 4) for k, _ in use}
+    rows = {k: np.nonzero(w[:, i] > 1e-4)[0] for k, i in use}
+    # blend weights: by weight, or by height (the higher layer wins near a seam, over a band of layer_blend)
+    b = {k: w[rows[k], i] for k, i in use}
+    depth = float(tex.get("layer_blend", "0") or 0)
+    if depth > 0:
+        score = np.full((n, len(use)), -np.inf)
+        for c_, (k, i) in enumerate(use):
+            h = np.full(len(rows[k]), 0.5)
+            if f"layer{k}_height" in tex:
+                ch = fetch(tex[f"layer{k}_height"], f"layer{k}_height", mat)
+                if ch is not None:
+                    h = sample(ch, rows[k], sizes[k])[:, 0]
+            score[rows[k], c_] = b[k] + h
+        top = score.max(1)
+        tot = np.zeros(n)
+        for c_, (k, i) in enumerate(use):
+            b[k] = np.maximum(score[rows[k], c_] - top[rows[k]] + depth, 0.0)
+            tot[rows[k]] += b[k]
+        wsum = np.clip(w[:, [i for _, i in use]].sum(1), 0.0, 1.0)
+        scale_ = np.where(tot > 0, wsum / np.maximum(tot, 1e-12), 0.0)
+        for k, _ in use:
+            b[k] = b[k] * scale_[rows[k]]
+    col = np.zeros((n, 3))
+    rough = np.zeros(n)
+    rw = np.zeros(n)
+    pert = np.zeros((n, 3))
+    bsum = np.zeros(n)
+    for k, i in use:
+        r_, bk = rows[k], b[k]
+        bsum[r_] += bk
+        ch = fetch(tex[f"layer{k}"], f"layer{k}", mat)
+        if ch is not None:
+            col[r_] += bk[:, None] * sample(ch, r_, sizes[k])[:, :3]
+        if f"layer{k}_rough" in tex:
+            ch = fetch(tex[f"layer{k}_rough"], f"layer{k}_rough", mat)
+            if ch is not None:
+                rough[r_] += bk * sample(ch, r_, sizes[k])[:, 0]
+                rw[r_] += bk
+        if f"layer{k}_normal" in tex:
+            ch = fetch(tex[f"layer{k}_normal"], f"layer{k}_normal", mat)
+            if ch is not None:
+                pert[r_] += bk[:, None] * tilt(ch, r_, sizes[k])
+    bsum = np.clip(bsum, 0.0, 1.0)
+    if "layer_macro" in tex:
+        mch = fetch(tex["layer_macro"], "layer_macro", mat)
+        if mch is not None:
+            col *= sample_mip(mch, uv[sel], du[sel] * max(mch[0].shape[:2]))[:, :3]
+    alb[tgt] = alb[tgt] * (1.0 - bsum)[:, None] + col
+    if rw.any():
+        rr = pbr["roughness"][tgt]
+        pbr["roughness"][tgt] = rr * (1.0 - rw) + rough
+    if pert.any():
+        n0 = N[tgt].astype(np.float64)
+        n0 /= np.maximum(np.linalg.norm(n0, axis=-1, keepdims=True), 1e-12)
+        pert -= (pert * n0).sum(-1, keepdims=True) * n0
+        nw = n0 + pert
+        N[tgt] = nw / np.maximum(np.linalg.norm(nw, axis=-1, keepdims=True), 1e-12)
 
 
 def _finish(img, k):

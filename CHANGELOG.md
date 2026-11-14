@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Wrangle: cellular noise** `worley(p)` / `pworley(p, period)` -> `set(f1, f2, cell id)` and `worley_dir(p)` /
+  `pworley_dir(p, period)` -> the vector to the nearest feature point; the `p...` forms tile like `pnoise`. Stones,
+  cracks, cobbles and leaves in a COP Wrangle.
+- **Geometry Preview: terrain layers**, as an engine's landscape material: `layer1..N` tiled full-colour maps with
+  `layerN_normal / _rough / _height / _size`, projected in world space from the three axes; `layer_weights` names
+  the splat maps (four layers per RGBA map), `layer_blend` blends by height, `layer_antitile` mixes in a larger,
+  turned second sample against visible repeats, `layer_macro` multiplies the layered colour. A new `splat_cop` input
+  holds the masks at their own resolution. Weights are kept as 8-bit mip chains.
+- **World tiles: close-range terrain**. Over the road view (1.6 x 1.6 km) the preview terrain is a 2 m mesh displaced
+  by the 1 m detail height (crags, ribs, ledges, rills as relief with shadows and real silhouettes), set into a hole
+  in the 4 m full-map mesh along its grid, the detail fading out to the border so they meet without a crack; the
+  grass stands on it.
+- **World tiles: twelve terrain layers**. A layer library (lush and dry grass, moss, forest floor, soil, mud, gravel,
+  sand, cliff rock, strata, slab, road; 512² tiles of 2-16 m, colour, normal, height, roughness) built from cells and
+  noise, three 2 m RGBA splat maps from the surface's masks, and a macro map that keeps the painted 1 m variation;
+  written for the engine and used by the previews in place of the four detail maps. Rock faces: streaks and ribs
+  stretched along six fixed directions (a per-pixel frame ringed every cone-shaped peak like the grain of a sawn log),
+  bedding on a tilted plane, rock in four sub-layers over angular crags, ledges where the beds crop out.
 - **Geometry Preview: triplanar detail** (`detail_triplanar = size`): the detail maps projected from the three axes,
   blended by the normal, so on a cliff they keep their shape instead of streaking down the slope along a top-down uv.
 - **World tiles: grass and softer trees in the road view**. Grass tufts (six-bladed, the ground's colour, 40 per m²
@@ -36,6 +54,10 @@ All notable changes to this project are documented here. The format follows
   both preview shots (`basecolor = @{material}_albedo`, `normal = @{material}_nrm`, `roughness = @{material}_rough`).
 
 ### Changed
+- Geometry Preview: textures are filtered across face edges where the uv is continuous (a dense mesh such as a
+  terrain, nearly every pixel's neighbour another face, kept a footprint of 0 and was not filtered in the distance),
+  and anisotropically (the footprint's short axis, up to 8x the long one), as GPUs do.
+- Wrangle: `worley(set(x, y))` and the other cellular functions take a 2-vector for the 2D pattern (9 cells, 3x faster).
 - Memory: after a node of more than 3 s, and before an outdoor preview render, the garbage collector runs before the
   heap is trimmed: arrays held only by reference cycles had waited for Python's rare full collection, and 2 GB of
   them were still held when the open-world example's first preview started. Detail maps are applied in blocks of a

@@ -1374,11 +1374,297 @@ def rock_assets():
 
 
 # ═══════════════════════════════════════════════════ Production 2: open-world terrain tiles
-TERRAIN_TEXTURES = ("basecolor = @{material}_albedo\nnormal = @{material}_nrm\nroughness = @{material}_rough\n"
-                    "detail1 = @det_grass\ndetail2 = @det_rock\ndetail3 = @det_gravel\ndetail4 = @det_litter\n"
-                    "detail_normal1 = @nrm_grass\ndetail_normal2 = @nrm_rock\ndetail_normal3 = @nrm_gravel\n"
-                    "detail_normal4 = @nrm_litter\ndetail_weights = @{material}_dw\ndetail_tiling = 1025\n"
-                    "detail_triplanar = 4")
+# ── the terrain layer library (an engine landscape material's layers): twelve tileable materials, each a colour,
+# a height (its normal map; 0..1 for blending by height) and a roughness, built from cells (periodic Worley:
+# pworley / pworley_dir) and periodic noise; (name, metres per tile). Splat maps 0..2 hold their weights, four
+# per RGBA map, in this order
+LAYERS = (("GrassLush", 3.0), ("GrassDry", 3.0), ("Moss", 2.0), ("ForestFloor", 2.5),
+          ("Soil", 3.0), ("Mud", 4.0), ("Gravel", 3.0), ("Sand", 4.0),
+          ("RockCliff", 12.0), ("RockStrata", 16.0), ("RockSlab", 9.0), ("Road", 4.0))
+
+
+def _grass(n, soil, g0, g1, dryc, dryp, seed, scales=(11, 17, 27, 41), blade=28.0):
+    out = [f"# {n}: clumps of blades, each turned its own way, over soil",
+           f"{n}_acc = set(0.0, 0.0, 0.0) + 0 * x", f"{n}_h = 0 * x", f"{n}_cov = 0 * x"]
+    for i, sc in enumerate(scales):
+        z = seed + 1.3 * i
+        out += [f"wc = pworley(set(x * {sc}, y * {sc}, {z:.2f}), {sc})",
+                f"dv = pworley_dir(set(x * {sc}, y * {sc}, {z:.2f}), {sc})",
+                "a = rand(wc.z * 7.3) * 2 * PI",
+                "lx = dv.x * cos(a) + dv.y * sin(a)",
+                "ly = 0 - dv.x * sin(a) + dv.y * cos(a)",
+                f"bl = smoothstep(0.48, 0.8, noise(set(lx * {blade}, ly * 2.2, wc.z * 97)))",
+                "b = bl * (1 - smoothstep(0.25, 0.85, wc.x))",
+                "tip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)",
+                f"bc = where(rand(wc.z * 3.1) < {dryp}, set{dryc}, lerp(set{g0}, set{g1}, rand(wc.z * 1.7))) * tip",
+                f"{n}_acc = lerp({n}_acc, bc, b)",
+                f"{n}_h = max({n}_h, 0.04 * b)",
+                f"{n}_cov = max({n}_cov, b)"]
+    out += [f"sn = pnoise(set(x * 40, y * 40, {seed + 8.8:.2f}), 40)",
+            f"c = lerp(set{soil} * (0.8 + 0.4 * sn), {n}_acc / max({n}_cov, 1e-3), {n}_cov)",
+            f"c = c * (0.88 + 0.24 * pnoise(set(x * 3, y * 3, {seed + 9.4:.2f}), 3))",
+            f"@lay_{n} = c", f"@layh_{n} = {n}_h + 0.003 * sn", f"@layr_{n} = 0.95 - 0.05 * {n}_cov"]
+    return out
+
+
+def _stones(n, dirt, stones, frac, cells, seed, rough=0.85, grit=True):
+    """Round stones in Worley cells (warped), pebbles, grit, packed dirt with a contact shadow."""
+    k1, k2 = cells
+    out = [f"# {n}: round stones in packed ground",
+           f"wx = 0.35 * (pnoise(set(x * 20, y * 20, {seed + 0.1:.2f}), 20) - 0.5)",
+           f"wy = 0.35 * (pnoise(set(x * 20, y * 20, {seed + 0.9:.2f}), 20) - 0.5)",
+           f"w1 = pworley(set(x * {k1} + wx, y * {k1} + wy, {seed + 0.3:.2f}), {k1})",
+           "rr1 = 0.32 + 0.2 * rand(w1.z * 313.0)",
+           "d1 = w1.x / rr1",
+           f"on1 = rand(w1.z * 991.0) < {frac}",
+           "st1 = where(on1, sqrt(clamp(1 - d1 * d1, 0, 1)), 0 * d1)",
+           f"w2 = pworley(set(x * {k2} + 2 * wy, y * {k2} + 2 * wx, {seed + 1.7:.2f}), {k2})",
+           "d2 = w2.x / (0.3 + 0.15 * rand(w2.z * 41.0))",
+           f"st2 = where(rand(w2.z * 77.0) < {frac}, sqrt(clamp(1 - d2 * d2, 0, 1)), 0 * d2)",
+           f"fine = pnoise(set(x * 320, y * 320, {seed + 2.1:.2f}), 320)",
+           f"dn = pnoise(set(x * 12, y * 12, {seed + 3.3:.2f}), 12)",
+           "k = rand(w1.z * 17.0)"]
+    s0, s1, s2 = stones
+    out += [f"stc = where(k < 0.45, set{s0}, where(k < 0.8, set{s1}, set{s2})) * (0.85 + 0.3 * rand(w1.z * 5.0)) * (0.85 + 0.2 * st1)",
+            f"pbc = lerp(set{s0}, set{s1}, rand(w2.z * 19.0)) * (0.85 + 0.3 * rand(w2.z * 3.0))",
+            f"c = set{dirt} * (0.85 + 0.3 * dn) * (0.9 + 0.2 * fine)",
+            "c = lerp(c, pbc, smoothstep(0.0, 0.25, st2))",
+            "c = lerp(c, stc, smoothstep(0.0, 0.2, st1))",
+            "c = c * (1 - 0.3 * smoothstep(0.95, 1.25, d1) * (1 - smoothstep(1.25, 1.6, d1)) * on1)",
+            f"@lay_{n} = c",
+            f"@layh_{n} = max(0.022 * st1 * (rr1 / 0.4), 0.01 * st2) + 0.001 * fine",
+            f"@layr_{n} = {rough} - 0.1 * st1"]
+    return out
+
+
+def layer_library_code():
+    L = ["x = @u", "y = @v"]
+    L += _grass("GrassLush", (0.30, 0.24, 0.16), (0.24, 0.36, 0.11), (0.33, 0.44, 0.15), (0.50, 0.46, 0.27), 0.08, 0.0)
+    L += _grass("GrassDry", (0.40, 0.33, 0.22), (0.52, 0.48, 0.26), (0.60, 0.54, 0.32), (0.36, 0.42, 0.18), 0.25, 20.0)
+    L += _grass("Moss", (0.20, 0.17, 0.12), (0.17, 0.25, 0.09), (0.28, 0.35, 0.13), (0.40, 0.34, 0.20), 0.1, 40.0,
+                scales=(23, 37, 53), blade=12.0)
+    L += ["# ForestFloor: three layers of overlapping leaves, twigs, dark soil",
+          "c = set(0.24, 0.19, 0.14) * (0.8 + 0.4 * pnoise(set(x * 30, y * 30, 1.1), 30))",
+          "hl = 0 * x"]
+    for sc, z, lift in ((30, 0.4, 0.003), (42, 1.8, 0.006), (55, 3.2, 0.009)):
+        L += [f"wc = pworley(set(x * {sc}, y * {sc}, {z}), {sc})", f"dv = pworley_dir(set(x * {sc}, y * {sc}, {z}), {sc})",
+              "a = rand(wc.z * 5.1) * 2 * PI", "lx = dv.x * cos(a) + dv.y * sin(a)", "ly = 0 - dv.x * sin(a) + dv.y * cos(a)",
+              "s = 0.75 + 0.4 * rand(wc.z * 2.3)", "r = sqrt(pow(lx / (0.62 * s), 2) + pow(ly / (0.32 * s), 2))",
+              "leaf = where(rand(wc.z * 3.7) > 0.15, 1 - smoothstep(0.85, 1.0, r), 0 * r)", "k = rand(wc.z * 9.9)",
+              "lc = where(k < 0.35, set(0.45, 0.30, 0.18), where(k < 0.6, set(0.56, 0.36, 0.17), where(k < 0.8, set(0.28, 0.21, 0.14), set(0.58, 0.48, 0.25))))",
+              "lc = lc * (1 - 0.25 * (1 - smoothstep(0.0, 0.03, abs(ly)))) * (0.9 + 0.1 * (1 - r))",
+              "c = lerp(c, lc, leaf)", f"hl = max(hl, leaf * ({lift} + 0.003 * (1 - r)))"]
+    L += ["tw = pworley(set(x * 6, y * 6, 4.4), 6)",
+          "twig = (1 - smoothstep(0.0, 0.012, tw.y - tw.x)) * smoothstep(0.62, 0.7, pnoise(set(x * 8, y * 8, 4.9), 8))",
+          "@lay_ForestFloor = lerp(c, set(0.26, 0.19, 0.12), twig)",
+          "@layh_ForestFloor = max(hl, 0.01 * twig) + 0.002 * pnoise(set(x * 150, y * 150, 5.5), 150)",
+          "@layr_ForestFloor = 0.88 + 0 * x"]
+    L += _stones("Soil", (0.38, 0.30, 0.21), ((0.45, 0.40, 0.34), (0.52, 0.47, 0.40), (0.33, 0.29, 0.25)), 0.25,
+                 (30, 80), 60.0, rough=0.92)
+    L += ["# Soil: dry cracks",
+          "wk = pworley(set(x * 9 + wx, y * 9 + wy, 66.0), 9)",
+          "ck = (1 - smoothstep(0.0, 0.03, wk.y - wk.x)) * smoothstep(0.4, 0.6, pnoise(set(x * 4, y * 4, 66.6), 4))",
+          "@lay_Soil = @lay_Soil * (1 - 0.35 * ck)",
+          "@layh_Soil = @layh_Soil - 0.008 * ck"]
+    L += ["# Mud: wet, smooth, dark, with slick puddles (low roughness)",
+          "m1 = pnoise(set(x * 6, y * 6, 70.1), 6)",
+          "m2 = pnoise(set(x * 24, y * 24, 70.7), 24)",
+          "m3 = pnoise(set(x * 90, y * 90, 71.3), 90)",
+          "pud = smoothstep(0.58, 0.66, m1 + 0.2 * (m2 - 0.5))",
+          "@lay_Mud = set(0.24, 0.19, 0.14) * (0.8 + 0.3 * m2 + 0.15 * m3) * (1 - 0.25 * pud)",
+          "@layh_Mud = 0.012 * m2 + 0.003 * m3 - 0.01 * pud",
+          "@layr_Mud = 0.55 - 0.4 * pud + 0.1 * m3"]
+    L += _stones("Gravel", (0.42, 0.38, 0.33), ((0.56, 0.55, 0.53), (0.62, 0.57, 0.49), (0.44, 0.43, 0.42)), 0.78,
+                 (24, 64), 80.0, rough=0.8)
+    L += ["# Sand: wind ripples (warped), fine grain, a few shells and pebbles",
+          "wv = 0.08 * (pnoise(set(x * 5, y * 5, 90.2), 5) - 0.5) + 0.03 * (pnoise(set(x * 13, y * 13, 90.6), 13) - 0.5)",
+          "rip = 0.5 + 0.5 * sin(2 * PI * (y * 22 + x * 3 + wv * 22))",
+          "gr_ = pnoise(set(x * 400, y * 400, 91.1), 400)",
+          "pb = pworley(set(x * 50, y * 50, 92.0), 50)",
+          "peb = where(rand(pb.z * 3.0) < 0.06, sqrt(clamp(1 - pow(pb.x / 0.3, 2), 0, 1)), 0 * pb.x)",
+          "@lay_Sand = set(0.66, 0.60, 0.47) * (0.9 + 0.1 * rip + 0.12 * (gr_ - 0.5)) * (1 - 0.25 * peb)",
+          "@layh_Sand = 0.006 * rip + 0.001 * gr_ + 0.008 * peb",
+          "@layr_Sand = 0.95 + 0 * x"]
+    L += ["# RockCliff: angular blocks (a facet plane per Worley cell), dark joints, cracks that fade in and out",
+          "wx = 0.5 * (pnoise(set(x * 4, y * 4, 100.2), 4) - 0.5)",
+          "wy = 0.5 * (pnoise(set(x * 4, y * 4, 100.8), 4) - 0.5)",
+          "cb = pworley(set(x * 3 + wx, y * 3 + wy, 101.0), 3)",
+          "cd = pworley_dir(set(x * 3 + wx, y * 3 + wy, 101.0), 3)",
+          "ca = rand(cb.z * 13.1) * 2 * PI",
+          "fac = (cd.x * cos(ca) + cd.y * sin(ca)) * (0.25 + 0.3 * rand(cb.z * 7.7))",
+          "jn = 1 - smoothstep(0.0, 0.05, cb.y - cb.x)",
+          "cb2 = pworley(set(x * 9 + 2 * wy, y * 9 + 2 * wx, 102.0), 9)",
+          "cd2 = pworley_dir(set(x * 9 + 2 * wy, y * 9 + 2 * wx, 102.0), 9)",
+          "ca2 = rand(cb2.z * 5.3) * 2 * PI",
+          "fac2 = (cd2.x * cos(ca2) + cd2.y * sin(ca2)) * 0.3",
+          "jn2 = (1 - smoothstep(0.0, 0.06, cb2.y - cb2.x)) * smoothstep(0.4, 0.6, pnoise(set(x * 6, y * 6, 102.5), 6))",
+          "rg = 0 * x", "amp = 0.5"]
+    for fq, z in ((16, 103.1), (32, 103.7), (64, 104.3), (128, 104.9)):
+        L += [f"rg = rg + amp * (1 - abs(2 * pnoise(set(x * {fq} + wx, y * {fq} + wy, {z}), {fq}) - 1))", "amp = amp * 0.5"]
+    L += ["gn = pnoise(set(x * 300, y * 300, 105.5), 300)",
+          "c = set(0.38, 0.37, 0.35) * (0.8 + 0.4 * rand(cb.z * 3.3)) * (0.9 + 0.2 * rand(cb2.z * 2.1)) * (0.8 + 0.35 * rg) * (0.94 + 0.12 * gn)",
+          "c = c * (1 - 0.3 * jn) * (1 - 0.25 * jn2)",
+          "lch = smoothstep(0.62, 0.7, pnoise(set(x * 20, y * 20, 106.1), 20)) * smoothstep(0.5, 0.6, pnoise(set(x * 80, y * 80, 106.7), 80))",
+          "@lay_RockCliff = lerp(c, set(0.60, 0.60, 0.50), 0.5 * lch)",
+          "@layh_RockCliff = 0.9 * fac + 0.25 * fac2 - 0.06 * jn - 0.025 * jn2 + 0.03 * rg + 0.002 * gn",
+          "@layr_RockCliff = 0.8 + 0.1 * jn + 0 * x"]
+    L += ["# RockStrata: beds of varying thickness (along v: on a cliff, the world's up), each its own shade, soft beds",
+          "# weathered back, hard ones standing out, vertical joints",
+          "wv = 0.04 * (pnoise(set(x * 3, y * 3, 110.1), 3) - 0.5) + 0.01 * (pnoise(set(x * 12, y * 12, 110.5), 12) - 0.5)",
+          "yy = y + wv",
+          "bq = yy * 9 + 0.6 * pnoise(set(x * 2, yy * 9, 110.9), set(2, 9, 0))",
+          "bi = floor(bq)",
+          "bf = bq - bi",
+          "bi = bi - 9 * floor(bi / 9)                    # nine beds per tile: the bed below the top edge is bed 0",
+          "hard = rand(bi * 7.7 + 1.0)",
+          "prof = where(hard > 0.5, smoothstep(0.0, 0.12, bf) * (1 - smoothstep(0.88, 1.0, bf)), 0.6 * sin(PI * bf))",
+          "# vertical joints: only in the hard beds, each bed with its own spacing offset",
+          "vj = abs(x * 6 + 3 * rand(bi * 2.9) + 0.25 * pnoise(set(x * 6, yy * 9, 111.0), set(6, 9, 0)))",
+          "vjn = smoothstep(0.46, 0.49, abs(vj - floor(vj) - 0.5)) * (hard > 0.7)",
+          "gn = pnoise(set(x * 200, y * 200, 112.2), 200)",
+          "bc = lerp(set(0.48, 0.44, 0.38), set(0.60, 0.55, 0.47), rand(bi * 3.1 + 2.0)) * (0.9 + 0.2 * prof)",
+          "bc = lerp(bc, set(0.42, 0.33, 0.25), 0.4 * smoothstep(0.7, 0.9, rand(bi * 5.3)))",
+          "@lay_RockStrata = bc * (1 - 0.4 * vjn) * (0.93 + 0.14 * gn)",
+          "@layh_RockStrata = 0.35 * prof * (0.5 + 0.5 * hard) - 0.05 * vjn + 0.004 * gn",
+          "@layr_RockStrata = 0.85 + 0 * x"]
+    L += ["# RockSlab: smoother weathered rock, rounded knobs, crusts of lichen (pale and dark)",
+          "r1 = pnoise(set(x * 4, y * 4, 120.3), 4)",
+          "r2 = 1 - abs(2 * pnoise(set(x * 10, y * 10, 120.9), 10) - 1)",
+          "r3 = pnoise(set(x * 60, y * 60, 121.5), 60)",
+          "gn = pnoise(set(x * 260, y * 260, 122.1), 260)",
+          "c = set(0.50, 0.48, 0.44) * (0.85 + 0.3 * r1) * (0.9 + 0.15 * r2) * (0.95 + 0.1 * gn)",
+          "l1 = smoothstep(0.58, 0.66, pnoise(set(x * 14, y * 14, 123.1), 14)) * smoothstep(0.45, 0.6, r3)",
+          "l2 = smoothstep(0.62, 0.7, pnoise(set(x * 22, y * 22, 123.7), 22)) * smoothstep(0.5, 0.6, pnoise(set(x * 90, y * 90, 124.3), 90))",
+          "c = lerp(c, set(0.70, 0.68, 0.52), 0.7 * l1)",
+          "@lay_RockSlab = lerp(c, set(0.26, 0.28, 0.24), 0.6 * l2)",
+          "@layh_RockSlab = 0.12 * r1 + 0.04 * r2 * r2 + 0.003 * r3 + 0.001 * gn + 0.002 * l1",
+          "@layr_RockSlab = 0.75 + 0.15 * l1 + 0 * x"]
+    L += _stones("Road", (0.50, 0.43, 0.33), ((0.56, 0.54, 0.50), (0.60, 0.55, 0.46), (0.46, 0.44, 0.41)), 0.45,
+                 (34, 90), 130.0, rough=0.8)
+    L += ["# Road: packed by wheels (stones flattened, dust in between)",
+          "@layh_Road = @layh_Road * 0.5"]
+    L += ["# heights 0..1 per layer, for blending by height (the higher material wins at a seam)"]
+    for n, _ in LAYERS:
+        L += [f"@layb_{n} = (@layh_{n} - @layh_{n}.min()) / max(@layh_{n}.max() - @layh_{n}.min(), 1e-6)"]
+    L += ["# the colours above are display values: the maps are linear"]
+    for n, _ in LAYERS:
+        t = LAYER_TINT[n]
+        L += [f"@lay_{n} = pow(clamp(@lay_{n}, 0, 1), 2.2) * set({t[0]}, {t[1]}, {t[2]})"]
+    return "\n".join(L) + "\n"
+
+
+# per-layer tints (linear): the library's colours brought to the island's palette -- the median 1 m colour where
+# each layer lies -- so the layers read right without the macro map too, and the macro stays near 1
+LAYER_TINT = {
+    "GrassLush": (0.593, 1.163, 0.461),
+    "GrassDry": (0.507, 0.871, 0.410),
+    "Moss": (0.914, 1.491, 0.648),
+    "ForestFloor": (0.160, 0.414, 0.317),
+    "Soil": (0.950, 1.346, 0.869),
+    "Mud": (3.215, 4.302, 5.047),
+    "Gravel": (1.145, 1.211, 1.168),
+    "Sand": (1.034, 1.072, 1.073),
+    "RockCliff": (0.430, 0.418, 0.393),
+    "RockStrata": (0.201, 0.214, 0.225),
+    "RockSlab": (0.602, 0.540, 0.429),
+    "Road": (0.671, 0.691, 0.545),
+}
+# the layers' mean colours (linear, tinted), for the macro map: the 1 m colour over the mean of the layers under it
+LAYER_MEAN = {
+    "GrassLush": (0.0412, 0.0732, 0.0075),
+    "GrassDry": (0.0802, 0.1011, 0.0166),
+    "Moss": (0.0278, 0.0418, 0.0057),
+    "ForestFloor": (0.0227, 0.0288, 0.0062),
+    "Soil": (0.1136, 0.1010, 0.0333),
+    "Mud": (0.1344, 0.1075, 0.0646),
+    "Gravel": (0.2002, 0.1807, 0.1374),
+    "Sand": (0.3702, 0.3113, 0.1822),
+    "RockCliff": (0.0554, 0.0510, 0.0420),
+    "RockStrata": (0.0561, 0.0494, 0.0371),
+    "RockSlab": (0.1423, 0.1174, 0.0742),
+    "Road": (0.1433, 0.1123, 0.0554),
+}
+
+
+
+def _macro_code():
+    """The macro map: the mean colour of the layers under each pixel, and the (linear) colour over it."""
+    names = [n for n, _ in LAYERS]
+    terms = []
+    for i, n in enumerate(names):
+        w = ("@terrain_w0", "@terrain_w1", "@terrain_w2")[i // 4] + "." + "xyzw"[i % 4]
+        m = LAYER_MEAN[n]
+        terms.append(f"{w} * set({m[0]}, {m[1]}, {m[2]})")
+    lines = ["ref = " + " + ".join(terms[:4]), "ref = ref + " + " + ".join(terms[4:8]),
+             "ref = ref + " + " + ".join(terms[8:]),
+             "lw = @terrain_w0.x + @terrain_w0.y + @terrain_w0.z + @terrain_w0.w + @terrain_w1.x + @terrain_w1.y"
+             " + @terrain_w1.z + @terrain_w1.w + @terrain_w2.x + @terrain_w2.y + @terrain_w2.z + @terrain_w2.w",
+             "mac = clamp(@terrain_albedo * max(lw, 1e-4) / max(ref, 1e-4), 0.25, 4.0)",
+             "@terrain_macro = lerp(set(1.0, 1.0, 1.0) + 0 * mac, mac, smoothstep(0.02, 0.2, lw))"]
+    return "".join(ln + "\n" for ln in lines)
+
+
+
+# the twelve layer weights from the surface's masks (the same thresholds as the surface Wrangle's materials), at 2 m
+SPLAT_CODE = (
+    "x = @u * 4100\n"
+    "y = @v * 4100\n"
+    "hm = @Ce * 2048\n"
+    "ero = (@Ce - @C) * 2048\n"
+    "n4 = noise(set(x / 4, y / 4, 1.3))\n"
+    "n15 = noise(set(x / 15, y / 15, 2.9))\n"
+    "n50 = noise(set(x / 50, y / 50, 4.1))\n"
+    "land = 1 - @Water\n"
+    "rk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n"
+    "k = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\n"
+    "sd = @Sand * k\n"
+    "sc = @Sediment * k\n"
+    "ff = @ForestFloor * k\n"
+    "gr = @Grass * k\n"
+    "slope = 1 - @N.z\n"
+    "cliffw = smoothstep(0.36, 0.56, slope + 0.12 * (n15 - 0.5))\n"
+    "hard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\n"
+    "# moss on the flatter rock, in patches; in the grass where water collects\n"
+    "moss = smoothstep(0.72, 0.86, @N.z + 0.2 * (n15 - 0.5)) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\n"
+    "bare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\n"
+    "verge = clamp(@rdv - @rd, 0, 1) * land\n"
+    "rdw_ = clamp(@rd, 0, 1) * land\n"
+    "keep = 1 - rdw_\n"
+    "# grass: dry on sunny spurs and steep ground, lush where water collects, moss in the wettest hollows\n"
+    "dryg = smoothstep(0.42, 0.68, 0.55 * n50 + 0.25 * n15 + 0.35 * smoothstep(0.3, 2.0, ero) + 0.6 * slope - 0.7 * @wet)\n"
+    "mossg = 0.7 * smoothstep(0.35, 0.75, @wet)\n"
+    "grs = gr * (1 - bare)\n"
+    "vg = 0.6 * verge\n"
+    "w_lush = grs * (1 - dryg) * (1 - mossg) * (1 - vg)\n"
+    "w_dry = grs * dryg * (1 - mossg) * (1 - vg)\n"
+    "mossr = rk * moss * 0.8\n"
+    "w_moss = grs * mossg + mossr\n"
+    "w_soil = gr * bare + grs * (1 - mossg) * vg\n"
+    "# mud at the waterline and in the river beds; the rest of the sand stays sand\n"
+    "w_mud = min(sd * (1 - smoothstep(0.0, 1.2, hm)) + 0.5 * sd * @bed, sd)\n"
+    "# rock: cliff on the steepest, strata in patches of hard rock, slab on the rest\n"
+    "rk2 = rk - mossr\n"
+    "strat = smoothstep(0.52, 0.66, noise(set(x / 180, y / 180, 12.7))) * (0.4 + 0.6 * hard)\n"
+    "@terrain_w0 = set(w_lush, w_dry, w_moss, ff) * keep\n"
+    "@terrain_w1 = set(w_soil, w_mud, sc, sd - w_mud) * keep\n"
+    "@terrain_w2 = set(rk2 * cliffw * (1 - strat), rk2 * cliffw * strat, rk2 * (1 - cliffw), rdw_ + 0 * x)\n")
+
+
+def _terrain_textures():
+    lines = ["basecolor = @{material}_albedo", "normal = @{material}_nrm", "roughness = @{material}_rough"]
+    for k, (n, size) in enumerate(LAYERS, 1):
+        lines += [f"layer{k} = @lay_{n}", f"layer{k}_normal = @layn_{n}", f"layer{k}_rough = @layr_{n}",
+                  f"layer{k}_height = @layb_{n}", f"layer{k}_size = {size:g}"]
+    lines += ["layer_weights = @{material}_w0 @{material}_w1 @{material}_w2", "layer_blend = 0.2", "layer_antitile = 0.4",
+              "layer_macro = @{material}_macro"]
+    return "\n".join(lines)
+
+
+TERRAIN_TEXTURES = _terrain_textures()
+
+# the close-range terrain window (x0, x1, z0, z1, metres; on the full map's 4 m grid): the road view's valley,
+# town and main peak
+DETAIL_WINDOW = (-480.0, 1100.0, -800.0, 848.0)
 CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)
 CAM3 = (540.5, 14.6, 376.9, 77.9, 84.6, -5.3)    # on the south-east road, 1.8 m above it, along it toward the main peak   # a ridge south-west of the main peak
 
@@ -1639,8 +1925,9 @@ def world_tiles():
         '@wet = wet\n'
         '# colour (display values, made linear at the end)\n'
         'rv = noise(set(@u * 9, @v * 9, 2.6))\n'
-        'bedd = 0.5 + 0.5 * sin(hm / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\n'
-        'rock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.82 + 0.26 * bedd)\n'
+        '# bedding on a tilted plane (as on the 1 m surface), faint: level bands would ring every peak\n'
+        'bedd = 0.5 + 0.5 * sin((hm + 820 * @u - 450 * @v) / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\n'
+        'rock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.88 + 0.14 * bedd)\n'
         'rock = lerp(rock, rock * set(1.06, 0.98, 0.88), smoothstep(0.55, 0.8, noise(set(@u * 4, hm / 40, 3.3))))\n'
         'rock = rock * (1 - 0.45 * smoothstep(0.3, 0.9, wet))\n'
         '# a colour map out of the erosion masks (as in Project Pegasus): ridges and edges lighter, hollows darker\n'
@@ -1732,9 +2019,21 @@ def world_tiles():
         'n50 = noise(set(x / 50, y / 50, 4.1))\n'
         '# joint cracks (cell edges of a Worley pattern), only in patches\n'
         'crk = (1 - smoothstep(0.0, 0.12, (@cr + 1) * 0.5)) * smoothstep(0.45, 0.6, n15)\n'
-        'gl = sqrt(@N.x * @N.x + @N.y * @N.y) + 1e-4\n'
-        's = (x * (0 - @N.y) + y * @N.x) / gl\n'
-        'st = noise(set(s / 2.5, hm / 25, 5.5))\n'
+        '# streaks and ribs down the faces: noise stretched along six fixed directions, each pixel taking the ones nearest\n'
+        '# its downhill direction (a per-pixel frame degenerates round a cone-shaped peak: the streaks became rings)\n'
+        'th = atan2(@N.y, @N.x)\n'
+        'st = 0 * x\n'
+        'rib = 0 * x\n'
+        'ws = 0 * x + 1e-6\n'
+        'for k, a in enumerate((0.0, 0.5236, 1.0472, 1.5708, 2.0944, 2.618)):\n'
+        '    w = pow(clamp(1 - abs(sin(th - a)) / 0.5, 0, 1), 2)\n'
+        '    sg = x * cos(a) + y * sin(a)\n'
+        '    sc = y * cos(a) - x * sin(a)\n'
+        '    st = st + w * noise(set(sc / 4, sg / 14, 5.5 + k))\n'
+        '    rib = rib + w * (1 - abs(2 * noise(set(sc / 9, sg / 28, 7.3 + k)) - 1))\n'
+        '    ws = ws + w\n'
+        'st = st / ws\n'
+        'rib = rib / ws\n'
         '# crisp outcrops: the rock weight pushed past a ragged threshold; spurs (ero > 0) shed their soil first\n'
         'land = 1 - @Water\n'
         'rk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n'
@@ -1745,25 +2044,67 @@ def world_tiles():
         'gr = @Grass * k\n'
         '# rock: beds of two thicknesses (5 m and 13 m, warped, terraced where the faces are hard), joint cracks, rough;\n'
         '# colour banded by bed, lichen on the tops, dark streaks down the faces\n'
-        'sp = (hm + 18 * (n50 - 0.5) + 5 * (n15 - 0.5)) / 5\n'
+        '# the beds lie on a tilted plane (dipping about 13 degrees), not on the contours: level beds drew rings round every\n'
+        '# peak like the grain of a sawn log\n'
+        'bedz = hm + 0.2 * x - 0.11 * y\n'
+        'sp = (bedz + 18 * (n50 - 0.5) + 5 * (n15 - 0.5)) / 5\n'
         'band = sp - floor(sp)\n'
-        'sp2 = (hm + 30 * (n50 - 0.5)) / 13 + 0.37\n'
+        'sp2 = (bedz + 30 * (n50 - 0.5)) / 13 + 0.37\n'
         'band2 = sp2 - floor(sp2)\n'
         'hard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\n'
         'terr = (5 * (smoothstep(0.1, 0.9, band) - band) * (0.3 + 0.7 * hard) + 9 * (smoothstep(0.2, 0.8, band2) - band2) * (1 - 0.6 * hard)) * 0.6\n'
         '# (the terraces stay in the colour only: in the relief they crossed the rills in zigzags on every face)\n'
-        '# couloirs and ribs down the faces: sharp ridged noise across the slope, stretched down it\n'
-        'rib = 1 - abs(2 * noise(set(s / 7, hm / 45, 7.3)) - 1)\n'
-        'dr = 0.15 * hard * terr - 0.5 * crk + 0.3 * (n4 - 0.5) + 0.8 * (n15 - 0.5) + 2.2 * rib * rib + 1.2 * (st - 0.5)\n'
-        'bedc = 0.92 + 0.16 * noise(set(floor(sp) * 1.7, x / 300, 6.6))\n'
-        'rock = @rock_c * bedc * (1 - 0.3 * crk) * (0.9 + 0.2 * n4)\n'
-        'varn = smoothstep(0.5, 0.75, st) * (1 - 0.5 * smoothstep(0.6, 0.9, band))\n'
-        'rock = lerp(rock, rock * set(0.55, 0.52, 0.5), 0.6 * varn)\n'
-        'rock = lerp(rock, rock * set(1.18, 1.0, 0.78), 0.6 * smoothstep(0.5, 0.7, n50) * (1 - varn))\n'
-        '# ledge tops catch the light and the debris: lighter; the faces under them darker\n'
-        'rock = rock * (0.85 + 0.3 * smoothstep(0.75, 0.95, band))\n'
-        'lich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * smoothstep(0.75, 0.9, @N.z + 0.15 * band)\n'
-        'rock = lerp(rock, set(0.62, 0.62, 0.52), 0.5 * lich)\n'
+        '# rock in four layers, as a terrain material is built: cliff faces (the steepest: cool and dark, with couloirs),\n'
+        '# slabs (less steep: warm and lighter), moss on the flatter rock and the ledge tops, and stains hanging under the\n'
+        '# ledges. One layer with streaks everywhere read as brushed metal\n'
+        'slope = 1 - @N.z\n'
+        'cliffw = smoothstep(0.36, 0.56, slope + 0.12 * (n15 - 0.5))\n'
+        '# couloirs in patches, not on every face\n'
+        'patch = smoothstep(0.38, 0.62, n50 + 0.4 * (noise(set(x / 30, y / 30, 2.2)) - 0.5))\n'
+        '# ledges: each 9 m bed crops out as a ledge over stretches of some 40-120 m (a noise of its own per bed), so the\n'
+        '# beds break the faces up without ringing the peak\n'
+        'bz = (bedz + 6 * (n50 - 0.5) + 2 * (n15 - 0.5)) / 9\n'
+        'lb = bz - floor(bz)\n'
+        'lat = smoothstep(0.5, 0.62, noise(set(x / 70, y / 70, floor(bz) * 2.3))) * (0.3 + 0.7 * hard)\n'
+        'shelf = lb - smoothstep(0.84, 0.98, lb)\n'
+        'lip = lat * smoothstep(0.86, 0.97, lb)\n'
+        'under = lat * smoothstep(0.35, 0.75, lb) * (1 - smoothstep(0.8, 0.88, lb))\n'
+        '# crags: angular blocks, each a Worley cell with a facet plane of its own, dark joints between them, at 8 m and\n'
+        '# 2.7 m -- the sharp-edged relief that keeps a face crisp from afar (smooth noise there reads as clay)\n'
+        'cq = set(x / 8 + 0.6 * (n15 - 0.5), y / 8 + 0.6 * (n4 - 0.5))\n'
+        'cw = worley(cq)\n'
+        'cdv = worley_dir(cq)\n'
+        'ca = rand(cw.z * 13.1) * 2 * PI\n'
+        'facet = (cdv.x * cos(ca) + cdv.y * sin(ca)) * (0.25 + 0.3 * rand(cw.z * 7.7))\n'
+        'joint = 1 - smoothstep(0.0, 0.07, cw.y - cw.x)\n'
+        'cq2 = set(x / 2.7 + 0.4 * (n4 - 0.5), y / 2.7)\n'
+        'cw2 = worley(cq2)\n'
+        'cdv2 = worley_dir(cq2)\n'
+        'ca2 = rand(cw2.z * 5.3) * 2 * PI\n'
+        'facet2 = (cdv2.x * cos(ca2) + cdv2.y * sin(ca2)) * 0.3\n'
+        'joint2 = 1 - smoothstep(0.0, 0.08, cw2.y - cw2.x)\n'
+        'cragw = (0.45 + 0.55 * hard) * (0.5 + 0.5 * cliffw)\n'
+        'crag = (4.5 * facet + 2.0 * facet2 - 0.5 * joint - 0.2 * joint2) * cragw\n'
+        'dr = (0 * terr - 0.8 * crk + 0.3 * (n4 - 0.5) + 0.6 * (n15 - 0.5) + crag\n'
+        '      + (2.2 * rib * rib * patch + 0.5 * (st - 0.5)) * (0.35 + 0.65 * cliffw) + 3.5 * lat * shelf)\n'
+        'bedc = 0.94 + 0.12 * noise(set(floor(sp) * 1.7, x / 300, 6.6))\n'
+        'base = @rock_c * bedc * (0.9 + 0.2 * n4) * (1 - 0.3 * crk)\n'
+        '# large zones of warmer and cooler rock (100-300 m)\n'
+        'zone = noise(set(x / 260, y / 260, 3.9))\n'
+        'base = lerp(base * set(0.93, 0.95, 1.02), base * set(1.08, 1.02, 0.9), smoothstep(0.35, 0.65, zone))\n'
+        'base = base * (0.84 + 0.32 * rand(cw.z * 3.3)) * (0.93 + 0.14 * rand(cw2.z * 2.1)) * (1 - 0.35 * joint * cragw)\n'
+        'cliffc = base * set(0.8, 0.82, 0.86) * (0.78 + 0.44 * rib * patch)\n'
+        'slabc = base * set(1.12, 1.06, 0.96) * (0.9 + 0.2 * n15)\n'
+        'rock = lerp(slabc, cliffc, cliffw)\n'
+        '# stains under the ledges, streaked down the face; the lips light\n'
+        'rock = lerp(rock, rock * set(0.62, 0.6, 0.58), 0.4 * under * smoothstep(0.4, 0.65, st))\n'
+        'rock = rock * (1 + 0.18 * lip)\n'
+        '# moss and lichen on the flatter rock and the ledge tops, in patches\n'
+        'moss = clamp(smoothstep(0.72, 0.86, @N.z + 0.2 * (n15 - 0.5)) + 0.8 * lip, 0, 1) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\n'
+        'rock = lerp(rock, lerp(base, set(0.30, 0.36, 0.20), 0.7), 0.75 * moss)\n'
+        'lich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * (1 - cliffw)\n'
+        'rock = lerp(rock, set(0.62, 0.62, 0.52), 0.35 * lich)\n'
+        'varn = under\n'
         '# grass: mottled at 4 / 15 / 50 m, greener and darker in the rills, dry on the spurs, bare soil where the rill walls are steep\n'
         'g = @grass_c * (0.72 + 0.4 * n15 + 0.2 * n4)\n'
         '# patches of a cooler, darker green (fern, scrub) and of a warmer one, at 50 m\n'
@@ -1807,17 +2148,67 @@ def world_tiles():
         '@dh = dh\n'
         '@terrain_rough = lerp(lerp(0.92 - 0.15 * @wet * rk, 0.05, @Water), 0.85, @rd * land)\n'
         '@sea_rough = 0.05 + 0 * x\n'
-        '# how much of each detail map applies (grass, rock, gravel: scree / sand / road, litter: forest floor)\n'
-        'dwr = @rd * land\n'
-        '@terrain_dw = set(gr * (1 - dwr), rk * (1 - dwr), (sc + sd) * (1 - dwr) + dwr, ff * (1 - dwr))\n'
 ))
     g.link(scw, "cop", sf, "cop")
     sn = S("PCG_COPHeightToNormal", title="Detail height -> normal map", layer="dh", strength=1.0,
            world_size=4100.0, out_layer="terrain_nrm")
     g.link(sf, "cop", sn, "cop")
     surf = S("PCG_COPLayerEdit", title="The texture set", op="keep",
-             spec="terrain_albedo terrain_nrm terrain_rough sea_rough terrain_dw")
+             spec="terrain_albedo terrain_nrm terrain_rough sea_rough")
     g.link(sn, "cop", surf, "cop")
+    # close-range terrain for the previews: a 2 m mesh over the road view (the valley, the town, the main peak),
+    # displaced by the 1 m surface's detail height -- crags, ribs, ledges and rills as real relief that casts
+    # shadows and breaks the silhouettes, where the 4 m full-map mesh is a smooth, soft surface. Its border lies on
+    # the full map's 4 m grid and the detail fades out toward it, so the two meet without a crack
+    x0_, x1_, z0_, z1_ = DETAIL_WINDOW
+    dgr = S("PCG_Grid", title="Close range: 2 m grid over the road view", size_x=x1_ - x0_, size_z=z1_ - z0_,
+            cols=int((x1_ - x0_) / 2) + 1, rows=int((z1_ - z0_) / 2) + 1, center_x=(x0_ + x1_) / 2,
+            center_z=(z0_ + z1_) / 2)
+    duv = S("PCG_Wrangle", title="Close range: the full map's uv", code=(
+        "@uv = set((@P.x + 2050) / 4100, (2050 - @P.z) / 4100)"))
+    g.link(dgr, "geo", duv, "geo")
+    dfm = duv
+    # (the height from the 4 m map itself, bilinear: along the border that is exactly the full-map mesh's edges)
+    for src_, lay_, nm_ in ((bio, "C", "hC"), (sn, "dh", "hd"), (sn, "terrain_albedo", "Cd")):
+        a_ = S("PCG_AttribFromMap", title=f"Close range: {nm_} from the surface", layer=lay_, name=nm_,
+               filter="bilinear", border="clamp")
+        g.link(dfm, "geo", a_, "geo")
+        g.link(src_, "cop", a_, "cop")
+        dfm = a_
+    dpw = S("PCG_Wrangle", title="Close range: height + detail, faded to the border", code=(
+        f"d = min(min(@P.x - ({x0_}), {x1_} - @P.x), min(@P.z - ({z0_}), {z1_} - @P.z))\n"
+        "fade = smoothstep(4, 40, d)\n"
+        "@P.y = max(@hC * 2048 + @hd * fade, -0.3)\n"
+        "@Cd = pow(clamp(@Cd, 0, 1), 1 / 2.2)"))
+    g.link(dfm, "geo", dpw, "geo")
+    dnm = S("PCG_Normal", title="Close range: smooth normals", add_to="point")
+    g.link(dpw, "geo", dnm, "geo")
+    dmt = S("PCG_Wrangle", title="Close range: material terrain", run_over="prim", code='s@material = "terrain"')
+    g.link(dnm, "geo", dmt, "geo")
+    # the splat maps at 2 m (2048²; an engine's landscape weightmaps are 1-2 m) and the macro map: the 1 m colour
+    # over the mean colour of the layers under it -- the layers bring the texture, the macro keeps the painted
+    # variation (wet hollows, bleached spurs, stains, ruts); 1 where no layer lies
+    spk = S("PCG_COPLayerEdit", title="Splat: the colour", op="keep", spec="terrain_albedo")
+    g.link(sn, "cop", spk, "cop")
+    spr = S("PCG_COPResize", title="Splat: colour at 2 m (2048²)", resolution_x=2048, resolution_y=2048)
+    g.link(spk, "cop", spr, "cop")
+    # the weights are worked out at 2 m from the surface's inputs (the same masks as the surface Wrangle): at 1 m
+    # twelve more channels in that Wrangle were a gigabyte more at its peak
+    swi = S("PCG_COPLayerEdit", title="Splat: the masks' inputs", op="keep",
+            spec="C Ce N Rock Grass ForestFloor Sediment Sand Water wet bed rd rdv")
+    g.link(scw, "cop", swi, "cop")
+    swr = S("PCG_COPResize", title="Splat: inputs at 2 m", resolution_x=2048, resolution_y=2048)
+    g.link(swi, "cop", swr, "cop")
+    sww = S("PCG_COPWrangle", title="Splat weights: twelve layers", code=SPLAT_CODE, rows_per_pass=256)
+    g.link(swr, "cop", sww, "cop")
+    swm = S("PCG_COPLayerMerge", title="+ the weights", layers="terrain_w0 terrain_w1 terrain_w2")
+    g.link(spr, "cop", swm, "a")
+    g.link(sww, "cop", swm, "b")
+    spm = S("PCG_COPWrangle", title="Macro map", code=_macro_code(), rows_per_pass=256)
+    g.link(swm, "cop", spm, "cop")
+    splat = S("PCG_COPLayerEdit", title="The splat set", op="keep",
+              spec="terrain_w0 terrain_w1 terrain_w2 terrain_macro")
+    g.link(spm, "cop", splat, "cop")
     # preview grass for the road camera (an engine draws grass itself, from the grass weight): a 280 m window of the
     # 1 m surface around the camera, one tuft per sample of a density that is the grass weight (and a little on the
     # forest floor), 40 per m² at the camera falling as 1 / distance² to 2 per m² (far tufts are under a pixel; the
@@ -1831,8 +2222,10 @@ def world_tiles():
     g.link(sn, "cop", gcr, "cop")
     gcd = S("PCG_COPWrangle", title="Grass density (tufts / 40 per m²)", code=(
         f"r = length(set(@u - 0.5, @v - 0.5)) * {GN * gt:.1f}\n"
-        "g = clamp(@terrain_dw.x + 0.35 * @terrain_dw.w, 0, 1)\n"
-        "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))"))
+        "g = clamp((@Grass + 0.35 * @ForestFloor) * (1 - clamp(@rd, 0, 1)) * (1 - @Water), 0, 1)\n"
+        "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))\n"
+        "# on the close-range ground: the height with the detail relief\n"
+        "@Cdh = @C + @dh / 2048"))
     g.link(gcr, "cop", gcd, "cop")
     tb = S("PCG_COPWriteFile", title="BaseColor: 4×4 tiles of 1024² (sRGB)",
            filename="pcg/world/texture/T_Terrain_BaseColor_x{tx}_y{ty}", channels="terrain_albedo",
@@ -1842,60 +2235,38 @@ def world_tiles():
            filename="pcg/world/texture/T_Terrain_Normal_GL_x{tx}_y{ty}", channels="terrain_nrm",
            format="png", bit_depth="8", remap="signed", tiles_x=4, tiles_y=4)
     g.link(surf, "cop", tn, "cop")
-    # detail maps: four tileable 4 m tiles (512²) for close views -- grass tufts, rock grain and cracks, gravel,
-    # leaf litter -- multiplied onto the 1 m colour by the weights in terrain_dw (an engine's detail texturing).
-    # Colour 0.5 = no change; heights (metres) become their normal maps. Written for the engine too
-    dc0 = S("PCG_COPNoise", title="Detail canvas (512², one 4 m tile)", resolution_x=512, resolution_y=512,
+    # splat maps (three RGBA, four layers each, in LAYERS order) and the macro map, 4 x 4 tiles like the colour
+    for k_ in range(3):
+        wsp = S("PCG_COPWriteFile", title=f"Splat map {k_} (RGBA: {', '.join(n for n, _ in LAYERS[4 * k_:4 * k_ + 4])})",
+                filename=f"pcg/world/texture/T_Terrain_Splat{k_}_x{{tx}}_y{{ty}}", channels=f"terrain_w{k_}",
+                format="png", bit_depth="8", tiles_x=4, tiles_y=4)
+        g.link(splat, "cop", wsp, "cop")
+    wmc = S("PCG_COPWriteFile", title="Macro map (colour multiplier, 0.5 = 1x)",
+            filename="pcg/world/texture/T_Terrain_Macro_x{tx}_y{ty}", channels="terrain_macro", format="png",
+            bit_depth="8", remap="range", in_min=0.0, in_max=2.0, tiles_x=4, tiles_y=4)
+    g.link(splat, "cop", wmc, "cop")
+    # the layer library: twelve tileable materials (512², one tile = layerN_size metres), as an engine's landscape
+    # material samples them under the splat maps: colour (linear; written sRGB), height (its normal map; 0..1 for
+    # blending by height), roughness
+    dc0 = S("PCG_COPNoise", title="Layer canvas (512², one tile)", resolution_x=512, resolution_y=512,
             amplitude=0.0, bias=0.0)
-    dcw = S("PCG_COPWrangle", title="Detail maps: grass, rock, gravel, litter", code=(
-        "x = @u\n"
-        "y = @v\n"
-        "# grass: tufts and blades\n"
-        "g1 = pnoise(set(x * 24, y * 24, 1.1), 24)\n"
-        "g2 = pnoise(set(x * 64, y * 64, 2.2), 64)\n"
-        "g3 = pnoise(set(x * 160, y * 160, 3.3), 160)\n"
-        "tuft = smoothstep(0.42, 0.72, 0.6 * g1 + 0.3 * g2 + 0.2 * g3)\n"
-        "@det_grass = set(0.5, 0.52, 0.46) * (0.8 + 0.4 * tuft) * (0.92 + 0.16 * g3)\n"
-        "@h_grass = 0.05 * tuft + 0.01 * g3\n"
-        "# rock: grain, cracks (ridged noise), weathered patches\n"
-        "r1 = 1 - abs(2 * pnoise(set(x * 6, y * 6, 4.4), 6) - 1)\n"
-        "r2 = 1 - abs(2 * pnoise(set(x * 14, y * 14, 5.5), 14) - 1)\n"
-        "crack = max(smoothstep(0.9, 0.98, r1), 0.6 * smoothstep(0.92, 0.99, r2))\n"
-        "grain = pnoise(set(x * 120, y * 120, 6.6), 120)\n"
-        "patch = pnoise(set(x * 4, y * 4, 7.7), 4)\n"
-        "@det_rock = set(0.5, 0.5, 0.5) * (0.88 + 0.2 * grain + 0.08 * patch) * (1 - 0.35 * crack)\n"
-        "@h_rock = 0.03 * grain + 0.06 * patch - 0.04 * crack\n"
-        "# gravel: stones with dark gaps\n"
-        "s1 = pnoise(set(x * 40, y * 40, 8.8), 40)\n"
-        "s2 = pnoise(set(x * 90, y * 90, 9.9), 90)\n"
-        "stone = smoothstep(0.5, 0.62, s1 + 0.35 * (s2 - 0.5))\n"
-        "@det_gravel = set(0.5, 0.49, 0.47) * (0.65 + 0.55 * stone + 0.15 * s2)\n"
-        "@h_gravel = 0.035 * stone + 0.005 * s2\n"
-        "# leaf litter: patches of warm brown leaves and dark soil\n"
-        "l1 = pnoise(set(x * 20, y * 20, 11.1), 20)\n"
-        "l2 = pnoise(set(x * 70, y * 70, 12.2), 70)\n"
-        "leaf = smoothstep(0.45, 0.6, l1 + 0.4 * (l2 - 0.5))\n"
-        "@det_litter = lerp(set(0.42, 0.42, 0.40), set(0.58, 0.5, 0.4), leaf) * (0.85 + 0.3 * l2)\n"
-        "@h_litter = 0.02 * leaf + 0.01 * l2"))
+    dcw = S("PCG_COPWrangle", title="Terrain layers: twelve materials", code=layer_library_code())
     g.link(dc0, "cop", dcw, "cop")
     prev = dcw
-    for k_ in ("grass", "rock", "gravel", "litter"):
-        hn_ = S("PCG_COPHeightToNormal", title=f"Detail normal: {k_}", layer=f"h_{k_}", strength=1.0, world_size=4.0,
-                tile=True, out_layer=f"nrm_{k_}")
+    for n_, size_ in LAYERS:
+        hn_ = S("PCG_COPHeightToNormal", title=f"Layer normal: {n_}", layer=f"layh_{n_}", strength=1.0,
+                world_size=size_, tile=True, out_layer=f"layn_{n_}")
         g.link(prev, "cop", hn_, "cop")
         prev = hn_
-    dset = S("PCG_COPLayerEdit", title="The detail set", op="keep",
-             spec="det_grass det_rock det_gravel det_litter nrm_grass nrm_rock nrm_gravel nrm_litter")
+    dset = S("PCG_COPLayerEdit", title="The layer library", op="keep",
+             spec=" ".join(f"lay_{n} layn_{n} layr_{n} layb_{n}" for n, _ in LAYERS))
     g.link(prev, "cop", dset, "cop")
-    for k_ in ("Grass", "Rock", "Gravel", "Litter"):
-        wd = S("PCG_COPWriteFile", title=f"Detail {k_}: colour (linear, 0.5 = no change)",
-               filename=f"pcg/world/texture/detail/T_Detail_{k_}_Color", channels=f"det_{k_.lower()}",
-               format="png", bit_depth="8")
-        g.link(dset, "cop", wd, "cop")
-        wn = S("PCG_COPWriteFile", title=f"Detail {k_}: normal (OpenGL)",
-               filename=f"pcg/world/texture/detail/T_Detail_{k_}_Normal_GL", channels=f"nrm_{k_.lower()}",
-               format="png", bit_depth="8", remap="signed")
-        g.link(dset, "cop", wn, "cop")
+    for n_, _ in LAYERS:
+        for chn, suf, kw in ((f"lay_{n_}", "Color", dict(encode="srgb")), (f"layn_{n_}", "Normal_GL", dict(remap="signed")),
+                             (f"layb_{n_}", "Height", {}), (f"layr_{n_}", "Roughness", {})):
+            wl_ = S("PCG_COPWriteFile", title=f"Layer {n_}: {suf}", filename=f"pcg/world/texture/layers/T_Layer_{n_}_{suf}",
+                    channels=chn, format="png", bit_depth="8", **kw)
+            g.link(dset, "cop", wl_, "cop")
 
     # ③ Distribution
     def scatter(col, title, count, dens, seed):
@@ -2023,8 +2394,15 @@ def world_tiles():
         "@N = where(uw, set(0, 1, 0), @N)\n"
         "@P.y = max(@P.y, -0.3)"))
     g.link(msh0, "geo", msh1, "geo")
-    msh = G("PCG_Wrangle", title="Material: terrain", run_over="prim", code='s@material = "terrain"')
-    g.link(msh1, "geo", msh, "geo")
+    msh_ = G("PCG_Wrangle", title="Material: terrain", run_over="prim", code='s@material = "terrain"')
+    g.link(msh1, "geo", msh_, "geo")
+    x0_, x1_, z0_, z1_ = DETAIL_WINDOW
+    mho = G("PCG_Blast", title="Full-map mesh: a hole for the close-range one", cls="point",
+            group=f"(@P.x > {x0_ + 0.5}) & (@P.x < {x1_ - 0.5}) & (@P.z > {z0_ + 0.5}) & (@P.z < {z1_ - 0.5})")
+    g.link(msh_, "geo", mho, "geo")
+    msh = G("PCG_Merge", title="Terrain: full map + close range")
+    g.link(mho, "geo", msh, "geo1")
+    g.link(dmt, "geo", msh, "geo2")
 
     # Preview proxies: stacked-cone pines, clustered broadleaf crowns, bushes and lumpy rocks, so a low camera reads
     # as a landscape; the engine places its real assets from the table. Their colour is a point attribute like the
@@ -2114,7 +2492,7 @@ def world_tiles():
         "@N = set(0, 1, 0) + 0 * @P"))
     g.link(tuft, "geo", tufc, "geo")
     gsc = G("PCG_COPLayerToPoints", title="Grass: one tuft per sample", mode="scatter", count=392000,
-            density_layer="gd", height_layer="C", height_scale=2048.0, attribs="terrain_albedo", plane="xz",
+            density_layer="gd", height_layer="Cdh", height_scale=2048.0, attribs="terrain_albedo", plane="xz",
             world_size=GN * gt, rand_seed=9)
     g.link(gcd, "cop", gsc, "cop")
     gmv = G("PCG_Transform", title="Grass: the window back in place", tx=-2050.0 + (gcj - GN // 2 + GN / 2) * gt,
@@ -2172,6 +2550,7 @@ def world_tiles():
     g.link(mg, "geo", pr, "geo")
     g.link(surf, "cop", pr, "textures_cop")
     g.link(dset, "cop", pr, "detail_cop")
+    g.link(splat, "cop", pr, "splat_cop")
     g.link(cam, "cam", pr, "camera")
     pv = G("PreviewImage", title="Whole world", size=[520, 400])
     g.link(pr, "image", pv, "images")
@@ -2184,6 +2563,7 @@ def world_tiles():
     g.link(mg, "geo", pr2, "geo")
     g.link(surf, "cop", pr2, "textures_cop")
     g.link(dset, "cop", pr2, "detail_cop")
+    g.link(splat, "cop", pr2, "splat_cop")
     g.link(cam2, "cam", pr2, "camera")
     pv2 = G("PreviewImage", title="In the valley", size=[520, 400])
     g.link(pr2, "image", pv2, "images")
@@ -2201,6 +2581,7 @@ def world_tiles():
     g.link(mg3, "geo", pr3, "geo")
     g.link(surf, "cop", pr3, "textures_cop")
     g.link(dset, "cop", pr3, "detail_cop")
+    g.link(splat, "cop", pr3, "splat_cop")
     g.link(cam3, "cam", pr3, "camera")
     pv3 = G("PreviewImage", title="On the road", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
