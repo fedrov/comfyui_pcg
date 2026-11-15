@@ -74,10 +74,11 @@ SPECS = {
 #   g14    the volume / VDB nodes of pcg106
 #   g15    the nodes added after the pcg121 code review (nodes_sop3.py)
 #   g16    the Grunge maps and the Adjacency nodes (Houdini 22)
+#   g17    scene generation after SideFX Labs (lots, buildings, LODs, impostors, WFC)
 def _merge():
     import importlib
     parts = [importlib.import_module(f".panel_specs_g{i}", __package__).SPECS
-             for i in range(1, 17)]
+             for i in range(1, 18)]
     for part in parts:
         dup = set(part) & set(SPECS)
         if dup:

@@ -1510,6 +1510,58 @@ def _():
     return {"in": [t], "out": run("PolyWire", geo=t, radius=0.012, divisions=8)[0]}
 
 
+def _block():
+    return Geometry.from_mesh(np.array([[-4.0, 0, -2.6], [4.0, 0, -3.0], [4.4, 0, 2.8], [-4.0, 0, 2.4]]),
+                              [[0, 3, 2, 1]])
+
+
+@recipe("LotSubdivision")
+def _():
+    b = _block()
+    lots = run("LotSubdivision", geo=b, alignment="longest_edge", iterations=4, irregularity=0.5, rand_seed=4)[0]
+    return {"in": [b], "out": g("Color", geo=lots, attribute_class="prim", mode="random_by_attribute", attribute="lot"), "view": (60, 20)}
+
+
+def _town():
+    lots = run("LotSubdivision", geo=g("Transform", geo=_block(), sx=9.0, sy=9.0, sz=9.0), alignment="longest_edge",
+               iterations=3, irregularity=0.5, rand_seed=4)[0]
+    return lots, run("BuildingGenerator", geo=lots, floors_min=2, floors_max=7, rand_seed=3, bottom_ledge=True,
+                     facade_pattern="window window wall|window",
+                     floor_overrides="0: height=4.2 pattern=shopfront shopfront door")[0]
+
+
+@recipe("BuildingGenerator")
+def _():
+    lots, b = _town()
+    return {"in": [lots], "out": b, "view": (28, 35)}
+
+
+@recipe("LODCreate")
+def _():
+    t = TORUS()
+    return {"in": [t], "out": run("LODCreate", geo=t, percents="100 30 10 3", view="debug")[0], "view": (30, 20)}
+
+
+@recipe("ImpostorTextures", cop=True)
+def _():
+    lots = run("LotSubdivision", geo=g("Transform", geo=_block(), sx=3.0, sy=3.0, sz=3.0), iterations=1)[0]
+    b = run("BuildingGenerator", geo=lots, floors_min=3, floors_max=6, rand_seed=5)[0]
+    return {"out": run("ImpostorTextures", geo=b, impostor_type="hemi_octahedron", sprite_resolution=64,
+                       frames_x=6)[0], "layer_out": "beauty"}
+
+
+@recipe("COPWFC", cop=True)
+def _():
+    from comfyui_pcg.geo.cop.core import CopImage
+    a = np.zeros((9, 9, 3), np.float32)
+    a[:] = (0.25, 0.5, 0.2)                                   # grass, two roads, a pond
+    a[3, :] = a[:, 6] = (0.55, 0.5, 0.45)
+    a[6:8, 1:4] = (0.2, 0.4, 0.7)
+    s = CopImage(9, 9, {"C": a})
+    return {"in": [s], "out": run("COPWFC", sample=s, wrap_input=True, grid_x=48, grid_y=48, cell_pixels=5,
+                                  rand_seed=2)[0]}
+
+
 @recipe("Thicken")
 def _():
     # an open half-sphere shell, cut in half afterwards so the thickness shows in the section

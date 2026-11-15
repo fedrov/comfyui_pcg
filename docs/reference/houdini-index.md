@@ -128,6 +128,12 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Join | [Join (PCG)](modify.md#pcg-join) | equivalent |
 | Knife | [Clip (PCG)](modify.md#pcg-clip) | equivalent |
 | L-System | [L-System (PCG)](generate.md#pcg-lsystem) | equivalent |
+| Labs 2D Wave Function Collapse | [COP WFC (PCG)](cop-generate.md#pcg-copwfc) | equivalent |
+| Labs Building Generator | [Building Generator (PCG)](generate.md#pcg-buildinggenerator) | equivalent |
+| Labs Impostor Texture | [Impostor Textures (PCG)](render.md#pcg-impostortextures) | equivalent |
+| Labs LOD Create | [LOD Create (PCG)](modify.md#pcg-lodcreate) | equivalent |
+| Labs Lot Subdivision | [Lot Subdivision (PCG)](generate.md#pcg-lotsubdivision) | equivalent |
+| Labs WFC Initialize Grid | [COP WFC (PCG)](cop-generate.md#pcg-copwfc) | equivalent |
 | Lattice | [Lattice (PCG)](deform.md#pcg-lattice) | equivalent |
 | Lidar Import | [Import Mesh (PCG)](convert.md#pcg-importmesh) | partial |
 | Line | [Line (PCG)](generate.md#pcg-line) | equivalent |

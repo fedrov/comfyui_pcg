@@ -2,7 +2,7 @@
 
 Preview images, 3D viewport, cameras and render passes.
 
-11 nodes.
+12 nodes.
 
 [Back to the reference index](README.md)
 
@@ -13,6 +13,7 @@ Preview images, 3D viewport, cameras and render passes.
 - [Camera Path (PCG)](#pcg-camerapath) — Generates a sequence of cameras along an orbit or an interpolated fly-through.
 - [Camera Pick (PCG)](#pcg-camerapick) — Picks one camera out of a camera sequence.
 - [Camera To Points (PCG)](#pcg-cameratopoints) — Converts cameras into points (one per camera) plus optional path and frustum wireframes.
+- [Impostor Textures (PCG)](#pcg-impostortextures) — Renders an object from a grid of directions into an impostor atlas, and outputs the card to show it on.
 - [Motion Vectors (PCG)](#pcg-motionvectors) — Computes exact screen-space motion vectors between two frames from geometry and cameras.
 - [Render Sequence (PCG)](#pcg-rendersequence) — Renders a geometry through every camera of a camera sequence into a sequence of images.
 - [Sequence Motion (PCG)](#pcg-sequencemotion) — Computes a sequence of exact motion vector images from a geometry sequence and cameras.
@@ -266,6 +267,74 @@ The `frustums` output is a line wireframe of each view frustum; its far rectangl
 |---|---|---|---|
 | Create Path `path` | toggle | on | Also outputs a polyline that connects the camera points in frame order. |
 | Frustum Depth `frustum_depth` | float [0.0..] | 0.5 | Depth of the frustum wireframes in world units. 0 produces no frustums. |
+
+---
+
+### Impostor Textures (PCG)
+
+<a id="pcg-impostortextures"></a>
+
+`PCG_ImpostorTextures` · category `PCG/render` · Houdini: Labs Impostor Texture (SOP)
+
+Renders an object from a grid of directions into an impostor atlas, and outputs the card to show it on.
+
+![Impostor Textures (PCG): input and result](../images/nodes/PCG_ImpostorTextures.png)
+
+An impostor replaces a distant object by a single card that shows a picture of the object from roughly the right direction. This node renders those pictures: every frame is an orthographic view of the whole object, framed on its bounding sphere so all frames have the same scale, and the frames are packed into one atlas.
+
+`Impostor Type` chooses the directions:
+
+- **Octahedron**: `XY Frames` x `XY Frames` directions over the whole sphere, laid out by the octahedral map. Neighbouring frames are neighbouring directions, so an engine can blend between them.
+- **Hemi-Octahedron**: the same over the upper half only - for trees and buildings, which are never seen from below, this doubles the angular resolution.
+- **Fixed Axis**: all frames go round the up axis at one `Elevation` - for billboards that only turn about Y.
+- **3D**: `XY Frames` azimuths by `XY Frames (Y)` elevations, a latitude / longitude grid.
+
+The atlas has the layers `C` (base colour from the geometry's `Cd`, unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).
+
+The `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | Object to make the impostor of. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The atlas (layers C, alpha, N, depth, beauty). |
+| `card` | GEOMETRY | The impostor card with the settings as detail attributes. |
+| `report` | STRING | Type, frame counts, atlas size, bounding radius and centre. |
+
+**Parameters**
+
+*Base Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Impostor Type `impostor_type` | menu | Octahedron | Arrangement of the view directions: Octahedron, Hemi-Octahedron, Fixed Axis or 3D. Options: Octahedron (`octahedron`), Hemi-Octahedron (`hemi_octahedron`), Fixed Axis (`fixed_axis`), 3D (`3d`). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sprite Resolution `sprite_resolution` | int [4..2048] | 128 | Size of one frame in pixels. The atlas is the frame count times this. |
+| Frames `frames_x` `frames_y` | int [1..64] | 8, 8 | Number of frames across and up. The octahedron types use the first value for both. |
+| Elevation `elevation` | float [-89.0..89.0] | 0 | Camera elevation in degrees for Fixed Axis. *Hidden when impostor_type ≠ fixed_axis.* |
+| Octahedron Zoom `zoom` | float [0.1..10.0] | 1 | Above 1 zooms in on the object (cropping the bounding sphere) to use more of each frame. |
+
+*Atlas*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Normal Space `normal_space` | menu | World | World space, or view space (x right, y up, z toward the camera). Options: World (`world`), View (`view`). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sun Direction `sun_direction` | string | `0.4 0.8 0.45` | Direction toward the sun for the beauty layer (X Y Z). |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs Impostor Texture (and its successor Impostor Baker): Octahedron, 3D and Fixed Axis types, Sprite Resolution, XY Frames, Octahedron Zoom, and the base colour, normal and beauty atlases. The Animation type is not included. The colour comes from the `Cd` attribute; textured materials are not rendered. Octahedron frames sample the map at both ends of its range, the convention game engines use for blending.
 
 ---
 

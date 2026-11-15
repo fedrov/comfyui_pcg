@@ -2,7 +2,7 @@
 
 Modeling operations: extrude, bevel, boolean, clip, fuse, remesh, subdivide and friends.
 
-76 nodes.
+77 nodes.
 
 [Back to the reference index](README.md)
 
@@ -39,6 +39,7 @@ Modeling operations: extrude, bevel, boolean, clip, fuse, remesh, subdivide and 
 - [Fuse (PCG)](#pcg-fuse) — Snaps nearby points together (to each other, to a grid, or to a target) and optionally welds them into single points.
 - [Intersection Analysis (PCG)](#pcg-intersectionanalysis) — Places a point wherever triangles or polylines pass through each other and records their sources.
 - [Join (PCG)](#pcg-join) — Connects the selected polylines in order into one polyline, bridging gaps with straight segments.
+- [LOD Create (PCG)](#pcg-lodcreate) — Builds a chain of levels of detail from a mesh, optionally ending in impostor cards.
 - [Loop Cut (PCG)](#pcg-loopcut) — Inserts a complete edge loop through quads, starting from seed edges.
 - [Match Axis (PCG)](#pcg-matchaxis) — Rotates geometry by the smallest rotation that takes one axis direction onto another.
 - [Match Size (PCG)](#pcg-matchsize) — Moves and scales geometry to fit a reference box, and can stash the transform so it can be undone later.
@@ -1766,6 +1767,77 @@ Primitive attributes are taken from the first primitive of the chain, as in Houd
 | Partition Attribute `partition_attribute` | string | *(empty)* | Primitive attribute whose values partition the primitives; each group is joined separately. Empty joins everything into one. |
 | Primitive Attributes `prim_attribs` | menu | Keep First | Whether the result takes the primitive attributes of the first primitive in the chain, or drops them. Options: Keep First (`first`), Drop (`drop`). |
 | Remove Unused Points `remove_unused_points` | toggle | off | Delete the points that no primitive uses after joining. |
+
+---
+
+### LOD Create (PCG)
+
+<a id="pcg-lodcreate"></a>
+
+`PCG_LODCreate` · category `PCG/modify` · Houdini: Labs LOD Create (SOP)
+
+Builds a chain of levels of detail from a mesh, optionally ending in impostor cards.
+
+![LOD Create (PCG): input and result](../images/nodes/PCG_LODCreate.png)
+
+`Percent Triangles` lists one value per level. A level at 100 is the mesh as it is; every other level is reduced from the original to that share of its triangles by quadric edge collapse (the method of Poly Reduce (PCG)). `Threshold Distance` gives the camera distance at which each level starts; left empty, the levels start at 0 and then at `First Distance`, doubling each time.
+
+With `Preserve UVs` on, UV seams are kept in place, so every level can use the textures baked for LOD0. `Recalculate Normals` writes new vertex normals on the reduced levels, split at edges sharper than `Cusp Angle`. `Last LOD is Impostor` replaces the last level by two crossed upright cards the size of the bounding box, with uv 0-1 each, ready for an atlas from Impostor Textures (PCG).
+
+If the mesh has a string prim attribute `name`, every name is treated as one asset and gets its own chain.
+
+All levels come out in one geometry. Each prim carries `lod` (the level), `part` (`LOD0`, `LOD1`, ...), `name` (`<asset>_LOD0`, or `LOD0` without asset names), `lod_distance` and `impostor`; there is a prim group per level. Export Mesh (PCG) writes one node per `name`, which is how engines pick up LOD chains.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | Mesh to make levels of detail for. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | All levels (or the chosen one) in one geometry. |
+| `report` | STRING | Triangle count, distance and impostor flag of every level. |
+
+**Parameters**
+
+*LOD Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Percent Triangles `percents` | string | `100 50 25 10` | Triangle share of every level in percent of the original, separated by spaces. The number of values is the number of levels. |
+| Threshold Distance `distances` | string | *(empty)* | Distance at which each level starts, one value per level. Empty computes them from First Distance. |
+| First Distance `first_distance` | float [0.0..] | 20 | Start distance of LOD1 when Threshold Distance is empty; later levels double it. *Disabled when distances ≠ "".* |
+
+*Decimation Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Last LOD is Impostor `last_lod_impostor` | toggle | off | Replaces the last level by two crossed cards. |
+| Preserve UVs `preserve_uvs` | toggle | on | Keeps UV seams fixed during reduction so all levels share one texture set. |
+| Boundary Weight `boundary_weight` | float [0.0..] | 4 | How strongly open borders are kept in place during reduction. |
+| Recalculate Normals `recalculate_normals` | toggle | on | Writes vertex normals on the reduced levels. |
+| Cusp Angle `cusp_angle` | float [0.0..180.0] | 60 | Edges sharper than this angle stay hard when normals are recalculated. *Disabled when recalculate_normals is off.* |
+
+*Export Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| LOD Mesh Name Prefix `name_prefix` | string | `LOD` | Prefix of the level names in the `name` attribute. |
+
+*Visualize*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| LOD Viewing Mode `view` | menu | All (in place) | All: every level in place (select one downstream by its group). Single LOD: only the level chosen below. Debug All LOD: all levels side by side. Options: All (in place) (`all`), Single LOD (`single`), Debug All LOD (`debug`). |
+| LOD `level` | int [0..32] | 0 | Level shown in Single LOD mode. *Hidden when view ≠ single.* |
+| Spacing `spacing` | float [0.0..100.0] | 1.2 | Distance between levels in Debug All LOD mode, in widths of the mesh. *Hidden when view ≠ debug.* |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs LOD Create 2.0: LOD count, Percent Triangles, Threshold Distance, Last LOD is Impostor, Recalculate Normals with Cusp Angle, the mesh name prefix and the viewing modes. Not included: FBX export and texture baking (use Export Mesh and COP Bake Textures), shader consolidation, Remove Insides, Preserve Quads (the reduced levels are triangles) and the camera-driven viewing mode.
 
 ---
 

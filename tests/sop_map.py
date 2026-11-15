@@ -272,6 +272,12 @@ M = {
  "Join": ("done", "PCG_Join"),
  "Knife": ("done", "PCG_Clip", "keep = both is a knife cut"),
  "L-System": ("new", "PCG_LSystem", "Stochastic rules, tropism; parametric and context-sensitive rules not done"),
+ "Labs 2D Wave Function Collapse": ("new", "PCG_COPWFC", "On images (COP): the overlapping model, constraints, rotations, tileable output"),
+ "Labs Building Generator": ("new", "PCG_BuildingGenerator", "Footprints -> buildings from facade modules: floors, pattern, corners, ledges, floor overrides; built-in modules or a library"),
+ "Labs Impostor Texture": ("new", "PCG_ImpostorTextures", "Octahedron, hemi-octahedron, fixed axis, 3D; no animation type"),
+ "Labs LOD Create": ("new", "PCG_LODCreate", "LOD chain by quadric reduction, impostor cards as the last level; FBX export and baking are Export Mesh / Bake Textures"),
+ "Labs Lot Subdivision": ("new", "PCG_LotSubdivision", "Alignment, Minimum Lot Size, Iterations, Irregularity, Cluster Lots"),
+ "Labs WFC Initialize Grid": ("new", "PCG_COPWFC", "The constraints image"),
  "Lattice": ("new", "PCG_Lattice", "Pairs with PCG_LatticeFromBound; trilinear / Bernstein"),
  "Lidar Import": ("partial", "PCG_ImportMesh", "Reads PLY point clouds; does not read LAS/LAZ"),
  "Line": ("done", "PCG_Line"),
@@ -517,7 +523,7 @@ FAMILY = {
  "Ocean Foam / Ocean Source / Ocean Waves": (("oos", OOS_SIM), 3),
  "Test Geometry: *(Crag / Pig Head / Rubber Toy / Squab / Tommy / Shader Ball …)": (("oos", OOS_TEST), 10),
  "ROP / output drivers (Alembic ROP, FBX ROP, Geometry ROP ...)": (("oos", OOS_IO), 8),
- "Labs (SideFX Labs, not core SOPs, counted separately)": (("oos", "Not in the core index; ones like Road Generator, WFC and Tree will be evaluated separately later"), 0),
+ "Labs (SideFX Labs, not core SOPs, counted separately)": (("oos", "Not in the core index. Done and listed above: Lot Subdivision, Building Generator, LOD Create, Impostor Texture, WFC; Thicken is in EXTRA; Road Generator and Tree not yet"), 0),
 }
 
 # ─────────────────────────────────────────────── Conversely: the plugin's own geometry-side nodes

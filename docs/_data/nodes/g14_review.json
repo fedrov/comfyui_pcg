@@ -184,5 +184,120 @@
    "pivot": "Where each packed piece's point goes: centroid, bounding box center, origin or bottom center."
   },
   "houdini_notes": "Counterpart of the Assemble SOP. Connectivity is by shared points; there is no separate Connectivity Attribute, and the packed fragments carry no path attribute."
+ },
+ "PCG_LotSubdivision": {
+  "summary": "Cuts polygons such as city blocks into lots by repeated straight cuts.",
+  "description": "Every selected polygon is cut in two by a straight line, each half is cut again, and so on for `Iterations` passes: one pass gives 2 lots, two give 4, three give 8. A lot whose area is below `Minimum Lot Size` is left as it is, so large blocks end up with more lots than small ones.\n\n`Alignment` decides the direction of the cuts. *Bounding Box* cuts across the longer side of the lot's bounding box, so all cuts are parallel to the axes - right for a regular grid of streets. *Longest Edge* cuts perpendicular to the lot's longest edge, so the cuts follow a slanted or irregular block. `Irregularity` moves each cut away from the middle, which gives lots of different sizes.\n\nWith `Cluster Lots` on, neighbouring lots of the same block (lots sharing an edge) are joined until `Number of Clusters` remain: the shared edges disappear and the outline stays, giving L-shaped and irregular parcels.\n\nThe polygons can be concave, but must be planar and must not intersect themselves. The lots share points along common edges, including where one lot's corner meets the middle of its neighbour's side. Each lot gets the prim attributes `lot` (its number), `block` (the source polygon) and `area`, and the source polygon's own prim attributes. Feed the result to Building Generator (PCG).",
+  "inputs": {
+   "geo": "Polygons to cut (blocks)."
+  },
+  "outputs": {
+   "geo": "One polygon per lot; polygons outside the group pass through.",
+   "report": "Number of lots and blocks, and the smallest and largest lot area."
+  },
+  "params": {
+   "group": "Polygons to cut. Empty means all; the others pass through unchanged.",
+   "alignment": "Direction of the cuts: Bounding Box (parallel to the axes of the polygon's plane - world X and Z for a horizontal block) or Longest Edge (perpendicular to the lot's longest edge).",
+   "min_lot_size": "Lots with an area below this are not cut further.",
+   "iterations": "Number of cutting passes. Each pass cuts every lot in two.",
+   "rand_seed": "Seed of the random cut positions (used when Irregularity is above 0).",
+   "irregularity": "0 cuts every lot through the middle. Higher values move each cut randomly, up to anywhere in the middle 80% at 1.",
+   "cluster_lots": "Joins neighbouring lots into larger parcels.",
+   "clusters": "Number of parcels left per block after joining.",
+   "cluster_seed": "Seed of the random choice of which neighbours are joined."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs Lot Subdivision 2.0 with the same parameters. The exact cut positions and the clustering order are the plugin's own, so the same seed does not give the same lots as Houdini."
+ },
+ "PCG_BuildingGenerator": {
+  "summary": "Turns footprint polygons into buildings with floors, facade modules, ledges and a roof.",
+  "description": "Every footprint polygon (taken as seen from above; up is +Y, the base is the footprint's lowest point) becomes one building. Its walls are split into floors of `Full Floor Height`, and each floor of each wall into bays of about `Module Width`; the bays are stretched evenly so they fill the wall exactly. Each bay holds one module.\n\n**Modules and patterns.** `Facade Module Pattern` is a list of module names separated by spaces, repeated along the wall as seen from outside, left to right: `window window door`. Writing `a|b|c` picks one of the alternatives at random per bay. Four modules are built in: `wall` (blank), `window`, `door` and `shopfront` (a wide, low window); their openings are recessed by `Inset`. If a module library is connected to the `modules` input, a name found there is used instead. A library is ordinary geometry whose prims carry a string attribute `name`; all prims with one name form one module. The module's width (x) and height (y) are fitted to the bay, z = 0 is the wall plane and +z points out of the building, so a balcony can stick out and a window can be recessed. A prim attribute `part` on the library is kept.\n\n**Corners, ledges, roof.** With `Corners` on, a strip at both ends of every wall is a pilaster, or the convex / concave corner module from the library. `Top` and `Bottom` add an extruded band along the top or the foot of every floor, mitred round the corners. The roof is flat, or flat inside a parapet.\n\n**Setback.** `Footprint Inset` moves the walls in from the footprint, so lots that touch each other leave streets and yards between the buildings; a footprint too small for it is left empty.\n\n**Plinth.** `Foundation Depth` extends the walls below the base as a plain band (part `plinth`, floor -2), so a building standing on uneven ground shows no gap underneath.\n\n**Number of floors.** Per footprint: its `Height Attribute` (metres, divided by the floor height) if present, otherwise its `Floors Attribute`, otherwise a random number between `Floors Min` and `Floors Max`.\n\n**Floor overrides.** One line per floor, for example `0: height=4.5 pattern=door shopfront shopfront` for a taller ground floor with shops. `0` is the ground floor, `-1` the top floor; `height` and `pattern` are both optional.\n\nThe output carries the prim attributes `building`, `floor` (-1 on the roof, -2 on the plinth), `part` and `material` (wall, glass, frame, door, corner, ledge, roof, parapet, plinth, or the library's parts), `module`, the footprint's own prim attributes (a lot number, a town name), a prim group per part, a colour `Cd`, and vertex `uv` in metres (u along the wall, v up) so tiling textures keep their scale.",
+  "inputs": {
+   "geo": "Footprint polygons, for example the lots of Lot Subdivision (PCG).",
+   "modules": "Optional module library: geometry with a string prim attribute `name`."
+  },
+  "outputs": {
+   "geo": "The buildings.",
+   "report": "Number of buildings, floors and faces, and the face count per part."
+  },
+  "params": {
+   "group": "Footprints to build on. Empty means all.",
+   "color_floors": "Colours every floor differently, to check the floor layout, instead of colouring by part.",
+   "floor_height": "Height of one floor.",
+   "floors_min": "Smallest random number of floors, used when the footprint has neither attribute.",
+   "floors_max": "Largest random number of floors.",
+   "floors_attribute": "Prim attribute on the footprints that gives the number of floors.",
+   "height_attribute": "Prim attribute on the footprints that gives the building height in metres. Takes precedence over the floors attribute.",
+   "rand_seed": "Seed of the random floor counts, module alternatives and wall tints.",
+   "facade_pattern": "Module names along the wall, separated by spaces and repeated. `a|b` picks one at random per bay. Built in: `wall`, `window`, `door`, `shopfront`.",
+   "module_width": "Target width of a bay. The number of bays is the wall length divided by this, rounded; the bays then stretch to fit.",
+   "window_width": "Width of the built-in window as a fraction of the bay.",
+   "window_height": "Height of the built-in window as a fraction of the floor height.",
+   "window_sill": "Height of the wall below the built-in window, as a fraction of the floor height.",
+   "inset": "Depth by which the built-in openings are recessed.",
+   "corners": "Adds a corner strip at both ends of every wall (skipped on walls shorter than 2.5 corner widths).",
+   "corner_width": "Width of the corner strip.",
+   "convex_corner_module": "Library module for corners that point outwards. Empty gives a plain pilaster.",
+   "concave_corner_module": "Library module for corners that point inwards. Empty gives a plain pilaster.",
+   "top_ledge": "Adds a ledge along the top of every floor.",
+   "top_ledge_height": "Height of the top ledge.",
+   "bottom_ledge": "Adds a ledge along the foot of every floor.",
+   "bottom_ledge_height": "Height of the bottom ledge.",
+   "ledge_depth": "How far the ledges stand out from the wall.",
+   "roof": "Flat roof, or a flat roof inside a parapet.",
+   "parapet_height": "Height of the parapet above the roof.",
+   "parapet_thickness": "Thickness of the parapet.",
+   "floor_overrides": "One line per overridden floor: `index: height=H pattern=...`. Index 0 is the ground floor, -1 the top floor.",
+   "footprint_inset": "Moves the walls in from the footprint by this distance, so lots that touch each other leave streets and yards between the buildings. A footprint too small for the setback gets no building.",
+   "foundation_depth": "Adds a plain band of wall this deep below the base (part `plinth`), so a building on uneven ground shows no gap under its walls."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs Building Generator 4.0: floors, facade module pattern, corner modules, top and bottom ledges and floor overrides. Differences: the input is footprints rather than building volumes; ledges are always the simple extruded kind (Houdini's Simple Ledges); bays stretch to fill the wall, so there is no sideslop module; the built-in modules and the roof are additions, so the node works without a library."
+ },
+ "PCG_LODCreate": {
+  "summary": "Builds a chain of levels of detail from a mesh, optionally ending in impostor cards.",
+  "description": "`Percent Triangles` lists one value per level. A level at 100 is the mesh as it is; every other level is reduced from the original to that share of its triangles by quadric edge collapse (the method of Poly Reduce (PCG)). `Threshold Distance` gives the camera distance at which each level starts; left empty, the levels start at 0 and then at `First Distance`, doubling each time.\n\nWith `Preserve UVs` on, UV seams are kept in place, so every level can use the textures baked for LOD0. `Recalculate Normals` writes new vertex normals on the reduced levels, split at edges sharper than `Cusp Angle`. `Last LOD is Impostor` replaces the last level by two crossed upright cards the size of the bounding box, with uv 0-1 each, ready for an atlas from Impostor Textures (PCG).\n\nIf the mesh has a string prim attribute `name`, every name is treated as one asset and gets its own chain.\n\nAll levels come out in one geometry. Each prim carries `lod` (the level), `part` (`LOD0`, `LOD1`, ...), `name` (`<asset>_LOD0`, or `LOD0` without asset names), `lod_distance` and `impostor`; there is a prim group per level. Export Mesh (PCG) writes one node per `name`, which is how engines pick up LOD chains.",
+  "inputs": {
+   "geo": "Mesh to make levels of detail for."
+  },
+  "outputs": {
+   "geo": "All levels (or the chosen one) in one geometry.",
+   "report": "Triangle count, distance and impostor flag of every level."
+  },
+  "params": {
+   "percents": "Triangle share of every level in percent of the original, separated by spaces. The number of values is the number of levels.",
+   "distances": "Distance at which each level starts, one value per level. Empty computes them from First Distance.",
+   "first_distance": "Start distance of LOD1 when Threshold Distance is empty; later levels double it.",
+   "last_lod_impostor": "Replaces the last level by two crossed cards.",
+   "preserve_uvs": "Keeps UV seams fixed during reduction so all levels share one texture set.",
+   "boundary_weight": "How strongly open borders are kept in place during reduction.",
+   "recalculate_normals": "Writes vertex normals on the reduced levels.",
+   "cusp_angle": "Edges sharper than this angle stay hard when normals are recalculated.",
+   "name_prefix": "Prefix of the level names in the `name` attribute.",
+   "view": "All: every level in place (select one downstream by its group). Single LOD: only the level chosen below. Debug All LOD: all levels side by side.",
+   "level": "Level shown in Single LOD mode.",
+   "spacing": "Distance between levels in Debug All LOD mode, in widths of the mesh."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs LOD Create 2.0: LOD count, Percent Triangles, Threshold Distance, Last LOD is Impostor, Recalculate Normals with Cusp Angle, the mesh name prefix and the viewing modes. Not included: FBX export and texture baking (use Export Mesh and COP Bake Textures), shader consolidation, Remove Insides, Preserve Quads (the reduced levels are triangles) and the camera-driven viewing mode."
+ },
+ "PCG_ImpostorTextures": {
+  "summary": "Renders an object from a grid of directions into an impostor atlas, and outputs the card to show it on.",
+  "description": "An impostor replaces a distant object by a single card that shows a picture of the object from roughly the right direction. This node renders those pictures: every frame is an orthographic view of the whole object, framed on its bounding sphere so all frames have the same scale, and the frames are packed into one atlas.\n\n`Impostor Type` chooses the directions:\n\n- **Octahedron**: `XY Frames` x `XY Frames` directions over the whole sphere, laid out by the octahedral map. Neighbouring frames are neighbouring directions, so an engine can blend between them.\n- **Hemi-Octahedron**: the same over the upper half only - for trees and buildings, which are never seen from below, this doubles the angular resolution.\n- **Fixed Axis**: all frames go round the up axis at one `Elevation` - for billboards that only turn about Y.\n- **3D**: `XY Frames` azimuths by `XY Frames (Y)` elevations, a latitude / longitude grid.\n\nThe atlas has the layers `C` (base colour from the geometry's `Cd`, unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).\n\nThe `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.",
+  "inputs": {
+   "geo": "Object to make the impostor of."
+  },
+  "outputs": {
+   "cop": "The atlas (layers C, alpha, N, depth, beauty).",
+   "card": "The impostor card with the settings as detail attributes.",
+   "report": "Type, frame counts, atlas size, bounding radius and centre."
+  },
+  "params": {
+   "impostor_type": "Arrangement of the view directions: Octahedron, Hemi-Octahedron, Fixed Axis or 3D.",
+   "sprite_resolution": "Size of one frame in pixels. The atlas is the frame count times this.",
+   "frames_x": "Number of frames across and up. The octahedron types use the first value for both.",
+   "elevation": "Camera elevation in degrees for Fixed Axis.",
+   "zoom": "Above 1 zooms in on the object (cropping the bounding sphere) to use more of each frame.",
+   "normal_space": "World space, or view space (x right, y up, z toward the camera).",
+   "sun_direction": "Direction toward the sun for the beauty layer (X Y Z)."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs Impostor Texture (and its successor Impostor Baker): Octahedron, 3D and Fixed Axis types, Sprite Resolution, XY Frames, Octahedron Zoom, and the base colour, normal and beauty atlases. The Animation type is not included. The colour comes from the `Cd` attribute; textured materials are not rendered. Octahedron frames sample the map at both ends of its range, the convention game engines use for blending."
  }
 }

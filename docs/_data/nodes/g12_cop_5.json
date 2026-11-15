@@ -1513,5 +1513,37 @@
    "prefix": "Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency."
   },
   "houdini_notes": "Corresponds to Space Transform with Adjacency (Copernicus, Houdini 22)."
+ },
+ "PCG_COPWFC": {
+  "topic": "cop-generate",
+  "summary": "Grows a larger image out of a small sample with Wave Function Collapse, so every local window of the result also occurs in the sample.",
+  "description": "The sample image is cut into every window of `Pattern Search Size` x `Pattern Search Size` cells. The output is solved so that each of its windows is one of those patterns: every output cell starts as undecided, the cell with the fewest remaining choices is fixed to one pattern, and the consequences spread to its neighbours, which lose the patterns that no longer fit. If a cell runs out of choices the solve restarts with the next seed, up to `Number Of Solve Attempts` times.\n\nThis is the overlapping model of Wave Function Collapse. It suits tile-like layouts: draw a small map of roads, plots, walls or water in a few flat colours and the node produces a large map that follows the same local rules. One pixel of the sample is one cell; for a picture drawn at a larger scale set `Sample Grid Size`. Colours are compared at 8 bits per channel, so use flat colours, not gradients.\n\nA `constraints` image fixes parts of the result: it sets the output size, and wherever its `Constraint Mask` layer is above 0.5 the cell takes the colour of its `Constraint Layer`, which must be a colour of the sample. Use it to pin a road or a clearing and let the solver fill in the rest.\n\nThe output has the solved colours in `Output Layer` and the layer `<Output Layer>_id`, the number of each cell's colour in the sample (in order of first appearance), which is convenient for scattering or instancing by value with COP Layer to Points (PCG).",
+  "inputs": {
+   "sample": "Small image of flat colours whose local patterns the output follows.",
+   "constraints": "Optional image at the output grid's size with cells to keep fixed."
+  },
+  "outputs": {
+   "cop": "The solved image.",
+   "report": "Number of patterns and colours, attempts used and the grid size."
+  },
+  "params": {
+   "layer": "Layer of the sample to read.",
+   "sample_cols": "Number of cell columns in the sample. 0 uses one cell per pixel.",
+   "sample_rows": "Number of cell rows in the sample. 0 uses one cell per pixel.",
+   "pattern_size": "Window size in cells. Lower values give noisier results; higher values stay closer to the sample but solve more slowly and fail more often.",
+   "wrap_input": "Also takes windows that wrap round the edges of the sample. Use only if the sample tiles.",
+   "grid_x": "Number of columns and rows of the output grid. Ignored when a constraints image is connected.",
+   "rotations": "Also allows the sample's patterns rotated and mirrored, which reduces repetition and makes solving easier.",
+   "respect_constraints": "Uses the constraints image. Off ignores its contents but still takes its size.",
+   "constraint_layer": "Layer of the constraints image that holds the fixed colours.",
+   "constraint_mask": "Layer of the constraints image that marks fixed cells (above 0.5).",
+   "tileable": "Makes the output repeat seamlessly. Solves fail more often.",
+   "cell_pixels": "Size of one cell in the output image, in pixels.",
+   "out_layer": "Layer the result is written to; the colour numbers go to this name plus `_id`.",
+   "rand_seed": "Seed of the solve. Different seeds give different results under the same rules.",
+   "use_frequency": "Chooses patterns as often as they occur in the sample. Off treats all patterns equally.",
+   "attempts": "Number of restarts allowed when a solve runs into a contradiction."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs 2D Wave Function Collapse (Solver) with the same Input, Output and WFC Settings parameters, and to Labs WFC Initialize Grid (the constraints image). Houdini solves on a grid of points and paints the sample in the viewport; here both are images. The Starting Point option is not included."
  }
 }

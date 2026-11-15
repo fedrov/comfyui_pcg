@@ -2,7 +2,7 @@
 
 Primitives, curves, terrain and other nodes that create geometry from nothing.
 
-24 nodes.
+26 nodes.
 
 [Back to the reference index](README.md)
 
@@ -11,6 +11,7 @@ Primitives, curves, terrain and other nodes that create geometry from nothing.
 - [Add (PCG)](#pcg-add) — Creates points from typed coordinates, connects points into polygons, or strips a mesh down to its points.
 - [Ballistic Path (PCG)](#pcg-ballisticpath) — Fires a projectile from each point and outputs its trajectory as a polyline.
 - [Box (PCG)](#pcg-box) — Creates a box as polygons or as a lattice of points.
+- [Building Generator (PCG)](#pcg-buildinggenerator) — Turns footprint polygons into buildings with floors, facade modules, ledges and a roof.
 - [Circle (PCG)](#pcg-circle) — Creates a circle, ellipse or arc as a polygon or a curve.
 - [Cross Section Surface (PCG)](#pcg-crosssectionsurface) — Builds a smooth Gordon surface through a net of section and guide curves.
 - [Cross Section Surface · Houdini (PCG)](#pcg-crosssectionsurfacehou) — Skins a surface through cross-section curves using their existing points, like Houdini's Cross Section Surface.
@@ -22,6 +23,7 @@ Primitives, curves, terrain and other nodes that create geometry from nothing.
 - [IsoSurface (PCG)](#pcg-isosurface) — Extracts a polygon surface or volume from an implicit function evaluated on a grid.
 - [L-System (PCG)](#pcg-lsystem) — Grows a branching structure by rewriting a premise string with rules and drawing it with a 3D turtle.
 - [Line (PCG)](#pcg-line) — Creates a straight line with evenly spaced points.
+- [Lot Subdivision (PCG)](#pcg-lotsubdivision) — Cuts polygons such as city blocks into lots by repeated straight cuts.
 - [Platonic Solids (PCG)](#pcg-platonicsolids) — Creates a Platonic solid or a soccer ball.
 - [PolyLoft (PCG)](#pcg-polyloft) — Connects existing curves into a surface or lines using their own points.
 - [PolyWire (PCG)](#pcg-polywire) — Builds tubes along every edge of a curve network, with closed joints at branches.
@@ -209,6 +211,121 @@ Generates an axis-aligned box of the given size, then applies the rotation and u
 | Rotate `rx` `ry` `rz` | float [-3600..3600] | 0, 0, 0 | Rotation of the box in degrees (X, Y, Z). |
 | Uniform Scale `uniform_scale` | float [0.0..] | 1 | Scale applied to the whole box in addition to Size. |
 | Axis Divisions `div_x` `div_y` `div_z` | int [2..512] | 2, 2, 2 | Number of points along each axis (X, Y, Z). 2 means one quad per face, matching Houdini. |
+
+---
+
+### Building Generator (PCG)
+
+<a id="pcg-buildinggenerator"></a>
+
+`PCG_BuildingGenerator` · category `PCG/generate` · Houdini: Labs Building Generator (SOP)
+
+Turns footprint polygons into buildings with floors, facade modules, ledges and a roof.
+
+![Building Generator (PCG): input and result](../images/nodes/PCG_BuildingGenerator.png)
+
+Every footprint polygon (taken as seen from above; up is +Y, the base is the footprint's lowest point) becomes one building. Its walls are split into floors of `Full Floor Height`, and each floor of each wall into bays of about `Module Width`; the bays are stretched evenly so they fill the wall exactly. Each bay holds one module.
+
+**Modules and patterns.** `Facade Module Pattern` is a list of module names separated by spaces, repeated along the wall as seen from outside, left to right: `window window door`. Writing `a|b|c` picks one of the alternatives at random per bay. Four modules are built in: `wall` (blank), `window`, `door` and `shopfront` (a wide, low window); their openings are recessed by `Inset`. If a module library is connected to the `modules` input, a name found there is used instead. A library is ordinary geometry whose prims carry a string attribute `name`; all prims with one name form one module. The module's width (x) and height (y) are fitted to the bay, z = 0 is the wall plane and +z points out of the building, so a balcony can stick out and a window can be recessed. A prim attribute `part` on the library is kept.
+
+**Corners, ledges, roof.** With `Corners` on, a strip at both ends of every wall is a pilaster, or the convex / concave corner module from the library. `Top` and `Bottom` add an extruded band along the top or the foot of every floor, mitred round the corners. The roof is flat, or flat inside a parapet.
+
+**Setback.** `Footprint Inset` moves the walls in from the footprint, so lots that touch each other leave streets and yards between the buildings; a footprint too small for it is left empty.
+
+**Plinth.** `Foundation Depth` extends the walls below the base as a plain band (part `plinth`, floor -2), so a building standing on uneven ground shows no gap underneath.
+
+**Number of floors.** Per footprint: its `Height Attribute` (metres, divided by the floor height) if present, otherwise its `Floors Attribute`, otherwise a random number between `Floors Min` and `Floors Max`.
+
+**Floor overrides.** One line per floor, for example `0: height=4.5 pattern=door shopfront shopfront` for a taller ground floor with shops. `0` is the ground floor, `-1` the top floor; `height` and `pattern` are both optional.
+
+The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 on the plinth), `part` and `material` (wall, glass, frame, door, corner, ledge, roof, parapet, plinth, or the library's parts), `module`, the footprint's own prim attributes (a lot number, a town name), a prim group per part, a colour `Cd`, and vertex `uv` in metres (u along the wall, v up) so tiling textures keep their scale.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | Footprint polygons, for example the lots of Lot Subdivision (PCG). |
+| `modules` *(optional)* | GEOMETRY | Optional module library: geometry with a string prim attribute `name`. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | The buildings. |
+| `report` | STRING | Number of buildings, floors and faces, and the face count per part. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Group `group` | string | *(empty)* | Footprints to build on. Empty means all. |
+
+*Visualize*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Color Floors `color_floors` | toggle | off | Colours every floor differently, to check the floor layout, instead of colouring by part. |
+
+*Initialize*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Full Floor Height `floor_height` | float [0.1..100.0] | 3 | Height of one floor. |
+| Floors Min `floors_min` | int [1..500] | 2 | Smallest random number of floors, used when the footprint has neither attribute. |
+| Floors Max `floors_max` | int [1..500] | 6 | Largest random number of floors. |
+| Floors Attribute `floors_attribute` | string | `floors` | Prim attribute on the footprints that gives the number of floors. |
+| Height Attribute `height_attribute` | string | `height` | Prim attribute on the footprints that gives the building height in metres. Takes precedence over the floors attribute. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random floor counts, module alternatives and wall tints. |
+
+*Wall Face*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Facade Module Pattern `facade_pattern` | string | `window` | Module names along the wall, separated by spaces and repeated. `a\|b` picks one at random per bay. Built in: `wall`, `window`, `door`, `shopfront`. |
+| Module Width `module_width` | float [0.1..100.0] | 3 | Target width of a bay. The number of bays is the wall length divided by this, rounded; the bays then stretch to fit. |
+| Window Width `window_width` | float [0.05..0.98] | 0.5 | Width of the built-in window as a fraction of the bay. |
+| Window Height `window_height` | float [0.05..0.95] | 0.5 | Height of the built-in window as a fraction of the floor height. |
+| Window Sill `window_sill` | float [0.0..0.9] | 0.3 | Height of the wall below the built-in window, as a fraction of the floor height. |
+| Inset `inset` | float [0.0..5.0] | 0.15 | Depth by which the built-in openings are recessed. |
+| Corners `corners` | toggle | on | Adds a corner strip at both ends of every wall (skipped on walls shorter than 2.5 corner widths). |
+| Corner Width `corner_width` | float [0.0..50.0] | 0.4 | Width of the corner strip. *Disabled when corners is off.* |
+| Convex Corner Module `convex_corner_module` | string | *(empty)* | Library module for corners that point outwards. Empty gives a plain pilaster. *Disabled when corners is off.* |
+| Concave Corner Module `concave_corner_module` | string | *(empty)* | Library module for corners that point inwards. Empty gives a plain pilaster. *Disabled when corners is off.* |
+
+*Ledges*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Top `top_ledge` | toggle | on | Adds a ledge along the top of every floor. |
+| Height `top_ledge_height` | float [0.0..10.0] | 0.25 | Height of the top ledge. *Disabled when top_ledge is off.* |
+| Bottom `bottom_ledge` | toggle | off | Adds a ledge along the foot of every floor. |
+| Height `bottom_ledge_height` | float [0.0..10.0] | 0.4 | Height of the bottom ledge. *Disabled when bottom_ledge is off.* |
+| Depth `ledge_depth` | float [0.0..10.0] | 0.15 | How far the ledges stand out from the wall. |
+
+*Roof*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Roof `roof` | menu | Parapet | Flat roof, or a flat roof inside a parapet. Options: Parapet (`parapet`), Flat (`flat`). |
+| Parapet Height `parapet_height` | float [0.0..20.0] | 0.8 | Height of the parapet above the roof. *Disabled when roof ≠ parapet.* |
+| Parapet Thickness `parapet_thickness` | float [0.0..10.0] | 0.3 | Thickness of the parapet. *Disabled when roof ≠ parapet.* |
+
+*Customization*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Floor Overrides `floor_overrides` | string | *(empty)* | One line per overridden floor: `index: height=H pattern=...`. Index 0 is the ground floor, -1 the top floor. |
+
+*Initialize*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Footprint Inset `footprint_inset` | float [0.0..100.0] | 0 | Moves the walls in from the footprint by this distance, so lots that touch each other leave streets and yards between the buildings. A footprint too small for the setback gets no building. |
+| Foundation Depth `foundation_depth` | float [0.0..100.0] | 0 | Adds a plain band of wall this deep below the base (part `plinth`), so a building on uneven ground shows no gap under its walls. |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs Building Generator 4.0: floors, facade module pattern, corner modules, top and bottom ledges and floor overrides. Differences: the input is footprints rather than building volumes; ledges are always the simple extruded kind (Houdini's Simple Ledges); bays stretch to fill the wall, so there is no sideslop module; the built-in modules and the roof are additions, so the node works without a library.
 
 ---
 
@@ -708,6 +825,70 @@ Generates a polyline starting at Origin, running along Direction for the given L
 | Direction `dx` `dy` `dz` | float | 0, 1, 0 | Direction of the line. |
 | Length `length` | float [0.0..] | 1 | Length of the line. |
 | Points `points` | int [2..] | 2 | Number of points on the line, at least 2. |
+
+---
+
+### Lot Subdivision (PCG)
+
+<a id="pcg-lotsubdivision"></a>
+
+`PCG_LotSubdivision` · category `PCG/generate` · Houdini: Labs Lot Subdivision (SOP)
+
+Cuts polygons such as city blocks into lots by repeated straight cuts.
+
+![Lot Subdivision (PCG): input and result](../images/nodes/PCG_LotSubdivision.png)
+
+Every selected polygon is cut in two by a straight line, each half is cut again, and so on for `Iterations` passes: one pass gives 2 lots, two give 4, three give 8. A lot whose area is below `Minimum Lot Size` is left as it is, so large blocks end up with more lots than small ones.
+
+`Alignment` decides the direction of the cuts. *Bounding Box* cuts across the longer side of the lot's bounding box, so all cuts are parallel to the axes - right for a regular grid of streets. *Longest Edge* cuts perpendicular to the lot's longest edge, so the cuts follow a slanted or irregular block. `Irregularity` moves each cut away from the middle, which gives lots of different sizes.
+
+With `Cluster Lots` on, neighbouring lots of the same block (lots sharing an edge) are joined until `Number of Clusters` remain: the shared edges disappear and the outline stays, giving L-shaped and irregular parcels.
+
+The polygons can be concave, but must be planar and must not intersect themselves. The lots share points along common edges, including where one lot's corner meets the middle of its neighbour's side. Each lot gets the prim attributes `lot` (its number), `block` (the source polygon) and `area`, and the source polygon's own prim attributes. Feed the result to Building Generator (PCG).
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | Polygons to cut (blocks). |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | One polygon per lot; polygons outside the group pass through. |
+| `report` | STRING | Number of lots and blocks, and the smallest and largest lot area. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Group `group` | string | *(empty)* | Polygons to cut. Empty means all; the others pass through unchanged. |
+
+*Base Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Alignment `alignment` | menu | Bounding Box | Direction of the cuts: Bounding Box (parallel to the axes of the polygon's plane - world X and Z for a horizontal block) or Longest Edge (perpendicular to the lot's longest edge). Options: Bounding Box (`bounding_box`), Longest Edge (`longest_edge`). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Minimum Lot Size `min_lot_size` | float [0.0..] | 0 | Lots with an area below this are not cut further. |
+| Iterations `iterations` | int [0..16] | 3 | Number of cutting passes. Each pass cuts every lot in two. |
+| Random Seed `rand_seed` | int [0..] | 0 | Seed of the random cut positions (used when Irregularity is above 0). |
+
+*Shape Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Irregularity `irregularity` | float [0.0..1.0] | 0 | 0 cuts every lot through the middle. Higher values move each cut randomly, up to anywhere in the middle 80% at 1. |
+| Cluster Lots `cluster_lots` | toggle | off | Joins neighbouring lots into larger parcels. |
+| Number of Clusters `clusters` | int [1..] | 4 | Number of parcels left per block after joining. *Disabled when cluster_lots is off.* |
+| Random Seed `cluster_seed` | int [0..] | 0 | Seed of the random choice of which neighbours are joined. *Disabled when cluster_lots is off.* |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs Lot Subdivision 2.0 with the same parameters. The exact cut positions and the clustering order are the plugin's own, so the same seed does not give the same lots as Houdini.
 
 ---
 

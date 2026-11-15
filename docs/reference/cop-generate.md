@@ -2,7 +2,7 @@
 
 Noise, patterns, shapes, ramps and other image sources.
 
-28 nodes.
+29 nodes.
 
 [Back to the reference index](README.md)
 
@@ -35,6 +35,7 @@ Noise, patterns, shapes, ramps and other image sources.
 - [COP Shape (PCG)](#pcg-copshape) — Draws a shape as a signed distance field plus an anti-aliased mask.
 - [COP Stereogram (PCG)](#pcg-copstereogram) — Creates a single-image autostereogram from a depth layer.
 - [COP Text (PCG)](#pcg-coptext) — Renders text into an anti-aliased coverage mask, optionally composited over a layer.
+- [COP WFC (PCG)](#pcg-copwfc) — Grows a larger image out of a small sample with Wave Function Collapse, so every local window of the result also occurs in the sample.
 - [COP Worley Noise (PCG)](#pcg-copworleynoise) — Generates Worley (cellular) noise and its feature-point, cell-border, center and ID layers.
 
 ## Nodes
@@ -2268,6 +2269,77 @@ The empty font uses the bundled Pillow font, which only has Latin characters; fo
 | Text Color `color` | string | `1 1 1` | RGB color used when compositing. *Disabled when composite_layer = "".* |
 | Output Layer `out_layer` | string | `text` | Layer that receives the coverage mask. |
 | Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Output resolution (width, height) used when nothing is connected to the input. With an input, its resolution is used. |
+
+---
+
+### COP WFC (PCG)
+
+<a id="pcg-copwfc"></a>
+
+`PCG_COPWFC` · category `PCG/cop` · Houdini: Labs 2D Wave Function Collapse (SOP), Labs WFC Initialize Grid (SOP)
+
+Grows a larger image out of a small sample with Wave Function Collapse, so every local window of the result also occurs in the sample.
+
+![COP WFC (PCG): input and result](../images/nodes/PCG_COPWFC.png)
+
+The sample image is cut into every window of `Pattern Search Size` x `Pattern Search Size` cells. The output is solved so that each of its windows is one of those patterns: every output cell starts as undecided, the cell with the fewest remaining choices is fixed to one pattern, and the consequences spread to its neighbours, which lose the patterns that no longer fit. If a cell runs out of choices the solve restarts with the next seed, up to `Number Of Solve Attempts` times.
+
+This is the overlapping model of Wave Function Collapse. It suits tile-like layouts: draw a small map of roads, plots, walls or water in a few flat colours and the node produces a large map that follows the same local rules. One pixel of the sample is one cell; for a picture drawn at a larger scale set `Sample Grid Size`. Colours are compared at 8 bits per channel, so use flat colours, not gradients.
+
+A `constraints` image fixes parts of the result: it sets the output size, and wherever its `Constraint Mask` layer is above 0.5 the cell takes the colour of its `Constraint Layer`, which must be a colour of the sample. Use it to pin a road or a clearing and let the solver fill in the rest.
+
+The output has the solved colours in `Output Layer` and the layer `<Output Layer>_id`, the number of each cell's colour in the sample (in order of first appearance), which is convenient for scattering or instancing by value with COP Layer to Points (PCG).
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `sample` | COPIMAGE | Small image of flat colours whose local patterns the output follows. |
+| `constraints` *(optional)* | COPIMAGE | Optional image at the output grid's size with cells to keep fixed. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The solved image. |
+| `report` | STRING | Number of patterns and colours, attempts used and the grid size. |
+
+**Parameters**
+
+*Input*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sample Layer `layer` | string | `C` | Layer of the sample to read. |
+| Sample Grid Size `sample_cols` | int [0..4096] | 0 | Number of cell columns in the sample. 0 uses one cell per pixel. |
+| Sample Grid Size (Rows) `sample_rows` | int [0..4096] | 0 | Number of cell rows in the sample. 0 uses one cell per pixel. |
+| Pattern Search Size `pattern_size` | int [1..6] | 3 | Window size in cells. Lower values give noisier results; higher values stay closer to the sample but solve more slowly and fail more often. |
+| Find Wrapping Input Patterns `wrap_input` | toggle | off | Also takes windows that wrap round the edges of the sample. Use only if the sample tiles. |
+
+*Output*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Grid `grid_x` `grid_y` | int [1..1024] | 48, 48 | Number of columns and rows of the output grid. Ignored when a constraints image is connected. |
+| Allow Rotations `rotations` | toggle | off | Also allows the sample's patterns rotated and mirrored, which reduces repetition and makes solving easier. |
+| Respect User Provided Constraints `respect_constraints` | toggle | on | Uses the constraints image. Off ignores its contents but still takes its size. |
+| Constraint Layer `constraint_layer` | string | `C` | Layer of the constraints image that holds the fixed colours. *Disabled when respect_constraints is off.* |
+| Constraint Mask `constraint_mask` | string | `mask` | Layer of the constraints image that marks fixed cells (above 0.5). *Disabled when respect_constraints is off.* |
+| Produce Tileable Output `tileable` | toggle | off | Makes the output repeat seamlessly. Solves fail more often. |
+| Cell Pixels `cell_pixels` | int [1..256] | 1 | Size of one cell in the output image, in pixels. |
+| Output Layer `out_layer` | string | `C` | Layer the result is written to; the colour numbers go to this name plus `_id`. |
+
+*WFC Settings*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Seed `rand_seed` | int [0..] | 0 | Seed of the solve. Different seeds give different results under the same rules. |
+| Use Observed Sample Pattern Frequency `use_frequency` | toggle | on | Chooses patterns as often as they occur in the sample. Off treats all patterns equally. |
+| Number Of Solve Attempts `attempts` | int [1..1000] | 10 | Number of restarts allowed when a solve runs into a contradiction. |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs 2D Wave Function Collapse (Solver) with the same Input, Output and WFC Settings parameters, and to Labs WFC Initialize Grid (the constraints image). Houdini solves on a grid of points and paints the sample in the viewport; here both are images. The Starting Point option is not included.
 
 ---
 

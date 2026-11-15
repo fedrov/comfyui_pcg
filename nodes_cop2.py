@@ -4217,7 +4217,62 @@ class PCG_COPSpaceTransformWithAdjacency:
         return (_adj.space_transform(cop, layer, transformation, signature, out_layer, prefix),)
 
 
+
+# ═══════════════════════════════════════════════════════ Wave Function Collapse (after SideFX Labs)
+from .geo.cop import wfc as _wfc                         # noqa: E402
+
+
+@_node
+class PCG_COPWFC:
+    """
+    Maps to: Labs 2D Wave Function Collapse (Solver) / Labs WFC Initialize Grid.
+
+    Grows an image out of a small sample: every Pattern Search Size window of the output is a window of the
+    sample (the overlapping model). One pixel is one grid cell (or Sample Grid Size cells across a larger
+    picture); colours are the cell values. An optional constraints image fixes cells (where its Constraint Mask
+    layer is set) to its colours. Writes the solved colours and <layer>_id (the colour's number in the sample).
+    """
+    RETURN_TYPES = (COP, "STRING")
+    RETURN_NAMES = ("cop", "report")
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        I = lambda w: _sec("Input", w)                     # noqa: E731,E741
+        O = lambda w: _sec("Output", w)                    # noqa: E731,E741
+        Wf = lambda w: _sec("WFC Settings", w)             # noqa: E731
+        return {"required": {
+            "sample": (COP,),
+            "layer": I(_s("C")),
+            "sample_cols": I(_i(0, 0, 4096)),
+            "sample_rows": I(_i(0, 0, 4096)),
+            "pattern_size": I(_i(3, 1, 6)),
+            "wrap_input": I(_b(False)),
+            "grid_x": O(_i(48, 1, 1024)),
+            "grid_y": O(_i(48, 1, 1024)),
+            "rotations": O(_b(False)),
+            "respect_constraints": O(_b(True)),
+            "constraint_layer": O(_s("C")),
+            "constraint_mask": O(_s("mask")),
+            "tileable": O(_b(False)),
+            "cell_pixels": O(_i(1, 1, 256)),
+            "out_layer": O(_s("C")),
+            "rand_seed": Wf(_i(0, 0, 2 ** 31 - 1)),
+            "use_frequency": Wf(_b(True)),
+            "attempts": Wf(_i(10, 1, 1000)),
+        }, "optional": {"constraints": (COP,)}}
+
+    def run(self, sample, layer, sample_cols, sample_rows, pattern_size, wrap_input, grid_x, grid_y, rotations,
+            respect_constraints, constraint_layer, constraint_mask, tileable, cell_pixels, out_layer, rand_seed,
+            use_frequency, attempts, constraints=None):
+        import json as _json
+        img, r = _wfc.wfc(sample, constraints, layer, sample_cols, sample_rows, pattern_size, wrap_input, grid_x,
+                          grid_y, rotations, respect_constraints, constraint_layer, constraint_mask, tileable,
+                          rand_seed, use_frequency, attempts, cell_pixels, out_layer)
+        return (img, _json.dumps(r))
+
+
 _NAMES.update({
+    "PCG_COPWFC": "COP WFC (PCG)",
     "PCG_COPGeometryToAdjacency": "COP Geometry to Adjacency (PCG)",
     "PCG_COPExtrapolateWithAdjacency": "COP Extrapolate with Adjacency (PCG)",
     "PCG_COPDistortWithAdjacency": "COP Distort with Adjacency (PCG)",

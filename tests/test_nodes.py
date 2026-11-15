@@ -429,7 +429,10 @@ EXPECT_REFUSE = {"PCG_AttribFade", "PCG_GroupExpand", "PCG_UVFlatten",
                  "PCG_COPGeoToLayer", "PCG_COPIntegrateVolume",
                  # Adjacency readers need the layers of COP Geometry to Adjacency in the image
                  "PCG_COPExtrapolateWithAdjacency", "PCG_COPDistortWithAdjacency",
-                 "PCG_COPAttributeSampleWithAdjacency", "PCG_COPSpaceTransformWithAdjacency"}
+                 "PCG_COPAttributeSampleWithAdjacency", "PCG_COPSpaceTransformWithAdjacency",
+                 # the module library needs a prim string attribute name; WFC's sample must be a few flat colours
+                 # (the test image has no repeating patterns, so there is no solution)
+                 "PCG_BuildingGenerator", "PCG_COPWFC"}
 try:
     import torch                                        # noqa: F401
 except ImportError:

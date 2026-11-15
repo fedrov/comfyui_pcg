@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **World tiles: towns, fields and the far view**. Each town's ground is cut into lots (Lot Subdivision); the lots
+  in the town disc, off the roads, dry and gentle enough are levelled into pads (HeightField Project into the height
+  map, so the mesh, weights and 1 m surface see the terraces) and get a building each (Building Generator: set back
+  from the lot lines, 1-5 floors rising toward the centre, a plinth for the pad edges), written to
+  `buildings/Towns.glb` with a node per town. Farmland round the towns is a COP WFC patchwork of fields (wheat, green
+  crop, pasture, ploughed soil) with grass margins: the woodland is cleared from the crops, the margins keep it as
+  hedgerows. The tree proxies are exported as LOD chains ending in impostor cards (LOD Create) with hemi-octahedral
+  impostor atlases (Impostor Textures). The scattered house instances and their proxy are gone.
+- **Building Generator**: `footprint_inset` (setback from the footprint, so touching lots leave lanes) and
+  `foundation_depth` (a plinth below the base for uneven ground); the footprint's prim attributes are carried to its
+  building's faces.
+- **Scene generation, after SideFX Labs** (five nodes):
+  - **Lot Subdivision**: cuts blocks into lots by repeated straight cuts (Alignment: Bounding Box / Longest Edge,
+    Minimum Lot Size, Iterations, Irregularity, Cluster Lots); concave blocks, shared points, `lot / block / area`.
+  - **Building Generator**: footprints to buildings: floors, bays holding modules named by a Facade Module Pattern
+    (built in: wall, window, door, shopfront; or a module library on the second input), corner modules, top and
+    bottom ledges, flat or parapet roof, per-floor overrides; `building / floor / part / material / module`, a
+    group per part, uv in metres.
+  - **COP WFC**: Wave Function Collapse (overlapping model) from a sample image, with constraints, rotations,
+    tileable output, and an id layer for instancing by value.
+  - **LOD Create**: a chain of levels by quadric reduction (Percent Triangles, Threshold Distance per level),
+    optional impostor cards as the last level, per-asset chains, `lod / part / name / lod_distance`.
+  - **Impostor Textures**: an atlas of views (octahedron, hemi-octahedron, fixed axis, 3D) with base colour,
+    alpha, normal, depth and lit beauty layers, and the card to show it on.
 - **COP Grunge: fourteen dirt-and-wear maps** (Houdini 22's Grunge nodes): Aurora, Bark Strips, Birch Bark, Drips,
   Galvanized Steel, Layered Noise, Leaking Streaks, Moisture, Mold Spots, Pine Bark, Rust, Rusty Surface, Sheets,
   Wipe Trails. One mono 0-1 layer each, with Houdini's Range (Amplitude, Center, Mask Contrast), Pattern (Element

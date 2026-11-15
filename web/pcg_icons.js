@@ -2480,6 +2480,34 @@ export const GLYPHS = {
     dash(c, true); line(c, -0.2, -0.3, 0.2, -0.3); line(c, -0.2, 0.3, 0.2, 0.3); dash(c, false);
     dots(c, [-0.2, -0.3, 0.2, -0.3, -0.2, 0.3, 0.2, 0.3], 0.09);
   },
+  lot_subdiv(c) {                          // a block cut into lots
+    rect(c, -0.9, -0.7, 1.8, 1.4, false);
+    line(c, -0.1, -0.7, -0.1, 0.7); line(c, -0.9, 0.05, -0.1, 0.05); line(c, -0.1, -0.2, 0.9, -0.2);
+    line(c, 0.45, -0.2, 0.45, 0.7);
+  },
+  building_gen(c) {                        // a facade: floors of windows under a parapet
+    rect(c, -0.6, -0.85, 1.2, 1.75, false);
+    line(c, -0.75, -0.85, 0.75, -0.85);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) rect(c, -0.4 + j * 0.5, -0.6 + i * 0.48, 0.3, 0.28, true);
+  },
+  lod_create(c) {                          // the same shape at three resolutions
+    circ(c, -0.55, 0, 0.38, false);
+    c.beginPath();
+    for (let i = 0; i <= 6; i++) { const a = i * Math.PI / 3; const x = 0.12 + 0.3 * Math.cos(a), y = 0.3 * Math.sin(a);
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y); }
+    c.stroke();
+    c.beginPath(); c.moveTo(0.9, 0); c.lineTo(0.68, 0.24); c.lineTo(0.56, -0.2); c.closePath(); c.stroke();
+  },
+  impostor(c) {                            // a grid of frames, one of them holding the object
+    rect(c, -0.85, -0.85, 1.7, 1.7, false);
+    line(c, -0.28, -0.85, -0.28, 0.85); line(c, 0.28, -0.85, 0.28, 0.85);
+    line(c, -0.85, -0.28, 0.85, -0.28); line(c, -0.85, 0.28, 0.85, 0.28);
+    circ(c, 0, 0, 0.17, true); circ(c, -0.57, 0.57, 0.12, true); circ(c, 0.57, -0.57, 0.12, true);
+  },
+  wfc(c) {                                 // a grid partly collapsed: filled cells, open cells
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++)
+      rect(c, -0.86 + i * 0.44, -0.86 + j * 0.44, 0.38, 0.38, (i + 2 * j) % 3 === 0 || (i === 1 && j === 2));
+  },
   fx_turingpat(c) {                        // three curved stripes (maze-like)
     for (let k = 0; k < 3; k++) {
       c.beginPath();
@@ -3100,6 +3128,9 @@ export const NODE_GLYPH = {
   COPGeometryToAdjacency: "adjacency", COPExtrapolateWithAdjacency: "adjacency",
   COPDistortWithAdjacency: "adjacency", COPAttributeSampleWithAdjacency: "adjacency",
   COPSpaceTransformWithAdjacency: "adjacency",
+  // scene generation (after SideFX Labs)
+  LotSubdivision: "lot_subdiv", BuildingGenerator: "building_gen", LODCreate: "lod_create",
+  ImpostorTextures: "impostor", COPWFC: "wfc",
   COPTuringPatterns: "fx_turingpat", COPHeatDistortByLayer: "fx_heatlayer",
   COPChromaticAberration: "fx_chroma_ab", COPHeatDistort: "fx_heat",
   COPSwirl: "fx_swirl", COPLensDistort: "fx_lens",
