@@ -1,6 +1,6 @@
 # Node reference
 
-All 505 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
+All 524 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
 
 In the parameter tables, the first column is the label shown in the node's panel followed by the input's internal name (the name used in saved workflows, relative references and `ch()` expressions). *Hidden when* / *Disabled when* repeat the panel's own rules.
 
@@ -98,7 +98,7 @@ Bridges between ComfyUI images and the plugin.
 
 Noise, patterns, shapes, ramps and other image sources.
 
-[COP Cellular Noise (PCG)](cop-generate.md#pcg-copcellularnoise), [COP Constant (PCG)](cop-generate.md#pcg-copconstant), [COP Fill (PCG)](cop-generate.md#pcg-copfill), [COP Fractal Sample (PCG)](cop-generate.md#pcg-copfractalsample), [COP Gradient (PCG)](cop-generate.md#pcg-copgradient), [COP Noise (PCG)](cop-generate.md#pcg-copnoise), [COP Noise Extra (PCG)](cop-generate.md#pcg-copnoiseextra), [COP Pattern (PCG)](cop-generate.md#pcg-coppattern), [COP Position Map (PCG)](cop-generate.md#pcg-coppositionmap), [COP Random (PCG)](cop-generate.md#pcg-coprandom), [COP Shape (PCG)](cop-generate.md#pcg-copshape), [COP Stereogram (PCG)](cop-generate.md#pcg-copstereogram), [COP Text (PCG)](cop-generate.md#pcg-coptext), [COP Worley Noise (PCG)](cop-generate.md#pcg-copworleynoise)
+[COP Cellular Noise (PCG)](cop-generate.md#pcg-copcellularnoise), [COP Constant (PCG)](cop-generate.md#pcg-copconstant), [COP Fill (PCG)](cop-generate.md#pcg-copfill), [COP Fractal Sample (PCG)](cop-generate.md#pcg-copfractalsample), [COP Gradient (PCG)](cop-generate.md#pcg-copgradient), [COP Grunge Aurora (PCG)](cop-generate.md#pcg-copgrungeaurora), [COP Grunge Bark Strips (PCG)](cop-generate.md#pcg-copgrungebarkstrips), [COP Grunge Birch Bark (PCG)](cop-generate.md#pcg-copgrungebirchbark), [COP Grunge Drips (PCG)](cop-generate.md#pcg-copgrungedrips), [COP Grunge Galvanized Steel (PCG)](cop-generate.md#pcg-copgrungegalvanizedsteel), [COP Grunge Layered Noise (PCG)](cop-generate.md#pcg-copgrungelayerednoise), [COP Grunge Leaking Streaks (PCG)](cop-generate.md#pcg-copgrungeleakingstreaks), [COP Grunge Moisture (PCG)](cop-generate.md#pcg-copgrungemoisture), [COP Grunge Mold Spots (PCG)](cop-generate.md#pcg-copgrungemoldspots), [COP Grunge Pine Bark (PCG)](cop-generate.md#pcg-copgrungepinebark), [COP Grunge Rust (PCG)](cop-generate.md#pcg-copgrungerust), [COP Grunge Rusty Surface (PCG)](cop-generate.md#pcg-copgrungerustysurface), [COP Grunge Sheets (PCG)](cop-generate.md#pcg-copgrungesheets), [COP Grunge Wipe Trails (PCG)](cop-generate.md#pcg-copgrungewipetrails), [COP Noise (PCG)](cop-generate.md#pcg-copnoise), [COP Noise Extra (PCG)](cop-generate.md#pcg-copnoiseextra), [COP Pattern (PCG)](cop-generate.md#pcg-coppattern), [COP Position Map (PCG)](cop-generate.md#pcg-coppositionmap), [COP Random (PCG)](cop-generate.md#pcg-coprandom), [COP Shape (PCG)](cop-generate.md#pcg-copshape), [COP Stereogram (PCG)](cop-generate.md#pcg-copstereogram), [COP Text (PCG)](cop-generate.md#pcg-coptext), [COP Worley Noise (PCG)](cop-generate.md#pcg-copworleynoise)
 
 ## [Image: Color & Levels](cop-color.md)
 
@@ -140,7 +140,7 @@ Height field generation, erosion, masks and terrain tools.
 
 Rasterizing and baking geometry; turning images back into geometry.
 
-[COP Bake Textures (PCG)](cop-geometry.md#pcg-copbaketextures), [COP Configure Stamps (PCG)](cop-geometry.md#pcg-copconfigurestamps), [COP Geometry to Layer (PCG)](cop-geometry.md#pcg-copgeotolayer), [COP HeightField to Mesh (PCG)](cop-geometry.md#pcg-copheightfieldtomesh), [COP Integrate Volume (PCG)](cop-geometry.md#pcg-copintegratevolume), [COP Layer from Attribute (PCG)](cop-geometry.md#pcg-coplayerfromattrib), [COP Layer To Points (PCG)](cop-geometry.md#pcg-coplayertopoints), [COP Planar Inflate (PCG)](cop-geometry.md#pcg-copplanarinflate), [COP Point Generate (PCG)](cop-geometry.md#pcg-coppointgenerate), [COP Points From Blobs (PCG)](cop-geometry.md#pcg-coppointsfromblobs), [COP Rasterize Curves (PCG)](cop-geometry.md#pcg-coprasterizecurves), [COP Rasterize Splats (PCG)](cop-geometry.md#pcg-coprasterizesplats), [COP Scatter Shapes (PCG)](cop-geometry.md#pcg-copscattershapes), [COP Triplanar (PCG)](cop-geometry.md#pcg-coptriplanar), [COP UV Shape (PCG)](cop-geometry.md#pcg-copuvshape), [Render Pass (PCG)](cop-geometry.md#pcg-renderpass)
+[COP Attribute Sample with Adjacency (PCG)](cop-geometry.md#pcg-copattributesamplewithadjacency), [COP Bake Textures (PCG)](cop-geometry.md#pcg-copbaketextures), [COP Configure Stamps (PCG)](cop-geometry.md#pcg-copconfigurestamps), [COP Distort with Adjacency (PCG)](cop-geometry.md#pcg-copdistortwithadjacency), [COP Extrapolate with Adjacency (PCG)](cop-geometry.md#pcg-copextrapolatewithadjacency), [COP Geometry to Adjacency (PCG)](cop-geometry.md#pcg-copgeometrytoadjacency), [COP Geometry to Layer (PCG)](cop-geometry.md#pcg-copgeotolayer), [COP HeightField to Mesh (PCG)](cop-geometry.md#pcg-copheightfieldtomesh), [COP Integrate Volume (PCG)](cop-geometry.md#pcg-copintegratevolume), [COP Layer from Attribute (PCG)](cop-geometry.md#pcg-coplayerfromattrib), [COP Layer To Points (PCG)](cop-geometry.md#pcg-coplayertopoints), [COP Planar Inflate (PCG)](cop-geometry.md#pcg-copplanarinflate), [COP Point Generate (PCG)](cop-geometry.md#pcg-coppointgenerate), [COP Points From Blobs (PCG)](cop-geometry.md#pcg-coppointsfromblobs), [COP Rasterize Curves (PCG)](cop-geometry.md#pcg-coprasterizecurves), [COP Rasterize Splats (PCG)](cop-geometry.md#pcg-coprasterizesplats), [COP Scatter Shapes (PCG)](cop-geometry.md#pcg-copscattershapes), [COP Space Transform with Adjacency (PCG)](cop-geometry.md#pcg-copspacetransformwithadjacency), [COP Triplanar (PCG)](cop-geometry.md#pcg-coptriplanar), [COP UV Shape (PCG)](cop-geometry.md#pcg-copuvshape), [Render Pass (PCG)](cop-geometry.md#pcg-renderpass)
 
 ## [Image: Simulation](cop-sim.md)
 
@@ -227,6 +227,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Align (PCG)](cop-transform.md#pcg-copalign) | `PCG_COPAlign` | Image: Transform & Warp |
 | [COP Align Pixels (PCG)](cop-transform.md#pcg-copalignpixels) | `PCG_COPAlignPixels` | Image: Transform & Warp |
 | [COP Align Window (PCG)](cop-transform.md#pcg-copalignwindow) | `PCG_COPAlignWindow` | Image: Transform & Warp |
+| [COP Attribute Sample with Adjacency (PCG)](cop-geometry.md#pcg-copattributesamplewithadjacency) | `PCG_COPAttributeSampleWithAdjacency` | Image: Geometry and Images |
 | [COP Bake Textures (PCG)](cop-geometry.md#pcg-copbaketextures) | `PCG_COPBakeTextures` | Image: Geometry and Images |
 | [COP Bend (PCG)](cop-transform.md#pcg-copbend) | `PCG_COPBend` | Image: Transform & Warp |
 | [COP Blur (PCG)](cop-filter.md#pcg-copblur) | `PCG_COPBlur` | Image: Filters |
@@ -261,6 +262,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Despill (PCG)](cop-color.md#pcg-copdespill) | `PCG_COPDespill` | Image: Color & Levels |
 | [COP Directional Blur (PCG)](cop-filter.md#pcg-copdirectionalblur) | `PCG_COPDirectionalBlur` | Image: Filters |
 | [COP Distort (PCG)](cop-transform.md#pcg-copdistort) | `PCG_COPDistort` | Image: Transform & Warp |
+| [COP Distort with Adjacency (PCG)](cop-geometry.md#pcg-copdistortwithadjacency) | `PCG_COPDistortWithAdjacency` | Image: Geometry and Images |
 | [COP Dither (PCG)](cop-filter.md#pcg-copdither) | `PCG_COPDither` | Image: Filters |
 | [COP Drop Shadow (PCG)](cop-composite.md#pcg-copdropshadow) | `PCG_COPDropShadow` | Image: Compositing & Masks |
 | [COP Edge Detect (PCG)](cop-filter.md#pcg-copedge) | `PCG_COPEdge` | Image: Filters |
@@ -271,6 +273,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Erosion Filter (PCG)](cop-terrain.md#pcg-coperosion) | `PCG_COPErosion` | Image: Height Fields & Terrain |
 | [COP Export (PCG)](cop-utility.md#pcg-copexport) | `PCG_COPExport` | Image: Analysis, I/O & Utility |
 | [COP Extrapolate Boundaries (PCG)](cop-filter.md#pcg-copextrapolateboundaries) | `PCG_COPExtrapolateBoundaries` | Image: Filters |
+| [COP Extrapolate with Adjacency (PCG)](cop-geometry.md#pcg-copextrapolatewithadjacency) | `PCG_COPExtrapolateWithAdjacency` | Image: Geometry and Images |
 | [COP Feather (PCG)](cop-filter.md#pcg-copfeather) | `PCG_COPFeather` | Image: Filters |
 | [COP Feather Slope (PCG)](cop-filter.md#pcg-copfeatherslope) | `PCG_COPFeatherSlope` | Image: Filters |
 | [COP FFT (PCG)](cop-filter.md#pcg-copfft) | `PCG_COPFFT` | Image: Filters |
@@ -282,9 +285,24 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Flow Solve (PCG)](cop-sim.md#pcg-copflowsolve) | `PCG_COPFlowSolve` | Image: Simulation |
 | [COP Fractal Sample (PCG)](cop-generate.md#pcg-copfractalsample) | `PCG_COPFractalSample` | Image: Generators |
 | [COP Function (PCG)](cop-color.md#pcg-copfunction) | `PCG_COPFunction` | Image: Color & Levels |
+| [COP Geometry to Adjacency (PCG)](cop-geometry.md#pcg-copgeometrytoadjacency) | `PCG_COPGeometryToAdjacency` | Image: Geometry and Images |
 | [COP Geometry to Layer (PCG)](cop-geometry.md#pcg-copgeotolayer) | `PCG_COPGeoToLayer` | Image: Geometry and Images |
 | [COP Glow (PCG)](cop-filter.md#pcg-copglow) | `PCG_COPGlow` | Image: Filters |
 | [COP Gradient (PCG)](cop-generate.md#pcg-copgradient) | `PCG_COPGradient` | Image: Generators |
+| [COP Grunge Aurora (PCG)](cop-generate.md#pcg-copgrungeaurora) | `PCG_COPGrungeAurora` | Image: Generators |
+| [COP Grunge Bark Strips (PCG)](cop-generate.md#pcg-copgrungebarkstrips) | `PCG_COPGrungeBarkStrips` | Image: Generators |
+| [COP Grunge Birch Bark (PCG)](cop-generate.md#pcg-copgrungebirchbark) | `PCG_COPGrungeBirchBark` | Image: Generators |
+| [COP Grunge Drips (PCG)](cop-generate.md#pcg-copgrungedrips) | `PCG_COPGrungeDrips` | Image: Generators |
+| [COP Grunge Galvanized Steel (PCG)](cop-generate.md#pcg-copgrungegalvanizedsteel) | `PCG_COPGrungeGalvanizedSteel` | Image: Generators |
+| [COP Grunge Layered Noise (PCG)](cop-generate.md#pcg-copgrungelayerednoise) | `PCG_COPGrungeLayeredNoise` | Image: Generators |
+| [COP Grunge Leaking Streaks (PCG)](cop-generate.md#pcg-copgrungeleakingstreaks) | `PCG_COPGrungeLeakingStreaks` | Image: Generators |
+| [COP Grunge Moisture (PCG)](cop-generate.md#pcg-copgrungemoisture) | `PCG_COPGrungeMoisture` | Image: Generators |
+| [COP Grunge Mold Spots (PCG)](cop-generate.md#pcg-copgrungemoldspots) | `PCG_COPGrungeMoldSpots` | Image: Generators |
+| [COP Grunge Pine Bark (PCG)](cop-generate.md#pcg-copgrungepinebark) | `PCG_COPGrungePineBark` | Image: Generators |
+| [COP Grunge Rust (PCG)](cop-generate.md#pcg-copgrungerust) | `PCG_COPGrungeRust` | Image: Generators |
+| [COP Grunge Rusty Surface (PCG)](cop-generate.md#pcg-copgrungerustysurface) | `PCG_COPGrungeRustySurface` | Image: Generators |
+| [COP Grunge Sheets (PCG)](cop-generate.md#pcg-copgrungesheets) | `PCG_COPGrungeSheets` | Image: Generators |
+| [COP Grunge Wipe Trails (PCG)](cop-generate.md#pcg-copgrungewipetrails) | `PCG_COPGrungeWipeTrails` | Image: Generators |
 | [COP Heat Distort (PCG)](cop-transform.md#pcg-copheatdistort) | `PCG_COPHeatDistort` | Image: Transform & Warp |
 | [COP Heat Distort by Layer (PCG)](cop-transform.md#pcg-copheatdistortbylayer) | `PCG_COPHeatDistortByLayer` | Image: Transform & Warp |
 | [COP Height to AO (PCG)](cop-terrain.md#pcg-copheighttoao) | `PCG_COPHeightToAO` | Image: Height Fields & Terrain |
@@ -371,6 +389,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [COP Smooth Fill (PCG)](cop-filter.md#pcg-copsmoothfill) | `PCG_COPSmoothFill` | Image: Filters |
 | [COP Solve Poisson (PCG)](cop-sim.md#pcg-copsolvepoisson) | `PCG_COPSolvePoisson` | Image: Simulation |
 | [COP Space Transform (PCG)](cop-transform.md#pcg-copspacetransform) | `PCG_COPSpaceTransform` | Image: Transform & Warp |
+| [COP Space Transform with Adjacency (PCG)](cop-geometry.md#pcg-copspacetransformwithadjacency) | `PCG_COPSpaceTransformWithAdjacency` | Image: Geometry and Images |
 | [COP Sphere Sample (PCG)](cop-transform.md#pcg-copspheresample) | `PCG_COPSphereSample` | Image: Transform & Warp |
 | [COP Statistics (PCG)](cop-utility.md#pcg-copstatistics) | `PCG_COPStatistics` | Image: Analysis, I/O & Utility |
 | [COP Stereogram (PCG)](cop-generate.md#pcg-copstereogram) | `PCG_COPStereogram` | Image: Generators |

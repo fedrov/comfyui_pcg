@@ -1650,6 +1650,51 @@ _cop("COPMorph", _shape, layer_in="mask", layer_out="mask", op="erode", radius=1
 _cop("COPFeatherSlope", _shape, layer_in="mask", layer_out="mask", distance=0.15)
 _cop("COPTuringPatterns", _noise, iterations=25, radius=5.0)
 _cop("COPSegment", lambda: _noise(octaves=2, frequency=6.0), layer_out="id", layer="C", threshold=0.55)
+
+# Grunge maps (Houdini 22)
+for _k in ("Aurora", "BarkStrips", "BirchBark", "Drips", "GalvanizedSteel", "LayeredNoise", "LeakingStreaks",
+           "Moisture", "MoldSpots", "PineBark", "Rust", "RustySurface", "Sheets", "WipeTrails"):
+    cop_recipe("COPGrunge" + _k, lambda _k=_k: {"out": g("COPGrunge" + _k, resolution_x=256, resolution_y=256,
+                                                         element_size=0.5), "layer_out": "grunge"})
+
+
+# Adjacency (Houdini 22): a torus unwrapped into islands; its position baked as the texture
+@functools.lru_cache(maxsize=1)
+def _adj_geo():
+    return g("UVUnwrap", geo=g("Torus", radius=0.7, section_radius=0.28, rows=12, cols=24))
+
+
+def _adj(**kw):
+    return g("COPGeometryToAdjacency", geo=_adj_geo(), resolution_x=256, resolution_y=256, **kw)
+
+
+def _adj_tex(extrapolate=False):
+    return g("COPAttributeSampleWithAdjacency", cop=_adj(), geo=_adj_geo(), attrib="P", out_layer="C",
+             extrapolate=extrapolate)
+
+
+cop_recipe("COPGeometryToAdjacency", lambda: {"out": _adj(), "layer_out": "adj_uv"})
+cop_recipe("COPAttributeSampleWithAdjacency", lambda: {"out": _adj_tex(True), "layer_out": "C"})
+
+
+@recipe("COPExtrapolateWithAdjacency", cop=True)
+def _():
+    a = _adj_tex()
+    return {"in": [a], "out": g("COPExtrapolateWithAdjacency", cop=a, layers="C"), "layer_in": "C", "layer_out": "C"}
+
+
+@recipe("COPDistortWithAdjacency", cop=True)
+def _():
+    a = g("COPExtrapolateWithAdjacency", cop=_adj_tex(), layers="C")
+    return {"in": [a], "out": g("COPDistortWithAdjacency", cop=a, layer="C", direction="0.04 0.02"),
+            "layer_in": "C", "layer_out": "C"}
+
+
+@recipe("COPSpaceTransformWithAdjacency", cop=True)
+def _():
+    a = _adj_tex()
+    return {"in": [a], "out": g("COPSpaceTransformWithAdjacency", cop=a, layer="C",
+                                transformation="world_to_tangent"), "layer_in": "C", "layer_out": "C"}
 _cop("COPSDFOps", _sdf, layer_in="sdf", layer_out="sdf_out", op="onion", width=0.03)
 # transform
 _cop("COPFlip", _colorful, horizontal=True)

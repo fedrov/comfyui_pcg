@@ -14,11 +14,10 @@ One Houdini node maps to one of our nodes; several Houdini nodes often map to th
 Copernicus splits nodes by "conversion direction", we merge them by "what they do" and pick the direction in a dropdown.
 """
 OOS_PYRO = "Pyro fire/smoke solving (28 nodes) needs time-step state and a full set of force fields; not in this plugin's direction"
-OOS_GRUNGE = "Grunge nodes are preset materials (noise combinations), not capabilities; build them yourself with COP Noise / Pattern"
 OOS_CABLE = "Cable is Copernicus's own multi-layer data wire; our COPIMAGE is multi-layer already"
 OOS_TEST = "Test models"
 OOS_CAM = "We have our own PCGCAM camera (Camera / Camera Path / Camera Pick)"
-OOS_ADJ = "Adjacency is Copernicus's UV island adjacency table (sampling across seams); we do not have this data structure"
+OOS_ADJ = "Compiled-block plumbing of Copernicus (a block of nodes run as geometry); our graphs have no such blocks"
 OOS_VDB = "We have no VDB; volumes are on the geometry side (Scatter in Volume)"
 OOS_ML = "ML inference is not reimplemented; connect existing model nodes from the ComfyUI ecosystem"
 OOS_PIPE = "Pipeline / platform bound (color management, Solaris, live video, OpenCL)"
@@ -31,7 +30,7 @@ M = {
  "Attribute": ("oos", OOS_CABLE),
  "Attribute Extract": ("oos", OOS_CABLE),
  "Attribute Insert": ("oos", OOS_CABLE),
- "Attribute Sample with Adjacency": ("oos", OOS_ADJ),
+ "Attribute Sample with Adjacency": ("new", "PCG_COPAttributeSampleWithAdjacency"),
  "Attribute from Layer": ("done", "PCG_AttribFromMap"),
  "Auto Stereogram": ("new", "PCG_COPStereogram"),
  "Bake Geometry Textures": ("new", "PCG_COPBakeTextures"),
@@ -101,7 +100,7 @@ M = {
  "Despill": ("new", "PCG_COPDespill"),
  "Dilate Erode": ("done", "PCG_COPMorph"),
  "Distort": ("done", "PCG_COPDistort"),
- "Distort with Adjacency": ("oos", OOS_ADJ),
+ "Distort with Adjacency": ("new", "PCG_COPDistortWithAdjacency"),
  "Dot Product": ("new", "PCG_COPVectorMath"),
  "Drop Shadow": ("new", "PCG_COPDropShadow"),
  "Edge Detect": ("done", "PCG_COPEdge"),
@@ -112,7 +111,7 @@ M = {
  "Equalize": ("new", "PCG_COPEqualize"),
  "Error": ("done", "PCG_COPCompare"),
  "Extrapolate Boundaries": ("new", "PCG_COPExtrapolateBoundaries"),
- "Extrapolate with Adjacency": ("oos", OOS_ADJ),
+ "Extrapolate with Adjacency": ("new", "PCG_COPExtrapolateWithAdjacency"),
  "Fast Fourier Transform": ("new", "PCG_COPFFT"),
  "Feather": ("new", "PCG_COPFeatherSlope"),
  "Fetch": ("platform", PLATFORM),
@@ -131,18 +130,18 @@ M = {
  "Function": ("new", "PCG_COPFunction"),
  "Gamma": ("new", "PCG_COPColorCorrect"),
  "Geometry Attribute from Layer": ("done", "PCG_AttribFromMap"),
- "Geometry to Adjacency": ("oos", OOS_ADJ),
+ "Geometry to Adjacency": ("new", "PCG_COPGeometryToAdjacency"),
  "Geometry to Layer": ("new", "PCG_COPGeoToLayer"),
  "Glow": ("new", "PCG_COPGlow"),
- "Grunge Aurora": ("oos", OOS_GRUNGE), "Grunge Bark Strips": ("oos", OOS_GRUNGE),
- "Grunge Birch Bark": ("oos", OOS_GRUNGE), "Grunge Drips": ("oos", OOS_GRUNGE),
- "Grunge Galvanized Steel": ("oos", OOS_GRUNGE),
- "Grunge Layered Noise": ("oos", OOS_GRUNGE),
- "Grunge Leaking Streaks": ("oos", OOS_GRUNGE),
- "Grunge Moisture": ("oos", OOS_GRUNGE), "Grunge Mold Spots": ("oos", OOS_GRUNGE),
- "Grunge Pine Bark": ("oos", OOS_GRUNGE), "Grunge Rust": ("oos", OOS_GRUNGE),
- "Grunge Rusty Surface": ("oos", OOS_GRUNGE), "Grunge Sheets": ("oos", OOS_GRUNGE),
- "Grunge Wipe Trails": ("oos", OOS_GRUNGE),
+ "Grunge Aurora": ("new", "PCG_COPGrungeAurora"), "Grunge Bark Strips": ("new", "PCG_COPGrungeBarkStrips"),
+ "Grunge Birch Bark": ("new", "PCG_COPGrungeBirchBark"), "Grunge Drips": ("new", "PCG_COPGrungeDrips"),
+ "Grunge Galvanized Steel": ("new", "PCG_COPGrungeGalvanizedSteel"),
+ "Grunge Layered Noise": ("new", "PCG_COPGrungeLayeredNoise"),
+ "Grunge Leaking Streaks": ("new", "PCG_COPGrungeLeakingStreaks"),
+ "Grunge Moisture": ("new", "PCG_COPGrungeMoisture"), "Grunge Mold Spots": ("new", "PCG_COPGrungeMoldSpots"),
+ "Grunge Pine Bark": ("new", "PCG_COPGrungePineBark"), "Grunge Rust": ("new", "PCG_COPGrungeRust"),
+ "Grunge Rusty Surface": ("new", "PCG_COPGrungeRustySurface"), "Grunge Sheets": ("new", "PCG_COPGrungeSheets"),
+ "Grunge Wipe Trails": ("new", "PCG_COPGrungeWipeTrails"),
  "HSV Adjust": ("new", "PCG_COPColorCorrect"),
  "Heat Distort": ("new", "PCG_COPHeatDistort"),
  "Heat Distort by Layer": ("new", "PCG_COPHeatDistortByLayer"),
@@ -283,7 +282,7 @@ M = {
  "Smooth Fill": ("new", "PCG_COPSmoothFill"),
  "Solve Poisson": ("new", "PCG_COPSolvePoisson"),
  "Space Transform": ("new", "PCG_COPSpaceTransform"),
- "Space Transform with Adjacency": ("oos", OOS_ADJ),
+ "Space Transform with Adjacency": ("new", "PCG_COPSpaceTransformWithAdjacency"),
  "Sphere Sample": ("new", "PCG_COPSphereSample"),
  "Stamp Points": ("new", "PCG_COPScatterShapes"),
  "Star Glow": ("new", "PCG_COPGlow"),

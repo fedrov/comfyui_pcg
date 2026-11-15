@@ -1378,6 +1378,13 @@ def rock_assets():
 # a height (its normal map; 0..1 for blending by height) and a roughness, built from cells (periodic Worley:
 # pworley / pworley_dir) and periodic noise; (name, metres per tile). Splat maps 0..2 hold their weights, four
 # per RGBA map, in this order
+# wear on top: Grunge maps on the same canvas (one tile each, so they tile with the layers): (layer, node, widgets)
+GRUNGE = (("gr_streaks", "PCG_COPGrungeLeakingStreaks", dict(element_size=0.5, rand_seed=3)),
+          ("gr_rust", "PCG_COPGrungeRust", dict(element_size=0.25, rand_seed=5, coverage=0.4)),
+          ("gr_moist", "PCG_COPGrungeMoisture", dict(element_size=0.5, rand_seed=7)),
+          ("gr_mold", "PCG_COPGrungeMoldSpots", dict(element_size=0.25, rand_seed=11, cluster=0.8)),
+          ("gr_layers", "PCG_COPGrungeLayeredNoise", dict(element_size=0.5, rand_seed=13)),
+          ("gr_sheets", "PCG_COPGrungeSheets", dict(element_size=0.5, rand_seed=17, layers=3)))
 LAYERS = (("GrassLush", 3.0), ("GrassDry", 3.0), ("Moss", 2.0), ("ForestFloor", 2.5),
           ("Soil", 3.0), ("Mud", 4.0), ("Gravel", 3.0), ("Sand", 4.0),
           ("RockCliff", 12.0), ("RockStrata", 16.0), ("RockSlab", 9.0), ("Road", 4.0))
@@ -1458,14 +1465,19 @@ def layer_library_code():
           "twig = (1 - smoothstep(0.0, 0.012, tw.y - tw.x)) * smoothstep(0.62, 0.7, pnoise(set(x * 8, y * 8, 4.9), 8))",
           "@lay_ForestFloor = lerp(c, set(0.26, 0.19, 0.12), twig)",
           "@layh_ForestFloor = max(hl, 0.01 * twig) + 0.002 * pnoise(set(x * 150, y * 150, 5.5), 150)",
-          "@layr_ForestFloor = 0.88 + 0 * x"]
+          "@layr_ForestFloor = 0.88 + 0 * x",
+          "# ForestFloor wear: pale fungus in colonies",
+          "@lay_ForestFloor = lerp(@lay_ForestFloor, set(0.62, 0.58, 0.46), 0.35 * @gr_mold)"]
     L += _stones("Soil", (0.38, 0.30, 0.21), ((0.45, 0.40, 0.34), (0.52, 0.47, 0.40), (0.33, 0.29, 0.25)), 0.25,
                  (30, 80), 60.0, rough=0.92)
     L += ["# Soil: dry cracks",
           "wk = pworley(set(x * 9 + wx, y * 9 + wy, 66.0), 9)",
           "ck = (1 - smoothstep(0.0, 0.03, wk.y - wk.x)) * smoothstep(0.4, 0.6, pnoise(set(x * 4, y * 4, 66.6), 4))",
           "@lay_Soil = @lay_Soil * (1 - 0.35 * ck)",
-          "@layh_Soil = @layh_Soil - 0.008 * ck"]
+          "@layh_Soil = @layh_Soil - 0.008 * ck",
+          "# Soil wear: damp patches (darker, smoother), tonal breakup",
+          "@lay_Soil = @lay_Soil * (1 - 0.2 * @gr_moist) * (0.92 + 0.16 * @gr_layers)",
+          "@layr_Soil = @layr_Soil - 0.25 * @gr_moist"]
     L += ["# Mud: wet, smooth, dark, with slick puddles (low roughness)",
           "m1 = pnoise(set(x * 6, y * 6, 70.1), 6)",
           "m2 = pnoise(set(x * 24, y * 24, 70.7), 24)",
@@ -1473,9 +1485,13 @@ def layer_library_code():
           "pud = smoothstep(0.58, 0.66, m1 + 0.2 * (m2 - 0.5))",
           "@lay_Mud = set(0.24, 0.19, 0.14) * (0.8 + 0.3 * m2 + 0.15 * m3) * (1 - 0.25 * pud)",
           "@layh_Mud = 0.012 * m2 + 0.003 * m3 - 0.01 * pud",
-          "@layr_Mud = 0.55 - 0.4 * pud + 0.1 * m3"]
+          "@layr_Mud = 0.55 - 0.4 * pud + 0.1 * m3 - 0.12 * @gr_moist",
+          "# Mud wear: drying crusts (paler, where the moisture map is low)",
+          "@lay_Mud = @lay_Mud * (1.12 - 0.24 * @gr_layers)"]
     L += _stones("Gravel", (0.42, 0.38, 0.33), ((0.56, 0.55, 0.53), (0.62, 0.57, 0.49), (0.44, 0.43, 0.42)), 0.78,
                  (24, 64), 80.0, rough=0.8)
+    L += ["# Gravel wear: moss between the stones, in colonies",
+          "@lay_Gravel = lerp(@lay_Gravel, set(0.22, 0.28, 0.12), 0.6 * @gr_mold * (1 - smoothstep(0.0, 0.3, st1)))"]
     L += ["# Sand: wind ripples (warped), fine grain, a few shells and pebbles",
           "wv = 0.08 * (pnoise(set(x * 5, y * 5, 90.2), 5) - 0.5) + 0.03 * (pnoise(set(x * 13, y * 13, 90.6), 13) - 0.5)",
           "rip = 0.5 + 0.5 * sin(2 * PI * (y * 22 + x * 3 + wv * 22))",
@@ -1484,7 +1500,9 @@ def layer_library_code():
           "peb = where(rand(pb.z * 3.0) < 0.06, sqrt(clamp(1 - pow(pb.x / 0.3, 2), 0, 1)), 0 * pb.x)",
           "@lay_Sand = set(0.66, 0.60, 0.47) * (0.9 + 0.1 * rip + 0.12 * (gr_ - 0.5)) * (1 - 0.25 * peb)",
           "@layh_Sand = 0.006 * rip + 0.001 * gr_ + 0.008 * peb",
-          "@layr_Sand = 0.95 + 0 * x"]
+          "@layr_Sand = 0.95 + 0 * x",
+          "# Sand wear: damp, darker drifts",
+          "@lay_Sand = @lay_Sand * (0.86 + 0.26 * @gr_layers)"]
     L += ["# RockCliff: angular blocks (a facet plane per Worley cell), dark joints, cracks that fade in and out",
           "wx = 0.5 * (pnoise(set(x * 4, y * 4, 100.2), 4) - 0.5)",
           "wy = 0.5 * (pnoise(set(x * 4, y * 4, 100.8), 4) - 0.5)",
@@ -1507,7 +1525,12 @@ def layer_library_code():
           "lch = smoothstep(0.62, 0.7, pnoise(set(x * 20, y * 20, 106.1), 20)) * smoothstep(0.5, 0.6, pnoise(set(x * 80, y * 80, 106.7), 80))",
           "@lay_RockCliff = lerp(c, set(0.60, 0.60, 0.50), 0.5 * lch)",
           "@layh_RockCliff = 0.9 * fac + 0.25 * fac2 - 0.06 * jn - 0.025 * jn2 + 0.03 * rg + 0.002 * gn",
-          "@layr_RockCliff = 0.8 + 0.1 * jn + 0 * x"]
+          "@layr_RockCliff = 0.8 + 0.1 * jn + 0 * x",
+          "# RockCliff wear: water streaks down the face (dark, smoother), iron stains, lichen colonies",
+          "@lay_RockCliff = @lay_RockCliff * (1 - 0.3 * @gr_streaks)",
+          "@lay_RockCliff = lerp(@lay_RockCliff, set(0.46, 0.33, 0.22), 0.3 * @gr_rust)",
+          "@lay_RockCliff = lerp(@lay_RockCliff, set(0.64, 0.64, 0.52), 0.45 * @gr_mold * (1 - @gr_streaks))",
+          "@layr_RockCliff = @layr_RockCliff - 0.2 * @gr_streaks"]
     L += ["# RockStrata: beds of varying thickness (along v: on a cliff, the world's up), each its own shade, soft beds",
           "# weathered back, hard ones standing out, vertical joints",
           "wv = 0.04 * (pnoise(set(x * 3, y * 3, 110.1), 3) - 0.5) + 0.01 * (pnoise(set(x * 12, y * 12, 110.5), 12) - 0.5)",
@@ -1526,7 +1549,10 @@ def layer_library_code():
           "bc = lerp(bc, set(0.42, 0.33, 0.25), 0.4 * smoothstep(0.7, 0.9, rand(bi * 5.3)))",
           "@lay_RockStrata = bc * (1 - 0.4 * vjn) * (0.93 + 0.14 * gn)",
           "@layh_RockStrata = 0.35 * prof * (0.5 + 0.5 * hard) - 0.05 * vjn + 0.004 * gn",
-          "@layr_RockStrata = 0.85 + 0 * x"]
+          "@layr_RockStrata = 0.85 - 0.15 * @gr_streaks",
+          "# RockStrata wear: iron stains bleeding out of the beds, water streaks",
+          "@lay_RockStrata = lerp(@lay_RockStrata, set(0.50, 0.35, 0.22), 0.35 * @gr_rust)",
+          "@lay_RockStrata = @lay_RockStrata * (1 - 0.3 * @gr_streaks)"]
     L += ["# RockSlab: smoother weathered rock, rounded knobs, crusts of lichen (pale and dark)",
           "r1 = pnoise(set(x * 4, y * 4, 120.3), 4)",
           "r2 = 1 - abs(2 * pnoise(set(x * 10, y * 10, 120.9), 10) - 1)",
@@ -1538,11 +1564,18 @@ def layer_library_code():
           "c = lerp(c, set(0.70, 0.68, 0.52), 0.7 * l1)",
           "@lay_RockSlab = lerp(c, set(0.26, 0.28, 0.24), 0.6 * l2)",
           "@layh_RockSlab = 0.12 * r1 + 0.04 * r2 * r2 + 0.003 * r3 + 0.001 * gn + 0.002 * l1",
-          "@layr_RockSlab = 0.75 + 0.15 * l1 + 0 * x"]
+          "@layr_RockSlab = 0.75 + 0.15 * l1 - 0.2 * @gr_moist",
+          "# RockSlab wear: exfoliation sheets (steps in the height, each its own tone), damp patches, lichen colonies",
+          "@lay_RockSlab = @lay_RockSlab * (0.88 + 0.24 * @gr_sheets) * (1 - 0.18 * @gr_moist)",
+          "@lay_RockSlab = lerp(@lay_RockSlab, set(0.70, 0.68, 0.52), 0.4 * @gr_mold)",
+          "@layh_RockSlab = @layh_RockSlab + 0.03 * @gr_sheets"]
     L += _stones("Road", (0.50, 0.43, 0.33), ((0.56, 0.54, 0.50), (0.60, 0.55, 0.46), (0.46, 0.44, 0.41)), 0.45,
                  (34, 90), 130.0, rough=0.8)
     L += ["# Road: packed by wheels (stones flattened, dust in between)",
-          "@layh_Road = @layh_Road * 0.5"]
+          "@layh_Road = @layh_Road * 0.5",
+          "# Road wear: damp patches in the ruts, dust",
+          "@lay_Road = @lay_Road * (1 - 0.15 * @gr_moist) * (0.92 + 0.16 * @gr_layers)",
+          "@layr_Road = @layr_Road - 0.15 * @gr_moist"]
     L += ["# heights 0..1 per layer, for blending by height (the higher material wins at a seam)"]
     for n, _ in LAYERS:
         L += [f"@layb_{n} = (@layh_{n} - @layh_{n}.min()) / max(@layh_{n}.max() - @layh_{n}.min(), 1e-6)"]
@@ -1554,20 +1587,21 @@ def layer_library_code():
 
 
 # per-layer tints (linear): the library's colours brought to the island's palette -- the median 1 m colour where
-# each layer lies -- so the layers read right without the macro map too, and the macro stays near 1
+# each layer lies -- so the layers read right without the macro map too, and the macro stays near 1 (rescaled
+# when the wear was added, so the layers' means below did not move)
 LAYER_TINT = {
-    "GrassLush": (0.593, 1.163, 0.461),
+    "GrassLush": (0.594, 1.164, 0.463),
     "GrassDry": (0.507, 0.871, 0.410),
-    "Moss": (0.914, 1.491, 0.648),
-    "ForestFloor": (0.160, 0.414, 0.317),
-    "Soil": (0.950, 1.346, 0.869),
-    "Mud": (3.215, 4.302, 5.047),
-    "Gravel": (1.145, 1.211, 1.168),
-    "Sand": (1.034, 1.072, 1.073),
-    "RockCliff": (0.430, 0.418, 0.393),
-    "RockStrata": (0.201, 0.214, 0.225),
-    "RockSlab": (0.602, 0.540, 0.429),
-    "Road": (0.671, 0.691, 0.545),
+    "Moss": (0.916, 1.493, 0.647),
+    "ForestFloor": (0.153, 0.378, 0.264),
+    "Soil": (1.247, 1.766, 1.141),
+    "Mud": (3.113, 4.163, 4.897),
+    "Gravel": (1.208, 1.251, 1.247),
+    "Sand": (1.093, 1.133, 1.135),
+    "RockCliff": (0.452, 0.461, 0.462),
+    "RockStrata": (0.239, 0.266, 0.289),
+    "RockSlab": (0.712, 0.638, 0.520),
+    "Road": (0.826, 0.851, 0.672),
 }
 # the layers' mean colours (linear, tinted), for the macro map: the 1 m colour over the mean of the layers under it
 LAYER_MEAN = {
@@ -2250,8 +2284,13 @@ def world_tiles():
     # blending by height), roughness
     dc0 = S("PCG_COPNoise", title="Layer canvas (512², one tile)", resolution_x=512, resolution_y=512,
             amplitude=0.0, bias=0.0)
+    prev = dc0
+    for ln_, node_, kw_ in GRUNGE:                      # wear maps for the library (dropped again by The layer library)
+        gn_ = S(node_, title=f"Wear: {ln_[3:]}", out_layer=ln_, **kw_)
+        g.link(prev, "cop", gn_, "cop")
+        prev = gn_
     dcw = S("PCG_COPWrangle", title="Terrain layers: twelve materials", code=layer_library_code())
-    g.link(dc0, "cop", dcw, "cop")
+    g.link(prev, "cop", dcw, "cop")
     prev = dcw
     for n_, size_ in LAYERS:
         hn_ = S("PCG_COPHeightToNormal", title=f"Layer normal: {n_}", layer=f"layh_{n_}", strength=1.0,

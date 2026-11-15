@@ -370,7 +370,7 @@ def _cell_hash(X, Y, Z, salt):
     return k
 
 
-def worley3_periodic(p, period=0, jitter=1.0):
+def worley3_periodic(p, period=0, jitter=1.0, seed=0):
     """
     Cellular (Worley) noise: one feature point per unit cell (jittered by Jitter), and per position the distances
     to the nearest two, f1 <= f2, the nearest one's cell id (0..1, the same anywhere in that cell) and the vector
@@ -381,7 +381,8 @@ def worley3_periodic(p, period=0, jitter=1.0):
     The building block of stones, cracks, cobbles, leaves and scales: f2 - f1 is 0 on a cell border and grows
     toward the middle (stones with rounded tops, crack lines), id gives each cell its own colour or size, and
     to_feature gives each cell its own local frame (a clump of blades turned its own way). A 2-vector position
-    (set(x, y)) gives the 2D pattern, three times faster; to_feature is then (N, 2).
+    (set(x, y)) gives the 2D pattern, three times faster; to_feature is then (N, 2). Seed gives another
+    pattern of the same kind (the wrangle functions use seed 0).
     """
     p = np.atleast_2d(np.asarray(p, np.float64))
     if p.shape[-1] == 1:
@@ -405,8 +406,8 @@ def worley3_periodic(p, period=0, jitter=1.0):
             for dx in (-1, 0, 1):
                 c = base + np.array([dx, dy, dz][:dim])
                 w = [c[:, k] % per[k] if per[k] > 0 else c[:, k] for k in range(dim)] + ([] if dim == 3 else [zero])
-                h = _cell_hash(w[0], w[1], w[2], 1)
-                h2 = _cell_hash(w[0], w[1], w[2], 2)       # three 21-bit fractions: the feature point in the cell
+                h = _cell_hash(w[0], w[1], w[2], 1 + 2 * int(seed))
+                h2 = _cell_hash(w[0], w[1], w[2], 2 + 2 * int(seed))       # three 21-bit fractions: the feature point in the cell
                 fp = np.stack([((h2 >> np.uint64(21 * k)) & np.uint64(0x1FFFFF)).astype(np.float64) / 2097152.0
                                for k in range(dim)], -1)
                 d = c + 0.5 + (fp - 0.5) * jit - p

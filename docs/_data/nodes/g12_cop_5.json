@@ -893,5 +893,625 @@
   "params": {
    "index": "Frame number to pick (zero based). Values beyond the last frame wrap around (index mod frame count)."
   }
+ },
+ "PCG_COPGrungeAurora": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of soft vertical curtains of light with fine rays, like an aurora.",
+  "description": "Ridges of a low-frequency noise form the curtains; a much finer noise, stretched along v, puts rays inside them; a third noise makes each curtain brighten and die out along its length.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "primary_distortion": "How far the curtains sway sideways. 0 gives straight vertical curtains.",
+   "streak_sharpness": "Narrows the curtains: higher values leave thinner, sharper bands.",
+   "secondary_mask": "Amount of the soft glow around the curtains.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Aurora (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeBarkStrips": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of long vertical strips of bark with horizontal cuts and small swirls.",
+  "description": "The strips are tall, narrow Worley cells standing side by side, each with its own tone. Horizontal grooves cut across them and small cells inside the strips add swirls.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "strips_inflate": "Widens the strips: higher values close the gaps between them.",
+   "primary_edge_breakup": "How much the strip edges wander.",
+   "secondary_mask": "Strength of the horizontal cuts and grooves.",
+   "secondary_size": "Spacing of the cuts: higher values give more, finer cuts.",
+   "tertiary_mask": "Strength of the small swirls inside the strips.",
+   "tertiary_size": "Density of the swirls: higher values give more, smaller ones.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Bark Strips (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeBirchBark": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of pale birch bark with dark horizontal lenticels and peeled patches.",
+  "description": "A pale, slightly uneven base carries short dark horizontal dashes (lenticels, one per cell of a stretched Worley lattice). A thresholded noise marks peeled patches, darker with a bright curled lip.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "lenticel_mask": "Darkness of the lenticels (the short horizontal dashes).",
+   "lenticel_size": "Density of the lenticels: higher values give more, smaller ones.",
+   "peel_mask": "Strength of the peeled patches and their bright lip.",
+   "primary_distortion": "How much the bark is warped up and down.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Birch Bark (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeDrips": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of drops with trails running down, plus smudges and speckles.",
+  "description": "Two layers of drops (large and small) sit in tall Worley cells; each drop has a round head and a trail hanging below it that thins toward its end. Broad smudges and fine speckles are layered on top. Down is the bottom of the image (-v).\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "density": "Share of the cells that hold a large drop.",
+   "distortion": "Sideways wobble of the drops and their trails.",
+   "primary_trailing": "Length and strength of the trails below the large drops. 0 leaves only the heads.",
+   "secondary_mask": "Amount of the small drops.",
+   "secondary_trailing": "Length and strength of the trails below the small drops.",
+   "tertiary_mask": "Amount of the broad smudges.",
+   "speckle_mask": "Amount of the fine speckles.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Drips (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeGalvanizedSteel": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of the crystalline spangle pattern of galvanised steel.",
+  "description": "One crystal per Worley cell, each with its own brightness and lit along its own axis, with fine feather lines across it and dark grain boundaries in between.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "spangle_contrast": "Brightness difference between neighbouring crystals.",
+   "facet_mask": "Strength of the shading and feather lines across each crystal.",
+   "grain_mask": "Amount of fine grain over the whole surface.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Galvanized Steel (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeLayeredNoise": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of layers of noise, each warped by the one before, like a stormy sky and its reflection.",
+  "description": "Several fractal noises of growing frequency are summed; each layer is domain-warped by the previous one, and the vertical part of the warp can be reduced to stretch the pattern sideways.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "layers": "Number of noise layers.",
+   "lacunarity": "Frequency ratio between one layer and the next (a whole number, so the map tiles).",
+   "roughness": "Weight of each layer relative to the one before.",
+   "distortion": "How strongly each layer warps the next.",
+   "reflection": "Reduces the vertical warp, which stretches the pattern sideways like a reflection in water.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Layered Noise (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeLeakingStreaks": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of vertical streaks of leaking fluid over background stains.",
+  "description": "The streaks come from a noise ten times finer across than along, thresholded with a rough edge and faded along their run. Folded stains sit behind them and highlights follow the streak cores.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "primary_distortion": "Sideways wander of the streaks.",
+   "primary_roughness": "Raggedness of the streak edges.",
+   "secondary_mask": "Amount of the background stains.",
+   "secondary_distortion": "How much the background stains are warped.",
+   "tertiary_mask": "Amount of the highlights along the streak cores.",
+   "tertiary_balance": "Width of those highlights.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Leaking Streaks (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeMoisture": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of damp patches with a sponge of pores and a tide mark.",
+  "description": "A thresholded fractal noise gives the damp patches; two sizes of Worley pores are cut out of them, and a ring just outside each patch marks where it dried.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "spot_mask": "Size of the damp patches: higher values cover more of the image.",
+   "porosity": "How deeply the pores cut into the patches.",
+   "edge_softness": "Softness of the patch edges.",
+   "secondary_mask": "Strength of the tide mark around each patch.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Moisture (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeMoldSpots": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of clustered colonies of round mold spots in three sizes.",
+  "description": "Three sizes of round spots (Worley cells, a random share of them switched on) with a soft halo each. A low-frequency noise gathers them into colonies; a fine noise makes them fuzzy.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "density": "Number of spots.",
+   "cluster": "How strongly the spots gather into colonies. 0 spreads them evenly.",
+   "halo": "Strength of the soft halo around each spot.",
+   "secondary_mask": "Amount of the faint background stain where colonies grow.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Mold Spots (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungePineBark": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of thick bark plates separated by deep furrows, with flaky layers.",
+  "description": "The plates are Worley cells taller than wide, the furrows the dark lines between them. Each plate is stepped into flat layers and crossed by fine cracks.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "furrow_width": "Width of the dark furrows between the plates.",
+   "plate_layers": "Strength of the stepped, flaky layers on each plate.",
+   "primary_distortion": "How much the plates are warped.",
+   "secondary_mask": "Strength of the fine cracks across the plates.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Pine Bark (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeRust": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of blooms of rust with ragged edges, a crusty inside and pits.",
+  "description": "A fractal noise, thresholded by Coverage, gives the rust patches; a ridged noise makes their inside crusty; small pits appear in and just ahead of the patches.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "coverage": "Share of the surface covered by rust patches.",
+   "edge_breakup": "Raggedness of the patch edges.",
+   "pitting_mask": "Amount of small pits in and ahead of the patches.",
+   "secondary_mask": "Amount of faint staining between the patches.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Rust (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeRustySurface": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of a worn rusty sheet with wavy layers and vertical cracks.",
+  "description": "A base layer of rust whose edges are waved by two domain warps (one along each axis), with a ridged detail noise, cut by vertical crack lines (the borders of tall narrow Worley cells).\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "primary_roughness": "How much the rust layers are waved sideways.",
+   "secondary_roughness": "How much the rust layers are waved up and down.",
+   "cracks_mask": "Strength of the vertical cracks.",
+   "cracks_size": "Spacing of the cracks: higher values give fewer, wider-spaced cracks.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Rusty Surface (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeSheets": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of overlapping rectangular sheets of different tones, like layers of paper or metal.",
+  "description": "Each layer puts one turned rectangle in most cells of a Worley lattice, with its own tone and a darker edge; later layers cover earlier ones.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "layers": "Number of sheet layers; later layers cover earlier ones.",
+   "edge_mask": "Darkness of the sheet edges.",
+   "size_variation": "How much the sheets differ in size.",
+   "primary_distortion": "How much the sheet outlines are warped.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Sheets (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGrungeWipeTrails": {
+  "topic": "cop-generate",
+  "summary": "Generates a grunge map of arcs of fine streaks, like a cloth wiped over a dusty surface.",
+  "description": "Each Worley cell holds one arc of concentric streaks around a centre beside the cell's point: the circles a wiping hand makes. Two sizes of wipes are layered.\n\nThe map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.\n\nThe Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.",
+  "inputs": {
+   "cop": "Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created."
+  },
+  "outputs": {
+   "cop": "Image with the grunge map in the output layer."
+  },
+  "params": {
+   "amplitude": "Range: multiplier applied to the map (which is 0-1 before this section).",
+   "center": "Range: value added after the amplitude.",
+   "mask_contrast": "Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged.",
+   "element_size": "Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size.",
+   "offset": "Shifts the pattern (X Y, image units).",
+   "tile_size": "Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width.",
+   "primary_mask": "Strength of the large wipes.",
+   "secondary_mask": "Strength of the small wipes.",
+   "streak_fineness": "Number of streaks in each wipe.",
+   "arc_spread": "Angle each wipe sweeps: low values give short arcs, 1 nearly a full circle.",
+   "rand_seed": "Seed of the random pattern.",
+   "out_layer": "Name of the mono layer the map is written to.",
+   "fold": "Post Processing: takes the absolute value (negative values become positive).",
+   "complement": "Post Processing: inverts the value (1 - x).",
+   "pp_bias": "Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1.",
+   "gain": "Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it.",
+   "gamma": "Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation).",
+   "contrast": "Post Processing: scales the value around 0.5.",
+   "use_clamp_min": "Enables the lower clamp.",
+   "clamp_min": "Post Processing: lower limit, used when Use Clamp Min is on.",
+   "use_clamp_max": "Enables the upper clamp.",
+   "clamp_max": "Post Processing: upper limit, used when Use Clamp Max is on.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Grunge Wipe Trails (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image)."
+ },
+ "PCG_COPGeometryToAdjacency": {
+  "topic": "cop-geometry",
+  "summary": "Rasterises a mesh's UV islands and records how they connect across seams, for the other Adjacency nodes.",
+  "description": "A texture of a mesh is a set of UV islands. A blur, a distortion or a simulation that runs in the image stops at each island's edge, and the seam shows on the model. This node records, for every texel just outside an island, which place on the *neighbouring* island it stands for - the island that shares that edge on the mesh - so the other Adjacency nodes can read across the seam.\n\nHoudini carries this information on an adjacency cable. Here it is a set of layers written into the image, each with the Prefix:\n\n- `mask`: 1 inside the islands.\n- `uv`: where to read instead. Inside an island this is the texel's own uv; outside, within `Padding` texels of an island edge, the uv of the point across the seam, at the same distance along and beyond the edge (scaled by the two islands' texel densities). At a mesh border, which has no neighbour, the nearest point on the island's edge.\n- `valid`: 1 where `uv` points across a seam.\n- `jac`: the 2 x 2 matrix (in texels) that turns a step here into a step on the neighbouring island: its rotation and scale against this one.\n- `near`: the nearest point on the own island's edge, used as a fallback.\n- `tri`, `bary`, `primid`: triangle number, barycentric weights and source primitive per texel.\n- `P`, `N`, `tanU`, `tanV`, `uvscale`: world position, normal, the surface directions of increasing u and v, and world units per uv unit.\n\nEdges are matched by position, so a seam works whether the mesh's points are shared or split. Process the texture at the same resolution as these layers.",
+  "inputs": {
+   "geo": "Mesh with a uv attribute (vertex or point).",
+   "cop": "Optional image the layers are added to; its resolution is used."
+  },
+  "outputs": {
+   "cop": "Image with the adjacency layers."
+  },
+  "params": {
+   "uv_attrib": "Name of the uv attribute.",
+   "padding": "How many texels around each island get adjacency information. Use at least the reach of the filter that follows (blur radius, distortion distance).",
+   "prefix": "Prefix of the layer names.",
+   "resolution_x": "Width and height of the generated image. Used only when no `cop` is connected."
+  },
+  "houdini_notes": "Corresponds to Geometry to Adjacency (Copernicus, Houdini 22). Houdini outputs an adjacency cable holding uv_adjacency, uv_derivative, tangent_xform and the geometry; here the same information is stored as image layers (`jac` plays the part of uv_derivative and tangent_xform), and nodes that need the geometry take it as an input. Only one hop is followed: a read that crosses a seam and then leaves the neighbouring island as well falls back to the nearest edge point. UDIM tiles are not supported."
+ },
+ "PCG_COPExtrapolateWithAdjacency": {
+  "topic": "cop-geometry",
+  "summary": "Fills the texels outside the UV islands with the surface's continuation from the neighbouring islands.",
+  "description": "Inside the islands the layers are unchanged. Each texel outside, within the adjacency's padding, takes the value found across the seam: the point on the neighbouring island that continues the surface there. Filters applied afterwards (blur, mip mapping, edge detection) then see a continuous surface at the seam instead of a hard edge or a dilated copy of the island's own border. At a mesh border the edge value repeats; texels beyond the padding are left as they were.\n\nRequires the layers of COP Geometry to Adjacency in the same image.",
+  "inputs": {
+   "cop": "Image with the texture layers and the adjacency layers."
+  },
+  "outputs": {
+   "cop": "The image with the chosen layers filled outside the islands."
+  },
+  "params": {
+   "layers": "Layers to fill, separated by spaces. Empty fills every layer except the adjacency's own.",
+   "transform_vectors": "For layers with 2 or 3 channels whose first two components are a direction in texture space (a flow or velocity field): rotates the values from the neighbouring island's orientation into this one's.",
+   "prefix": "Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency."
+  },
+  "houdini_notes": "Corresponds to Extrapolate with Adjacency (Copernicus, Houdini 22), including its Transform Vectors between Islands option."
+ },
+ "PCG_COPDistortWithAdjacency": {
+  "topic": "cop-geometry",
+  "summary": "Shifts a texture along a direction in texture space, following the surface across UV seams.",
+  "description": "Every texel reads the layer at its own position plus `Direction * Scale` (in uv units), or plus the first two channels of `Dir Layer` times `Scale`. When that position falls outside the island, the read continues on the neighbouring island: the adjacency layers give the matching position and the rotation between the two islands, so a pattern pushed over a seam comes out on the other side instead of disappearing.\n\nA read that finds nothing (beyond the padding, or off a mesh border beyond the edge) leaves the texel unchanged or repeats the edge. Requires the layers of COP Geometry to Adjacency in the same image, with a padding at least as large as the distortion.",
+  "inputs": {
+   "cop": "Image with the layer to distort and the adjacency layers."
+  },
+  "outputs": {
+   "cop": "The image with the distorted layer."
+  },
+  "params": {
+   "layer": "Layer to distort.",
+   "direction": "Constant offset in texture space (U V, uv units), used when Dir Layer is empty.",
+   "dir_layer": "Optional layer whose first two channels give the offset per texel.",
+   "scale": "Multiplier of the direction.",
+   "transform_vectors": "Rotates 2- and 3-channel values read from a neighbouring island into this island's orientation (for layers that hold texture-space directions).",
+   "out_layer": "Destination layer. Empty overwrites the input layer.",
+   "prefix": "Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency."
+  },
+  "houdini_notes": "Corresponds to Distort with Adjacency (Copernicus, Houdini 22). The offset is one straight step; it is not traced through several islands."
+ },
+ "PCG_COPAttributeSampleWithAdjacency": {
+  "topic": "cop-geometry",
+  "summary": "Bakes a geometry attribute into a texture layer using the adjacency's triangle and barycentric layers.",
+  "description": "For every texel inside an island the attribute is interpolated from the triangle recorded in the adjacency layers. Vertex, point and primitive attributes are supported (looked up in that order). With `Extrapolate` on, the texels outside the islands are filled with the continuation across the seams, as COP Extrapolate with Adjacency does.\n\nConnect `attrib_geo` to read the attribute from a different geometry with the same topology - for example a deformed copy of the mesh, to bake its positions into the rest mesh's uv layout.",
+  "inputs": {
+   "cop": "Image with the adjacency layers.",
+   "geo": "The geometry the adjacency was made from.",
+   "attrib_geo": "Optional geometry of the same topology to read the attribute from instead."
+  },
+  "outputs": {
+   "cop": "The image with the attribute layer added."
+  },
+  "params": {
+   "attrib": "Name of the attribute to sample.",
+   "out_layer": "Destination layer. Empty uses the attribute name.",
+   "extrapolate": "Fills the texels outside the islands from the neighbouring islands.",
+   "prefix": "Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency."
+  },
+  "houdini_notes": "Corresponds to Attribute Sample with Adjacency (Copernicus, Houdini 22). The geometry is an input here because the adjacency layers do not carry it."
+ },
+ "PCG_COPSpaceTransformWithAdjacency": {
+  "topic": "cop-geometry",
+  "summary": "Converts a vector layer between world space and the surface's tangent space.",
+  "description": "Tangent space at a texel has x along increasing u on the surface, y along increasing v and z along the normal; the frame is orthonormal, built from the adjacency's `N`, `tanU` and `tanV` layers. `World to Tangent` expresses a world-space vector (a wind direction, gravity, a baked world normal) in that frame, so it can drive texture-space effects such as COP Distort with Adjacency; `Tangent to World` goes back. Outside the islands the result is 0 - extrapolate afterwards if needed.",
+  "inputs": {
+   "cop": "Image with the vector layer and the adjacency layers."
+  },
+  "outputs": {
+   "cop": "The image with the transformed layer."
+  },
+  "params": {
+   "layer": "Vector layer to transform.",
+   "transformation": "Direction of the conversion.",
+   "signature": "`rgb` writes all three components; `uv` keeps only x and y (the texture-space part).",
+   "out_layer": "Destination layer. Empty overwrites the input layer.",
+   "prefix": "Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency."
+  },
+  "houdini_notes": "Corresponds to Space Transform with Adjacency (Copernicus, Houdini 22)."
  }
 }

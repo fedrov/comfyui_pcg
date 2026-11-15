@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **COP Grunge: fourteen dirt-and-wear maps** (Houdini 22's Grunge nodes): Aurora, Bark Strips, Birch Bark, Drips,
+  Galvanized Steel, Layered Noise, Leaking Streaks, Moisture, Mold Spots, Pine Bark, Rust, Rusty Surface, Sheets,
+  Wipe Trails. One mono 0-1 layer each, with Houdini's Range (Amplitude, Center, Mask Contrast), Pattern (Element
+  Size, Offset, Tile Size) and Post Processing sections; every map tiles over Tile Size. Drips, Bark Strips, Leaking
+  Streaks and Rusty Surface carry Houdini's parameter names. The formulas are our own (SideFX does not publish
+  them): alike in kind, not pixel for pixel.
+- **COP Adjacency: image filters across uv seams** (Houdini 22). COP Geometry to Adjacency rasterises a mesh's uv
+  islands and records, around each island, where the surface continues on the island that shares the edge on the
+  mesh (layers `adj_mask / uv / valid / jac / near / tri / bary / primid / P / N / tanU / tanV / uvscale`).
+  COP Extrapolate with Adjacency fills the texels outside the islands from the neighbours (with Transform Vectors
+  between Islands), COP Distort with Adjacency shifts a texture across seams, COP Attribute Sample with Adjacency
+  bakes a vertex / point / primitive attribute, COP Space Transform with Adjacency turns vectors between world and
+  tangent space. Seams are paired by position (welded or split points); one hop across a seam.
+- **World tiles: wear on the terrain layers**. Six Grunge maps (Leaking Streaks, Rust, Moisture, Mold Spots, Layered
+  Noise, Sheets) on the layer canvas: water streaks, iron stains and lichen on cliff and strata, exfoliation sheets
+  and damp patches on the slab, damp and dust on soil and road, moss between the gravel. The layer tints were
+  rescaled so each layer's mean colour (and so the macro map) is unchanged.
+- **Wrangle**: `worley3_periodic` takes a seed (engine side; the wrangle functions are unchanged).
 - **Wrangle: cellular noise** `worley(p)` / `pworley(p, period)` -> `set(f1, f2, cell id)` and `worley_dir(p)` /
   `pworley_dir(p, period)` -> the vector to the nearest feature point; the `p...` forms tile like `pnoise`. Stones,
   cracks, cobbles and leaves in a COP Wrangle.

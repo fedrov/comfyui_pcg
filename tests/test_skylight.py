@@ -261,8 +261,11 @@ check("clouds change the lighting of the frame (cloud shadows)", float(np.abs(cl
 N = comfyui_pcg.NODE_CLASS_MAPPINGS
 it = N["PCG_PreviewImage"].INPUT_TYPES()["optional"]
 keys = list(it)
-check("node: clouds / cloud_seed / sky_samples appended last, defaults = the plain clear-sky render with 32 samples",
-      keys[-4:-1] == ["clouds", "cloud_seed", "sky_samples"] and it["clouds"][1]["default"] == 0.0
+_i0 = keys.index("clouds")
+check("node: clouds / cloud_seed / sky_samples appended after exposure (only later inputs follow), defaults = the "
+      "plain clear-sky render with 32 samples",
+      keys[_i0 - 1] == "exposure" and keys[_i0:_i0 + 3] == ["clouds", "cloud_seed", "sky_samples"]
+      and it["clouds"][1]["default"] == 0.0
       and it["sky_samples"][1]["default"] == 32)
 r = N["PCG_PreviewImage"]().run(box, 96, 64, 25, 35, "color", look="outdoor", supersampling=1, clouds=0.5,
                                 cloud_seed=2, sky_samples=8)
@@ -363,7 +366,9 @@ else:
     a_t = O.render_outdoor(box, 160, 120, cam=cam, ssaa=1, sun_elev=50, sun_azim=90, sky_samples=16, compute="torch_cpu")
     check("the rendered frame: torch path within 1/255 of the numpy path on 99 % of pixels",
           float((np.abs(a_np - a_t).max(-1) < 1 / 255).mean()) > 0.99, float(np.abs(a_np - a_t).max()))
-    check("node: Compute appended last", list(N["PCG_PreviewImage"].INPUT_TYPES()["optional"])[-1] == "compute")
+    _k = list(N["PCG_PreviewImage"].INPUT_TYPES()["optional"])
+    check("node: Compute appended after the sky inputs; only the later detail_cop / splat_cop follow",
+          _k[_k.index("sky_samples") + 1] == "compute" and _k[_k.index("compute") + 1:] == ["detail_cop", "splat_cop"])
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

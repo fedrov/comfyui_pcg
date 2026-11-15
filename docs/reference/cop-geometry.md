@@ -2,14 +2,18 @@
 
 Rasterizing and baking geometry; turning images back into geometry.
 
-16 nodes.
+21 nodes.
 
 [Back to the reference index](README.md)
 
 ## Contents
 
+- [COP Attribute Sample with Adjacency (PCG)](#pcg-copattributesamplewithadjacency) — Bakes a geometry attribute into a texture layer using the adjacency's triangle and barycentric layers.
 - [COP Bake Textures (PCG)](#pcg-copbaketextures) — Bakes geometry attributes and, optionally, high-poly detail into textures laid out by the low-poly mesh's UVs.
 - [COP Configure Stamps (PCG)](#pcg-copconfigurestamps) — Writes sprite attributes (scale, rotation, colour, alpha, stamp index) onto points for use by stamping nodes.
+- [COP Distort with Adjacency (PCG)](#pcg-copdistortwithadjacency) — Shifts a texture along a direction in texture space, following the surface across UV seams.
+- [COP Extrapolate with Adjacency (PCG)](#pcg-copextrapolatewithadjacency) — Fills the texels outside the UV islands with the surface's continuation from the neighbouring islands.
+- [COP Geometry to Adjacency (PCG)](#pcg-copgeometrytoadjacency) — Rasterises a mesh's UV islands and records how they connect across seams, for the other Adjacency nodes.
 - [COP Geometry to Layer (PCG)](#pcg-copgeotolayer) — Converts volume primitives of a geometry into image layers by taking a slice, one voxel per pixel.
 - [COP HeightField to Mesh (PCG)](#pcg-copheightfieldtomesh) — Converts a height layer into a Y-up grid mesh with one point per pixel center.
 - [COP Integrate Volume (PCG)](#pcg-copintegratevolume) — Casts one ray per pixel through a volume primitive and integrates, transmits, or takes the minimum or maximum of its samples.
@@ -21,11 +25,55 @@ Rasterizing and baking geometry; turning images back into geometry.
 - [COP Rasterize Curves (PCG)](#pcg-coprasterizecurves) — Draws the primitives of a geometry as anti-aliased lines into an image layer.
 - [COP Rasterize Splats (PCG)](#pcg-coprasterizesplats) — Renders 3D Gaussian splat points orthographically onto a plane with front-to-back alpha compositing.
 - [COP Scatter Shapes (PCG)](#pcg-copscattershapes) — Stamps copies of a shape into an image, either randomly scattered or placed from input geometry.
+- [COP Space Transform with Adjacency (PCG)](#pcg-copspacetransformwithadjacency) — Converts a vector layer between world space and the surface's tangent space.
 - [COP Triplanar (PCG)](#pcg-coptriplanar) — Projects a texture along the three axes using per-pixel world position and normal, blending by normal direction.
 - [COP UV Shape (PCG)](#pcg-copuvshape) — Generates interior UV coordinates, UV stretch and a mask for a disk or annulus shape.
 - [Render Pass (PCG)](#pcg-renderpass) — Rasterizes geometry through a camera into COP layers: depth, mask, normals and more.
 
 ## Nodes
+
+### COP Attribute Sample with Adjacency (PCG)
+
+<a id="pcg-copattributesamplewithadjacency"></a>
+
+`PCG_COPAttributeSampleWithAdjacency` · category `PCG/cop` · Houdini: Attribute Sample with Adjacency (COP)
+
+Bakes a geometry attribute into a texture layer using the adjacency's triangle and barycentric layers.
+
+![COP Attribute Sample with Adjacency (PCG): input and result](../images/nodes/PCG_COPAttributeSampleWithAdjacency.png)
+
+For every texel inside an island the attribute is interpolated from the triangle recorded in the adjacency layers. Vertex, point and primitive attributes are supported (looked up in that order). With `Extrapolate` on, the texels outside the islands are filled with the continuation across the seams, as COP Extrapolate with Adjacency does.
+
+Connect `attrib_geo` to read the attribute from a different geometry with the same topology - for example a deformed copy of the mesh, to bake its positions into the rest mesh's uv layout.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the adjacency layers. |
+| `geo` | GEOMETRY | The geometry the adjacency was made from. |
+| `attrib_geo` *(optional)* | GEOMETRY | Optional geometry of the same topology to read the attribute from instead. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The image with the attribute layer added. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Attribute `attrib` | string | `P` | Name of the attribute to sample. |
+| Output Layer `out_layer` | string | *(empty)* | Destination layer. Empty uses the attribute name. |
+| Extrapolate `extrapolate` | toggle | on | Fills the texels outside the islands from the neighbouring islands. |
+| Adjacency Prefix `prefix` | string | `adj_` | Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency. |
+
+**Compared with Houdini**
+
+Corresponds to Attribute Sample with Adjacency (Copernicus, Houdini 22). The geometry is an input here because the adjacency layers do not carry it.
+
+---
 
 ### COP Bake Textures (PCG)
 
@@ -225,6 +273,142 @@ Details: Scale `percent_variance` multiplies by `1 + variance * r` and `min_max`
 **Compared with Houdini**
 
 Random-from-ramp options for colour and alpha are not implemented. Scatter Shapes in this plugin is a rasterizing stamp and reads `pscale` and `Cd`, not `spritescale`, so the attributes written here are meant for Stamp Points style nodes.
+
+---
+
+### COP Distort with Adjacency (PCG)
+
+<a id="pcg-copdistortwithadjacency"></a>
+
+`PCG_COPDistortWithAdjacency` · category `PCG/cop` · Houdini: Distort with Adjacency (COP)
+
+Shifts a texture along a direction in texture space, following the surface across UV seams.
+
+![COP Distort with Adjacency (PCG): input and result](../images/nodes/PCG_COPDistortWithAdjacency.png)
+
+Every texel reads the layer at its own position plus `Direction * Scale` (in uv units), or plus the first two channels of `Dir Layer` times `Scale`. When that position falls outside the island, the read continues on the neighbouring island: the adjacency layers give the matching position and the rotation between the two islands, so a pattern pushed over a seam comes out on the other side instead of disappearing.
+
+A read that finds nothing (beyond the padding, or off a mesh border beyond the edge) leaves the texel unchanged or repeats the edge. Requires the layers of COP Geometry to Adjacency in the same image, with a padding at least as large as the distortion.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the layer to distort and the adjacency layers. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The image with the distorted layer. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Source Layer `layer` | string | `C` | Layer to distort. |
+| Direction `direction` | string | `0.05 0` | Constant offset in texture space (U V, uv units), used when Dir Layer is empty. *Disabled when dir_layer ≠ "".* |
+| Direction Layer `dir_layer` | string | *(empty)* | Optional layer whose first two channels give the offset per texel. |
+| Scale `scale` | float [-10000.0..10000.0] | 1 | Multiplier of the direction. |
+| Transform Vectors between Islands `transform_vectors` | toggle | off | Rotates 2- and 3-channel values read from a neighbouring island into this island's orientation (for layers that hold texture-space directions). |
+| Output Layer `out_layer` | string | *(empty)* | Destination layer. Empty overwrites the input layer. |
+| Adjacency Prefix `prefix` | string | `adj_` | Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency. |
+
+**Compared with Houdini**
+
+Corresponds to Distort with Adjacency (Copernicus, Houdini 22). The offset is one straight step; it is not traced through several islands.
+
+---
+
+### COP Extrapolate with Adjacency (PCG)
+
+<a id="pcg-copextrapolatewithadjacency"></a>
+
+`PCG_COPExtrapolateWithAdjacency` · category `PCG/cop` · Houdini: Extrapolate with Adjacency (COP)
+
+Fills the texels outside the UV islands with the surface's continuation from the neighbouring islands.
+
+![COP Extrapolate with Adjacency (PCG): input and result](../images/nodes/PCG_COPExtrapolateWithAdjacency.png)
+
+Inside the islands the layers are unchanged. Each texel outside, within the adjacency's padding, takes the value found across the seam: the point on the neighbouring island that continues the surface there. Filters applied afterwards (blur, mip mapping, edge detection) then see a continuous surface at the seam instead of a hard edge or a dilated copy of the island's own border. At a mesh border the edge value repeats; texels beyond the padding are left as they were.
+
+Requires the layers of COP Geometry to Adjacency in the same image.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the texture layers and the adjacency layers. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The image with the chosen layers filled outside the islands. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Layers `layers` | string | *(empty)* | Layers to fill, separated by spaces. Empty fills every layer except the adjacency's own. |
+| Transform Vectors between Islands `transform_vectors` | toggle | off | For layers with 2 or 3 channels whose first two components are a direction in texture space (a flow or velocity field): rotates the values from the neighbouring island's orientation into this one's. |
+| Adjacency Prefix `prefix` | string | `adj_` | Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency. |
+
+**Compared with Houdini**
+
+Corresponds to Extrapolate with Adjacency (Copernicus, Houdini 22), including its Transform Vectors between Islands option.
+
+---
+
+### COP Geometry to Adjacency (PCG)
+
+<a id="pcg-copgeometrytoadjacency"></a>
+
+`PCG_COPGeometryToAdjacency` · category `PCG/cop` · Houdini: Geometry to Adjacency (COP)
+
+Rasterises a mesh's UV islands and records how they connect across seams, for the other Adjacency nodes.
+
+![COP Geometry to Adjacency (PCG): input and result](../images/nodes/PCG_COPGeometryToAdjacency.png)
+
+A texture of a mesh is a set of UV islands. A blur, a distortion or a simulation that runs in the image stops at each island's edge, and the seam shows on the model. This node records, for every texel just outside an island, which place on the *neighbouring* island it stands for - the island that shares that edge on the mesh - so the other Adjacency nodes can read across the seam.
+
+Houdini carries this information on an adjacency cable. Here it is a set of layers written into the image, each with the Prefix:
+
+- `mask`: 1 inside the islands.
+- `uv`: where to read instead. Inside an island this is the texel's own uv; outside, within `Padding` texels of an island edge, the uv of the point across the seam, at the same distance along and beyond the edge (scaled by the two islands' texel densities). At a mesh border, which has no neighbour, the nearest point on the island's edge.
+- `valid`: 1 where `uv` points across a seam.
+- `jac`: the 2 x 2 matrix (in texels) that turns a step here into a step on the neighbouring island: its rotation and scale against this one.
+- `near`: the nearest point on the own island's edge, used as a fallback.
+- `tri`, `bary`, `primid`: triangle number, barycentric weights and source primitive per texel.
+- `P`, `N`, `tanU`, `tanV`, `uvscale`: world position, normal, the surface directions of increasing u and v, and world units per uv unit.
+
+Edges are matched by position, so a seam works whether the mesh's points are shared or split. Process the texture at the same resolution as these layers.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | Mesh with a uv attribute (vertex or point). |
+| `cop` *(optional)* | COPIMAGE | Optional image the layers are added to; its resolution is used. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the adjacency layers. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| UV Attribute `uv_attrib` | string | `uv` | Name of the uv attribute. |
+| Padding `padding` | int [0..1024] | 16 | How many texels around each island get adjacency information. Use at least the reach of the filter that follows (blur radius, distortion distance). |
+| Layer Prefix `prefix` | string | `adj_` | Prefix of the layer names. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Geometry to Adjacency (Copernicus, Houdini 22). Houdini outputs an adjacency cable holding uv_adjacency, uv_derivative, tangent_xform and the geometry; here the same information is stored as image layers (`jac` plays the part of uv_derivative and tangent_xform), and nodes that need the geometry take it as an input. Only one hop is followed: a read that crosses a seam and then leaves the neighbouring island as well falls back to the nearest edge point. UDIM tiles are not supported.
 
 ---
 
@@ -780,6 +964,46 @@ With Shape set to Stamp Input Layer, the Stamp Layer of the stamp input is used 
 |---|---|---|---|
 | Output Layer `out_layer` | string | `shapes` | Name of the main layer. Helper layers `_id`, `_color` and `_rand` use it as a prefix. |
 | Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Image size, used only when no image is connected. |
+
+---
+
+### COP Space Transform with Adjacency (PCG)
+
+<a id="pcg-copspacetransformwithadjacency"></a>
+
+`PCG_COPSpaceTransformWithAdjacency` · category `PCG/cop` · Houdini: Space Transform with Adjacency (COP)
+
+Converts a vector layer between world space and the surface's tangent space.
+
+![COP Space Transform with Adjacency (PCG): input and result](../images/nodes/PCG_COPSpaceTransformWithAdjacency.png)
+
+Tangent space at a texel has x along increasing u on the surface, y along increasing v and z along the normal; the frame is orthonormal, built from the adjacency's `N`, `tanU` and `tanV` layers. `World to Tangent` expresses a world-space vector (a wind direction, gravity, a baked world normal) in that frame, so it can drive texture-space effects such as COP Distort with Adjacency; `Tangent to World` goes back. Outside the islands the result is 0 - extrapolate afterwards if needed.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the vector layer and the adjacency layers. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The image with the transformed layer. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Source Layer `layer` | string | `C` | Vector layer to transform. |
+| Transformation `transformation` | menu | World to Tangent | Direction of the conversion. Options: World to Tangent (`world_to_tangent`), Tangent to World (`tangent_to_world`). |
+| Signature `signature` | menu | RGB | `rgb` writes all three components; `uv` keeps only x and y (the texture-space part). Options: RGB (`rgb`), UV (`uv`). |
+| Output Layer `out_layer` | string | *(empty)* | Destination layer. Empty overwrites the input layer. |
+| Adjacency Prefix `prefix` | string | `adj_` | Prefix of the adjacency layers to read, as set on COP Geometry to Adjacency. |
+
+**Compared with Houdini**
+
+Corresponds to Space Transform with Adjacency (Copernicus, Houdini 22).
 
 ---
 

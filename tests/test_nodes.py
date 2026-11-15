@@ -426,7 +426,10 @@ EXPECT_REFUSE = {"PCG_AttribFade", "PCG_GroupExpand", "PCG_UVFlatten",
                  # pcg100 s8: UV Pelt, like UV Flatten, needs seams cut on the closed test geometry first
                  "PCG_UVPelt",
                  # pcg100 c8: Geometry to Layer / Integrate Volume take volume prims, the test geometry is a mesh
-                 "PCG_COPGeoToLayer", "PCG_COPIntegrateVolume"}
+                 "PCG_COPGeoToLayer", "PCG_COPIntegrateVolume",
+                 # Adjacency readers need the layers of COP Geometry to Adjacency in the image
+                 "PCG_COPExtrapolateWithAdjacency", "PCG_COPDistortWithAdjacency",
+                 "PCG_COPAttributeSampleWithAdjacency", "PCG_COPSpaceTransformWithAdjacency"}
 try:
     import torch                                        # noqa: F401
 except ImportError:

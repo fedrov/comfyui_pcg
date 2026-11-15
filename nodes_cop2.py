@@ -3744,6 +3744,490 @@ _NAMES = {
     "PCG_COPHeatDistortByLayer": "COP Heat Distort by Layer (PCG)",
 }
 
+
+
+# ═══════════════════════════════════════════════════════ Grunge (Houdini 22): fourteen dirt-and-wear maps
+from .geo.cop import grunge as _gr                       # noqa: E402
+
+
+def _grunge_run(kind, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+                resolution_x, resolution_y, cop, rest):
+    own = {n: rest.pop(n) for n, *_ in _gr.KINDS[kind][1]}
+    return (_gr.grunge(cop, kind, amplitude, center, mask_contrast, element_size, offset, tile_size, own,
+                       rand_seed, out_layer, _cpost.pick(rest), resolution_x, resolution_y),)
+
+
+def _grunge_head():
+    return {"amplitude": _f(1.0, -1e5, 1e5, 0.01), "center": _f(0.0, -1e5, 1e5, 0.01),
+            "mask_contrast": _f(0.0, 0.0, 0.99, 0.01),
+            "element_size": _f(0.25, 0.001, 1e4, 0.005), "offset": _s("0 0"), "tile_size": _s("1 1")}
+
+
+def _grunge_tail():
+    return {"rand_seed": _i(0, 0, 2 ** 31 - 1), "out_layer": _s("grunge"), **_cpost.widgets(_f, _sec), **_res()}
+
+
+@_node
+class PCG_COPGrungeAurora:
+    """
+    Maps to: Grunge Aurora.
+
+    Soft vertical curtains of light with fine rays, like an aurora. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "primary_distortion": _f(0.5, 0.0, 1.0, 0.01),
+            "streak_sharpness": _f(0.6, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.4, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("aurora", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeBarkStrips:
+    """
+    Maps to: Grunge Bark Strips.
+
+    Long vertical strips of bark with horizontal cuts and small swirls. One mono layer, 0..1 before Range; tiles over Tile Size.
+    The own parameters carry Houdini's names. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "strips_inflate": _f(0.5, 0.0, 1.0, 0.01),
+            "primary_edge_breakup": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_size": _f(1.0, 0.25, 4.0, 0.05),
+            "tertiary_mask": _f(0.3, 0.0, 1.0, 0.01),
+            "tertiary_size": _f(1.0, 0.25, 4.0, 0.05),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("bark_strips", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeBirchBark:
+    """
+    Maps to: Grunge Birch Bark.
+
+    Pale birch bark with dark horizontal lenticels and peeled patches. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "lenticel_mask": _f(0.8, 0.0, 1.0, 0.01),
+            "lenticel_size": _f(1.0, 0.25, 4.0, 0.05),
+            "peel_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "primary_distortion": _f(0.3, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("birch_bark", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeDrips:
+    """
+    Maps to: Grunge Drips.
+
+    Drops with trails running down, plus smudges and speckles. One mono layer, 0..1 before Range; tiles over Tile Size.
+    The own parameters carry Houdini's names. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "density": _f(0.5, 0.0, 1.0, 0.01),
+            "distortion": _f(0.3, 0.0, 1.0, 0.01),
+            "primary_trailing": _f(0.6, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_trailing": _f(0.5, 0.0, 1.0, 0.01),
+            "tertiary_mask": _f(0.3, 0.0, 1.0, 0.01),
+            "speckle_mask": _f(0.3, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("drips", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeGalvanizedSteel:
+    """
+    Maps to: Grunge Galvanized Steel.
+
+    The crystalline spangle pattern of galvanised steel. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "spangle_contrast": _f(0.7, 0.0, 1.0, 0.01),
+            "facet_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "grain_mask": _f(0.3, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("galvanized_steel", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeLayeredNoise:
+    """
+    Maps to: Grunge Layered Noise.
+
+    Layers of noise, each warped by the one before, like a stormy sky and its reflection. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "layers": _i(4, 1, 8),
+            "lacunarity": _i(2, 2, 4),
+            "roughness": _f(0.55, 0.0, 1.0, 0.01),
+            "distortion": _f(0.6, 0.0, 1.0, 0.01),
+            "reflection": _f(0.5, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("layered_noise", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeLeakingStreaks:
+    """
+    Maps to: Grunge Leaking Streaks.
+
+    Vertical streaks of leaking fluid over background stains. One mono layer, 0..1 before Range; tiles over Tile Size.
+    The own parameters carry Houdini's names. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "primary_distortion": _f(0.4, 0.0, 1.0, 0.01),
+            "primary_roughness": _f(0.4, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_distortion": _f(0.5, 0.0, 1.0, 0.01),
+            "tertiary_mask": _f(0.4, 0.0, 1.0, 0.01),
+            "tertiary_balance": _f(0.5, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("leaking_streaks", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeMoisture:
+    """
+    Maps to: Grunge Moisture.
+
+    Damp patches with a sponge of pores and a tide mark. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "spot_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "porosity": _f(0.5, 0.0, 1.0, 0.01),
+            "edge_softness": _f(0.4, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.4, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("moisture", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeMoldSpots:
+    """
+    Maps to: Grunge Mold Spots.
+
+    Clustered colonies of round mold spots in three sizes. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "density": _f(0.5, 0.0, 1.0, 0.01),
+            "cluster": _f(0.6, 0.0, 1.0, 0.01),
+            "halo": _f(0.4, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.5, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("mold_spots", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungePineBark:
+    """
+    Maps to: Grunge Pine Bark.
+
+    Thick bark plates separated by deep furrows, with flaky layers. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "furrow_width": _f(0.35, 0.0, 1.0, 0.01),
+            "plate_layers": _f(0.6, 0.0, 1.0, 0.01),
+            "primary_distortion": _f(0.4, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.4, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("pine_bark", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeRust:
+    """
+    Maps to: Grunge Rust.
+
+    Blooms of rust with ragged edges, a crusty inside and pits. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "coverage": _f(0.5, 0.0, 1.0, 0.01),
+            "edge_breakup": _f(0.6, 0.0, 1.0, 0.01),
+            "pitting_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.4, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("rust", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeRustySurface:
+    """
+    Maps to: Grunge Rusty Surface.
+
+    A worn rusty sheet with wavy layers and vertical cracks. One mono layer, 0..1 before Range; tiles over Tile Size.
+    The own parameters carry Houdini's names. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "primary_roughness": _f(0.5, 0.0, 1.0, 0.01),
+            "secondary_roughness": _f(0.5, 0.0, 1.0, 0.01),
+            "cracks_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "cracks_size": _f(1.0, 0.25, 4.0, 0.05),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("rusty_surface", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeSheets:
+    """
+    Maps to: Grunge Sheets.
+
+    Overlapping rectangular sheets of different tones, like layers of paper or metal. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "layers": _i(4, 1, 8),
+            "edge_mask": _f(0.6, 0.0, 1.0, 0.01),
+            "size_variation": _f(0.5, 0.0, 1.0, 0.01),
+            "primary_distortion": _f(0.2, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("sheets", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+@_node
+class PCG_COPGrungeWipeTrails:
+    """
+    Maps to: Grunge Wipe Trails.
+
+    Arcs of fine streaks, like a cloth wiped over a dusty surface. One mono layer, 0..1 before Range; tiles over Tile Size.
+    Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The formula is our own (geo/cop/grunge.py).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            **_grunge_head(),
+            "primary_mask": _f(0.8, 0.0, 1.0, 0.01),
+            "secondary_mask": _f(0.5, 0.0, 1.0, 0.01),
+            "streak_fineness": _f(0.6, 0.0, 1.0, 0.01),
+            "arc_spread": _f(0.6, 0.0, 1.0, 0.01),
+            **_grunge_tail()},
+            "optional": {"cop": (COP,)}}
+
+    def run(self, amplitude, center, mask_contrast, element_size, offset, tile_size, rand_seed, out_layer,
+            resolution_x, resolution_y, cop=None, **rest):
+        return _grunge_run("wipe_trails", amplitude, center, mask_contrast, element_size, offset, tile_size,
+                           rand_seed, out_layer, resolution_x, resolution_y, cop, rest)
+
+
+# ═══════════════════════════════════════════════════════ Adjacency (Houdini 22): image filters across uv seams
+from .geo.cop import adjacency as _adj                   # noqa: E402
+
+
+@_node
+class PCG_COPGeometryToAdjacency:
+    """
+    Maps to: Geometry to Adjacency.
+
+    Rasterises the geometry's uv islands and records, for the texels around each island, where the surface
+    continues on the neighbouring island (the one sharing that edge on the mesh). Houdini carries this on an
+    "adjacency cable"; here it is a set of layers (Prefix + mask / uv / valid / jac / near / tri / bary / primid /
+    P / N / tanU / tanV / uvscale) in the image, which the other Adjacency nodes read.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"geo": (GEO,), "uv_attrib": _s("uv"), "padding": _i(16, 0, 1024),
+                             "prefix": _s("adj_"), **_res()},
+                "optional": {"cop": (COP,)}}
+
+    def run(self, geo, uv_attrib, padding, prefix, resolution_x, resolution_y, cop=None):
+        return (_adj.geometry_to_adjacency(geo, resolution_x, resolution_y, uv_attrib, padding, prefix, cop),)
+
+
+@_node
+class PCG_COPExtrapolateWithAdjacency:
+    """
+    Maps to: Extrapolate with Adjacency.
+
+    Fills the texels outside the uv islands with the surface's continuation across the seam (from the
+    neighbouring island), so a later blur or mip chain does not show the seam. At a mesh border the edge repeats.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"cop": (COP,), "layers": _s(""), "transform_vectors": _b(False),
+                             "prefix": _s("adj_")}}
+
+    def run(self, cop, layers, transform_vectors, prefix):
+        return (_adj.extrapolate(cop, layers, transform_vectors, prefix),)
+
+
+@_node
+class PCG_COPDistortWithAdjacency:
+    """
+    Maps to: Distort with Adjacency.
+
+    Every texel reads the layer at its position + Direction x Scale (texture space), following the surface
+    across uv seams instead of reading the empty space between islands.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"cop": (COP,), "layer": _s("C"), "direction": _s("0.05 0"), "dir_layer": _s(""),
+                             "scale": _f(1.0, -1e4, 1e4, 0.01), "transform_vectors": _b(False),
+                             "out_layer": _s(""), "prefix": _s("adj_")}}
+
+    def run(self, cop, layer, direction, dir_layer, scale, transform_vectors, out_layer, prefix):
+        return (_adj.distort(cop, layer, direction, dir_layer, scale, transform_vectors, out_layer, prefix),)
+
+
+@_node
+class PCG_COPAttributeSampleWithAdjacency:
+    """
+    Maps to: Attribute Sample with Adjacency.
+
+    Bakes a geometry attribute (vertex, point or primitive) into a layer through the adjacency's triangle and
+    barycentric layers; attrib_geo reads it from a second geometry of the same topology (a deformed copy).
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"cop": (COP,), "geo": (GEO,), "attrib": _s("P"), "out_layer": _s(""),
+                             "extrapolate": _b(True), "prefix": _s("adj_")},
+                "optional": {"attrib_geo": (GEO,)}}
+
+    def run(self, cop, geo, attrib, out_layer, extrapolate, prefix, attrib_geo=None):
+        return (_adj.attribute_sample(cop, geo, attrib, attrib_geo, out_layer, extrapolate, prefix),)
+
+
+@_node
+class PCG_COPSpaceTransformWithAdjacency:
+    """
+    Maps to: Space Transform with Adjacency.
+
+    Turns a vector layer between world space and the surface's tangent space (x along u, y along v, z the
+    normal), using the adjacency's N / tanU / tanV layers.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"cop": (COP,), "layer": _s("C"), "transformation": (list(_adj.TRANSFORMS),),
+                             "signature": (list(_adj.SIGNATURES),), "out_layer": _s(""), "prefix": _s("adj_")}}
+
+    def run(self, cop, layer, transformation, signature, out_layer, prefix):
+        return (_adj.space_transform(cop, layer, transformation, signature, out_layer, prefix),)
+
+
+_NAMES.update({
+    "PCG_COPGeometryToAdjacency": "COP Geometry to Adjacency (PCG)",
+    "PCG_COPExtrapolateWithAdjacency": "COP Extrapolate with Adjacency (PCG)",
+    "PCG_COPDistortWithAdjacency": "COP Distort with Adjacency (PCG)",
+    "PCG_COPAttributeSampleWithAdjacency": "COP Attribute Sample with Adjacency (PCG)",
+    "PCG_COPSpaceTransformWithAdjacency": "COP Space Transform with Adjacency (PCG)",
+    **{"PCG_COPGrunge" + "".join(w.title() for w in k.split("_")): "COP " + v[0] + " (PCG)"
+       for k, v in _gr.KINDS.items()},
+})
+
+# registration: every class named PCG_COP* in this file (keep this at the end)
 NODE_CLASS_MAPPINGS = {k: v for k, v in dict(globals()).items()
                        if k.startswith("PCG_COP") and isinstance(v, type)}
 NODE_DISPLAY_NAME_MAPPINGS = {k: _NAMES.get(k, _display(k))

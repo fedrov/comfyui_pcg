@@ -319,6 +319,7 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Align | [COP Align Window (PCG)](cop-transform.md#pcg-copalignwindow) | equivalent |
 | Align Pixels | [COP Align Pixels (PCG)](cop-transform.md#pcg-copalignpixels) | equivalent |
 | Attribute from Layer | [Attribute from Map (PCG)](attribute.md#pcg-attribfrommap) | equivalent |
+| Attribute Sample with Adjacency | [COP Attribute Sample with Adjacency (PCG)](cop-geometry.md#pcg-copattributesamplewithadjacency) | equivalent |
 | Auto Stereogram | [COP Stereogram (PCG)](cop-generate.md#pcg-copstereogram) | equivalent |
 | Bake Geometry Textures | [COP Bake Textures (PCG)](cop-geometry.md#pcg-copbaketextures) | equivalent |
 | Bake Geometry Textures 2.0 | [COP Bake Textures (PCG)](cop-geometry.md#pcg-copbaketextures) | equivalent |
@@ -372,6 +373,7 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Despill | [COP Despill (PCG)](cop-color.md#pcg-copdespill) | equivalent |
 | Dilate Erode | [COP Erode / Dilate (PCG)](cop-filter.md#pcg-copmorph) | equivalent |
 | Distort | [COP Distort (PCG)](cop-transform.md#pcg-copdistort) | equivalent |
+| Distort with Adjacency | [COP Distort with Adjacency (PCG)](cop-geometry.md#pcg-copdistortwithadjacency) | equivalent |
 | Dot Product | [COP Vector Math (PCG)](cop-utility.md#pcg-copvectormath) | equivalent |
 | Drop Shadow | [COP Drop Shadow (PCG)](cop-composite.md#pcg-copdropshadow) | equivalent |
 | Edge Detect | [COP Edge Detect (PCG)](cop-filter.md#pcg-copedge) | equivalent |
@@ -382,6 +384,7 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Equalize | [COP Equalize (PCG)](cop-color.md#pcg-copequalize) | equivalent |
 | Error | [COP Compare (PCG)](cop-utility.md#pcg-copcompare) | equivalent |
 | Extrapolate Boundaries | [COP Extrapolate Boundaries (PCG)](cop-filter.md#pcg-copextrapolateboundaries) | equivalent |
+| Extrapolate with Adjacency | [COP Extrapolate with Adjacency (PCG)](cop-geometry.md#pcg-copextrapolatewithadjacency) | equivalent |
 | Fast Fourier Transform | [COP FFT (PCG)](cop-filter.md#pcg-copfft) | equivalent |
 | Feather | [COP Feather Slope (PCG)](cop-filter.md#pcg-copfeatherslope) | equivalent |
 | Fill | [COP Fill (PCG)](cop-generate.md#pcg-copfill) | equivalent |
@@ -398,8 +401,23 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Function | [COP Function (PCG)](cop-color.md#pcg-copfunction) | equivalent |
 | Gamma | [COP Color Correct (PCG)](cop-color.md#pcg-copcolorcorrect) | equivalent |
 | Geometry Attribute from Layer | [Attribute from Map (PCG)](attribute.md#pcg-attribfrommap) | equivalent |
+| Geometry to Adjacency | [COP Geometry to Adjacency (PCG)](cop-geometry.md#pcg-copgeometrytoadjacency) | equivalent |
 | Geometry to Layer | [COP Geometry to Layer (PCG)](cop-geometry.md#pcg-copgeotolayer) | equivalent |
 | Glow | [COP Glow (PCG)](cop-filter.md#pcg-copglow) | equivalent |
+| Grunge Aurora | [COP Grunge Aurora (PCG)](cop-generate.md#pcg-copgrungeaurora) | equivalent |
+| Grunge Bark Strips | [COP Grunge Bark Strips (PCG)](cop-generate.md#pcg-copgrungebarkstrips) | equivalent |
+| Grunge Birch Bark | [COP Grunge Birch Bark (PCG)](cop-generate.md#pcg-copgrungebirchbark) | equivalent |
+| Grunge Drips | [COP Grunge Drips (PCG)](cop-generate.md#pcg-copgrungedrips) | equivalent |
+| Grunge Galvanized Steel | [COP Grunge Galvanized Steel (PCG)](cop-generate.md#pcg-copgrungegalvanizedsteel) | equivalent |
+| Grunge Layered Noise | [COP Grunge Layered Noise (PCG)](cop-generate.md#pcg-copgrungelayerednoise) | equivalent |
+| Grunge Leaking Streaks | [COP Grunge Leaking Streaks (PCG)](cop-generate.md#pcg-copgrungeleakingstreaks) | equivalent |
+| Grunge Moisture | [COP Grunge Moisture (PCG)](cop-generate.md#pcg-copgrungemoisture) | equivalent |
+| Grunge Mold Spots | [COP Grunge Mold Spots (PCG)](cop-generate.md#pcg-copgrungemoldspots) | equivalent |
+| Grunge Pine Bark | [COP Grunge Pine Bark (PCG)](cop-generate.md#pcg-copgrungepinebark) | equivalent |
+| Grunge Rust | [COP Grunge Rust (PCG)](cop-generate.md#pcg-copgrungerust) | equivalent |
+| Grunge Rusty Surface | [COP Grunge Rusty Surface (PCG)](cop-generate.md#pcg-copgrungerustysurface) | equivalent |
+| Grunge Sheets | [COP Grunge Sheets (PCG)](cop-generate.md#pcg-copgrungesheets) | equivalent |
+| Grunge Wipe Trails | [COP Grunge Wipe Trails (PCG)](cop-generate.md#pcg-copgrungewipetrails) | equivalent |
 | Heat Distort | [COP Heat Distort (PCG)](cop-transform.md#pcg-copheatdistort) | equivalent |
 | Heat Distort by Layer | [COP Heat Distort by Layer (PCG)](cop-transform.md#pcg-copheatdistortbylayer) | equivalent |
 | Height to Ambient Occlusion | [COP Height to AO (PCG)](cop-terrain.md#pcg-copheighttoao) | equivalent |
@@ -505,6 +523,7 @@ Which comfyui_pcg node to use for a given Houdini SOP or Copernicus COP. *Equiva
 | Smooth Fill | [COP Smooth Fill (PCG)](cop-filter.md#pcg-copsmoothfill) | equivalent |
 | Solve Poisson | [COP Solve Poisson (PCG)](cop-sim.md#pcg-copsolvepoisson) | equivalent |
 | Space Transform | [COP Space Transform (PCG)](cop-transform.md#pcg-copspacetransform) | equivalent |
+| Space Transform with Adjacency | [COP Space Transform with Adjacency (PCG)](cop-geometry.md#pcg-copspacetransformwithadjacency) | equivalent |
 | Sphere Sample | [COP Sphere Sample (PCG)](cop-transform.md#pcg-copspheresample) | equivalent |
 | Stamp Points | [COP Scatter Shapes (PCG)](cop-geometry.md#pcg-copscattershapes) | equivalent |
 | Star Glow | [COP Glow (PCG)](cop-filter.md#pcg-copglow) | equivalent |

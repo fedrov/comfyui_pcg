@@ -2,7 +2,7 @@
 
 Noise, patterns, shapes, ramps and other image sources.
 
-14 nodes.
+28 nodes.
 
 [Back to the reference index](README.md)
 
@@ -13,6 +13,20 @@ Noise, patterns, shapes, ramps and other image sources.
 - [COP Fill (PCG)](#pcg-copfill) — Fills a layer with a constant value, softly blended through an optional mask.
 - [COP Fractal Sample (PCG)](#pcg-copfractalsample) — Layers a source image into itself at shrinking, rotating, jittered scales, like fractal noise whose basis function is an image.
 - [COP Gradient (PCG)](#pcg-copgradient) — Generates a gradient (along u, v, a diagonal, radially or by angle) through a color ramp.
+- [COP Grunge Aurora (PCG)](#pcg-copgrungeaurora) — Generates a grunge map of soft vertical curtains of light with fine rays, like an aurora.
+- [COP Grunge Bark Strips (PCG)](#pcg-copgrungebarkstrips) — Generates a grunge map of long vertical strips of bark with horizontal cuts and small swirls.
+- [COP Grunge Birch Bark (PCG)](#pcg-copgrungebirchbark) — Generates a grunge map of pale birch bark with dark horizontal lenticels and peeled patches.
+- [COP Grunge Drips (PCG)](#pcg-copgrungedrips) — Generates a grunge map of drops with trails running down, plus smudges and speckles.
+- [COP Grunge Galvanized Steel (PCG)](#pcg-copgrungegalvanizedsteel) — Generates a grunge map of the crystalline spangle pattern of galvanised steel.
+- [COP Grunge Layered Noise (PCG)](#pcg-copgrungelayerednoise) — Generates a grunge map of layers of noise, each warped by the one before, like a stormy sky and its reflection.
+- [COP Grunge Leaking Streaks (PCG)](#pcg-copgrungeleakingstreaks) — Generates a grunge map of vertical streaks of leaking fluid over background stains.
+- [COP Grunge Moisture (PCG)](#pcg-copgrungemoisture) — Generates a grunge map of damp patches with a sponge of pores and a tide mark.
+- [COP Grunge Mold Spots (PCG)](#pcg-copgrungemoldspots) — Generates a grunge map of clustered colonies of round mold spots in three sizes.
+- [COP Grunge Pine Bark (PCG)](#pcg-copgrungepinebark) — Generates a grunge map of thick bark plates separated by deep furrows, with flaky layers.
+- [COP Grunge Rust (PCG)](#pcg-copgrungerust) — Generates a grunge map of blooms of rust with ragged edges, a crusty inside and pits.
+- [COP Grunge Rusty Surface (PCG)](#pcg-copgrungerustysurface) — Generates a grunge map of a worn rusty sheet with wavy layers and vertical cracks.
+- [COP Grunge Sheets (PCG)](#pcg-copgrungesheets) — Generates a grunge map of overlapping rectangular sheets of different tones, like layers of paper or metal.
+- [COP Grunge Wipe Trails (PCG)](#pcg-copgrungewipetrails) — Generates a grunge map of arcs of fine streaks, like a cloth wiped over a dusty surface.
 - [COP Noise (PCG)](#pcg-copnoise) — Generates a fractal noise image with optional tiling, animation and post-processing.
 - [COP Noise Extra (PCG)](#pcg-copnoiseextra) — Generates Bubble, Crystal, Phasor, Curl, Curl 3D and Cloud noise.
 - [COP Pattern (PCG)](#pcg-coppattern) — Generates procedural patterns: checkerboard, tiles, cells, UV grid, Julia/Mandelbrot, Chladni, knit and weave.
@@ -305,6 +319,1286 @@ Radial reaches 1 at a distance of 0.5 from the center; angular runs once around 
 | Interpolation `ramp_mode` | menu | Linear | Interpolation between stops: linear, smooth, or constant (steps). Options: Linear (`linear`), Smooth (`smooth`), Constant (`constant`). |
 | Output Layer `layer` | string | `C` | Name of the output layer. |
 | Device `device` | menu | Auto | Compute backend: `auto` picks automatically, `cpu`/`numpy`/`cuda` force a backend, `exact` is the reference path. Options: Auto (`auto`), CPU (`cpu`), CUDA (`cuda`), NumPy (`numpy`), Exact (float64) (`exact`). |
+
+---
+
+### COP Grunge Aurora (PCG)
+
+<a id="pcg-copgrungeaurora"></a>
+
+`PCG_COPGrungeAurora` · category `PCG/cop` · Houdini: Grunge Aurora (COP)
+
+Generates a grunge map of soft vertical curtains of light with fine rays, like an aurora.
+
+![COP Grunge Aurora (PCG): input and result](../images/nodes/PCG_COPGrungeAurora.png)
+
+Ridges of a low-frequency noise form the curtains; a much finer noise, stretched along v, puts rays inside them; a third noise makes each curtain brighten and die out along its length.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Aurora*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Distortion `primary_distortion` | float [0.0..1.0] | 0.5 | How far the curtains sway sideways. 0 gives straight vertical curtains. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Streak Sharpness `streak_sharpness` | float [0.0..1.0] | 0.6 | Narrows the curtains: higher values leave thinner, sharper bands. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.4 | Amount of the soft glow around the curtains. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Aurora (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Bark Strips (PCG)
+
+<a id="pcg-copgrungebarkstrips"></a>
+
+`PCG_COPGrungeBarkStrips` · category `PCG/cop` · Houdini: Grunge Bark Strips (COP)
+
+Generates a grunge map of long vertical strips of bark with horizontal cuts and small swirls.
+
+![COP Grunge Bark Strips (PCG): input and result](../images/nodes/PCG_COPGrungeBarkStrips.png)
+
+The strips are tall, narrow Worley cells standing side by side, each with its own tone. Horizontal grooves cut across them and small cells inside the strips add swirls.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Bark Strips*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Strips Inflate `strips_inflate` | float [0.0..1.0] | 0.5 | Widens the strips: higher values close the gaps between them. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Edge Breakup `primary_edge_breakup` | float [0.0..1.0] | 0.5 | How much the strip edges wander. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.5 | Strength of the horizontal cuts and grooves. |
+| Secondary Size `secondary_size` | float [0.25..4.0] | 1 | Spacing of the cuts: higher values give more, finer cuts. |
+| Tertiary Mask `tertiary_mask` | float [0.0..1.0] | 0.3 | Strength of the small swirls inside the strips. |
+| Tertiary Size `tertiary_size` | float [0.25..4.0] | 1 | Density of the swirls: higher values give more, smaller ones. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Bark Strips (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Birch Bark (PCG)
+
+<a id="pcg-copgrungebirchbark"></a>
+
+`PCG_COPGrungeBirchBark` · category `PCG/cop` · Houdini: Grunge Birch Bark (COP)
+
+Generates a grunge map of pale birch bark with dark horizontal lenticels and peeled patches.
+
+![COP Grunge Birch Bark (PCG): input and result](../images/nodes/PCG_COPGrungeBirchBark.png)
+
+A pale, slightly uneven base carries short dark horizontal dashes (lenticels, one per cell of a stretched Worley lattice). A thresholded noise marks peeled patches, darker with a bright curled lip.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Birch Bark*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Lenticel Mask `lenticel_mask` | float [0.0..1.0] | 0.8 | Darkness of the lenticels (the short horizontal dashes). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Lenticel Size `lenticel_size` | float [0.25..4.0] | 1 | Density of the lenticels: higher values give more, smaller ones. |
+| Peel Mask `peel_mask` | float [0.0..1.0] | 0.5 | Strength of the peeled patches and their bright lip. |
+| Primary Distortion `primary_distortion` | float [0.0..1.0] | 0.3 | How much the bark is warped up and down. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Birch Bark (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Drips (PCG)
+
+<a id="pcg-copgrungedrips"></a>
+
+`PCG_COPGrungeDrips` · category `PCG/cop` · Houdini: Grunge Drips (COP)
+
+Generates a grunge map of drops with trails running down, plus smudges and speckles.
+
+![COP Grunge Drips (PCG): input and result](../images/nodes/PCG_COPGrungeDrips.png)
+
+Two layers of drops (large and small) sit in tall Worley cells; each drop has a round head and a trail hanging below it that thins toward its end. Broad smudges and fine speckles are layered on top. Down is the bottom of the image (-v).
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Drips*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Density `density` | float [0.0..1.0] | 0.5 | Share of the cells that hold a large drop. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Distortion `distortion` | float [0.0..1.0] | 0.3 | Sideways wobble of the drops and their trails. |
+| Primary Trailing `primary_trailing` | float [0.0..1.0] | 0.6 | Length and strength of the trails below the large drops. 0 leaves only the heads. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.5 | Amount of the small drops. |
+| Secondary Trailing `secondary_trailing` | float [0.0..1.0] | 0.5 | Length and strength of the trails below the small drops. |
+| Tertiary Mask `tertiary_mask` | float [0.0..1.0] | 0.3 | Amount of the broad smudges. |
+| Speckle Mask `speckle_mask` | float [0.0..1.0] | 0.3 | Amount of the fine speckles. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Drips (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Galvanized Steel (PCG)
+
+<a id="pcg-copgrungegalvanizedsteel"></a>
+
+`PCG_COPGrungeGalvanizedSteel` · category `PCG/cop` · Houdini: Grunge Galvanized Steel (COP)
+
+Generates a grunge map of the crystalline spangle pattern of galvanised steel.
+
+![COP Grunge Galvanized Steel (PCG): input and result](../images/nodes/PCG_COPGrungeGalvanizedSteel.png)
+
+One crystal per Worley cell, each with its own brightness and lit along its own axis, with fine feather lines across it and dark grain boundaries in between.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Galvanized Steel*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Spangle Contrast `spangle_contrast` | float [0.0..1.0] | 0.7 | Brightness difference between neighbouring crystals. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Facet Mask `facet_mask` | float [0.0..1.0] | 0.5 | Strength of the shading and feather lines across each crystal. |
+| Grain Mask `grain_mask` | float [0.0..1.0] | 0.3 | Amount of fine grain over the whole surface. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Galvanized Steel (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Layered Noise (PCG)
+
+<a id="pcg-copgrungelayerednoise"></a>
+
+`PCG_COPGrungeLayeredNoise` · category `PCG/cop` · Houdini: Grunge Layered Noise (COP)
+
+Generates a grunge map of layers of noise, each warped by the one before, like a stormy sky and its reflection.
+
+![COP Grunge Layered Noise (PCG): input and result](../images/nodes/PCG_COPGrungeLayeredNoise.png)
+
+Several fractal noises of growing frequency are summed; each layer is domain-warped by the previous one, and the vertical part of the warp can be reduced to stretch the pattern sideways.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Layered Noise*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Layers `layers` | int [1..8] | 4 | Number of noise layers. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Lacunarity `lacunarity` | int [2..4] | 2 | Frequency ratio between one layer and the next (a whole number, so the map tiles). |
+| Roughness `roughness` | float [0.0..1.0] | 0.55 | Weight of each layer relative to the one before. |
+| Distortion `distortion` | float [0.0..1.0] | 0.6 | How strongly each layer warps the next. |
+| Reflection `reflection` | float [0.0..1.0] | 0.5 | Reduces the vertical warp, which stretches the pattern sideways like a reflection in water. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Layered Noise (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Leaking Streaks (PCG)
+
+<a id="pcg-copgrungeleakingstreaks"></a>
+
+`PCG_COPGrungeLeakingStreaks` · category `PCG/cop` · Houdini: Grunge Leaking Streaks (COP)
+
+Generates a grunge map of vertical streaks of leaking fluid over background stains.
+
+![COP Grunge Leaking Streaks (PCG): input and result](../images/nodes/PCG_COPGrungeLeakingStreaks.png)
+
+The streaks come from a noise ten times finer across than along, thresholded with a rough edge and faded along their run. Folded stains sit behind them and highlights follow the streak cores.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Leaking Streaks*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Distortion `primary_distortion` | float [0.0..1.0] | 0.4 | Sideways wander of the streaks. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Roughness `primary_roughness` | float [0.0..1.0] | 0.4 | Raggedness of the streak edges. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.5 | Amount of the background stains. |
+| Secondary Distortion `secondary_distortion` | float [0.0..1.0] | 0.5 | How much the background stains are warped. |
+| Tertiary Mask `tertiary_mask` | float [0.0..1.0] | 0.4 | Amount of the highlights along the streak cores. |
+| Tertiary Balance `tertiary_balance` | float [0.0..1.0] | 0.5 | Width of those highlights. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Leaking Streaks (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Moisture (PCG)
+
+<a id="pcg-copgrungemoisture"></a>
+
+`PCG_COPGrungeMoisture` · category `PCG/cop` · Houdini: Grunge Moisture (COP)
+
+Generates a grunge map of damp patches with a sponge of pores and a tide mark.
+
+![COP Grunge Moisture (PCG): input and result](../images/nodes/PCG_COPGrungeMoisture.png)
+
+A thresholded fractal noise gives the damp patches; two sizes of Worley pores are cut out of them, and a ring just outside each patch marks where it dried.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Moisture*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Spot Mask `spot_mask` | float [0.0..1.0] | 0.5 | Size of the damp patches: higher values cover more of the image. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Porosity `porosity` | float [0.0..1.0] | 0.5 | How deeply the pores cut into the patches. |
+| Edge Softness `edge_softness` | float [0.0..1.0] | 0.4 | Softness of the patch edges. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.4 | Strength of the tide mark around each patch. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Moisture (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Mold Spots (PCG)
+
+<a id="pcg-copgrungemoldspots"></a>
+
+`PCG_COPGrungeMoldSpots` · category `PCG/cop` · Houdini: Grunge Mold Spots (COP)
+
+Generates a grunge map of clustered colonies of round mold spots in three sizes.
+
+![COP Grunge Mold Spots (PCG): input and result](../images/nodes/PCG_COPGrungeMoldSpots.png)
+
+Three sizes of round spots (Worley cells, a random share of them switched on) with a soft halo each. A low-frequency noise gathers them into colonies; a fine noise makes them fuzzy.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Mold Spots*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Density `density` | float [0.0..1.0] | 0.5 | Number of spots. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Cluster `cluster` | float [0.0..1.0] | 0.6 | How strongly the spots gather into colonies. 0 spreads them evenly. |
+| Halo `halo` | float [0.0..1.0] | 0.4 | Strength of the soft halo around each spot. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.5 | Amount of the faint background stain where colonies grow. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Mold Spots (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Pine Bark (PCG)
+
+<a id="pcg-copgrungepinebark"></a>
+
+`PCG_COPGrungePineBark` · category `PCG/cop` · Houdini: Grunge Pine Bark (COP)
+
+Generates a grunge map of thick bark plates separated by deep furrows, with flaky layers.
+
+![COP Grunge Pine Bark (PCG): input and result](../images/nodes/PCG_COPGrungePineBark.png)
+
+The plates are Worley cells taller than wide, the furrows the dark lines between them. Each plate is stepped into flat layers and crossed by fine cracks.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Pine Bark*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Furrow Width `furrow_width` | float [0.0..1.0] | 0.35 | Width of the dark furrows between the plates. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Plate Layers `plate_layers` | float [0.0..1.0] | 0.6 | Strength of the stepped, flaky layers on each plate. |
+| Primary Distortion `primary_distortion` | float [0.0..1.0] | 0.4 | How much the plates are warped. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.4 | Strength of the fine cracks across the plates. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Pine Bark (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Rust (PCG)
+
+<a id="pcg-copgrungerust"></a>
+
+`PCG_COPGrungeRust` · category `PCG/cop` · Houdini: Grunge Rust (COP)
+
+Generates a grunge map of blooms of rust with ragged edges, a crusty inside and pits.
+
+![COP Grunge Rust (PCG): input and result](../images/nodes/PCG_COPGrungeRust.png)
+
+A fractal noise, thresholded by Coverage, gives the rust patches; a ridged noise makes their inside crusty; small pits appear in and just ahead of the patches.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Rust*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Coverage `coverage` | float [0.0..1.0] | 0.5 | Share of the surface covered by rust patches. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Edge Breakup `edge_breakup` | float [0.0..1.0] | 0.6 | Raggedness of the patch edges. |
+| Pitting Mask `pitting_mask` | float [0.0..1.0] | 0.5 | Amount of small pits in and ahead of the patches. |
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.4 | Amount of faint staining between the patches. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Rust (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Rusty Surface (PCG)
+
+<a id="pcg-copgrungerustysurface"></a>
+
+`PCG_COPGrungeRustySurface` · category `PCG/cop` · Houdini: Grunge Rusty Surface (COP)
+
+Generates a grunge map of a worn rusty sheet with wavy layers and vertical cracks.
+
+![COP Grunge Rusty Surface (PCG): input and result](../images/nodes/PCG_COPGrungeRustySurface.png)
+
+A base layer of rust whose edges are waved by two domain warps (one along each axis), with a ridged detail noise, cut by vertical crack lines (the borders of tall narrow Worley cells).
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Rusty Surface*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Roughness `primary_roughness` | float [0.0..1.0] | 0.5 | How much the rust layers are waved sideways. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Secondary Roughness `secondary_roughness` | float [0.0..1.0] | 0.5 | How much the rust layers are waved up and down. |
+| Cracks Mask `cracks_mask` | float [0.0..1.0] | 0.5 | Strength of the vertical cracks. |
+| Cracks Size `cracks_size` | float [0.25..4.0] | 1 | Spacing of the cracks: higher values give fewer, wider-spaced cracks. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Rusty Surface (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. The own parameters carry Houdini's names. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Sheets (PCG)
+
+<a id="pcg-copgrungesheets"></a>
+
+`PCG_COPGrungeSheets` · category `PCG/cop` · Houdini: Grunge Sheets (COP)
+
+Generates a grunge map of overlapping rectangular sheets of different tones, like layers of paper or metal.
+
+![COP Grunge Sheets (PCG): input and result](../images/nodes/PCG_COPGrungeSheets.png)
+
+Each layer puts one turned rectangle in most cells of a Worley lattice, with its own tone and a darker edge; later layers cover earlier ones.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Sheets*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Layers `layers` | int [1..8] | 4 | Number of sheet layers; later layers cover earlier ones. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Edge Mask `edge_mask` | float [0.0..1.0] | 0.6 | Darkness of the sheet edges. |
+| Size Variation `size_variation` | float [0.0..1.0] | 0.5 | How much the sheets differ in size. |
+| Primary Distortion `primary_distortion` | float [0.0..1.0] | 0.2 | How much the sheet outlines are warped. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Sheets (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
+
+---
+
+### COP Grunge Wipe Trails (PCG)
+
+<a id="pcg-copgrungewipetrails"></a>
+
+`PCG_COPGrungeWipeTrails` · category `PCG/cop` · Houdini: Grunge Wipe Trails (COP)
+
+Generates a grunge map of arcs of fine streaks, like a cloth wiped over a dusty surface.
+
+![COP Grunge Wipe Trails (PCG): input and result](../images/nodes/PCG_COPGrungeWipeTrails.png)
+
+Each Worley cell holds one arc of concentric streaks around a centre beside the cell's point: the circles a wiping hand makes. Two sizes of wipes are layered.
+
+The map is a single mono layer in the range 0-1, meant as a mask or a building block for materials: drive a colour ramp, a roughness or a height with it, or multiply it with other masks. `Element Size` sets the scale of the pattern and is rounded so a whole number of elements fits in `Tile Size`, which makes the map tile seamlessly; every noise inside is periodic over the tile.
+
+The Range section then applies `Amplitude * contrast(x) + Center`, followed by the Post Processing steps. If a `cop` is connected, its resolution is used and the layer is added to it.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `cop` *(optional)* | COPIMAGE | Optional image. Its resolution is used and the map is added to it as a new layer. If not connected, a new image of the given resolution is created. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | Image with the grunge map in the output layer. |
+
+**Parameters**
+
+*Range*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Amplitude `amplitude` | float | 1 | Range: multiplier applied to the map (which is 0-1 before this section). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Center `center` | float | 0 | Range: value added after the amplitude. |
+| Mask Contrast `mask_contrast` | float [0.0..0.99] | 0 | Range: pushes the map toward 0 and 1 before the amplitude is applied. 0 leaves it unchanged. |
+
+*Pattern*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Element Size `element_size` | float [0.001..10000.0] | 0.25 | Size of one pattern element in image units, where the image width is 1. It is rounded so that a whole number of elements fits in the Tile Size. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Offset `offset` | string | `0 0` | Shifts the pattern (X Y, image units). |
+| Tile Size `tile_size` | string | `1 1` | Size of one seamless repeat (X Y). `1 1` repeats once per image width; for a non-square image give Y as height / width. |
+
+*Wipe Trails*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Primary Mask `primary_mask` | float [0.0..1.0] | 0.8 | Strength of the large wipes. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Secondary Mask `secondary_mask` | float [0.0..1.0] | 0.5 | Strength of the small wipes. |
+| Streak Fineness `streak_fineness` | float [0.0..1.0] | 0.6 | Number of streaks in each wipe. |
+| Arc Spread `arc_spread` | float [0.0..1.0] | 0.6 | Angle each wipe sweeps: low values give short arcs, 1 nearly a full circle. |
+| Seed `rand_seed` | int [0..] | 0 | Seed of the random pattern. |
+
+*Post Processing*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Fold `fold` | toggle | off | Post Processing: takes the absolute value (negative values become positive). |
+| Complement `complement` | toggle | off | Post Processing: inverts the value (1 - x). |
+| Bias `pp_bias` | float [0.0..1.0] | 0.5 | Post Processing: Perlin bias. 0.5 does nothing; below 0.5 pulls values towards 0, above 0.5 towards 1. |
+| Gain `gain` | float [0.0..1.0] | 0.5 | Post Processing: Perlin gain. 0.5 does nothing; above 0.5 steepens the middle, below flattens it. |
+| Gamma `gamma` | float [0.001..100.0] | 1 | Post Processing: raises the value to the power gamma, so values above 1 darken (as in the Houdini noise documentation). |
+| Contrast `contrast` | float [-100.0..100.0] | 1 | Post Processing: scales the value around 0.5. |
+| Clamp Minimum `clamp_min` | float | 0 | Post Processing: lower limit, used when Use Clamp Min is on. |
+| Use Clamp Min `use_clamp_min` | toggle | off | Enables the lower clamp. |
+| Clamp Maximum `clamp_max` | float | 1 | Post Processing: upper limit, used when Use Clamp Max is on. |
+| Use Clamp Max `use_clamp_max` | toggle | off | Enables the upper clamp. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Output Layer `out_layer` | string | `grunge` | Name of the mono layer the map is written to. |
+| Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Width and height of the generated image. Used only when no `cop` is connected. |
+
+**Compared with Houdini**
+
+Corresponds to Grunge Wipe Trails (Copernicus, Houdini 22). SideFX does not publish the formula, so the pattern is the plugin's own: it is alike in kind, not pixel for pixel. Houdini's documentation does not list this node's own parameters; ours follow the same Primary / Secondary scheme. The Bounds and Signature controls are not present (the map is always mono and covers the image).
 
 ---
 

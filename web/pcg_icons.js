@@ -2450,6 +2450,36 @@ export const GLYPHS = {
       circ(c, -0.7 + i * 0.7, -0.7 + j * 0.7, big ? 0.26 : 0.1, true);
     }
   },
+  grunge_spots(c) {                        // blotches of different sizes: rust, mold, damp
+    circ(c, -0.4, -0.35, 0.42, true); circ(c, 0.45, 0.1, 0.3, true);
+    circ(c, -0.25, 0.55, 0.22, true); circ(c, 0.55, -0.6, 0.14, true);
+    dots(c, [0.05, -0.75, 0.75, 0.6, -0.8, 0.2, 0.15, 0.75], 0.07);
+  },
+  grunge_streaks(c) {                      // drops with trails running down
+    const xs = [-0.65, -0.2, 0.3, 0.7], y0 = [-0.8, -0.5, -0.85, -0.3], y1 = [0.2, 0.75, 0.45, 0.8];
+    for (let i = 0; i < 4; i++) {
+      line(c, xs[i], y0[i], xs[i], y1[i]);
+      circ(c, xs[i], y1[i], 0.12, true);
+    }
+  },
+  grunge_bark(c) {                         // tall plates with furrows between them
+    for (let k = 0; k < 3; k++) {
+      c.beginPath();
+      for (let i = 0; i <= 12; i++) {
+        const y = -0.9 + i * 0.15, x = -0.5 + k * 0.5 + 0.1 * Math.sin(i * 1.3 + k * 2);
+        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+    line(c, -0.9, -0.2, -0.55, -0.15); line(c, -0.35, 0.4, 0.0, 0.35); line(c, 0.2, -0.45, 0.5, -0.5);
+    line(c, 0.6, 0.3, 0.9, 0.25);
+  },
+  adjacency(c) {                           // two uv islands and the seam texels linked across the gap
+    rect(c, -0.9, -0.6, 0.7, 1.2, false);
+    rect(c, 0.2, -0.6, 0.7, 1.2, false);
+    dash(c, true); line(c, -0.2, -0.3, 0.2, -0.3); line(c, -0.2, 0.3, 0.2, 0.3); dash(c, false);
+    dots(c, [-0.2, -0.3, 0.2, -0.3, -0.2, 0.3, 0.2, 0.3], 0.09);
+  },
   fx_turingpat(c) {                        // three curved stripes (maze-like)
     for (let k = 0; k < 3; k++) {
       c.beginPath();
@@ -3060,6 +3090,16 @@ export const NODE_GLYPH = {
   // pcg100 c7: new nodes with Houdini semantics
   COPFeatherSlope: "fx_feather_slope", COPExtrapolateBoundaries: "fx_extrap",
   COPEdgeDetectProbe: "fx_edgeprobe", COPSurfaceDither: "fx_surfdither",
+  // Houdini 22: Grunge maps and Adjacency
+  COPGrungeRust: "grunge_spots", COPGrungeMoisture: "grunge_spots", COPGrungeMoldSpots: "grunge_spots",
+  COPGrungeLayeredNoise: "grunge_spots", COPGrungeGalvanizedSteel: "grunge_spots",
+  COPGrungeDrips: "grunge_streaks", COPGrungeLeakingStreaks: "grunge_streaks", COPGrungeAurora: "grunge_streaks",
+  COPGrungeWipeTrails: "grunge_streaks",
+  COPGrungeBarkStrips: "grunge_bark", COPGrungeBirchBark: "grunge_bark", COPGrungePineBark: "grunge_bark",
+  COPGrungeRustySurface: "grunge_bark", COPGrungeSheets: "grunge_bark",
+  COPGeometryToAdjacency: "adjacency", COPExtrapolateWithAdjacency: "adjacency",
+  COPDistortWithAdjacency: "adjacency", COPAttributeSampleWithAdjacency: "adjacency",
+  COPSpaceTransformWithAdjacency: "adjacency",
   COPTuringPatterns: "fx_turingpat", COPHeatDistortByLayer: "fx_heatlayer",
   COPChromaticAberration: "fx_chroma_ab", COPHeatDistort: "fx_heat",
   COPSwirl: "fx_swirl", COPLensDistort: "fx_lens",
