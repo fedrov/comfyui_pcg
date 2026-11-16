@@ -242,7 +242,7 @@ Every footprint polygon (taken as seen from above; up is +Y, the base is the foo
 
 The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 on the plinth), `part` and `material` (wall, glass, frame, door, corner, ledge, roof, parapet, plinth, or the library's parts), `module`, the footprint's own prim attributes (a lot number, a town name), a prim group per part, a colour `Cd`, and vertex `uv` in metres (u along the wall, v up) so tiling textures keep their scale.
 
-**Street fronts, chimneys, yard walls.** `Front Pattern Attribute` names a string prim attribute holding a front pattern per footprint (shopfronts in a town's core, a door elsewhere); empty values use `Front Pattern`. `Chimney Chance` is the probability, seeded per building, of a chimney stack on a gable or hip roof, just off the ridge (part `chimney`). `Yard Wall Height` above 0 builds a wall `Yard Wall Thickness` thick along the footprint's own outline -- the lot line, outside the setback -- on every side but the front one (part `yardwall`, floor -3), so lots read as yards. `Notch Attribute` names a float prim attribute (0..0.8): that fraction of the depth and the width is cut out of the back corner of a four-cornered footprint (opposite the front), making an L-shaped building with a flat roof.
+**Street fronts, chimneys, yard walls.** `Front Pattern Attribute` names a string prim attribute holding a front pattern per footprint (shopfronts in a town's core, a door elsewhere); empty values use `Front Pattern`. `Chimney Chance` is the probability, seeded per building, of a chimney stack on a gable or hip roof, just off the ridge (part `chimney`). `Yard Wall Height` above 0 builds a wall `Yard Wall Thickness` thick along the footprint's own outline -- the lot line, outside the setback -- on every side but the front one (part `yardwall`, floor -3), so lots read as yards. `Notch Attribute` names a float prim attribute (0..0.8): that fraction of the depth and the width is cut out of the back corner of a four-cornered footprint (opposite the front), making an L-shaped building; with a gable or hip roof it gets two gable wings, a cross gable: the front wing over the full width, the back wing running from the front ridge to its own gable over the back wall, no higher than the front ridge. `Side Front Attribute` names a vector prim attribute holding a corner lot's second street: the wall facing it gets the front's ground floor too (the same front pattern), so a corner building faces both streets.
 
 **Inputs**
 
@@ -332,7 +332,7 @@ The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 o
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | Front Attribute `front_attribute` | string | `front` | Vector prim attribute on the footprints giving the direction their front faces (toward the street). The wall whose outward normal is nearest to it is the front. |
-| Front Pattern `front_pattern` | string | *(empty)* | Ground-floor module pattern of the front wall, so doors and shopfronts face the street. Empty turns it off. |
+| Front Pattern `front_pattern` | string | *(empty)* | Ground-floor module pattern of the front wall, so doors and shopfronts face the street. Empty turns it off. A front wall with fewer bays than the pattern shows the pattern's middle (one bay of `window door window` is the door). |
 
 *Roof*
 
@@ -360,7 +360,13 @@ The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 o
 |---|---|---|---|
 | Yard Wall Height `yard_wall_height` | float [0.0..20.0] | 0 | Height of a wall along the footprint outline on every side but the front (0 = no wall). Sits 0.3 m into the ground. |
 | Yard Wall Thickness `yard_wall_thickness` | float [0.01..5.0] | 0.25 | Thickness of the yard walls, built inside the footprint outline. *Disabled when yard_wall_height = 0.* |
-| Notch Attribute `notch_attribute` | string | *(empty)* | Optional float prim attribute (0..0.8): the share of the depth and the width cut out of the back corner of a four-cornered footprint -- an L-shaped building (flat roof). |
+| Notch Attribute `notch_attribute` | string | *(empty)* | Optional float prim attribute (0..0.8): the share of the depth and the width cut out of the back corner of a four-cornered footprint -- an L-shaped building (two gable wings under a gable or hip roof). |
+
+*Wall Face*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Side Front Attribute `side_front_attribute` | string | *(empty)* | Optional vector prim attribute: the direction of a corner lot's second street (0 0 0 = none). The wall facing it gets the front pattern on the ground floor too. |
 
 **Compared with Houdini**
 

@@ -281,7 +281,14 @@ else:
                 "wall_c": fc_[pp_ == "wall"], "wall_b": bp_[pp_ == "wall"], "gable": int((md_ == "gable").sum()),
                 "roof_top": rt_,
                 "modules": {str(k): int((md_ == k).sum()) for k in np.unique(md_)},
-                "lshape": int(sum(1 for i in np.nonzero((pp_ == "roof") & (fl_ == -1))[0] if cnt_[i] == 6)),
+                "lshape": int((np.bincount(bp_[pp_ == "plinth"], minlength=nb_) == 6).sum()),
+                "lflat": int(sum(1 for k_ in np.nonzero(np.bincount(bp_[pp_ == "plinth"], minlength=nb_) == 6)[0]
+                                 for i in np.nonzero((pp_ == "roof") & (bp_ == k_))[0]
+                                 if np.ptp(P_[vp_[off_[i]:off_[i + 1]], 1]) < 1e-6)),
+                "side": np.asarray(g_.get(PRIM, "side"), np.float64)[first_][:, [0, 2]],
+                "door_n": np.array([np.cross(P_[vp_[off_[i] + 1]] - P_[vp_[off_[i]]],
+                                             P_[vp_[off_[i] + 2]] - P_[vp_[off_[i]]])[[0, 2]]
+                                    for i in np.nonzero(pp_ == "door")[0]]).reshape(-1, 2),
                 "parts": {str(k): int((pp_ == k).sum()) for k in np.unique(pp_)}}
 
     def _cards(out):
@@ -542,6 +549,15 @@ else:
             return ((c_ - st_[b_]) * fr_[b_]).sum(1) - ((cen_[b_] - st_[b_]) * fr_[b_]).sum(1)
         dd_ = toward(bq["door_c"], bq["door_b"])
         wd_ = toward(bq["wall_c"], bq["wall_b"])
+        # a door on a side wall (its offset from the centre mostly across the front direction) of a corner building,
+        # on the side of its second street, counts as street-side too
+        sdq = bq["side"]
+
+        dn_ = bq["door_n"] / np.maximum(np.linalg.norm(bq["door_n"], axis=1, keepdims=True), 1e-9)
+        fu_ = fr_[bq["door_b"]] / np.maximum(np.linalg.norm(fr_[bq["door_b"]], axis=1, keepdims=True), 1e-9)
+        sidew = np.abs((dn_ * fu_).sum(1)) < 0.7                            # a door on a side wall (by its facing)
+        on_side = sidew & ((dn_ * sdq[bq["door_b"]]).sum(1) > 0.7)
+        dd_ = np.where(on_side, 1.0, np.where(sidew, -1.0, dd_))
         ds_ = np.minimum(rkd.query(st_)[0], cKDTree(lpd).query(st_)[0] if len(lpd) else np.inf)
         hd_ = len(np.unique(bq["door_b"]))
         check(f"  the doors on the street side (Front Pattern): {hd_} buildings with doors, {np.mean(dd_ > 0):.1%} of "
@@ -550,14 +566,26 @@ else:
               hd_ > 0.8 * nb_ and np.mean(dd_ > 0) > 0.98 and np.mean(wd_ > 0) < 0.6 and np.percentile(ds_, 99) < 2.0,
               (round(float(np.mean(dd_ > 0)), 4), round(float(np.mean(wd_ > 0)), 3)))
         rf_ = bq["rf"]
-        pit_ = rf_ != "parapet"
-        ridge_ = (bq["roof_top"] - bq["base"] - 3.4 - 3.1 * (bq["floors"] - 1))[pit_]
-        check(f"  pitched roofs: gable on 1-3 floors, hip on 4-5, parapets on the L-shaped core buildings "
-              f"({dict(zip(*np.unique(rf_, return_counts=True)))}), {bq['gable']} gable-end walls, the ridges above the "
-              f"eaves (median {np.median(ridge_):.1f} m)",
-              set(rf_.tolist()) <= {"gable", "hip", "parapet"} and np.all((rf_[pit_] == "hip") == (bq["floors"][pit_] >= 4))
-              and 0.8 * (rf_ == "parapet").sum() <= bq["lshape"] <= (rf_ == "parapet").sum() and bq["gable"] > 0 and np.median(ridge_) > 1.5,
+        ridge_ = bq["roof_top"] - bq["base"] - 3.4 - 3.1 * (bq["floors"] - 1)
+        check(f"  pitched roofs: gable on 1-3 floors, hip on 4-5 ({dict(zip(*np.unique(rf_, return_counts=True)))}), "
+              f"{bq['gable']} gable-end walls, the ridges above the eaves (median {np.median(ridge_):.1f} m); the "
+              f"{bq['lshape']} L-shaped buildings under cross gables (flat roof faces among them: {bq['lflat']})",
+              set(rf_.tolist()) <= {"gable", "hip"} and np.all((rf_ == "hip") == (bq["floors"] >= 4))
+              and bq["gable"] > 0 and np.median(ridge_) > 1.5 and bq["lshape"] >= 3 and bq["lflat"] == 0,
               np.percentile(ridge_, [1, 50, 99]).round(2))
+        # corner lots: the second street really is there, the building has a door on it
+        cnr = np.linalg.norm(sdq, axis=1) > 0.5
+        if cnr.any():
+            pr_s = cen_[cnr] + sdq[cnr] * 12.0
+            pr_o = cen_[cnr] - sdq[cnr] * 12.0
+            near_s = rlk.query(pr_s)[0] < rlk.query(pr_o)[0]
+            dside = np.array([((dn_[bq["door_b"] == k] * sdq[k]).sum(1) > 0.7).any() for k in np.nonzero(cnr)[0]])
+            dopp = np.array([((dn_[bq["door_b"] == k] * sdq[k]).sum(1) < -0.7).any() for k in np.nonzero(cnr)[0]])
+        check(f"  corner lots: {int(cnr.sum())} buildings with a second street (it lies on that side: "
+              f"{near_s.mean() if cnr.any() else 0:.0%} nearer a street than the other side), a door on that side "
+              f"wall for {dside.mean() if cnr.any() else 0:.0%}; negative control, a door on the opposite side wall: "
+              f"{dopp.mean() if cnr.any() else 0:.0%}",
+              cnr.sum() >= 10 and near_s.mean() > 0.9 and dside.mean() > 0.9 and dopp.mean() < 0.1)
         js_, tn_ = node_meshes(os.path.join(WD, "buildings/Towns.glb"))
         allv = np.concatenate([v[0] for v in tn_.values()])
         want_ = sorted(f"{t}_LOD{k}" for t in towns_ for k in range(3))
@@ -633,6 +661,50 @@ else:
           br_.sum() >= 1 and lm_.sum() > 50 and gr_.sum() > 20 and (dtw[lm_] < 175).all()
           and abs(np.median(dlm) - 6.0) < 1.0 and abs(np.median(dgr) - 5.5) < 1.0 and (dtw[gr_] > 150).mean() > 0.95
           and np.median(dg_) > 2.0 and np.median(dl_) < 1.0)
+    # bridges: a deck as long as the bed is wide, piers on the bed up to the deck
+    pi_ = an_ == "SM_BridgePier"
+    sxyz = np.array([[float(r[c]) for c in ("sx", "sy", "sz")] for r in rows])
+    span_ = sxyz[br_, 2] * 30.0
+    if br_.any() and pi_.any():
+        kb_ = cKDTree(XZ[br_])
+        db_, ib_ = kb_.query(XZ[pi_])
+        under = db_ <= span_[ib_] / 2 + 4.0
+        top_ = ys[pi_] + sxyz[pi_, 1]
+        dtop = np.abs(top_ - ys[br_][ib_])
+        nper = np.bincount(ib_[under], minlength=int(br_.sum()))
+    clr = ys[br_] - hgt(xs[br_], zs[br_])
+    check(f"bridges: spans {span_.min() if br_.any() else 0:.0f}-{span_.max() if br_.any() else 0:.0f} m (the bed + 8 m, "
+          f"at least 16), {int(pi_.sum())} piers, all under a deck ({under.mean() if pi_.any() else 0:.0%}), their tops at "
+          f"the deck (median {np.median(dtop) if pi_.any() else 0:.2f} m off; the 0.5 m minimum where the deck lies on the "
+          f"bed), every bridge of 24 m or more on piers; the decks at the banks, {np.median(clr) if br_.any() else 0:.1f} m "
+          f"over the ground at their middle (median)",
+          br_.any() and pi_.any() and span_.min() >= 16 and span_.max() < 140 and under.mean() > 0.95
+          and np.median(dtop) < 0.2 and (nper[span_ >= 24] >= 1).all() and (clr > -0.5).all())
+    # lanes: on their graded bed, smoother than the ground beside them
+    lv_, ll_ = [], []
+    for ln in open(os.path.join(WD, "roads/Lanes.obj"), encoding="utf-8"):
+        if ln.startswith("v "):
+            lv_.append([float(t) for t in ln.split()[1:4]])
+        elif ln.startswith("l "):
+            ll_.append([int(t) - 1 for t in ln.split()[1:]])
+    LV = np.array(lv_)
+    lpl = [LV[i] for i in ll_ if len(i) >= 5]
+    onb = np.concatenate([np.abs(p_[:, 1] - hgt(p_[:, 0], p_[:, 2])) for p_ in lpl])
+    rough_l = np.concatenate([np.abs(np.diff(p_[:, 1], 2)) for p_ in lpl])
+
+    def beside(p_, d_=15.0):
+        t_ = np.gradient(p_[:, [0, 2]], axis=0)
+        t_ /= np.maximum(np.linalg.norm(t_, axis=1, keepdims=True), 1e-9)
+        q_ = p_[:, [0, 2]] + np.stack([t_[:, 1], -t_[:, 0]], 1) * d_
+        return hgt(q_[:, 0], q_[:, 1])
+    rough_b = np.concatenate([np.abs(np.diff(beside(p_), 2)) for p_ in lpl])
+    grd = np.concatenate([np.abs(np.diff(p_[:, 1])) / np.maximum(np.linalg.norm(np.diff(p_[:, [0, 2]], axis=0), axis=1),
+                                                                 1e-6) for p_ in lpl])
+    check(f"lanes: {len(lpl)} lanes in Lanes.obj, on the ground (the height files under them: median {np.median(onb):.2f} m), "
+          f"graded: smoother than the ground 15 m beside them (mean bend {rough_l.mean():.2f} m vs "
+          f"{rough_b.mean():.2f} m per 8 m step), grade median {np.median(grd):.0%}, 95% under {np.percentile(grd, 95):.0%}",
+          len(lpl) >= 8 and np.median(onb) < 0.3 and rough_l.mean() < 0.7 * rough_b.mean()
+          and np.median(grd) < 0.2 and np.percentile(grd, 95) < 0.5)
     pr_ = np.array([a_.startswith("Tree_Pine") for a_ in an_])
     bl_ = np.array([a_.startswith("Tree_Broadleaf") for a_ in an_])
     fr_ = an_ == "Tree_Fruit_A"
@@ -693,8 +765,9 @@ else:
     check(f"  Towns.lods.json: the LOD chain of every town for an engine (distances, screen sizes, transitions, "
           f"triangles falling)", sorted(la_) == towns_ and lok, lj["assets"][0]["lods"])
     _, pn_ = node_meshes(os.path.join(WD, "assets/SM_Props.glb"))
-    check("  SM_Props.glb: the orchard tree, hedge, bridge, lamp and guard rail proxies, named as in the tables",
-          sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_StreetLamp", "SM_GuardRail"]))
+    check("  SM_Props.glb: the orchard tree, hedge, bridge, pier, lamp and guard rail proxies, named as in the tables",
+          sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_BridgePier", "SM_StreetLamp",
+                                 "SM_GuardRail"]))
     # the far view: the tree proxies as LOD chains ending in impostor cards, and their impostor atlases
     ad_ = os.path.join(WD, "assets")
     for a_ in ("Pine", "Broadleaf"):

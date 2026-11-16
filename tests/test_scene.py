@@ -337,7 +337,7 @@ check("  negative control: height 0 builds none", "yardwall" not in B.building_g
 NT = RCT.copy()
 NT.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]]))
 NT.set(PRIM, "nch", np.array([0.5]))
-bn_, _ = B.building_generator(NT, floors_min=1, floors_max=1, roof="gable", corners=False, top_ledge=False,
+bn_, _ = B.building_generator(NT, floors_min=1, floors_max=1, roof="flat", corners=False, top_ledge=False,
                               facade_pattern="wall", notch_attribute="nch")
 pn_ = np.asarray(bn_.get(PRIM, "part")).reshape(-1)
 rf_ = [i for i in np.nonzero(pn_ == "roof")[0]]
@@ -346,8 +346,65 @@ Prf = np.concatenate([prim_pts(bn_, i) for i in rf_])
 check("Notch Attribute 0.5: an L (12 x 8 less a 6 x 4 back corner = 72 m² of flat roof, six walls), the back-left "
       "corner (x 0..6, z 0..4) open", len(rf_) == 1 and abs(ra_n - 72.0) < 1e-6 and len(prim_pts(bn_, rf_[0])) == 6
       and not ((Prf[:, 0] < 5.9) & (Prf[:, 2] < 3.9)).any(), round(float(ra_n), 3))
+# ... under a gable roof: two gable wings covering the whole L, the back wing's ridge no higher than the front's
+bg2, _ = B.building_generator(NT, floors_min=1, floors_max=1, roof="gable", corners=False, top_ledge=False,
+                              facade_pattern="wall", notch_attribute="nch", roof_pitch=30.0, roof_overhang=0.0)
+pg2 = np.asarray(bg2.get(PRIM, "part")).reshape(-1)
+rfi = np.nonzero(pg2 == "roof")[0]
+nrm2 = np.asarray(ops.compute_normals(bg2, add_to="prim").get(PRIM, "N"), np.float64)
+tris_ = []
+for i in rfi:
+    q_ = prim_pts(bg2, i)
+    for j_ in range(1, len(q_) - 1):
+        tris_.append((q_[0][[0, 2]], q_[j_][[0, 2]], q_[j_ + 1][[0, 2]]))
+
+
+def _under(pt):
+    for a_, b_, c_ in tris_:
+        d_ = (b_[1] - c_[1]) * (a_[0] - c_[0]) + (c_[0] - b_[0]) * (a_[1] - c_[1])
+        if abs(d_) < 1e-12:
+            continue
+        l1 = ((b_[1] - c_[1]) * (pt[0] - c_[0]) + (c_[0] - b_[0]) * (pt[1] - c_[1])) / d_
+        l2 = ((c_[1] - a_[1]) * (pt[0] - c_[0]) + (a_[0] - c_[0]) * (pt[1] - c_[1])) / d_
+        if l1 >= -1e-9 and l2 >= -1e-9 and 1 - l1 - l2 >= -1e-9:
+            return True
+    return False
+gx_, gz_ = np.meshgrid(np.linspace(0.1, 11.9, 25), np.linspace(0.1, 7.9, 17))
+insideL = ~((gx_ < 6.0) & (gz_ < 4.0))                     # the notch: x 0..6, z 0..4 (the back corner behind F1)
+cov = [_under((x_, z_)) for x_, z_ in zip(gx_[insideL], gz_[insideL])]
+P2_ = np.asarray(bg2.get(POINT, "P"), np.float64)
+cut_ = [_under((x_, z_)) for x_, z_ in zip(gx_[~insideL], gz_[~insideL]) if x_ < 5.8 and z_ < 1.9]
+check("Notch under a gable roof: two gable wings (no flat roof) covering every point of the L (and not the cut-out corner beyond the front wing's ridge), the slopes facing up, "
+      "the ridge at the front wing's 3 + tan 30° x 2 m",
+      all(cov) and not any(cut_) and (nrm2[rfi][:, 1] > 0.3).all() and abs(P2_[:, 1].max() - (3 + np.tan(np.radians(30)) * 2)) < 1e-6
+      and not ((np.abs(nrm2[rfi][:, 1] - 1) < 1e-9).any()), (sum(cov), len(cov)))
 check("  negative control: without the attribute the gable roof stands over the full rectangle",
       sum(area3(prim_pts(bo_, i)) for i in np.nonzero(np.asarray(bo_.get(PRIM, "part")).reshape(-1) == "roof")[0]) > 96)
+
+# Side Front Attribute: a corner lot's second street gets the front's ground floor too
+SF = RCT.copy()
+SF.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]]))
+SF.set(PRIM, "side", np.array([[1.0, 0.0, 0.0]]))
+bsf, _ = B.building_generator(SF, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="flat",
+                              facade_pattern="window", front_pattern="door", side_front_attribute="side")
+psf = np.asarray(bsf.get(PRIM, "part")).reshape(-1)
+csf = np.array([prim_pts(bsf, i).mean(0) for i in np.nonzero(psf == "door")[0]])
+check("Side Front Attribute: doors on the +z front (4 bays) and on the +x side street (3 bays), the ground floor only",
+      len(csf) == 7 and (np.isclose(csf[:, 2], 8 - 0.15, atol=1e-6).sum() == 4)
+      and (np.isclose(csf[:, 0], 12 - 0.15, atol=1e-6).sum() == 3) and (csf[:, 1] < 3).all())
+SF.set(PRIM, "side", np.zeros((1, 3)))
+check("  negative control: a zero side vector adds none (4 doors)",
+      B.building_generator(SF, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="flat",
+                           facade_pattern="window", front_pattern="door", side_front_attribute="side")[1]["parts"]
+      .get("door", 0) == 4 * 1)
+
+# a front wall with fewer bays than its front pattern shows the pattern's middle (here the door)
+NR = poly([(0, 0), (3, 0), (3, 8), (0, 8)])
+NR.set(PRIM, "front", np.array([[1.0, 0.0, 0.0]]))
+bnr, rnr = B.building_generator(NR, floors_min=1, floors_max=1, corners=False, top_ledge=False, roof="flat",
+                                facade_pattern="window", front_pattern="window door window", module_width=3.0)
+check("a one-bay front with the pattern 'window door window' gets the door (the pattern's middle)",
+      rnr["parts"].get("door", 0) == 1, rnr["parts"])
 
 # LOD manifest: what an engine needs, from LOD Create's output
 from comfyui_pcg.geo import lodmanifest as LM  # noqa: E402

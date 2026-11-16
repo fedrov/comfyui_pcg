@@ -36,7 +36,7 @@ SPECS = {
                   "concave_corner_module", "top_ledge", "top_ledge_height", "bottom_ledge", "bottom_ledge_height",
                   "ledge_depth", "roof", "parapet_height", "parapet_thickness", "floor_overrides", "footprint_inset", "foundation_depth", "front_attribute", "front_pattern",
                   "roof_pitch", "roof_overhang", "roof_attribute", "front_pattern_attribute", "chimney_chance",
-                  "yard_wall_height", "yard_wall_thickness", "notch_attribute"],
+                  "yard_wall_height", "yard_wall_thickness", "notch_attribute", "side_front_attribute"],
         "inputs": {
             "group": {"label": "Group"},
             "color_floors": {"label": "Color Floors", "section": "Visualize",
@@ -93,6 +93,8 @@ SPECS = {
                                     "disable": "{ yard_wall_height == 0 }"},
             "notch_attribute": {"label": "Notch Attribute", "section": "Initialize",
                                 "help": "Float prim attribute 0..0.8: cut the back corner out (an L-shaped building)"},
+            "side_front_attribute": {"label": "Side Front Attribute", "section": "Wall Face",
+                                     "help": "Vector prim attribute: a corner lot's second street; that wall gets the front's ground floor too"},
             "floor_overrides": {"label": "Floor Overrides", "section": "Customization", "sep": True,
                                 "help": "One line per floor: 0: height=4.5 pattern=door shopfront (0 = ground, "
                                         "-1 = top)"},

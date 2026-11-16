@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **World tiles: graded lanes, corner lots, cross gables, bridges by span**. The lanes are graded like the roads
+  (a smoothed bed cut in over 10 m) and written to `roads/Lanes.obj`; a lot with a street beside it is a corner
+  lot whose building faces both streets; L-shaped buildings get pitched roofs; a bridge spans its river bed
+  (measured by probes along the road) with piers on the bed (`SM_BridgePier`).
+- **Building Generator**: `side_front_attribute` (a corner lot's second street gets the front's ground floor too);
+  an L (`notch_attribute`) under a gable or hip roof gets two gable wings, a cross gable.
 - **World tiles: side streets, livelier towns, road furniture, orchards and hedgerows, textured previews**. Each
   town gets lanes square to its roads (painted, with plots along them) and a paved square where its roads meet;
   core buildings get shopfronts and some are L-shaped, upper floors balconies, pitched roofs chimneys, every lot a
@@ -43,6 +49,8 @@ All notable changes to this project are documented here. The format follows
 - **LOD Create**: a `custom` input whose faces (prim `lod`) replace those levels, reduced by their own percent.
 
 ### Changed
+- **Building Generator**: a front wall with fewer bays than its Front Pattern shows the pattern's middle (one bay
+  of `window door window` is the door), where it used to show the pattern's start (a window).
 - **Impostor Textures**: the C layer is linear (Cd is a display colour), like the base colour everywhere else.
 - **Merge**: an attribute with different tuple sizes on its inputs takes the largest, the shorter ones padded
   with 0 (it used to fail), as Houdini does.

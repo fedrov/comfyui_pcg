@@ -23,12 +23,18 @@ the Facade Module Pattern.
     Front       Front Pattern (if given) is the ground-floor pattern of the wall whose outward normal is nearest the
                 footprint's Front Attribute (a vector prim attribute): the door and shopfronts face the street.
                 Front Pattern Attribute (a string prim attribute) gives a footprint its own front pattern
-                (shopfronts in a town's core, doors elsewhere); empty values fall back to Front Pattern.
+                (shopfronts in a town's core, doors elsewhere); empty values fall back to Front Pattern. A front
+                wall with fewer bays than its pattern shows the pattern's middle (one bay of `window door
+                window` is the door).
+                Side Front Attribute (a vector prim attribute) names a second street, for a corner lot: the wall
+                facing it gets the front's ground floor too (0, 0, 0 = none).
     Chimneys    Chimney Chance: the probability (seeded per building) of a chimney on a gable or hip roof, near
                 the ridge (part `chimney`).
     Notch       Notch Attribute (a float prim attribute, 0..0.8) cuts that fraction of the depth and the width out of
                 the back corner of a four-cornered footprint (the corner at the start of the side opposite the
-                front): an L-shaped building, with a flat roof.
+                front): an L-shaped building. Under a gable or hip roof it gets two gable wings (a cross gable:
+                the front wing over the full width, the back wing from the front ridge to its own gable over the
+                back wall, no higher than the front ridge); otherwise a flat roof.
     Yard walls  Yard Wall Height > 0 builds a wall of Yard Wall Thickness along the footprint's own outline (the
                 lot line, outside the setback), on every side but the front one (part `yardwall`, floor -3).
     Floors      per building: the footprint's prim attribute Height Attribute (metres) / Full Floor Height, else
@@ -224,17 +230,20 @@ def _face_up(M, pts, uvs, part, module, floor, bld, outward=None):
     M.face(P, uvs, part, module, floor, bld)
 
 
-def _pitched_roof(M, p, y, base, kind, pitch, overhang, nb):
+def _pitched_roof(M, p, y, base, kind, pitch, overhang, nb, k=None, skip_end=None, tn=None):
     """
     A gable or hip roof over a four-cornered footprint p (CCW, (x, z)) whose walls end at height y. The ridge runs
     along the longer pair of opposite sides, at tan(pitch) x half the span above the eaves; the eaves stand out by
     overhang (and drop with the slope). Gable ends are walls (part wall); a hip roof slopes on all four sides (a
-    pyramid where the ridge would have no length).
+    pyramid where the ridge would have no length). k forces the sides carrying the eaves (k and k + 2), tn the slope
+    (rise per run), skip_end leaves out one end's gable (0: the end over side k + 3, 1: over side k + 1) -- a wing
+    of an L running into the other wing.
     """
-    tn = np.tan(np.radians(np.clip(pitch, 5.0, 75.0)))
+    tn = np.tan(np.radians(np.clip(pitch, 5.0, 75.0))) if tn is None else float(tn)
     e = np.roll(p, -1, axis=0) - p
     Ls = np.linalg.norm(e, axis=1)
-    k = 0 if Ls[0] + Ls[2] >= Ls[1] + Ls[3] else 1                 # sides k and k + 2 carry the eaves
+    if k is None:
+        k = 0 if Ls[0] + Ls[2] >= Ls[1] + Ls[3] else 1             # sides k and k + 2 carry the eaves
     q = _offset(p, overhang) if overhang > 0 else p
     ye = y - overhang * tn
     i0, i1, i2, i3 = k, (k + 1) % 4, (k + 2) % 4, (k + 3) % 4
@@ -273,8 +282,11 @@ def _pitched_roof(M, p, y, base, kind, pitch, overhang, nb):
             _face_up(M, t_, uvs(t_), "roof", "roof", -1, nb)
         # the soffit (underside of the eaves) is left open, as in most game roofs seen from the street
         return
+    ends = [(i1, i2), (i3, i0)]
+    if skip_end is not None:
+        ends.pop(0 if skip_end == 1 else 1)
     # gable ends: wall triangles over the end walls, facing out
-    for a_, b_ in ((i1, i2), (i3, i0)):
+    for a_, b_ in ends:
         A, B = p[a_], p[b_]
         mid = 0.5 * (A + B)
         out = np.array([(B - A)[1], 0.0, -(B - A)[0]])
@@ -284,10 +296,34 @@ def _pitched_roof(M, p, y, base, kind, pitch, overhang, nb):
     # the overhang under the gable ends: the slopes reach past the end walls, so close the triangle under them
     if overhang > 0:
         for (a_, b_), r_ in (((i1, i2), Rb), ((i3, i0), Ra)):
+            if (a_, b_) not in ends:
+                continue
             out = p[b_] - p[a_]
             out = np.array([out[1], 0.0, -out[0]])
             t_ = [v3(q[a_], ye), v3(q[b_], ye), v3(r_, h)]
             _face_up(M, t_, uvs(t_), "roof", "roof", -1, nb, out)
+
+
+def _l_roof(M, L_, y, base, pitch, overhang, nb):
+    """
+    Two gable wings over an L footprint (a rectangle F0 F1 .. B0 with its back corner behind F1 cut out by the
+    fraction nv): the front wing over the full width, its ridge along the front; the back wing over the rest,
+    its ridge running back from the front wing's ridge (where it starts, inside the front roof) to its own gable
+    over the back wall -- a cross gable, no higher than the front ridge.
+    """
+    F0, F1, B0, nv = L_
+    W = float(np.linalg.norm(F1 - F0))
+    D = float(np.linalg.norm(B0 - F0))
+    wd, dd = (F1 - F0) / W, (B0 - F0) / D
+    dA, wB = (1 - nv) * D, (1 - nv) * W
+    tn = np.tan(np.radians(np.clip(pitch, 5.0, 75.0)))
+    A = np.array([F0, F1, F1 + dd * dA, F0 + dd * dA])
+    _pitched_roof(M, A, y, base, "gable", pitch, overhang, nb, k=0)
+    t0 = dA / 2
+    Bq = np.array([F0 + dd * t0, F0 + wd * wB + dd * t0, F0 + wd * wB + dd * D, F0 + dd * D])
+    hA = tn * dA / 2
+    _pitched_roof(M, Bq, y, base, "gable", pitch, overhang, nb, k=1, skip_end=0, tn=min(tn, hA / max(wB / 2, 1e-6)))
+    return A
 
 
 def _prism(M, ring, y0, y1, part, floor, nb, top=True):
@@ -350,7 +386,7 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
                        floor_overrides="", color_floors=False, footprint_inset=0.0, foundation_depth=0.0,
                        front_attribute="front", front_pattern="", roof_pitch=35.0, roof_overhang=0.3,
                        roof_attribute="", front_pattern_attribute="", chimney_chance=0.0, yard_wall_height=0.0,
-                       yard_wall_thickness=0.25, notch_attribute=""):
+                       yard_wall_thickness=0.25, notch_attribute="", side_front_attribute=""):
     """Footprint polygons -> buildings; see the module docstring. -> Geometry, report dict."""
     if roof not in ROOFS:
         raise ValueError(f"Roof must be one of {ROOFS}")
@@ -376,6 +412,9 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
             raise ValueError(f"Front Pattern Attribute '{front_pattern_attribute}' must be a string prim attribute "
                              "(a facade module pattern per footprint)")
         fpa = np.asarray(fpa).reshape(-1).astype(str)
+    sfa = geo.get(PRIM, str(side_front_attribute).strip()) if str(side_front_attribute).strip() else None
+    if sfa is not None and (np.asarray(sfa).dtype.kind == "U" or np.asarray(sfa).shape[1] < 3):
+        raise ValueError(f"Side Front Attribute '{side_front_attribute}' must be a vector prim attribute")
     sel = resolve(geo, PRIM, group)
     ra = geo.get(PRIM, str(roof_attribute).strip()) if str(roof_attribute).strip() else None
     if ra is not None:
@@ -427,7 +466,10 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
             V = p[r_]
             A_ = V + nv * (p[(r_ + 1) % 4] - V)
             C_ = V + nv * (p[(r_ - 1) % 4] - V)
+            L_ = (p[fk].copy(), p[(fk + 1) % 4].copy(), p[(fk + 3) % 4].copy(), nv)
             p = np.array([p[(r_ + 1) % 4], p[(r_ + 2) % 4], p[(r_ + 3) % 4], C_, C_ + (A_ - V), A_])
+        else:
+            L_ = None
         base = float(Q[:, 1].min())
         M.cur_src = i
         rng = np.random.default_rng([int(seed), i])
@@ -452,6 +494,12 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
         if np.linalg.norm(fv) > 1e-9:
             front_k = int(np.argmax(t2[:, 1] * fv[0] - t2[:, 0] * fv[1]))
         patf_i = _pattern(fpa[i]) if fpa is not None and fpa[i].strip() else patf
+        side_k = -1                                                 # a corner lot's second street
+        sv = np.asarray(sfa, np.float64)[i, [0, 2]] if sfa is not None else np.zeros(2)
+        if np.linalg.norm(sv) > 1e-9:
+            dots = t2[:, 1] * sv[0] - t2[:, 0] * sv[1]
+            dots[front_k] = -np.inf if front_k >= 0 else dots[front_k]
+            side_k = int(np.argmax(dots))
         if float(yard_wall_height) > 0 and float(yard_wall_thickness) > 0:
             el = np.roll(p_lot, -1, axis=0) - p_lot
             el = el / np.maximum(np.linalg.norm(el, axis=1, keepdims=True), 1e-12)
@@ -471,7 +519,8 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
             fh = float(ov.get("height", floor_height))
             pat = ov.get("pattern", pat0)
             for k in range(m):
-                pat_k = patf_i if (k == front_k and f == 0 and patf_i is not None) else pat
+                is_front = k in (front_k, side_k) and k >= 0 and f == 0 and patf_i is not None
+                pat_k = patf_i if is_front else pat
                 a, b = p[k], p[(k + 1) % m]
                 t3 = np.array([t2[k, 0], 0.0, t2[k, 1]])
                 n3 = np.array([t2[k, 1], 0.0, -t2[k, 0]])           # outward
@@ -495,7 +544,10 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
                         faces = (_module(cm, w, fh, o, lib) if cm
                                  else [([(0, 0, 0), (w, 0, 0), (w, fh, 0), (0, fh, 0)], "corner")])
                     else:
-                        alt = pat_k[(nbay - 1 - j) % len(pat_k)]    # the pattern reads left to right from outside
+                        # the pattern reads left to right from outside; a front shorter than its pattern shows the
+                        # pattern's middle (one bay of 'window door window' is the door)
+                        off_p = (len(pat_k) - nbay) // 2 if is_front and nbay < len(pat_k) else 0
+                        alt = pat_k[(off_p + nbay - 1 - j) % len(pat_k)]
                         name = alt[int(rng.integers(len(alt)))] if len(alt) > 1 else alt[0]
                         faces = _module(name, w, fh, o, lib)
                     for pts, part in faces:
@@ -525,6 +577,14 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
         tot_floors += nf
         rp = p
         roof_i = ra[i] if ra is not None and ra[i] else roof
+        if roof_i in ("gable", "hip") and L_ is not None and m == 6:     # an L: two gable wings
+            A_r = _l_roof(M, L_, y, base, float(roof_pitch), max(0.0, float(roof_overhang)), nb)
+            if float(chimney_chance) > 0 and rng.random() < float(chimney_chance):
+                _chimney(M, A_r, y, float(roof_pitch), rng, nb)
+            M.tint = getattr(M, "tint", [])
+            M.tint.append(tint)
+            nb += 1
+            continue
         if roof_i in ("gable", "hip") and m == 4:
             _pitched_roof(M, p, y, base, roof_i, float(roof_pitch), max(0.0, float(roof_overhang)), nb)
             if float(chimney_chance) > 0 and rng.random() < float(chimney_chance):

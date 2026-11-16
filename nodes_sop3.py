@@ -377,6 +377,7 @@ class PCG_BuildingGenerator:
             "yard_wall_height": I(_f(0.0, 0.0, 20.0, 0.05)),
             "yard_wall_thickness": I(_f(0.25, 0.01, 5.0, 0.01)),
             "notch_attribute": I(_s("")),
+            "side_front_attribute": Pw(_s("")),
         }, "optional": {"modules": (GEO,)}}
 
     def run(self, geo, group, color_floors, floor_height, floors_min, floors_max, floors_attribute,
@@ -385,7 +386,8 @@ class PCG_BuildingGenerator:
             bottom_ledge, bottom_ledge_height, ledge_depth, roof, parapet_height, parapet_thickness,
             floor_overrides, footprint_inset=0.0, foundation_depth=0.0, front_attribute="front", front_pattern="",
             roof_pitch=35.0, roof_overhang=0.3, roof_attribute="", front_pattern_attribute="", chimney_chance=0.0,
-            yard_wall_height=0.0, yard_wall_thickness=0.25, notch_attribute="", modules=None):
+            yard_wall_height=0.0, yard_wall_thickness=0.25, notch_attribute="", side_front_attribute="",
+            modules=None):
         g, r = _bg.building_generator(
             geo, modules, group, floor_height, floors_min, floors_max, floors_attribute, height_attribute,
             rand_seed, facade_pattern, module_width, window_width, window_height, window_sill, inset, corners,
@@ -393,7 +395,7 @@ class PCG_BuildingGenerator:
             bottom_ledge_height, ledge_depth, roof, parapet_height, parapet_thickness, floor_overrides,
             color_floors, footprint_inset, foundation_depth, front_attribute, front_pattern, roof_pitch,
             roof_overhang, roof_attribute, front_pattern_attribute, chimney_chance, yard_wall_height,
-            yard_wall_thickness, notch_attribute)
+            yard_wall_thickness, notch_attribute, side_front_attribute)
         return (g, _rep(r))
 
 
