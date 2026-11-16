@@ -78,12 +78,27 @@ def auto_camera(geo, W, H, elev, azim, fov=35.0, margin=1.04):
                     near=d * 1e-3, far=0.0)
 
 
+def _trim():
+    """Hand the freed heap back to the system between the render's phases: each one frees hundreds of MB of
+    temporaries that glibc otherwise keeps, and the next phase's peak lands on top of them."""
+    try:
+        from ..memtrim import trim
+        trim()
+    except ImportError:
+        pass
+
+
 def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
-                   detail_cop=None, splat_cop=None):
-    """(H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective)."""
+                   detail_cop=None, splat_cop=None, extra=None):
+    """
+    (H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective).
+    extra: a second geometry drawn with geo without merging the two (each is rasterized on its own and the nearer
+    surface wins per pixel; shadows and sky light see both): a per-shot addition to a large shared scene costs no
+    copy of the scene.
+    """
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
         _trim(collect=True)                # arrays held by reference cycles too
@@ -119,40 +134,84 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         sk_ = K.clouds(D.reshape(-1, 3), L, sky_radiance(D.reshape(-1, 3), L), clouds, cloud_seed)
         return _develop(sk_.reshape(H, W, 3).astype(np.float32), exposure, k)
 
-    ts, T = K.soup(geo)
-    ts, T, hid = S.shadow_only_split(geo, ts, T)
+    parts = [geo] + ([extra] if extra is not None and extra.npoints > 0 and extra.nprims > 0 else [])
     tex = S.parse_textures(textures)
+    if len(parts) > 1:
+        # what a merge would have filled in: a material ("") and a uv (0) on the geometry that has none
+        from .core import PRIM as _PR, VERTEX as _VX, is_string as _iss
+        for j_, g_ in enumerate(parts):
+            fix = g_
+            ma_ = g_.get(_PR, material_attrib)
+            if any("{material}" in v_ for v_ in tex.values()) and (ma_ is None or not _iss(ma_)):
+                fix = fix.copy()
+                fix.set_string(_PR, material_attrib, np.full(g_.nprims, ""))
+            if tex and not g_.has(_VX, uv_attrib) and not g_.has(POINT, uv_attrib):
+                fix = fix.copy() if fix is g_ else fix
+                fix.set(POINT, uv_attrib, np.zeros((g_.npoints, 3), np.float32))
+            parts[j_] = fix
     rep = {"used": [], "missing": []}
-    atest, acut = S.alpha_tester(geo, tex, tex_root, material_attrib, uv_attrib, (tex_cop, splat_cop, detail_cop), rep)
-    if acut is not None:                                     # cut-out faces cast no sun or sky shadow
-        T = (T[0], T[1][~acut[T[2]]]) if len(T) > 2 else (T[0], T[1][~acut[ts[1]]])
-    T = T[:2]
-    rast = R.rasterize(geo, cam, max_pairs=S._PAIRS, soup=ts, alpha=S.with_hidden(atest, hid))
-    hit = rast["hit"]
-    m = hit >= 0
+    rasts, Ts = [], []
+    for g_ in parts:
+        ts, T = K.soup(g_)
+        ts, T, hid = S.shadow_only_split(g_, ts, T)
+        atest, acut = S.alpha_tester(g_, tex, tex_root, material_attrib, uv_attrib, (tex_cop, splat_cop, detail_cop),
+                                     rep)
+        if acut is not None:                                 # cut-out faces cast no sun or sky shadow
+            T = (T[0], T[1][~acut[T[2]]])
+        Ts.append(T[:2])
+        r_ = R.rasterize(g_, cam, max_pairs=S._PAIRS, soup=ts, alpha=S.with_hidden(atest, hid))
+        del ts
+        # the frame buffers at half width (a supersampled frame: a few hundred MB per geometry otherwise)
+        r_["bary"] = r_["bary"].astype(np.float32)
+        r_["z"] = r_["z"].astype(np.float32)
+        r_["hit"] = r_["hit"].astype(np.int32) if len(r_["src"]) < 2 ** 31 else r_["hit"]
+        rasts.append(r_)
+        del r_
+    if len(parts) > 1:                                       # the nearer of the two surfaces wins each pixel
+        za = np.where(rasts[0]["hit"] >= 0, rasts[0]["z"], np.inf)
+        zb = np.where(rasts[1]["hit"] >= 0, rasts[1]["z"], np.inf)
+        wb = zb < za
+        rasts[0]["hit"] = np.where(wb, -1, rasts[0]["hit"])
+        rasts[1]["hit"] = np.where(wb, rasts[1]["hit"], -1)
+        zall = np.minimum(za, zb)
+        del za, zb, wb
+        T = (np.concatenate([Ts[0][0], Ts[1][0]]), np.concatenate([Ts[0][1], Ts[1][1] + len(Ts[0][0])]))
+    else:
+        zall = rasts[0]["z"]
+        T = Ts[0]
+    del Ts
+    _trim()
+    masks = [r_["hit"] >= 0 for r_ in rasts]
+    m = masks[0] | masks[1] if len(masks) > 1 else masks[0]
     dfw = (D @ fwd.astype(np.float32))                      # cos between ray and forward: z -> distance
-    dist = np.where(m, rast["z"] / np.maximum(dfw, 1e-6), np.inf).astype(np.float32)
+    dist = np.where(m, zall / np.maximum(dfw, 1e-6), np.inf).astype(np.float32)
+    del zall
     P = (eye[None, None] + D * np.where(m, dist, 0.0)[..., None]).astype(np.float32)
     # face normals once (Newell, length = area): the per-pixel geometric normal, the fallback of the shading normal,
     # and the face size for the shadow normal offset
     from .ops import prim_normals as _pn
-    pn = np.asarray(_pn(geo, normalize=False), np.float32)
-    ar = np.linalg.norm(pn, axis=1)
-    pn /= np.maximum(ar, 1e-20)[:, None]
-    pid = rast["src"][hit[m]]
     FN = np.zeros((H, W, 3), np.float32)
-    FN[m] = pn[pid]
     off = np.zeros(m.shape, np.float32)                      # face size per pixel, for the shadow normal offset
-    off[m] = 0.5 * np.sqrt(ar[pid])
-    del pn, ar, pid
-    N = S._smooth_normals(geo, rast, FN)
+    for g_, r_, mk in zip(parts, rasts, masks):
+        pn = np.asarray(_pn(g_, normalize=False), np.float32)
+        ar = np.linalg.norm(pn, axis=1)
+        pn /= np.maximum(ar, 1e-20)[:, None]
+        pid = r_["src"][r_["hit"][mk]]
+        FN[mk] = pn[pid]
+        off[mk] = 0.5 * np.sqrt(ar[pid])
+        del pn, ar, pid
+    N = np.zeros((H, W, 3), np.float32)
+    for g_, r_, mk in zip(parts, rasts, masks):
+        N[mk] = S._smooth_normals(g_, r_, FN)[mk]
     # a face seen from behind turns its normals to the viewer; an authored normal that already faces the viewer stays
     # (grass and foliage cards carry the ground's up as N, so both sides of a blade shade like the ground)
     flip = (FN * D).sum(-1) > 0
     N[flip & ((N * D).sum(-1) > 0)] *= -1
     FN[flip] *= -1
 
-    lo, hi = (np.asarray(v, np.float64) for v in geo.bbox())
+    _trim()
+    bbs = [np.asarray(g_.bbox(), np.float64) for g_ in parts]
+    lo, hi = np.min([b_[0] for b_ in bbs], 0), np.max([b_[1] for b_ in bbs], 0)
     center = (lo + hi) / 2
     radius = max(float(np.linalg.norm(hi - lo)) / 2, 1e-6)
     gplane = np.zeros(m.shape, bool)
@@ -170,19 +229,23 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     valid = surf | gplane
 
     alb = np.full((H, W, 3), S.srgb_to_linear(np.array([0.72, 0.72, 0.72])), np.float32)
-    cd = _attrib_image(geo, rast, str(color_attrib).strip() or "Cd")
-    if cd is not None:
-        cd = np.repeat(cd, 3, -1) if cd.shape[2] == 1 else cd[..., :3]
-        alb[m] = S.srgb_to_linear(cd[m])
-    del cd
+    for g_, r_, mk in zip(parts, rasts, masks):
+        cd = _attrib_image(g_, r_, str(color_attrib).strip() or "Cd")
+        if cd is not None:
+            cd = np.repeat(cd, 3, -1) if cd.shape[2] == 1 else cd[..., :3]
+            alb[mk] = S.srgb_to_linear(cd[mk])
+        del cd
     alb[gplane] = S.srgb_to_linear(np.asarray(ground_color, np.float64))
     pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.8, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
-        S._apply_textures(geo, rast, alb, N, surf, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                          cop_detail=detail_cop, P=P, cop_splat=splat_cop)
+        for g_, r_, mk in zip(parts, rasts, masks):
+            S._apply_textures(g_, r_, alb, N, surf & mk, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
+                              cop_detail=detail_cop, P=P, cop_splat=splat_cop)
+            _trim()
+    _trim()
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
-    rast = None
+    rasts = masks = None
     if report is not None:
         report.update({k_: sorted(set(v)) for k_, v in rep.items()})
 
@@ -216,6 +279,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         dmap = dmap.cpu().numpy()
     else:
         dmap, meta = K.depth_map(T, L, sc_, sr_, sres)
+    _trim()
     sh = np.ones(valid.shape, np.float32)
     step = 1 << 20
     for s0 in range(0, len(vi[0]), step):
@@ -256,6 +320,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         Es[vs] = ((sky_fn(dd) * dd[:, 1:2]).sum(0) / dd[:, 1].sum()).astype(np.float32)[None] \
             * (0.5 + 0.5 * Ns[vs][:, 1:2])
     del T
+    _trim()
     Es = np.repeat(np.repeat(Es, k, 0), k, 1)[:H, :W]
     occ = np.repeat(np.repeat(occ, k, 0), k, 1)[:H, :W]
     vis_s = np.repeat(np.repeat(vis_s, k, 0), k, 1)[:H, :W]

@@ -226,7 +226,7 @@ Turns footprint polygons into buildings with floors, facade modules, ledges and 
 
 Every footprint polygon (taken as seen from above; up is +Y, the base is the footprint's lowest point) becomes one building. Its walls are split into floors of `Full Floor Height`, and each floor of each wall into bays of about `Module Width`; the bays are stretched evenly so they fill the wall exactly. Each bay holds one module.
 
-**Modules and patterns.** `Facade Module Pattern` is a list of module names separated by spaces, repeated along the wall as seen from outside, left to right: `window window door`. Writing `a|b|c` picks one of the alternatives at random per bay. Four modules are built in: `wall` (blank), `window`, `door` and `shopfront` (a wide, low window); their openings are recessed by `Inset`. If a module library is connected to the `modules` input, a name found there is used instead. A library is ordinary geometry whose prims carry a string attribute `name`; all prims with one name form one module. The module's width (x) and height (y) are fitted to the bay, z = 0 is the wall plane and +z points out of the building, so a balcony can stick out and a window can be recessed. A prim attribute `part` on the library is kept.
+**Modules and patterns.** `Facade Module Pattern` is a list of module names separated by spaces, repeated along the wall as seen from outside, left to right: `window window door`. Writing `a|b|c` picks one of the alternatives at random per bay. Five modules are built in: `wall` (blank), `window`, `door`, `shopfront` (a wide, low window) and `balcony` (a glazed door with a slab and a railing standing 0.9 m out; parts `balcony` and `railing`); their openings are recessed by `Inset`. If a module library is connected to the `modules` input, a name found there is used instead. A library is ordinary geometry whose prims carry a string attribute `name`; all prims with one name form one module. The module's width (x) and height (y) are fitted to the bay, z = 0 is the wall plane and +z points out of the building, so a balcony can stick out and a window can be recessed. A prim attribute `part` on the library is kept.
 
 **Corners, ledges, roof.** With `Corners` on, a strip at both ends of every wall is a pilaster, or the convex / concave corner module from the library. `Top` and `Bottom` add an extruded band along the top or the foot of every floor, mitred round the corners. The roof is flat, flat inside a parapet, or -- over a four-cornered footprint -- a gable or hip roof: the ridge runs along the longer sides at `Roof Pitch`, the eaves stand out by `Roof Overhang`, and a gable's end triangles are walls. `Roof Attribute` picks the roof per footprint from a string prim attribute.
 
@@ -241,6 +241,8 @@ Every footprint polygon (taken as seen from above; up is +Y, the base is the foo
 **Floor overrides.** One line per floor, for example `0: height=4.5 pattern=door shopfront shopfront` for a taller ground floor with shops. `0` is the ground floor, `-1` the top floor; `height` and `pattern` are both optional.
 
 The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 on the plinth), `part` and `material` (wall, glass, frame, door, corner, ledge, roof, parapet, plinth, or the library's parts), `module`, the footprint's own prim attributes (a lot number, a town name), a prim group per part, a colour `Cd`, and vertex `uv` in metres (u along the wall, v up) so tiling textures keep their scale.
+
+**Street fronts, chimneys, yard walls.** `Front Pattern Attribute` names a string prim attribute holding a front pattern per footprint (shopfronts in a town's core, a door elsewhere); empty values use `Front Pattern`. `Chimney Chance` is the probability, seeded per building, of a chimney stack on a gable or hip roof, just off the ridge (part `chimney`). `Yard Wall Height` above 0 builds a wall `Yard Wall Thickness` thick along the footprint's own outline -- the lot line, outside the setback -- on every side but the front one (part `yardwall`, floor -3), so lots read as yards. `Notch Attribute` names a float prim attribute (0..0.8): that fraction of the depth and the width is cut out of the back corner of a four-cornered footprint (opposite the front), making an L-shaped building with a flat roof.
 
 **Inputs**
 
@@ -339,6 +341,26 @@ The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 o
 | Roof Pitch `roof_pitch` | float [5.0..75.0] | 35 | Slope of gable and hip roofs in degrees. |
 | Roof Overhang `roof_overhang` | float [0.0..5.0] | 0.3 | How far the eaves of gable and hip roofs stand out from the walls. |
 | Roof Attribute `roof_attribute` | string | *(empty)* | Optional string prim attribute on the footprints that picks the roof per building (`flat`, `parapet`, `gable` or `hip`; empty values use the Roof menu). |
+
+*Wall Face*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Front Pattern Attribute `front_pattern_attribute` | string | *(empty)* | Optional string prim attribute on the footprints: their own front pattern (empty values use Front Pattern). Needs Front Attribute. |
+
+*Roof*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Chimney Chance `chimney_chance` | float [0.0..1.0] | 0 | Probability (0..1, seeded per building) of a chimney on a gable or hip roof. |
+
+*Initialize*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Yard Wall Height `yard_wall_height` | float [0.0..20.0] | 0 | Height of a wall along the footprint outline on every side but the front (0 = no wall). Sits 0.3 m into the ground. |
+| Yard Wall Thickness `yard_wall_thickness` | float [0.01..5.0] | 0.25 | Thickness of the yard walls, built inside the footprint outline. *Disabled when yard_wall_height = 0.* |
+| Notch Attribute `notch_attribute` | string | *(empty)* | Optional float prim attribute (0..0.8): the share of the depth and the width cut out of the back corner of a four-cornered footprint -- an L-shaped building (flat roof). |
 
 **Compared with Houdini**
 

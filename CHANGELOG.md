@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **World tiles: side streets, livelier towns, road furniture, orchards and hedgerows, textured previews**. Each
+  town gets lanes square to its roads (painted, with plots along them) and a paved square where its roads meet;
+  core buildings get shopfronts and some are L-shaped, upper floors balconies, pitched roofs chimneys, every lot a
+  yard wall. Bridges where roads cross rivers, street lamps in the towns and guard rails where the ground drops
+  beside a mountain road join the instance tables (proxies in `assets/SM_Props.glb`); orchards in rows ring the
+  towns (broadleaf only near them) and hedgerows follow the field margins. `buildings/Towns.lods.json` lists the
+  LOD chains for an engine; every building's faces carry its own street point (`street`) and front direction. The previews texture the buildings with the material library's recipes made in the
+  same run, tint and frame-blend the impostor cards and tilt them to the camera.
+- **Preview Image / Outdoor**: `extra_geo` is drawn beside `geo` without merging (rasterized on its own, the nearer
+  surface wins; shadows and sky see both), so a per-shot addition costs no copy of the scene; Textures
+  `basecolor_tint` (all, or by material wildcard) and `uv_blend` / `uv_blend_weights` (impostor frame blending);
+  the alpha test runs only on the prims that have a cutout.
+- **Building Generator**: a `balcony` module, `front_pattern_attribute` (a front pattern per footprint),
+  `chimney_chance`, `yard_wall_height` / `yard_wall_thickness` (walls along the lot line, open at the front) and
+  `notch_attribute` (L-shaped footprints).
+- **Export Mesh**: `lod_manifest` writes `<filename>.lods.json` beside the mesh: per asset its LOD nodes, switch
+  distances, triangles, bounds, materials, Unreal screen sizes and Unity LODGroup transitions (`lod_fov`,
+  `lod_cull_screen_size`).
 - **World tiles: towns along the roads, building LODs, textured buildings, a Crops layer, impostor trees in the
   previews**. The towns are plots along their roads (both sides, facing the road, cut into front and back lots by
   Lot Subdivision) instead of square blocks; each building's door and ground floor face the street, the taller ones

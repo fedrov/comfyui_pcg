@@ -60,7 +60,11 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              "detail_normal1", "detail_normal2", "detail_normal3", "detail_normal4",
              "detail_weights", "detail_tiling", "detail_triplanar",
              # cutout: a texture whose first channel below alpha_cutoff (default 0.5) removes the surface there
-             "alpha", "alpha_cutoff")
+             "alpha", "alpha_cutoff",
+             # basecolor_tint = 1: the base colour texture is multiplied by the colour attribute (one atlas, a tint
+             # per instance); uv_blend = 'uv uv2 ...' with uv_blend_weights = an attribute of as many weights: the
+             # base colour and the alpha are the weighted sum of the texture at each uv (impostor frame blending)
+             "basecolor_tint", "uv_blend", "uv_blend_weights")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
 # terrain layers (an engine's landscape material): layerN = a tiled colour, layerN_normal / _rough / _height its other
@@ -87,6 +91,13 @@ def parse_textures(text):
     number, default 0.5) removes the surface at that point: what lies behind shows through (leaves, fences, impostor
     cards). Cut-out faces cast no sun or sky shadow; a face with the prim attribute shadow_only = 1 casts shadows
     but is not seen (a stand-in shadow caster for cut-out cards).
+
+    basecolor_tint = 1 multiplies the base colour texture by the colour attribute (Cd): one impostor atlas, a tint
+    per instance; instead of 1, material names (wildcards: 'imp_*') limit it to those materials. uv_blend =
+    'uv uv2 uv3 uv4' with uv_blend_weights = 'fw' (an attribute holding one weight per uv, point or vertex): the base
+    colour and the alpha are the weighted sum of the texture read at each of those uvs -- an impostor card blends
+    the atlas frames round its view direction instead of jumping from one to the next. Where the weights are 0 (or
+    the geometry has no weights attribute) the plain uv is read.
 
     Detail maps: detail1..4 are tiled colour maps read linear, mean 0.5 = no change (the base colour is multiplied by
     2 x detail, Unity's "Detail Albedo x2"); detail_normal1..4 tangent-space normals; detail_weights a layer or file
@@ -160,15 +171,21 @@ def sample_mip(chain, uv, footprint):
     Bilinear from the mip level whose texel matches the pixel's footprint (in level-0 texels), blended linearly with
     the next level (trilinear). Without it a 1 m brick texture seen from afar sparkles into noise.
     """
-    lod = np.clip(np.log2(np.maximum(footprint, 1e-9)), 0, len(chain) - 1)
-    l0 = np.floor(lod).astype(np.int64)
-    f = (lod - l0)[:, None]
-    out = np.zeros((len(uv), chain[0].shape[2]))
-    for lv in np.unique(l0):
-        sel = l0 == lv
-        a = sample_wrap(chain[lv], uv[sel])
-        b = sample_wrap(chain[min(lv + 1, len(chain) - 1)], uv[sel])
-        out[sel] = a * (1 - f[sel]) + b * f[sel]
+    out = np.zeros((len(uv), chain[0].shape[2]), np.float32)
+    # in blocks of pixels: each level's bilinear reads make several (n, C) temporaries, which over a supersampled
+    # frame of millions of pixels were a gigabyte or more
+    blk = 1 << 20
+    for b0 in range(0, len(uv), blk):
+        uvb = uv[b0:b0 + blk]
+        lod = np.clip(np.log2(np.maximum(footprint[b0:b0 + blk], 1e-9)), 0, len(chain) - 1)
+        l0 = np.floor(lod).astype(np.int64)
+        f = (lod - l0)[:, None]
+        ob = out[b0:b0 + blk]
+        for lv in np.unique(l0):
+            sel = l0 == lv
+            a = sample_wrap(chain[lv], uvb[sel])
+            b = sample_wrap(chain[min(lv + 1, len(chain) - 1)], uvb[sel])
+            ob[sel] = a * (1 - f[sel]) + b * f[sel]
     return out
 
 
@@ -616,6 +633,7 @@ def with_hidden(test, hidden):
         if test is not None and k.any():
             k &= np.asarray(test(tt, bb, rast), bool)
         return k
+    t.prims = hidden | getattr(test, "prims", False) if test is not None else hidden
     return t
 
 
@@ -665,6 +683,7 @@ def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), re
     if vuv is None and puv is None:
         raise ValueError(f"Textures: alpha needs a '{uvattr}' attribute (vertex or point)")
     UV = np.asarray(vuv if vuv is not None else puv, np.float32)[:, :2]
+    blend = _uv_blend_sets(geo, tex, uvattr)        # [(uv per vertex / point, weight per vertex / point, corner)]
 
     def sample(img, uv):
         H, W = img.shape
@@ -684,17 +703,66 @@ def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), re
         if not on.any():
             return keep
         ts = t[on]
-        corners = rast["cor"][ts] if vuv is not None else rast["tri"][ts]
-        uv = (UV[corners] * bb[on][:, :, None]).sum(1)
+        bo = bb[on][:, :, None]
+        if blend:
+            sets = [((U_[rast["cor"][ts] if c_ else rast["tri"][ts]] * bo).sum(1),
+                     (W_[rast["cor"][ts] if c_ else rast["tri"][ts]] * bo[:, :, 0]).sum(1)) for U_, W_, c_ in blend]
+        else:
+            corners = rast["cor"][ts] if vuv is not None else rast["tri"][ts]
+            sets = [((UV[corners] * bo).sum(1), None)]
         mi = pm[prim[on]]
-        av = np.ones(len(ts), np.float32)
+        av = np.zeros(len(ts), np.float32) if blend else np.ones(len(ts), np.float32)
         for k_, img in maps.items():
             s_ = mi == k_
             if s_.any():
-                av[s_] = sample(img, uv[s_])
+                if blend:
+                    ws = sum(w_[s_] for _, w_ in sets)
+                    vb = sum(sample(img, u_[s_]) * w_[s_] for u_, w_ in sets)
+                    if (ws <= 1e-6).any():                  # no weights here: the plain uv
+                        cr_ = rast["cor"][ts[s_]] if vuv is not None else rast["tri"][ts[s_]]
+                        vp_ = sample(img, (UV[cr_] * bo[s_]).sum(1))
+                        vb = np.where(ws > 1e-6, vb, vp_)
+                    av[s_] = vb
+                else:
+                    av[s_] = sample(img, sets[0][0][s_])
         keep[on] = av >= cutoff
         return keep
+    test.prims = cut
     return test, cut
+
+
+def _uv_blend_sets(geo, tex, uvattr):
+    """uv_blend / uv_blend_weights -> [(uv (n, 2), weight (n,), on vertices?)] or [] when not set."""
+    if not tex or "uv_blend" not in tex:
+        return []
+    names = tex["uv_blend"].split()
+    wn = str(tex.get("uv_blend_weights", "")).strip()
+    if not wn:
+        raise ValueError("Textures: uv_blend needs uv_blend_weights (an attribute with one weight per uv)")
+    out = []
+    W = geo.get(VERTEX, wn)
+    wc = W is not None
+    W = W if wc else geo.get(POINT, wn)
+    if W is None:
+        return []                                        # a geometry without the blend (the terrain beside cards)
+    W = np.asarray(W, np.float32)
+    if W.shape[1] < len(names):
+        raise ValueError(f"Textures: uv_blend_weights '{wn}' has {W.shape[1]} values, uv_blend names {len(names)} uvs")
+    for k, n_ in enumerate(names):
+        U = geo.get(VERTEX, n_)
+        uc = U is not None
+        U = U if uc else geo.get(POINT, n_)
+        if U is None:
+            raise ValueError(f"Textures: uv_blend: no point or vertex attribute '{n_}'")
+        if uc != wc:
+            # one class for the pair: a point attribute read per vertex
+            vp = np.asarray(geo.vertex_point)
+            U = U if uc else np.asarray(U)[vp]
+            Wk = W[:, k] if wc else W[vp, k]
+            out.append((np.asarray(U, np.float32)[:, :2], np.asarray(Wk, np.float32), True))
+        else:
+            out.append((np.asarray(U, np.float32)[:, :2], W[:, k].copy(), uc))
+    return out
 
 
 def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None,
@@ -750,6 +818,19 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     lo_, hi_ = np.minimum(dax[0], dax[1]), np.maximum(dax[0], dax[1])
     du = np.where(lo_ > 0, np.maximum(lo_, hi_ / _ANISO), hi_)
     del dax, lo_, hi_
+    tv = str(tex.get("basecolor_tint", "")).strip()
+    try:
+        tall, tpat = float(tv or 0) > 0, []
+    except ValueError:
+        tall, tpat = False, tv.split()
+
+    def tinted(mat):
+        import fnmatch
+        return tall or any(fnmatch.fnmatchcase(mat, p_) for p_ in tpat)
+    blend_px = None
+    if "uv_blend" in tex:
+        blend_px = [(_masked_interp(rast, idx, U_, c_), _masked_interp(rast, idx, W_[:, None], c_)[:, 0])
+                    for U_, W_, c_ in _uv_blend_sets(geo, tex, uvattr)]
     frames = {}
     cache = {}
     tri = None
@@ -848,15 +929,27 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     for mi, mat in enumerate(str(x) for x in mats):
         sel = pm == mi
         tgt = (idx[0][sel], idx[1][sel])
+        n_cache = set(cache)
         for slot, pattern in tex.items():
             if slot in _DETAIL_SLOTS or slot.startswith("layer") or slot in ("alpha", "alpha_cutoff"):
+                continue
+            if slot in ("basecolor_tint", "uv_blend", "uv_blend_weights"):
                 continue
             ch = fetch(pattern, slot, mat)
             if ch is None:
                 continue
             v = sample_mip(ch, uv[sel], du[sel] * max(ch[0].shape[:2]))
+            if slot == "basecolor" and blend_px:
+                ws = sum(w_[sel] for _, w_ in blend_px)
+                if (ws > 1e-6).any():
+                    vb = sum(sample_mip(ch, u_[sel], du[sel] * max(ch[0].shape[:2])) * w_[sel, None]
+                             for u_, w_ in blend_px)
+                    v = np.where((ws > 1e-6)[:, None], vb, v)
+            if "{material}" in str(pattern) and mat:          # used once per material: free it now
+                for k_ in [k2 for k2, v2 in cache.items() if v2 is ch]:
+                    cache.pop(k_, None)
             if slot == "basecolor":
-                alb[tgt] = v
+                alb[tgt] = v * alb[tgt] if tinted(mat) else v      # alb holds the colour attribute (linear) here
                 continue
             if slot == "orm":
                 for c, nm in enumerate(("ao", "roughness", "metallic")):
@@ -874,6 +967,11 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
             ts /= np.maximum(np.linalg.norm(ts, axis=-1, keepdims=True), 1e-12)   # far mips average to shorter vectors
             nw = t0 * ts[:, 0:1] + b0 * ts[:, 1:2] + n0 * ts[:, 2:3]
             N[tgt] = nw / np.maximum(np.linalg.norm(nw, axis=-1, keepdims=True), 1e-12)
+        # this material's own maps (a 4096² terrain colour and normal are hundreds of MB as mip chains) are not
+        # needed again: free them before the detail and the layers make their own
+        for key_ in set(cache) - n_cache:
+            if "{material}" in str(tex.get(key_[1], "")) and mat:
+                cache.pop(key_, None)
         if "detail_weights" in tex:
             # in blocks of pixels: each detail map makes (n, 3) float64 temporaries, a few hundred MB apiece over
             # a supersampled frame

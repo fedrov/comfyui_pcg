@@ -709,5 +709,94 @@ check("shadow_only: the box is not seen, yet the floor under it is in its shadow
 check("  negative control: seen, the box's top (lit by the high sun) is brighter than its shadow",
       s2[cen].mean() > s1[cen].mean() + 0.05, round(float(s2[cen].mean()), 3))
 
+
+# the alpha test runs on the cut-out prims' fragments only (test.prims): the same picture as testing every fragment
+_t1, _cut1 = S.alpha_tester(AG, S.parse_textures("alpha = @{material}_alpha"), cops=(ACOP,))
+_calls = []
+
+
+def _plain(t, bb, rast):
+    _calls.append(len(t))
+    return _t1(t, bb, rast)
+ra_ = _R.rasterize(AG, _cam, alpha=_t1)
+rb_ = _R.rasterize(AG, _cam, alpha=_plain)
+_n_all = sum(_calls)
+_calls.clear()
+_plain.prims = _cut1
+rc_ = _R.rasterize(AG, _cam, alpha=_plain)
+check("alpha test on the cut-out prims only (test.prims): the same hits as testing every fragment, fewer fragments "
+      f"tested ({sum(_calls)} of {_n_all})", np.array_equal(ra_["hit"], rb_["hit"]) and np.array_equal(ra_["hit"], rc_["hit"])
+      and 0 < sum(_calls) < _n_all, (sum(_calls), _n_all))
+_plain.prims = np.zeros(AG.nprims, bool)
+rd_ = _R.rasterize(AG, _cam, alpha=_plain)
+check("  negative control: a test that names no prims cuts nothing", np.array_equal(rd_["hit"], _R.rasterize(AG, _cam)["hit"]))
+
+# basecolor_tint: the texture times the colour attribute
+_wt = _CI(8, 8, {"card_albedo": np.ones((8, 8, 3), np.float32)})
+tg = AG.copy()
+tg.set(POINT, "Cd", np.array([[0.5, 1, 1]] * 4 + [[0, 0, 1]] * 4, float))
+t0 = S.render_studio(tg, 200, 200, 0, 0, textures="basecolor = @{material}_albedo", tex_cop=_wt, shadows=False, ao=False)
+t1 = S.render_studio(tg, 200, 200, 0, 0, textures="basecolor = @{material}_albedo\nbasecolor_tint = 1", tex_cop=_wt,
+                     shadows=False, ao=False)
+c0, c1 = t0[100, 100], t1[100, 100]
+check("basecolor_tint: a white texture tinted by Cd (0.5, 1, 1): red below green and blue; without the tint all equal",
+      c1[0] < 0.8 * c1[1] and abs(c1[1] - c1[2]) < 0.02 and abs(c0[0] - c0[1]) < 0.02, (c0.round(3), c1.round(3)))
+
+# uv_blend: two uvs on the two halves of the alpha / colour texture, mixed by per-point weights
+_half = np.zeros((8, 8, 1), np.float32)
+_half[:, :4] = 1.0
+_rb = np.zeros((8, 8, 3), np.float32)
+_rb[:, :4] = (1, 0, 0)
+_rb[:, 4:] = (0, 0, 1)
+BC = _CI(8, 8, {"card_alpha": _half, "card_albedo": _rb})
+bg_ = AG.copy()
+bg_.remove(VERTEX, "uv")
+bg_.set(POINT, "uv", np.tile([0.25, 0.5, 0], (8, 1)).astype(float))
+bg_.set(POINT, "uv2", np.tile([0.75, 0.5, 0], (8, 1)).astype(float))
+_bt = "alpha = @{material}_alpha\nbasecolor = @{material}_albedo\nuv_blend = uv uv2\nuv_blend_weights = fw"
+cov = {}
+for w_ in (0.7, 0.3):
+    bg_.set(POINT, "fw", np.tile([w_, 1 - w_], (8, 1)).astype(float))
+    cov[w_] = S.render_studio(bg_, 200, 200, 0, 0, textures=_bt, tex_cop=BC, shadows=False, ao=False)
+bg_.set(POINT, "fw", np.tile([0.55, 0.45], (8, 1)).astype(float))
+mix = S.render_studio(bg_, 200, 200, 0, 0, textures=_bt, tex_cop=BC, shadows=False, ao=False)[100, 100]
+check("uv_blend: alpha 0.7 x 1 + 0.3 x 0 keeps the card, 0.3 x 1 + 0.7 x 0 cuts it (the wall shows); the colour "
+      "of a 0.55 / 0.45 mix is red and blue together",
+      abs(cov[0.7][100, 100, 0] - cov[0.7][100, 100, 2]) > 0.1 and red(cov[0.3]) < 0.002 and mix[0] > 0.15
+      and mix[2] > 0.1 and mix[1] < 0.1, (cov[0.7][100, 100].round(3), red(cov[0.3]), mix.round(3)))
+t2 = S.render_studio(tg, 200, 200, 0, 0, textures="basecolor = @{material}_albedo\nbasecolor_tint = ca*", tex_cop=_wt,
+                     shadows=False, ao=False)
+t3 = S.render_studio(tg, 200, 200, 0, 0, textures="basecolor = @{material}_albedo\nbasecolor_tint = imp_*", tex_cop=_wt,
+                     shadows=False, ao=False)
+check("  basecolor_tint by material name: 'ca*' tints the card, 'imp_*' leaves it white",
+      abs(t2[100, 100] - c1).max() < 1e-4 and abs(t3[100, 100] - c0).max() < 1e-4)
+bz_ = bg_.copy()
+bz_.set(POINT, "fw", np.zeros((8, 2)))
+z0 = S.render_studio(bz_, 200, 200, 0, 0, textures=_bt, tex_cop=BC, shadows=False, ao=False)
+check("  where the blend weights are 0 the plain uv is read (u = 0.25: opaque and red)",
+      z0[100, 100, 0] > z0[100, 100, 2] + 0.2 and red(z0) > 0.1)
+_rpb = None
+try:
+    S.render_studio(bg_, 50, 50, 0, 0, textures="alpha = @{material}_alpha\nuv_blend = uv uv2", tex_cop=BC)
+except ValueError as e_:
+    _rpb = str(e_)
+check("  uv_blend without uv_blend_weights is refused, naming it", _rpb is not None and "uv_blend_weights" in _rpb, _rpb)
+
+# Outdoor extra: a second geometry drawn beside the first without merging -- the same picture as the merge
+scnA = ops.merge(flo, bx2)
+_ex = _b.box(size=(0.6, 0.6, 0.6))
+_ex.set(POINT, "P", np.asarray(_ex.get(POINT, "P")) + np.array([1.5, 0.3, 1.0], np.float32))
+_ex.set(POINT, "Cd", np.tile([0.9, 0.2, 0.1], (_ex.npoints, 1)).astype(np.float32))
+scnA.set(POINT, "Cd", np.full((scnA.npoints, 3), 0.7, np.float32))
+_c3 = _R.camera(None, "perspective", eye=(5, 6, 7), target=(0, 0, 0))
+mrg = _O.render_outdoor(ops.merge(scnA, _ex), 140, 110, cam=_c3, ground=False, sky_samples=8, ssaa=1, sun_elev=50.0)
+sep = _O.render_outdoor(scnA, 140, 110, cam=_c3, ground=False, sky_samples=8, ssaa=1, sun_elev=50.0, extra=_ex)
+alone = _O.render_outdoor(scnA, 140, 110, cam=_c3, ground=False, sky_samples=8, ssaa=1, sun_elev=50.0)
+dd_ = np.abs(mrg - sep).max(-1)
+check("Outdoor extra: drawn beside the scene without a merge, the picture matches the merged one (99% of pixels "
+      "within 2/255; the red box and the shadow it casts are there)",
+      float((dd_ < 2 / 255).mean()) > 0.99 and float(np.abs(sep - alone).max(-1).mean()) > 0.005,
+      (round(float((dd_ < 2 / 255).mean()), 4), round(float(np.abs(sep - alone).max(-1).mean()), 4)))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

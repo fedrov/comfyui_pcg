@@ -390,13 +390,20 @@ def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H):
         b0, b1, b2 = w0, w1, w2
 
     if alpha is not None:
-        # the alpha test, before the depth test: a cut-out fragment must not win a pixel
-        bb = np.stack([b0, b1, b2], 1)
-        if lam is not None:
-            cl = tid >= nplain
-            if cl.any():
-                bb[cl] = np.einsum("mk,mkj->mj", bb[cl], lam[tid[cl] - nplain])
-        keep = np.asarray(alpha(rsrc[tid], bb, outd), bool)
+        # the alpha test, before the depth test: a cut-out fragment must not win a pixel. A test that names the
+        # prims it applies to (alpha.prims, a bool per prim) runs on their fragments only: a terrain of millions of
+        # pixels around a few cut-out cards is not tested fragment by fragment
+        need = getattr(alpha, "prims", None)
+        on = (np.nonzero(np.asarray(need, bool)[outd["src"][rsrc[tid]]])[0] if need is not None
+              else np.arange(len(tid)))
+        keep = np.ones(len(tid), bool)
+        if len(on):
+            bb = np.stack([b0[on], b1[on], b2[on]], 1)
+            if lam is not None:
+                cl = tid[on] >= nplain
+                if cl.any():
+                    bb[cl] = np.einsum("mk,mkj->mj", bb[cl], lam[tid[on][cl] - nplain])
+            keep[on] = np.asarray(alpha(rsrc[tid[on]], bb, outd), bool)
         if not keep.all():
             tid, px, py, zz = tid[keep], px[keep], py[keep], zz[keep]
             b0, b1, b2 = b0[keep], b1[keep], b2[keep]

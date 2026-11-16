@@ -2483,7 +2483,7 @@
    ],
    "size": [
     360,
-    378
+    497
    ],
    "flags": {},
    "order": 36,
@@ -2514,7 +2514,10 @@
     1.0,
     "basecolor = T_{material}_BaseColor.png\nnormal = T_{material}_Normal.png\norm = T_{material}_ORM.png",
     "*",
-    true
+    true,
+    false,
+    60.0,
+    0.0
    ],
    "title": "Export: one glb per rock (textures attached)"
   },

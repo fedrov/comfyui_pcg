@@ -1404,8 +1404,10 @@ def town_material_code():
     """Prim Wrangle: the material library's material for each building part, a facade material per building."""
     return ("r = rand(@building * 7.31 + 0.5)\n"
             f'fm = where(r < 0.45, "{TOWN_FACADES[0]}", where(r < 0.8, "{TOWN_FACADES[1]}", "{TOWN_FACADES[2]}"))\n'
-            'm = where((@part == "wall") | (@part == "parapet"), fm, "M_Trim")\n'
+            'm = where((@part == "wall") | (@part == "parapet") | (@part == "yardwall"), fm, "M_Trim")\n'
             'm = where(@part == "glass", "M_Glass", m)\n'
+            'm = where(@part == "railing", "M_Metal", m)\n'
+            'm = where(@part == "chimney", "M_BrickBuff", m)\n'
             'm = where(@part == "door", "M_Door", m)\n'
             'm = where(@part == "roof", where((@rf == "flat") | (@rf == "parapet"), "M_RoofFlat", "M_Roof"), m)\n'
             "s@material = m")
@@ -1764,15 +1766,20 @@ def _terrain_textures():
 
 
 TERRAIN_TEXTURES = _terrain_textures()
-# the world preview's: the terrain's layers, the impostor atlases (in the layer library) and the buildings' textures
-# from the material library (output/pcg/materials, when pcg_prod_material_library has been run); the first of
-# each 'a | b' found is used. alpha cuts the impostor cards out
+# the world preview's: the terrain's layers, the impostor atlases and the buildings' materials (both merged into the
+# layer library: the material library's maps are made in the same workflow, at 512² a metre), or the material
+# library's files when they are there; the first of each 'a | b' found is used. alpha cuts the impostor cards out
 WORLD_TEXTURES = (TERRAIN_TEXTURES
                   .replace("basecolor = @{material}_albedo",
                            "basecolor = @{material}_albedo | @{material}_C | pcg/materials/T_{material}_BaseColor.png")
                   .replace("normal = @{material}_nrm",
                            "normal = @{material}_nrm | pcg/materials/T_{material}_Normal_GL.png")
-                  + "\norm = pcg/materials/T_{material}_ORM.png\nalpha = @{material}_alpha")
+                  .replace("| @{material}_C |", "| @{material}_C | @{material}_basecolor |")
+                  .replace("normal = @{material}_nrm |", "normal = @{material}_nrm | @{material}_N |")
+                  + "\norm = @{material}_ao {material}_roughness {material}_metallic | pcg/materials/T_{material}_ORM.png"
+                  + "\nalpha = @{material}_alpha"
+                  # the impostor cards: the atlas tinted per tree, the four frames round the view direction blended
+                  + "\nbasecolor_tint = imp_*\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw")
 
 # the close-range terrain window (x0, x1, z0, z1, metres; on the full map's 4 m grid): the road view's valley,
 # town and main peak
@@ -1789,6 +1796,8 @@ def world_tiles():
     G = Col(g, 2520, width=520)
 
     def merge_n(col, title, nodes):
+        if len(nodes) > 6:                      # Merge takes six: the rest in a merge of their own
+            nodes = list(nodes[:5]) + [merge_n(col, title + " (more)", nodes[5:])]
         m = col("PCG_Merge", title=title)
         for k, n_ in enumerate(nodes):
             g.link(n_, "geo", m, f"geo{k + 1}")
@@ -1979,14 +1988,61 @@ def world_tiles():
     g.link(rt, "cop", rtc, "cop")
     rtb = C("PCG_COPBlur", title="Town core: blurred (60 m)", sigma_pixels=15.0, border="clamp", layers="tcore")
     g.link(rtc, "cop", rtb, "cop")
+    # the ring round each town (the discs blurred wide): orchards go there, and no pines
+    rtr = C("PCG_COPLayerEdit", title="Town ring: a copy of the discs", op="copy", spec="town=tring")
+    g.link(rtb, "cop", rtr, "cop")
+    rtrb = C("PCG_COPBlur", title="Town ring: blurred (100 m)", sigma_pixels=25.0, border="clamp", layers="tring")
+    g.link(rtr, "cop", rtrb, "cop")
+    # side streets: from a few points of the roads in each town (at least 140 m apart), a lane runs out 150 m on
+    # both sides, square to the road (painted on the ground, not cut: lanes follow it); a paved square (22 m) at
+    # every town's centre, where its roads meet
+    lrs = C("PCG_Resample", title="Lanes: road points every 16 m (with the tangent)", method="max_segment_length",
+            length=16.0, create_only_points=True, use_out_attribs=True)
+    g.link(rn, "geo", lrs, "geo")
+    lru = C("PCG_Wrangle", title="Lanes: road points' place on the map (uv)",
+            code="@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)")
+    g.link(lrs, "geo", lru, "geo")
+    lrt = C("PCG_AttribFromMap", title="Lanes: in a town?", layer="town", name="tw", uv_from="point",
+            **{"class": "point"})
+    g.link(lru, "geo", lrt, "geo")
+    g.link(rtrb, "cop", lrt, "cop")
+    lrk = C("PCG_Blast", title="Lanes: road points well inside the towns", cls="point", group="@tw < 0.9")
+    g.link(lrt, "geo", lrk, "geo")
+    lor = C("PCG_AdaptivePrune", title="Lane origins (at least 140 m apart)", radius=140.0, priority="random",
+            rand_seed=11, mode="delete")
+    g.link(lrk, "geo", lor, "geo")
+    lln = C("PCG_Line", title="A lane (150 m along +z)", dx=0.0, dy=0.0, dz=1.0, length=150.0, points=2)
+    lanes_ = []
+    for side_, nm_ in ((1, "left"), (-1, "right")):
+        lo_ = C("PCG_Wrangle", title=f"Lane origins: the {nm_} side", code=(
+            "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+            f"@N = set(t.z, 0 * @P.x, 0 - t.x) * {side_}\n@up = set(0, 1, 0) + 0 * t\n@ln = 1 + 0 * @P.x"))
+        g.link(lor, "geo", lo_, "geo")
+        lc_ = C("PCG_CopyToPoints", title=f"Lanes: the {nm_} side", target_point_attributes="")
+        g.link(lln, "geo", lc_, "source")
+        g.link(lo_, "geo", lc_, "points")
+        lanes_.append(lc_)
+    lanes = merge_n(C, "Lanes", lanes_)
+    sqc = C("PCG_Circle", title="Town square (22 m)", prim_type="polygon", orientation="zx", radius_x=22.0,
+            radius_y=22.0, divisions=16)
+    sqp = C("PCG_CopyToPoints", title="A square at each town centre", transform_using_orientations=False,
+            target_point_attributes="")
+    g.link(sqc, "geo", sqp, "source")
+    g.link(towns, "geo", sqp, "points")
+    lsq = merge_n(C, "Lanes and squares", [lanes, sqp])
+    rlq = C("PCG_COPRasterizeCurves", title="Lanes (4 m) and squares", width=1.0, fill=True, plane="xz",
+            mapping="world", world_size=4100.0, out_layer="lane")
+    g.link(lsq, "geo", rlq, "geo")
+    g.link(rtrb, "cop", rlq, "cop")
     rbw = C("PCG_COPBlur", title="Soft cut and fill slopes", sigma_pixels=1.5, border="clamp", layers="rdw")
-    g.link(rtb, "cop", rbw, "cop")
+    g.link(rlq, "cop", rbw, "cop")
     cut = C("PCG_COPWrangle", title="Cut the roads into the ground", code=(
         "# the road bed (the ground smoothed along the road) replaces the ground in the corridor, blending out over\n"
         "# the cut and fill slopes; the sea is left alone\n"
         "m = smoothstep(0.2, 0.85, @rdw) * @land\n"
         "@C = lerp(@C, @rdw_road_h / 2048, m)\n"
-        "@road = @road * @land"))
+        "# the lanes and squares are paved too (the Road weight), on the ground as it is\n"
+        "@road = max(@road, 0.9 * @lane) * @land"))
     g.link(rbw, "cop", cut, "cop")
 
     # ①c Towns: plots along the roads through each town (a point every 16 m on both sides, 26 m out from the centre
@@ -2009,32 +2065,67 @@ def world_tiles():
             **{"class": "point"})
     g.link(rsu, "geo", rst, "geo")
     g.link(cut, "cop", rst, "cop")
-    rsk = T("PCG_Blast", title="Road points in the towns", cls="point", group="@tw < 0.5")
-    g.link(rst, "geo", rsk, "geo")
+    rsk0 = T("PCG_Blast", title="Road points in the towns", cls="point", group="@tw < 0.5")
+    g.link(rst, "geo", rsk0, "geo")
+    # no plots where a lane leaves the road (12 m either side of it)
+    rln = T("PCG_Wrangle", title="Road points: not by a lane (yet)", code="@ln = 0 * @P.x")
+    g.link(rsk0, "geo", rln, "geo")
+    lo1 = T("PCG_Wrangle", title="Lane origins: marked", code="@ln = 1 + 0 * @P.x")
+    g.link(lor, "geo", lo1, "geo")
+    rlt = T("PCG_AttribTransfer", title="Road points by a lane (within 12 m)", point_attributes="ln",
+            prim_attributes="", detail_attributes="", max_sample_count=1, distance_threshold=12.0)
+    g.link(rln, "geo", rlt, "dest")
+    g.link(lo1, "geo", rlt, "source")
+    rsk = T("PCG_Blast", title="Road points: not where a lane leaves", cls="point", group="@ln > 0.5")
+    g.link(rlt, "geo", rsk, "geo")
+    # plots along the lanes too: from 90 m out (behind the road's plots) to the lane's end, 6 m from its centre
+    lnr = T("PCG_Resample", title="Lanes: a point every 16 m", method="max_segment_length", length=16.0,
+            create_only_points=True, use_out_attribs=True)
+    g.link(lanes, "geo", lnr, "geo")
+    lnk = T("PCG_Blast", title="Lane points past the road's plots", cls="point", group="(@ptdist < 90) | (@ptdist > 140)")
+    g.link(lnr, "geo", lnk, "geo")
     sides = []
+    for side_, nm_ in ((1, "left"), (-1, "right")):
+        n_ = T("PCG_Wrangle", title=f"Lane plots: the {nm_} side, facing the lane", code=(
+            "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+            f"s = set(t.z, 0 * @P.x, 0 - t.x) * {side_}\n"
+            "# the street point the plot is made from (the buildings' own street, kept on their faces)\n"
+            "@street = @P\n"
+            f"@P = @P + s * {6.0 + TOWN_PLOT[1] / 2}\n"
+            "@N = s\n@up = set(0, 1, 0) + 0 * s\n@front = 0 - s\n@onlane = 1 + 0 * s.x"))
+        g.link(lnk, "geo", n_, "geo")
+        sides.append(n_)
     for side_, nm_ in ((1, "left"), (-1, "right")):
         n_ = T("PCG_Wrangle", title=f"Plots: the {nm_} side, facing the road", code=(
             "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
             f"s = set(t.z, 0 * @P.x, 0 - t.x) * {side_}\n"
+            "# the street point the plot is made from (the buildings' own street, kept on their faces)\n"
+            "@street = @P\n"
             f"@P = @P + s * {TOWN_SETBACK + TOWN_PLOT[1] / 2}\n"
-            "@N = s\n@up = set(0, 1, 0) + 0 * s\n@front = 0 - s"))
+            "@N = s\n@up = set(0, 1, 0) + 0 * s\n@front = 0 - s\n@onlane = 0 * s.x"))
         g.link(rsk, "geo", n_, "geo")
         sides.append(n_)
-    psd = merge_n(T, "Plots: both sides", sides)
+    psd = merge_n(T, "Plots: both sides of the roads and the lanes", sides)
     ppr = T("PCG_AdaptivePrune", title="Plots at least 15 m apart (no overlaps at bends and crossings)", radius=15.0,
             priority="random", rand_seed=3, mode="delete")
     g.link(psd, "geo", ppr, "geo")
     pgr = T("PCG_Grid", title=f"Plot ({TOWN_PLOT[0]:.0f} m along the road x {TOWN_PLOT[1]:.0f} m deep)",
             size_x=TOWN_PLOT[0], size_z=TOWN_PLOT[1], cols=2, rows=2)
-    pcp = T("PCG_CopyToPoints", title="A plot at each point", target_point_attributes="front")
+    pcp = T("PCG_CopyToPoints", title="A plot at each point", target_point_attributes="front onlane street")
     g.link(pgr, "geo", pcp, "source")
     g.link(ppr, "geo", pcp, "points")
     pfr = T("PCG_AttribPromote", title="Plots: the front (toward the road) to the face", original_name="front",
             original_class="point", new_class="prim", method="first_match", delete_original=True)
     g.link(pcp, "geo", pfr, "geo")
+    pfl = T("PCG_AttribPromote", title="Plots: road or lane to the face", original_name="onlane",
+            original_class="point", new_class="prim", method="maximum", delete_original=True)
+    g.link(pfr, "geo", pfl, "geo")
+    pfs = T("PCG_AttribPromote", title="Plots: their street point to the face", original_name="street",
+            original_class="point", new_class="prim", method="first_match", delete_original=True)
+    g.link(pfl, "geo", pfs, "geo")
     lots = T("PCG_LotSubdivision", title="Lots: four deep (Lot Subdivision)", alignment="longest_edge",
              iterations=2, rand_seed=5, irregularity=0.3)
-    g.link(pfr, "geo", lots, "geo")
+    g.link(pfs, "geo", lots, "geo")
     luv = T("PCG_Wrangle", title="Lots: their place on the map (uv)", code=(
         "@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)"))
     g.link(lots, "geo", luv, "geo")
@@ -2063,7 +2154,13 @@ def world_tiles():
         's@name = sprintf("Town_%02d", floor(@ti_max + 0.5).astype(int) + 1)\n'
         "# taller toward the core of the town\n"
         "i@floors = clamp(floor(1.0 + 3.2 * smoothstep(0.6, 1.0, @tc_avg) + 1.0 * rand(@primnum + 9.1)), 1, 5)\n"
-        's@rf = where(@floors >= 4, "hip", "gable")\n'
+        "fl = clamp(floor(1.0 + 3.2 * smoothstep(0.6, 1.0, @tc_avg) + 1.0 * rand(@primnum + 9.1)), 1, 5)\n"
+        "# the core: shopfronts on the street, some buildings L-shaped (with a flat roof)\n"
+        "inner = (@tc_avg > 0.82) & (fl >= 3)\n"
+        's@fp = where(inner, "shopfront door shopfront", "")\n'
+        "nch = where(inner & (rand(@primnum + 4.4) < 0.5), 0.45, 0.0)\n"
+        "@nch = nch\n"
+        's@rf = where(nch > 0, "parapet", where(fl >= 4, "hip", "gable"))\n'
         "# the lot's centre: the buildings' LOD is picked by its distance to the camera\n"
         "@lcx = @P.x\n@lcz = @P.z"))
     g.link(prev, "geo", lyd, "geo")
@@ -2071,11 +2168,41 @@ def world_tiles():
         f"(@tw_min < 0.5) | (@rw_max > 0.2) | (@bd_max > 0.05) | (@se_max > 0.01) | "
         f"((@h_max - @h_min) * 2048 > {TOWN_FALL}) | (@h_min * 2048 < 1.5) | (@yard < 0.12)"))
     g.link(lyd, "geo", lkp, "geo")
+    # where plots of two roads, or of a road and a lane, cross, their lots overlap: of lots whose centres are less
+    # than 10 m apart only one is kept (a road's before a lane's)
+    lid = T("PCG_Wrangle", title="Lots: numbered, roads first", run_over="prim",
+            code="i@lid = @primnum\n@lpri = 1 - @onlane + 0.5 * rand(@primnum + 0.7)")
+    g.link(lkp, "geo", lid, "geo")
+    lce = T("PCG_ExtractCentroid", title="Lots: their centres", run_over="primitives", output="points",
+            use_transfer=True, transfer_attributes="lid lpri")
+    g.link(lid, "geo", lce, "geo")
+    lcf = T("PCG_Wrangle", title="Lots: centres flat (the distance on the map)", code="@P.y = 0 * @P.y")
+    g.link(lce, "geo", lcf, "geo")
+    lcp = T("PCG_AdaptivePrune", title="Lots: no two centres within 10 m", radius=10.0, priority="attribute",
+            priority_attribute="lpri", mode="delete")
+    g.link(lcf, "geo", lcp, "geo")
+    lck = T("PCG_Wrangle", title="Lots: the ones to keep", code="@keep = 1 + 0 * @P.x")
+    g.link(lcp, "geo", lck, "geo")
     lfc = T("PCG_Facet", title="Lots: points of their own (each carries its pad)", unique_points=True)
-    g.link(lkp, "geo", lfc, "geo")
+    g.link(lid, "geo", lfc, "geo")
+    lip = T("PCG_AttribPromote", title="Lots: their number to the points", original_name="lid", original_class="prim",
+            new_class="point", method="first_match", delete_original=False)
+    g.link(lfc, "geo", lip, "geo")
+    lk0 = T("PCG_Wrangle", title="Lots: not kept (yet)", code="@keep = 0 * @P.x")
+    g.link(lip, "geo", lk0, "geo")
+    lkc = T("PCG_AttribCopy", title="Lots: kept, by number", attribute_class="point", attributes="keep",
+            use_match_attribute=True, match_attribute="lid")
+    g.link(lk0, "geo", lkc, "dest")
+    g.link(lck, "geo", lkc, "source")
+    lkpp = T("PCG_AttribPromote", title="Lots: kept to the face", original_name="keep", original_class="point",
+             new_class="prim", method="maximum", delete_original=True)
+    g.link(lkc, "geo", lkpp, "geo")
+    lkb = T("PCG_Blast", title="Lots: drop the overlapping ones", cls="prim", group="@keep < 0.5")
+    g.link(lkpp, "geo", lkb, "geo")
+    lfc_ = lkb
     lpp = T("PCG_AttribPromote", title="Pad height to the points", original_name="pad_h", original_class="prim",
             new_class="point", method="first_match", delete_original=False)
-    g.link(lfc, "geo", lpp, "geo")
+    g.link(lfc_, "geo", lpp, "geo")
     lph = T("PCG_Wrangle", title="Lots at their pad height", code="@P.y = @pad_h")
     g.link(lpp, "geo", lph, "geo")
     prj = T("PCG_COPHFProject", title="Level the pads into the ground (HeightField Project)", mode="blend",
@@ -2088,14 +2215,15 @@ def world_tiles():
     g.link(lpp, "geo", bfp, "geo")
     common_ = dict(floor_height=3.1, floors_attribute="floors", rand_seed=8, module_width=3.2, footprint_inset=2.0,
                    foundation_depth=3.0, roof="gable", roof_attribute="rf", roof_pitch=32.0, roof_overhang=0.35,
-                   floor_overrides="0: height=3.4")
+                   yard_wall_height=1.6, yard_wall_thickness=0.3, notch_attribute="nch")
     bld = T("PCG_BuildingGenerator", title="Buildings (Building Generator)",
-            facade_pattern="window window|wall window", front_pattern="window door window", window_width=0.42,
+            facade_pattern="window balcony|window window", front_pattern="window door window",
+            front_pattern_attribute="fp", chimney_chance=0.5, window_width=0.42,
             window_height=0.48, window_sill=0.32, inset=0.12, corner_width=0.35, top_ledge_height=0.22,
-            ledge_depth=0.12, **common_)
+            ledge_depth=0.12, floor_overrides="0: height=3.4 pattern=window window|wall window", **common_)
     g.link(bfp, "geo", bld, "geo")
     bms = T("PCG_BuildingGenerator", title="Massing (the same buildings: no openings, ledges or corners)",
-            facade_pattern="wall", corners=False, top_ledge=False, **common_)
+            facade_pattern="wall", corners=False, top_ledge=False, floor_overrides="0: height=3.4", **common_)
     g.link(bfp, "geo", bms, "geo")
     bmt = T("PCG_Wrangle", title="Buildings: the material library's materials", run_over="prim",
             code=town_material_code())
@@ -2115,7 +2243,7 @@ def world_tiles():
     bco = T("PCG_Transform", title="Buildings: origin to the north-west corner", tx=2048.0, tz=2048.0)
     g.link(blod, "geo", bco, "geo")
     bex = T("PCG_ExportMesh", title="Buildings: one glb, a node per town and level", filename="pcg/world/buildings/Towns",
-            format="glb", split_attribute="name",
+            format="glb", split_attribute="name", lod_manifest=True, lod_fov=60.0,
             textures=("basecolor = ../../materials/T_{material}_BaseColor.png\n"
                       "normal = ../../materials/T_{material}_Normal_GL.png\n"
                       "orm = ../../materials/T_{material}_ORM.png"), texture_materials="M_*")
@@ -2194,8 +2322,15 @@ def world_tiles():
         '@Grass = rem * (1 - wood)\n'
         '# the verges are kept clear (the cut and fill corridor)\n'
         '# ... and so are the fields and the building lots\n'
-        'clear = (1 - smoothstep(0.05, 0.4, @rdw)) * (1 - 0.85 * @town) * (1 - fieldw) * (1 - pad)\n'
-        '@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear\n'
+        'clear = (1 - smoothstep(0.05, 0.4, @rdw)) * (1 - 0.85 * @town) * (1 - fieldw) * (1 - pad) * (1 - @lane)\n'
+        '# orchards in the ring round each town (gentle, dry ground that is not a field or a lot), planted in rows\n'
+        'orch = smoothstep(0.12, 0.3, @tring) * (1 - smoothstep(0.3, 0.6, @town)) * (1 - smoothstep(0.03, 0.08, steep))'
+        ' * (1 - water) * (1 - fieldw) * clear\n'
+        '@d_orchard = orch\n'
+        '# hedgerows along the field margins\n'
+        '@d_hedge = @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1)) * (1 - smoothstep(0.02, 0.06, steep))'
+        ' * (1 - water) * (1 - orch) * clear\n'
+        '@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear * (1 - orch)\n'
         'edge_ = wood * (1 - wood) * 4\n'
         '@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn) + 0.6 * @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1))) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n'
         '@d_rock = (0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed) * clear\n'
@@ -2268,10 +2403,16 @@ def world_tiles():
            world_size=4100.0, out_layer="rd")
     g.link(rn, "geo", sr, "geo")
     g.link(sl, "cop", sr, "cop")
+    srl = S("PCG_COPRasterizeCurves", title="Lanes (4 m) and squares at 1 m", width=4.0, fill=True, plane="xz",
+            mapping="world", world_size=4100.0, out_layer="rdl")
+    g.link(lsq, "geo", srl, "geo")
+    g.link(sr, "cop", srl, "cop")
+    srm = S("PCG_COPWrangle", title="Lanes and squares join the road surface", code="@rd = max(@rd, 0.85 * @rdl)")
+    g.link(srl, "cop", srm, "cop")
     sv = S("PCG_COPRasterizeCurves", title="Verges (11 m)", width=11.0, plane="xz", mapping="world",
            world_size=4100.0, out_layer="rdv")
     g.link(rn, "geo", sv, "geo")
-    g.link(sr, "cop", sv, "cop")
+    g.link(srm, "cop", sv, "cop")
     # wheel ruts 1.1 m either side of the centre (the road's road_t gives the side), a grassy crown between them
     rul = S("PCG_Wrangle", title="Rut: left", code="@P = @P + 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)")
     g.link(rn, "geo", rul, "geo")
@@ -2556,19 +2697,20 @@ def world_tiles():
             g.link(dset, "cop", wl_, "cop")
 
     # ③ Distribution
-    def scatter(col, title, count, dens, seed):
+    def scatter(col, title, count, dens, seed, extra=""):
         n = col("PCG_COPLayerToPoints", title=title, mode="scatter", count=count,
                 density_layer=dens, height_layer="C", height_scale=2048.0,
-                attribs="hn tn wet " + dens, plane="xz", world_size=4100.0, rand_seed=seed)
+                attribs="hn tn wet " + dens + extra, plane="xz", world_size=4100.0, rand_seed=seed)
         g.link(bio, "cop", n, "cop")
         return n
-    trees = scatter(D, "Trees: scatter by woodland density", 30000, "d_tree", 1)
+    trees = scatter(D, "Trees: scatter by woodland density", 30000, "d_tree", 1, " tring")
     tw = D("PCG_Wrangle", title="Trees: asset / orientation / size", code=(
         "r = rand(@ptnum + 0.5)\n"
         'pine = np.array(["Tree_Pine_A", "Tree_Pine_B", "Tree_Pine_C"])\n'
         'broad = np.array(["Tree_Broadleaf_A", "Tree_Broadleaf_B"])\n'
-        "# pines up high, broadleaf down low, a mixed band in between (by altitude + random)\n"
-        "high = @hn.x + 0.12 * (rand(@ptnum + 7.1) - 0.5) > 0.42\n"
+        "# pines up high, broadleaf down low, a mixed band in between (by altitude + random); round the towns\n"
+        "# broadleaf only\n"
+        "high = (@hn.x + 0.12 * (rand(@ptnum + 7.1) - 0.5) > 0.42) & (@tring.x < 0.08)\n"
         "s@name = where(high, pine[(r * 3).astype(int)], broad[(r * 2).astype(int)])\n"
         "a = rand(@ptnum + 1.3) * 2 * PI\n"
         "@N = set(sin(a), 0 * a, cos(a))\n"
@@ -2597,10 +2739,105 @@ def world_tiles():
         "@pscale = 0.8 + 3.0 * pow(rand(@ptnum + 5.5), 2)\n"
         "@P.y -= 0.25 * @pscale"))
     g.link(rocks, "geo", rw, "geo")
+    # hedgerows along the field margins, orchards in rows round the towns (every other 4 m cell: 8 m apart)
+    hedge = scatter(D, "Hedges: field margins", 60000, "d_hedge", 6)
+    hw = D("PCG_Wrangle", title="Hedges", code=(
+        's@name = "Hedge_A"\n'
+        "a = rand(@ptnum + 2.3) * 2 * PI\n"
+        "@N = set(sin(a), 0 * a, cos(a))\n"
+        "@up = set(0, 1, 0) + 0 * @N\n"
+        "@pscale = 0.8 + 0.5 * rand(@ptnum + 6.6)"))
+    g.link(hedge, "geo", hw, "geo")
+    orch = D("PCG_COPLayerToPoints", title="Orchards: a tree every 8 m in rows", mode="pixels", mask_layer="d_orchard",
+             threshold=0.5, stride=2, height_layer="C", height_scale=2048.0, attribs="d_orchard", plane="xz",
+             world_size=4100.0)
+    g.link(bio, "cop", orch, "cop")
+    ow = D("PCG_Wrangle", title="Orchard trees", code=(
+        's@name = "Tree_Fruit_A"\n'
+        "a = rand(@ptnum + 8.1) * 2 * PI\n"
+        "@N = set(sin(a), 0 * a, cos(a))\n"
+        "@up = set(0, 1, 0) + 0 * @N\n"
+        "@pscale = 0.85 + 0.3 * rand(@ptnum + 1.9)"))
+    g.link(orch, "geo", ow, "geo")
+    # road furniture: bridges where a road crosses a river, street lamps in the towns, guard rails where the ground
+    # falls away beside a mountain road
+    R4 = Col(g, 1680, 9000, width=W)
+    rr4 = R4("PCG_Resample", title="Roads: a point every 4 m (with the tangent)", method="max_segment_length",
+             length=4.0, create_only_points=True, use_out_attribs=True)
+    g.link(rn, "geo", rr4, "geo")
+    ru4 = R4("PCG_Wrangle", title="Road points: their place on the map",
+             code="@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)")
+    g.link(rr4, "geo", ru4, "geo")
+    prev = ru4
+    for lay_, nm_ in (("bed", "bd"), ("catchment", "ca"), ("town", "tw")):
+        n_ = R4("PCG_AttribFromMap", title=f"Road points: sample {lay_}", layer=lay_, name=nm_, uv_from="point",
+                **{"class": "point"})
+        g.link(prev, "geo", n_, "geo")
+        g.link(cut, "cop", n_, "cop")
+        prev = n_
+    rsa = prev
+    brk = R4("PCG_Blast", title="Bridges: road points over a river", cls="point",
+             group="(@bd < 0.4) | (@ca < 0.003)")
+    g.link(rsa, "geo", brk, "geo")
+    brp = R4("PCG_AdaptivePrune", title="Bridges: one per crossing (40 m apart)", radius=40.0, priority="random",
+             rand_seed=2, mode="delete")
+    g.link(brk, "geo", brp, "geo")
+    brw = R4("PCG_Wrangle", title="Bridges: along the road", code=(
+        's@name = "SM_Bridge"\n'
+        "@N = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n@up = set(0, 1, 0) + 0 * @N\n@pscale = 1 + 0 * @P.x"))
+    g.link(brp, "geo", brw, "geo")
+    lmk = R4("PCG_Blast", title="Lamps: road points in the towns", cls="point", group="@tw < 0.5")
+    g.link(rsa, "geo", lmk, "geo")
+    lmp = R4("PCG_AdaptivePrune", title="Lamps: 28 m apart", radius=28.0, priority="random", rand_seed=4,
+             mode="delete")
+    g.link(lmk, "geo", lmp, "geo")
+    lmw = R4("PCG_Wrangle", title="Lamps: alternating sides, 6 m out, the arm over the road", code=(
+        "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+        "sd = where(@ptnum % 2 == 0, 1.0, -1.0)\n"
+        "s = set(t.z, 0 * @P.x, 0 - t.x) * sd\n"
+        "@P = @P + s * 6\n"
+        's@name = "SM_StreetLamp"\n'
+        "@N = 0 - s\n@up = set(0, 1, 0) + 0 * s\n@pscale = 1 + 0 * @P.x"))
+    g.link(lmp, "geo", lmw, "geo")
+    rails = []
+    for side_, nm_ in ((1, "left"), (-1, "right")):
+        o12 = R4("PCG_Wrangle", title=f"Rails ({nm_}): the ground 12 m out", code=(
+            "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+            f"q = @P + set(t.z, 0 * @P.x, 0 - t.x) * {12 * side_}\n"
+            "@uv = set(q.x / 4100 + 0.5, 0.5 - q.z / 4100, 0)"))
+        g.link(rsa, "geo", o12, "geo")
+        s12 = R4("PCG_AttribFromMap", title=f"Rails ({nm_}): sample it", layer="C", name="g12", uv_from="point",
+                 **{"class": "point"})
+        g.link(o12, "geo", s12, "geo")
+        g.link(cut, "cop", s12, "cop")
+        o55 = R4("PCG_Wrangle", title=f"Rails ({nm_}): at the road's edge (5.5 m)", code=(
+            "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+            "@drop = @P.y - @g12 * 2048\n"
+            f"@P = @P + set(t.z, 0 * @P.x, 0 - t.x) * {5.5 * side_}\n"
+            "@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)"))
+        g.link(s12, "geo", o55, "geo")
+        s55 = R4("PCG_AttribFromMap", title=f"Rails ({nm_}): the ground there", layer="C", name="g55",
+                 uv_from="point", **{"class": "point"})
+        g.link(o55, "geo", s55, "geo")
+        g.link(cut, "cop", s55, "cop")
+        rk_ = R4("PCG_Blast", title=f"Rails ({nm_}): where it falls more than 4 m, outside the towns", cls="point",
+                 group="(@drop < 4) | (@tw > 0.3) | (@bd > 0.3)")
+        g.link(s55, "geo", rk_, "geo")
+        rw_ = R4("PCG_Wrangle", title=f"Rails ({nm_}): along the road, on the ground", code=(
+            "@P.y = @g55 * 2048\n"
+            's@name = "SM_GuardRail"\n'
+            "@N = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n@up = set(0, 1, 0) + 0 * @N\n"
+            "@pscale = 1 + 0 * @P.x"))
+        g.link(rk_, "geo", rw_, "geo")
+        rails.append(rw_)
+    furn = merge_n(R4, "Road furniture", [brw, lmw] + rails)
     allp = E("PCG_Merge", title="All instances")
     g.link(tw, "geo", allp, "geo1")
     g.link(bw, "geo", allp, "geo2")
     g.link(rw, "geo", allp, "geo3")
+    g.link(hw, "geo", allp, "geo4")
+    g.link(ow, "geo", allp, "geo5")
+    g.link(furn, "geo", allp, "geo6")
     corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=2048.0, tz=2048.0)
     g.link(allp, "geo", corner, "geo")
     # Scatter works by pixel area (each sample covers 4 m square), so the outermost ring scatters half a cell beyond the terrain border -
@@ -2732,7 +2969,42 @@ def world_tiles():
     rkc = G("PCG_Color", title="Rock grey", attribute_class="point", r=0.44, g=0.42, b=0.39)
     g.link(rkt, "geo", rkc, "geo")
     rockp = named(G, rkc, "rock")
-    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp])
+    # orchard tree: a short trunk and a round crown; hedge: a long low lump of green
+    frc = G("PCG_Sphere", title="Fruit tree crown", radius=1.0, cols=8, rows=5)
+    frt = G("PCG_Transform", title="Fruit tree crown: 2 m wide, at 3 m", sx=2.1, sy=1.7, sz=2.1, ty=3.2)
+    g.link(frc, "geo", frt, "geo")
+    frl = G("PCG_Color", title="Fruit tree green", attribute_class="point", r=0.24, g=0.34, b=0.12)
+    g.link(frt, "geo", frl, "geo")
+    fruit = named(G, merge_n(G, "Fruit tree proxy", [tube(G, "Fruit tree trunk", 0.16, 0.12, 2.0, 1.0, trunk, 5),
+                                                    frl]), "fruit", 4.9)
+    hgs = G("PCG_Box", title="Hedge", size_x=3.2, size_y=1.7, size_z=1.1, cy=0.8)
+    hgd = hgs
+    hgj = G("PCG_PointJitter", title="Hedge: lumpy", scale=0.25, rand_seed=6)
+    g.link(hgd, "geo", hgj, "geo")
+    hgc = G("PCG_Color", title="Hedge green", attribute_class="point", r=0.17, g=0.26, b=0.10)
+    g.link(hgj, "geo", hgc, "geo")
+    hedgep = named(G, hgc, "hedge", 1.7)
+    # road furniture: a bridge deck (30 m along the road, with parapets), a street lamp, a 4 m guard rail
+    fdeck = G("PCG_Box", title="Bridge deck (30 x 8 m)", size_x=8.0, size_y=0.8, size_z=30.0, cy=-0.3)
+    fpar = [G("PCG_Box", title=f"Bridge parapet {k_}", size_x=0.4, size_y=1.0, size_z=30.0, cx=3.8 * k_, cy=0.5)
+            for k_ in (-1, 1)]
+    fbr = merge_n(G, "Bridge", [fdeck] + fpar)
+    fbc = G("PCG_Color", title="Bridge stone", attribute_class="point", r=0.55, g=0.52, b=0.47)
+    g.link(fbr, "geo", fbc, "geo")
+    bridgep = named(G, fbc, "bridge")
+    fpole = G("PCG_Box", title="Lamp pole (6 m)", size_x=0.16, size_y=6.0, size_z=0.16, cy=3.0)
+    farm_ = G("PCG_Box", title="Lamp arm and head", size_x=0.3, size_y=0.2, size_z=1.4, cy=6.0, cz=0.6)
+    flm = merge_n(G, "Street lamp", [fpole, farm_])
+    flc = G("PCG_Color", title="Lamp iron", attribute_class="point", r=0.12, g=0.12, b=0.13)
+    g.link(flm, "geo", flc, "geo")
+    lampp = named(G, flc, "lamp")
+    frl_ = G("PCG_Box", title="Guard rail beam (4 m)", size_x=0.1, size_y=0.32, size_z=4.0, cy=0.6)
+    fpo = G("PCG_Box", title="Guard rail post", size_x=0.12, size_y=0.75, size_z=0.12, cy=0.37)
+    frr = merge_n(G, "Guard rail", [frl_, fpo])
+    frc_ = G("PCG_Color", title="Galvanised steel", attribute_class="point", r=0.62, g=0.63, b=0.64)
+    g.link(frr, "geo", frc_, "geo")
+    railp = named(G, frc_, "rail")
+    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp, fruit, hedgep, bridgep, lampp, railp])
     # ③b The far view: the tree proxies as engine assets, each a LOD chain (LOD Create: LOD0, LOD1 at 40% of the
     # triangles, LOD2 two crossed cards) and an impostor atlas for the cards (Impostor Textures: the upper half of
     # the sphere of views, 8 x 8 frames of 128²: colour, alpha, normal, depth)
@@ -2758,6 +3030,16 @@ def world_tiles():
                     filename=f"pcg/world/assets/T_Impostor_{asset_}_{suf_}", channels=ch_, format="png",
                     bit_depth="8", **kw_)
             g.link(im_, "cop", iw_, "cop")
+    # the orchard tree, the hedge and the road furniture as engine assets (one glb, a node each)
+    pnm_ = []
+    for src_, nm_ in ((fruit, "SM_Proxy_Fruit"), (hedgep, "SM_Proxy_Hedge"), (bridgep, "SM_Bridge"),
+                      (lampp, "SM_StreetLamp"), (railp, "SM_GuardRail")):
+        n_ = V("PCG_Wrangle", title=f"{nm_}: asset name", run_over="prim", code=f's@name = "{nm_}"')
+        g.link(src_, "geo", n_, "geo")
+        pnm_.append(n_)
+    pex = V("PCG_ExportMesh", title="Props: one glb, a node per asset", filename="pcg/world/assets/SM_Props",
+            format="glb", split_attribute="name")
+    g.link(merge_n(V, "Props", pnm_), "geo", pex, "geo")
     # a grass tuft: six blades (triangles) leaning out, 0.3-0.5 m; dark at the base, light at the tips, and the
     # ground's up as their normal, so from either side a blade shades like the ground it grows from
     tuft = G("PCG_Add", title="Grass tuft: six blades", points=(
@@ -2799,7 +3081,12 @@ def world_tiles():
                  "b = 0.75 + 0.45 * rand(@ptnum + 11.1)\n"
                  "h = rand(@ptnum + 12.7) - 0.5\n"
                  "@Cd = set(b * (1 + 0.5 * h), b, b * (1 - 0.4 * h))")
-    kall = merge_n(G, "Proxy points: bushes and rocks", [kb, kr])
+    kx = G("PCG_Wrangle", title="Hedges, orchards, road furniture → their kinds", code=(
+        "n = @name.astype(str)\n"
+        's@kind = where(n == "Hedge_A", "hedge", where(n == "Tree_Fruit_A", "fruit", where(n == "SM_Bridge", "bridge",'
+        ' where(n == "SM_StreetLamp", "lamp", "rail"))))'))
+    g.link(merge_n(G, "Hedges, orchards, furniture", [hw, ow, furn]), "geo", kx, "geo")
+    kall = merge_n(G, "Proxy points: bushes, rocks, hedges, orchards, furniture", [kb, kr, kx])
     tint = G("PCG_Wrangle", title="Per-instance tint", code=tint_code)
     g.link(kall, "geo", tint, "geo")
     ttint = G("PCG_Wrangle", title="Trees: per-instance tint", code=tint_code)
@@ -2850,6 +3137,15 @@ def world_tiles():
     # the atlases join the layer library (as imp_pine_C / _alpha ...; 512²: 64² a frame, plenty far away; short
     # material names: a string attribute merged onto the terrain's millions of faces takes the longest one's width)
     pdset = dset
+    # the buildings' materials, made here at 512² a metre from the material library's recipes, join it too
+    # (M_Stucco_basecolor, _N, _ao, _roughness, _metallic ...): the towns are textured in the same run
+    for mn_ in TOWN_FACADES + ("M_Trim", "M_Glass", "M_Door", "M_Roof", "M_RoofFlat", "M_Metal"):
+        mm_ = material_maps(g, H, H, mn_, res=512)
+        ml_ = H("PCG_COPLayerMerge", title=f"Layer library + {mn_}", layers="basecolor N ao roughness metallic",
+                prefix=f"{mn_}_", overwrite=True)
+        g.link(pdset, "cop", ml_, "a")
+        g.link(mm_, "cop", ml_, "b")
+        pdset = ml_
     for asset_, kind_ in (("Pine", "pine"), ("Broadleaf", "broad")):
         lm_ = H("PCG_COPLayerMerge", title=f"Layer library + the {asset_.lower()} atlas", layers="C alpha",
                 prefix=f"imp_{kind_}_", overwrite=True)
@@ -2863,12 +3159,18 @@ def world_tiles():
         tf = H("PCG_Wrangle", title=f"{tag}: trees near or far, the card's frame", code=(
             f"v = set({cx:.1f}, {cy:.1f}, {cz:.1f}) - @P\n"
             f"@far = (length(v) >= {near_r:.1f}) * 1\n"
-            "# the hemi-octahedral frame looking from this camera (the atlas' 8 x 8 grid)\n"
+            "# the hemi-octahedral frames round the direction to this camera (the atlas' 8 x 8 grid): the cell it\n"
+            "# falls in, and where in it (the four frames at its corners are blended by that)\n"
             "d = normalize(set(v.x, clamp(v.y, 0, 1e9), v.z))\n"
             "s = abs(d.x) + abs(d.y) + abs(d.z)\n"
-            "@fi = floor((d.x + d.z) / s * 3.5 + 4.0)\n"
-            "@fj = floor((d.x - d.z) / s * 3.5 + 4.0)\n"
-            "@cn = normalize(set(v.x, 0 * v.y, v.z))"))
+            "gx = ((d.x + d.z) / s + 1) * 3.5\n"
+            "gy = ((d.x - d.z) / s + 1) * 3.5\n"
+            "@fi = clamp(floor(gx), 0, 6)\n"
+            "@fj = clamp(floor(gy), 0, 6)\n"
+            "@ftx = clamp(gx - @fi, 0, 1)\n"
+            "@fty = clamp(gy - @fj, 0, 1)\n"
+            "# the card faces the camera, tilted up or down to it too (from the air a card is not seen edge-on)\n"
+            "@cn = normalize(v)"))
         g.link(ttint, "geo", tf, "geo")
         nb = H("PCG_Blast", title=f"{tag}: near trees", cls="point", group="@far > 0.5")
         g.link(tf, "geo", nb, "geo")
@@ -2881,11 +3183,16 @@ def world_tiles():
         fo = H("PCG_Wrangle", title=f"{tag}: far trees face the camera", code="@N = @cn\n@up = set(0, 1, 0) + 0 * @cn")
         g.link(fb, "geo", fo, "geo")
         fc = H("PCG_CopyToPoints", title=f"{tag}: impostor cards", piece_attribute="kind",
-               target_point_attributes="fi fj")
+               target_point_attributes="fi fj ftx fty Cd", multiply_attributes="Cd")
         g.link(cardlib, "geo", fc, "source")
         g.link(fo, "geo", fc, "points")
         fu = H("PCG_Wrangle", title=f"{tag}: cards' uv on their frame", code=(
-            "@uv = set((@fi + @uv.x) / 8, (@fj + @uv.y) / 8, 0 * @fi)"))
+            "u = @uv.x\nw = @uv.y\nz = 0 * @fi\n"
+            "@uv = set((@fi + u) / 8, (@fj + w) / 8, z)\n"
+            "@uv2 = set((@fi + 1 + u) / 8, (@fj + w) / 8, z)\n"
+            "@uv3 = set((@fi + u) / 8, (@fj + 1 + w) / 8, z)\n"
+            "@uv4 = set((@fi + 1 + u) / 8, (@fj + 1 + w) / 8, z)\n"
+            "@fw = set((1 - @ftx) * (1 - @fty), @ftx * (1 - @fty), (1 - @ftx) * @fty, @ftx * @fty)"))
         g.link(fc, "geo", fu, "geo")
         fs = H("PCG_CopyToPoints", title=f"{tag}: the cards' shadows", piece_attribute="kind",
                target_point_attributes="")
@@ -2952,17 +3259,11 @@ def world_tiles():
     pr3 = G("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=WORLD_TEXTURES, sun_elevation=15.0, sun_azimuth=124.0, haze=1.0,
             ground_plane=False, clouds=0.45, cloud_seed=3)
-    # the last view merges in the graph, not on extra_geo: the merged copy then replaces the shared one (released
-    # once the other views are done) instead of being held next to it while rendering
-    rv3 = far_view(CAM3, 350.0, "Road")
-    rd3 = H("PCG_AttribDelete", title="Road: only what the render reads", point="* ^P ^N ^Cd ^uv",
-            prim="* ^material ^shadow_only", vertex="*")
-    g.link(rv3, "geo", rd3, "geo")
-    mg3 = G("PCG_Merge", title="+ trees, cards, towns and grass around the road camera")
-    g.link(mg, "geo", mg3, "geo1")
-    g.link(rd3, "geo", mg3, "geo2")
-    g.link(grass, "geo", mg3, "geo3")
-    g.link(mg3, "geo", pr3, "geo")
+    mg3 = G("PCG_Merge", title="+ grass around the road camera")
+    g.link(far_view(CAM3, 350.0, "Road"), "geo", mg3, "geo1")
+    g.link(grass, "geo", mg3, "geo2")
+    g.link(mg, "geo", pr3, "geo")
+    g.link(mg3, "geo", pr3, "extra_geo")
     g.link(surf, "cop", pr3, "textures_cop")
     g.link(pdset, "cop", pr3, "detail_cop")
     g.link(splat, "cop", pr3, "splat_cop")
@@ -4092,6 +4393,28 @@ MATERIALS = (
 )
 
 
+def material_maps(g, A, B, name, res=1024):
+    """One material of MATERIALS as nodes (canvas / pattern -> height wrangle -> normal -> AO -> colour wrangle in
+    columns A and B) -> the colour wrangle, whose image holds basecolor, N, ao, roughness, metallic and height.
+    res: the canvas size for one metre (1024 in the library; less for a preview)."""
+    _, label, src, hcode, ccode, _ = next(m for m in MATERIALS if m[0] == name)
+    if src is None:
+        s = A("PCG_COPConstant", title=f"{name}: {res}² canvas (1 m)", resolution_x=res, resolution_y=res,
+              layer="base")
+    else:
+        s = A("PCG_COPPattern", title=f"{name}: {src['kind']} pattern {src['counts']}", resolution_x=res,
+              resolution_y=res, **src)
+    h = A("PCG_COPWrangle", title=f"{name}: height (metres) + masks", code=hcode, rows_per_pass=256)
+    g.link(s, "cop", h, "cop")
+    nm = A("PCG_COPHeightToNormal", layer="height", strength=1.0, tile=True, out_layer="N")
+    g.link(h, "cop", nm, "cop")
+    ao = A("PCG_COPHeightToAO", layer="height", strength=1.0, radius=12.0 * res / 1024, tile=True, out_layer="ao_h")
+    g.link(nm, "cop", ao, "cop")
+    c = B("PCG_COPWrangle", title=f"{name}: {label} -- colour / ORM", code=ccode, rows_per_pass=256)
+    g.link(ao, "cop", c, "cop")
+    return c
+
+
 def material_library(only=None):
     g = Graph()
     W = 340
@@ -4136,20 +4459,7 @@ def material_library(only=None):
         A = Col(g, x0, y0, width=W)
         B = Col(g, x0 + 380, y0, width=W)
         C = Col(g, x0 + 760, y0, width=W)
-        if src is None:
-            s = A("PCG_COPConstant", title=f"{name}: 1024² canvas (1 m)", resolution_x=1024, resolution_y=1024,
-                  layer="base")
-        else:
-            s = A("PCG_COPPattern", title=f"{name}: {src['kind']} pattern {src['counts']}", resolution_x=1024,
-                  resolution_y=1024, **src)
-        h = A("PCG_COPWrangle", title=f"{name}: height (metres) + masks", code=hcode, rows_per_pass=256)
-        g.link(s, "cop", h, "cop")
-        nm = A("PCG_COPHeightToNormal", layer="height", strength=1.0, tile=True, out_layer="N")
-        g.link(h, "cop", nm, "cop")
-        ao = A("PCG_COPHeightToAO", layer="height", strength=1.0, radius=12.0, tile=True, out_layer="ao_h")
-        g.link(nm, "cop", ao, "cop")
-        c = B("PCG_COPWrangle", title=f"{name}: {label} -- colour / ORM", code=ccode, rows_per_pass=256)
-        g.link(ao, "cop", c, "cop")
+        c = material_maps(g, A, B, name)
         for layer, mode, bits, enc, ny, suffix in (
                 ("basecolor", "clamp", "8", "srgb", "+y", "BaseColor"),
                 ("N", "signed", "8", "linear", "+y", "Normal_GL"),

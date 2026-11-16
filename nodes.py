@@ -1938,7 +1938,7 @@ class PCG_PreviewImage:
             # appended: more geometry drawn with geo (merged just for the render): a per-shot part -- the trees
             # near this camera, impostor cards turned to it -- beside a large shared one, without keeping a merged
             # copy of the large one for every shot
-            "extra_geo": ("GEOMETRY",),
+            "extra_geo": ("GEOMETRY", {"tooltip": "Drawn with geo (Outdoor: without merging the two)"}),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
@@ -1949,6 +1949,9 @@ class PCG_PreviewImage:
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
             compute="auto", detail_cop=None, splat_cop=None, extra_geo=None):
+        extra_od = None
+        if extra_geo is not None and extra_geo.nprims and look == "outdoor" and geo is not None and geo.nprims:
+            extra_od, extra_geo = extra_geo, None                # drawn beside geo, no merged copy of the scene
         if extra_geo is not None and extra_geo.nprims:
             from .geo.ops import merge as _merge
             # only what the render reads is merged (the merge copies; a terrain's other attributes and groups would
@@ -1981,7 +1984,7 @@ class PCG_PreviewImage:
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
                                      tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
                                      sky_samples=sky_samples, compute=compute, detail_cop=detail_cop,
-                                     splat_cop=splat_cop)
+                                     splat_cop=splat_cop, extra=extra_od)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,
@@ -2024,6 +2027,10 @@ class PCG_ExportMesh:
     pcg122 GPU Instancing (glb): packed primitives (Pack / Copy to Points with Pack and Instance) are written as one
     mesh per distinct piece plus one node with EXT_mesh_gpu_instancing holding each instance's translation / rotation /
     scale. Pieces with sheared transforms, OBJ output, or the option off: unpacked into ordinary geometry.
+
+    LOD Manifest (off by default): also writes <filename>.lods.json -- per asset (prim name `<asset>_LOD<k>`, as LOD
+    Create names its levels) the LOD nodes, switch distances (lod_distance), triangle counts, bounds and materials,
+    with Unreal screen sizes and Unity LODGroup transition heights for a camera of LOD FOV degrees.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -2044,19 +2051,32 @@ class PCG_ExportMesh:
             "gpu_instancing": ("BOOLEAN", {"default": True,
                                            "tooltip": "glb: packed primitives become one mesh per piece + per-instance "
                                                       "transforms (EXT_mesh_gpu_instancing); off = unpack everything"}),
+            # appended: a LOD manifest beside the file (LOD Create's levels as an engine sets them up)
+            "lod_manifest": ("BOOLEAN", {"default": False, "section": "LOD Manifest",
+                                         "tooltip": "Also write <filename>.lods.json: per asset its LOD nodes, switch "
+                                                    "distances, triangles, bounds, materials, Unreal screen sizes and "
+                                                    "Unity LODGroup transitions"}),
+            "lod_fov": _f(60.0, 1.0, 179.0, 1.0),
+            "lod_cull_screen_size": _f(0.0, 0.0, 1.0, 0.001),
         }}
     RETURN_TYPES = ("STRING",); RETURN_NAMES = ("path",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
     OUTPUT_NODE = True
 
     def run(self, geo, filename, format, split_attribute="", file_attribute="",
-            scale=1.0, textures="", texture_materials="*", gpu_instancing=True):
+            scale=1.0, textures="", texture_materials="*", gpu_instancing=True, lod_manifest=False, lod_fov=60.0,
+            lod_cull_screen_size=0.0):
         from .geo import meshexport as _mx
         outdir = output_dir()
         paths = _mx.export(geo, os.path.join(outdir, filename), format,
                            split_attribute, file_attribute, scale,
                            textures=textures, texture_materials=texture_materials,
                            gpu_instancing=gpu_instancing)
+        if lod_manifest:
+            from .geo import lodmanifest as _lm
+            mp = os.path.join(outdir, filename) + ".lods.json"
+            _lm.write(geo, mp, lod_fov, scale, lod_cull_screen_size)
+            paths = list(paths) + [mp]
         rels = [os.path.relpath(p, outdir).replace("\\", "/") for p in paths]
         rel = rels[0] if len(rels) == 1 else "\n".join(rels)
         # Note: the ui structure Preview3D expects changes between ComfyUI versions;

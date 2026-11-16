@@ -12,6 +12,7 @@ for _c in (_R, os.path.dirname(_R), os.path.dirname(os.path.dirname(_R)),
         break
 sys.path.insert(0, _R)
 import json
+import tempfile
 import numpy as np
 import fakecomfy  # noqa: F401
 from comfyui_pcg import nodes as N, panel_specs as PS
@@ -287,6 +288,93 @@ cf2 = np.array([prim_pts(bf2, i).mean(0) for i in np.nonzero(np.asarray(bf2.get(
 check("  ... and they follow the front (-x: the 8 m wall, 3 bays)", len(cf2) == 3 and np.allclose(cf2[:, 0], 0.15, atol=1e-6))
 check("  negative control: without a front pattern no doors",
       "door" not in B.building_generator(FR, facade_pattern="window")[1]["parts"])
+
+# balcony module: glazed door + a slab and railing standing 0.9 m out of the wall
+bb_, rb_ = B.building_generator(RCT, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="flat",
+                                facade_pattern="balcony")
+pb_ = np.asarray(bb_.get(PRIM, "part")).reshape(-1)
+Pb_ = np.asarray(bb_.get(POINT, "P"), np.float64)
+check("balcony module: slabs and railings on every bay (4+3+4+3 = 14 bays x 2 floors), reaching 0.9 m out of the walls",
+      rb_["parts"].get("balcony", 0) == 14 * 2 * 5 and rb_["parts"].get("railing", 0) == 14 * 2 * 3
+      and abs(Pb_[:, 2].max() - 8.9) < 1e-6 and abs(Pb_[:, 0].min() + 0.9) < 1e-6, rb_["parts"])
+# Front Pattern Attribute: a pattern per footprint
+FPA = RA.copy()
+FPA.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]] * 2))
+FPA.set_string(PRIM, "fp", np.array(["shopfront", ""]))
+bfa, _ = B.building_generator(FPA, floors_min=1, floors_max=1, corners=False, top_ledge=False, roof="flat",
+                              facade_pattern="window", front_pattern="door", front_pattern_attribute="fp")
+pfa = np.asarray(bfa.get(PRIM, "module")).reshape(-1)
+cfa = np.array([prim_pts(bfa, i).mean(0)[0] for i in range(bfa.nprims)])
+check("Front Pattern Attribute: shopfronts on the first footprint's front, its empty value falls back to the doors",
+      (pfa[cfa < 20] == "shopfront").sum() > 0 and (pfa[cfa < 20] == "door").sum() == 0
+      and (pfa[cfa > 20] == "door").sum() > 0 and (pfa[cfa > 20] == "shopfront").sum() == 0)
+# chimneys
+chs = [B.building_generator(RCT, floors_min=1, floors_max=1, roof="gable", chimney_chance=c_, seed=s_)[1]["parts"]
+       .get("chimney", 0) for c_ in (1.0, 0.0) for s_ in range(6)]
+bch, _ = B.building_generator(RCT, floors_min=1, floors_max=1, roof="gable", chimney_chance=1.0, roof_pitch=30.0,
+                              roof_overhang=0.0, facade_pattern="wall", corners=False, top_ledge=False)
+pc_ = np.asarray(bch.get(PRIM, "part")).reshape(-1)
+Pch = np.concatenate([prim_pts(bch, i) for i in np.nonzero(pc_ == "chimney")[0]])
+check("Chimney Chance 1: a stack (5 faces) on every gable roof, standing 0.9 m above the ridge; 0: none",
+      all(c_ == 5 for c_ in chs[:6]) and sum(chs[6:]) == 0
+      and abs(Pch[:, 1].max() - (3 + np.tan(np.radians(30)) * 4 + 0.9)) < 1e-6, chs)
+check("  a flat roof gets none even at chance 1",
+      "chimney" not in B.building_generator(RCT, roof="flat", chimney_chance=1.0)[1]["parts"])
+# yard walls along the lot line, all sides but the front
+YW = RCT.copy()
+YW.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]]))
+byw, ryw = B.building_generator(YW, floors_min=1, floors_max=1, roof="flat", footprint_inset=2.0,
+                                yard_wall_height=1.5, yard_wall_thickness=0.25)
+py_ = np.asarray(byw.get(PRIM, "part")).reshape(-1)
+Pyw = np.concatenate([prim_pts(byw, i) for i in np.nonzero(py_ == "yardwall")[0]])
+check("Yard walls: on the lot line (outside the 2 m setback), 1.5 m high, three sides (none along the +z front)",
+      abs(Pyw[:, 1].max() - 1.5) < 1e-6 and abs(Pyw[:, 0].min()) < 1e-6 and abs(Pyw[:, 0].max() - 12) < 1e-6
+      and Pyw[:, 2].min() > -1e-6 and Pyw[:, 2].max() > 7.9 and ryw["parts"]["yardwall"] == 3 * 5
+      and not ((Pyw[:, 2] > 7.8).sum() > 0 and (np.abs(Pyw[:, 0] - 6) < 4)[Pyw[:, 2] > 7.8].any()))
+check("  negative control: height 0 builds none", "yardwall" not in B.building_generator(YW, footprint_inset=2.0)[1]["parts"])
+
+# Notch: an L-shaped footprint, the back corner cut out
+NT = RCT.copy()
+NT.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]]))
+NT.set(PRIM, "nch", np.array([0.5]))
+bn_, _ = B.building_generator(NT, floors_min=1, floors_max=1, roof="gable", corners=False, top_ledge=False,
+                              facade_pattern="wall", notch_attribute="nch")
+pn_ = np.asarray(bn_.get(PRIM, "part")).reshape(-1)
+rf_ = [i for i in np.nonzero(pn_ == "roof")[0]]
+ra_n = sum(area3(prim_pts(bn_, i)) for i in rf_)
+Prf = np.concatenate([prim_pts(bn_, i) for i in rf_])
+check("Notch Attribute 0.5: an L (12 x 8 less a 6 x 4 back corner = 72 m² of flat roof, six walls), the back-left "
+      "corner (x 0..6, z 0..4) open", len(rf_) == 1 and abs(ra_n - 72.0) < 1e-6 and len(prim_pts(bn_, rf_[0])) == 6
+      and not ((Prf[:, 0] < 5.9) & (Prf[:, 2] < 3.9)).any(), round(float(ra_n), 3))
+check("  negative control: without the attribute the gable roof stands over the full rectangle",
+      sum(area3(prim_pts(bo_, i)) for i in np.nonzero(np.asarray(bo_.get(PRIM, "part")).reshape(-1) == "roof")[0]) > 96)
+
+# LOD manifest: what an engine needs, from LOD Create's output
+from comfyui_pcg.geo import lodmanifest as LM  # noqa: E402
+lb_ = ops.merge(*[(lambda g_, k_: (g_.set_string(PRIM, "name", np.full(g_.nprims, k_)), g_)[1])(
+    poly([(0, 0), (6, 0), (6, 8), (0, 8)]) if k_ == "Hut" else poly([(20, 0), (23, 0), (23, 4), (20, 4)]), k_)
+    for k_ in ("Hut", "Shed")])
+lb_ = B.building_generator(lb_, floors_min=1, floors_max=1, roof="flat", corners=False, top_ledge=False)[0]
+lcm, _ = LC.lod_create(lb_, "100 50", distances="0 100")
+mf = LM.manifest(lcm, fov=60.0, scale=2.0)
+hut = next(a_ for a_ in mf["assets"] if a_["name"] == "Hut")
+r_h = np.linalg.norm([6, 3, 8]) / 2 * 2.0
+ss1 = r_h / (200.0 * np.tan(np.radians(30)))
+check("LOD manifest: one entry per asset, nodes Hut_LOD0 / _LOD1, distances x Scale, bounding radius, Unreal screen "
+      "size r / (d tan 30°), Unity transitions = the next level's screen size",
+      [a_["name"] for a_ in mf["assets"]] == ["Hut", "Shed"] and [e_["node"] for e_ in hut["lods"]] == ["Hut_LOD0", "Hut_LOD1"]
+      and hut["lods"][1]["distance"] == 200.0 and abs(hut["bounds"]["radius"] - r_h) < 1e-3
+      and hut["lods"][0]["screen_size"] == 1.0 and abs(hut["lods"][1]["screen_size"] - ss1) < 1e-5
+      and hut["lods"][0]["unity_transition"] == hut["lods"][1]["screen_size"] and hut["lods"][1]["unity_transition"] == 0.0
+      and hut["lods"][1]["triangles"] < hut["lods"][0]["triangles"] and "wall" in hut["materials"], hut)
+mf0 = LM.manifest(build.sphere(1.0, 8, 6))
+check("  negative control: geometry without names or levels is one asset with one level at distance 0",
+      len(mf0["assets"]) == 1 and len(mf0["assets"][0]["lods"]) == 1 and mf0["assets"][0]["lods"][0]["screen_size"] == 1.0)
+_od = tempfile.mkdtemp()
+_mp = os.path.join(_od, "t.lods.json")
+LM.write(lcm, _mp, 45.0, 1.0, 0.01)
+check("  written as JSON, the last level ending at Cull Screen Size",
+      json.load(open(_mp))["assets"][0]["lods"][-1]["unity_transition"] == 0.01)
 
 print("-- COP WFC")
 s = np.zeros((8, 8, 3), np.float32); s[3, :] = 1; s[:, 5] = 1                    # two crossing roads

@@ -9724,7 +9724,7 @@
    ],
    "size": [
     340,
-    378
+    497
    ],
    "flags": {},
    "order": 313,
@@ -9755,7 +9755,10 @@
     1.0,
     "basecolor = ../../materials/T_{material}_BaseColor.png\nnormal = ../../materials/T_{material}_Normal_GL.png\norm = ../../materials/T_{material}_ORM.png",
     "*",
-    true
+    true,
+    false,
+    60.0,
+    0.0
    ],
    "title": "Export: one glb per kit piece (textures point to the material library)"
   },

@@ -18,7 +18,8 @@ SPECS = {
     #    textures in their own section (it was already the Textures section)
     "PCG_ExportMesh": {
         "order": ["filename", "format", "scale", "split_attribute", "file_attribute",
-                  "textures", "texture_materials", "gpu_instancing"],
+                  "textures", "texture_materials", "gpu_instancing", "lod_manifest", "lod_fov",
+                  "lod_cull_screen_size"],
         "inputs": {
             "filename": {"label": "Output File",
                          "help": "Relative to ComfyUI/output/, no extension; with File Attribute "
@@ -37,6 +38,12 @@ SPECS = {
             "gpu_instancing": {"label": "GPU Instancing", "sep": True, "disable": "{ format != glb }",
                                "help": "Packed primitives: one mesh per piece + per-instance transforms "
                                        "(EXT_mesh_gpu_instancing); off = unpack"},
+            "lod_manifest": {"label": "LOD Manifest", "section": "LOD Manifest", "sep": True,
+                             "help": "Also write <filename>.lods.json (LOD nodes, distances, screen sizes)"},
+            "lod_fov": {"label": "Camera FOV", "disable": "{ lod_manifest == 0 }",
+                        "help": "Vertical field of view (degrees) the screen sizes are computed for"},
+            "lod_cull_screen_size": {"label": "Cull Screen Size", "disable": "{ lod_manifest == 0 }",
+                                     "help": "Where the last LOD ends (Unity LODGroup); 0 = never culled"},
         },
     },
 
