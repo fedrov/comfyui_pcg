@@ -367,8 +367,9 @@ else:
     check("the rendered frame: torch path within 1/255 of the numpy path on 99 % of pixels",
           float((np.abs(a_np - a_t).max(-1) < 1 / 255).mean()) > 0.99, float(np.abs(a_np - a_t).max()))
     _k = list(N["PCG_PreviewImage"].INPUT_TYPES()["optional"])
-    check("node: Compute appended after the sky inputs; only the later detail_cop / splat_cop follow",
-          _k[_k.index("sky_samples") + 1] == "compute" and _k[_k.index("compute") + 1:] == ["detail_cop", "splat_cop"])
+    check("node: Compute appended after the sky inputs; only the later detail_cop / splat_cop / extra_geo follow",
+          _k[_k.index("sky_samples") + 1] == "compute"
+          and _k[_k.index("compute") + 1:] == ["detail_cop", "splat_cop", "extra_geo"])
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

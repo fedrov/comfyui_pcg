@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **World tiles: towns along the roads, building LODs, textured buildings, a Crops layer, impostor trees in the
+  previews**. The towns are plots along their roads (both sides, facing the road, cut into front and back lots by
+  Lot Subdivision) instead of square blocks; each building's door and ground floor face the street, the taller ones
+  stand toward the town core, roofs are gable (hip from four floors), and the parts get the material library's
+  materials (`M_Stucco` / `M_BrickBuff` / `M_Wall` facades, `M_Trim`, `M_Glass`, `M_Door`, `M_Roof`, `M_RoofFlat`).
+  `Towns.glb` holds a node per town and level: the buildings, their massing (the same generator without openings,
+  as LOD Create's custom level: reducing the facades would tear them) and the massing reduced. The fields are a
+  thirteenth terrain layer, Crops (rows), in a fourth splat map. The previews show the far trees as impostor cards
+  (alpha cut out, a blob for the shadow) and the towns at the LOD of each lot's distance.
+- **Preview Image**: `extra_geo`, geometry merged in before rendering; Textures `alpha` (and `alpha_cutoff`) cut
+  faces out by a texture (impostor cards, foliage); `a | b` alternatives (the first found is used); a `@layer` not
+  in its own image is looked for in the others (Textures, Splat, Detail); prims with `shadow_only` = 1 cast shadows
+  but are not seen.
+- **Building Generator**: Gable and Hip roofs (`roof_pitch`, `roof_overhang`, gable-end walls), `roof_attribute`
+  (the roof per footprint), `front_attribute` / `front_pattern` (the ground-floor pattern on the wall facing the
+  footprint's front: doors to the street).
+- **LOD Create**: a `custom` input whose faces (prim `lod`) replace those levels, reduced by their own percent.
+
+### Changed
+- **Impostor Textures**: the C layer is linear (Cd is a display colour), like the base colour everywhere else.
+- **Merge**: an attribute with different tuple sizes on its inputs takes the largest, the shorter ones padded
+  with 0 (it used to fail), as Houdini does.
+
 - **World tiles: towns, fields and the far view**. Each town's ground is cut into lots (Lot Subdivision); the lots
   in the town disc, off the roads, dry and gentle enough are levelled into pads (HeightField Project into the height
   map, so the mesh, weights and 1 m surface see the terraces) and get a building each (Building Generator: set back

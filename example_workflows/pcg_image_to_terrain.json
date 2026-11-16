@@ -418,7 +418,7 @@
    ],
    "size": [
     340,
-    433
+    453
    ],
    "flags": {},
    "order": 9,
@@ -447,6 +447,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -520,7 +525,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     1140,
-    775
+    795
    ],
    "size": [
     340,

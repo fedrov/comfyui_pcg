@@ -629,5 +629,85 @@ check("  layerN_size must be a number; layer slots are accepted by the parser",
       bad and set(S.parse_textures("layer12 = @a\nlayer12_normal = @b\nlayer_weights = @w").keys())
       == {"layer12", "layer12_normal", "layer_weights"})
 
+print("-- alpha cutout")
+from comfyui_pcg.geo import Geometry as _G, outdoor as _O, render as _R  # noqa: E402
+from comfyui_pcg.geo.cop.core import CopImage as _CI  # noqa: E402
+# a red card in front of a blue wall; the card's alpha is a disc of radius 28 / 64 of its side
+_P = np.array([[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0], [-2, -2, -1], [2, -2, -1], [2, 2, -1], [-2, 2, -1]], float)
+AG = _G.from_mesh(_P, [[0, 1, 2, 3], [4, 5, 6, 7]])
+AG.set(POINT, "Cd", np.array([[1, 0, 0]] * 4 + [[0, 0, 1]] * 4, float))
+AG.set(VERTEX, "uv", np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]] * 2, float))
+AG.set_string(PRIM, "material", np.array(["card", "wall"]))
+_yy, _xx = np.mgrid[0:64, 0:64]
+_disc = ((_xx - 31.5) ** 2 + (_yy - 31.5) ** 2 < 28 ** 2).astype(np.float32)
+ACOP = _CI(64, 64, {"card_alpha": _disc[..., None]})
+red = lambda im: float((im[..., 0] > im[..., 2] + 0.1).mean())          # noqa: E731
+blue = lambda im: float((im[..., 2] > im[..., 0] + 0.1).mean())         # noqa: E731
+a0 = S.render_studio(AG, 200, 200, 0, 0, tex_cop=ACOP)
+a1 = S.render_studio(AG, 200, 200, 0, 0, textures="alpha = @{material}_alpha", tex_cop=ACOP)
+ratio = red(a1) / max(red(a0), 1e-9)
+check("alpha cutout: the card keeps only its disc (area ratio pi 28² / 64² = 0.60)", abs(ratio - np.pi * 28 ** 2 / 64 ** 2) < 0.03,
+      round(ratio, 3))
+check("  and the wall behind shows through where it is cut away (more blue)", blue(a1) > blue(a0) + 0.03,
+      (round(blue(a0), 3), round(blue(a1), 3)))
+a2 = S.render_studio(AG, 200, 200, 0, 0, textures="alpha = @{material}_alpha\nalpha_cutoff = 1.5", tex_cop=ACOP)
+check("  alpha_cutoff above every value removes the card", red(a2) < 0.002 and blue(a2) > blue(a1))
+a3 = S.render_studio(AG, 200, 200, 0, 0, textures="alpha = @{material}_missing", tex_cop=ACOP)
+check("  negative control: an alpha layer that is not there cuts nothing", abs(red(a3) - red(a0)) < 1e-6)
+_cam = _R.camera(None, "perspective", eye=(0, 0, 6), target=(0, 0, 0))
+o0 = _O.render_outdoor(AG, 160, 160, cam=_cam, ground=False, sky_samples=4, ssaa=1, tex_cop=ACOP)
+o1 = _O.render_outdoor(AG, 160, 160, cam=_cam, ground=False, sky_samples=4, ssaa=1, tex_cop=ACOP,
+                       textures="alpha = @{material}_alpha")
+r_o = float((o1[..., 0] > o1[..., 2] + 0.05).mean()) / max(float((o0[..., 0] > o0[..., 2] + 0.05).mean()), 1e-9)
+check("  the Outdoor look cuts the same way", abs(r_o - 0.60) < 0.05, round(r_o, 3))
+SPL = _CI(64, 64, {"card_alpha": _disc[..., None]})
+a4 = S.render_studio(AG, 200, 200, 0, 0, textures="alpha = @{material}_alpha", splat_cop=SPL)
+check("  an '@layer' not on textures_cop is found on splat_cop", abs(red(a4) - red(a1)) < 1e-6)
+g_ = AG.copy()
+g_.remove(VERTEX, "uv")
+g_.set(POINT, "uv", np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]] * 2, float))
+a5 = S.render_studio(g_, 200, 200, 0, 0, textures="alpha = @{material}_alpha", tex_cop=ACOP)
+check("  point uv works as well as vertex uv", abs(red(a5) - red(a1)) < 1e-6)
+
+# 'a | b': the first alternative that exists, per material
+_P2 = np.array([[-2, -1, 0], [0, -1, 0], [0, 1, 0], [-2, 1, 0], [0, -1, 0], [2, -1, 0], [2, 1, 0], [0, 1, 0]], float)
+g2 = _G.from_mesh(_P2, [[0, 1, 2, 3], [4, 5, 6, 7]])
+g2.set(VERTEX, "uv", np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]] * 2, float))
+g2.set_string(PRIM, "material", np.array(["terrain", "M_Brick"]))
+_td = tempfile.mkdtemp()
+Image.fromarray(np.full((8, 8, 3), [0, 255, 0], np.uint8)).save(os.path.join(_td, "T_M_Brick.png"))
+_tc = _CI(8, 8, {"terrain_albedo": np.tile(np.array([1, 0, 0], np.float32), (8, 8, 1))})
+_rp = {}
+alt = S.render_studio(g2, 200, 100, 0, 0, textures="basecolor = @{material}_albedo | T_{material}.png", tex_root=_td,
+                      tex_cop=_tc, report=_rp, shadows=False, ao=False)
+check("'a | b' alternatives: the terrain takes its layer, the brick face its file, nothing reported missing",
+      alt[50, 40, 0] > 0.5 > alt[50, 40, 1] and alt[50, 160, 1] > 0.5 > alt[50, 160, 0] and not _rp["missing"], _rp)
+alt2 = S.render_studio(g2, 200, 100, 0, 0, textures="basecolor = @{material}_albedo", tex_cop=_tc, shadows=False, ao=False)
+check("  negative control: with the layer alone the brick face keeps its grey", abs(float(alt2[50, 160, 0]) - float(alt2[50, 160, 1])) < 0.02)
+
+# shadow_only: a box over a floor is not seen but still shades it
+from comfyui_pcg.geo import build as _b  # noqa: E402
+flo = _b.grid(6.0, 6.0, 2, 2)
+flo.set(PRIM, "shadow_only", np.zeros(flo.nprims, np.int32))
+bx = ops.transform(_b.box(size=(1, 1, 1)), translate=(0, 1.5, 0)) if hasattr(ops, "transform") else None
+if bx is None:
+    bx = _b.box(size=(1, 1, 1))
+    bx.set(POINT, "P", np.asarray(bx.get(POINT, "P")) + np.array([0, 1.5, 0], np.float32))
+bx.set(PRIM, "shadow_only", np.ones(bx.nprims, np.int32))
+scn = ops.merge(flo, bx)
+_c2 = _R.camera(None, "perspective", eye=(0, 9, 0.01), target=(0, 0, 0))
+s1 = _O.render_outdoor(scn, 120, 120, cam=_c2, ground=False, sky_samples=4, ssaa=1, sun_elev=89.0)
+flo2 = flo.copy()
+s0 = _O.render_outdoor(flo2, 120, 120, cam=_c2, ground=False, sky_samples=4, ssaa=1, sun_elev=89.0)
+bx2 = bx.copy()
+bx2.set(PRIM, "shadow_only", np.zeros(bx.nprims, np.int32))
+s2 = _O.render_outdoor(ops.merge(flo, bx2), 120, 120, cam=_c2, ground=False, sky_samples=4, ssaa=1, sun_elev=89.0)
+cen = (slice(54, 66), slice(54, 66))
+check("shadow_only: the box is not seen, yet the floor under it is in its shadow (darker than without the box)",
+      s1[cen].mean() < 0.7 * s0[cen].mean() and np.abs(s1[0:20, 0:20] - s0[0:20, 0:20]).max() < 0.05,
+      (round(float(s0[cen].mean()), 3), round(float(s1[cen].mean()), 3)))
+check("  negative control: seen, the box's top (lit by the high sun) is brighter than its shadow",
+      s2[cen].mean() > s1[cen].mean() + 0.05, round(float(s2[cen].mean()), 3))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

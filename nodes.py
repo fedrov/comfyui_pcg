@@ -1935,6 +1935,10 @@ class PCG_PreviewImage:
             # appended: the terrain layers' masks and macro map (layer_weights / layer_macro read from here when
             # connected), at their own resolution -- 2 m splat maps beside a 1 m surface
             "splat_cop": ("COPIMAGE",),
+            # appended: more geometry drawn with geo (merged just for the render): a per-shot part -- the trees
+            # near this camera, impostor cards turned to it -- beside a large shared one, without keeping a merged
+            # copy of the large one for every shot
+            "extra_geo": ("GEOMETRY",),
         }}
     RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
     FUNCTION = "run"; CATEGORY = CAT + "/output"
@@ -1944,7 +1948,23 @@ class PCG_PreviewImage:
             material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
-            compute="auto", detail_cop=None, splat_cop=None):
+            compute="auto", detail_cop=None, splat_cop=None, extra_geo=None):
+        if extra_geo is not None and extra_geo.nprims:
+            from .geo.ops import merge as _merge
+            # only what the render reads is merged (the merge copies; a terrain's other attributes and groups would
+            # be copied for nothing, and filled in for the extra geometry): shallow copies without the rest
+            keep = {"P", "N", "Alpha", "shadow_only", str(color_attrib), str(uv_attrib), str(material_attrib)}
+
+            def _slim(g_):
+                s_ = g_.copy()
+                for c_ in (POINT, VERTEX, PRIM, DETAIL):
+                    for k_ in list(s_.attribs[c_]):
+                        if k_ not in keep:
+                            s_.remove(c_, k_)
+                s_.groups = {c_: {} for c_ in s_.groups}
+                s_.edge_groups = {}
+                return s_
+            geo = _merge(_slim(geo), _slim(extra_geo)) if geo is not None else extra_geo
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")

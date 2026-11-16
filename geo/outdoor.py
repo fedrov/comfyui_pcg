@@ -120,7 +120,14 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         return _develop(sk_.reshape(H, W, 3).astype(np.float32), exposure, k)
 
     ts, T = K.soup(geo)
-    rast = R.rasterize(geo, cam, max_pairs=S._PAIRS, soup=ts)
+    ts, T, hid = S.shadow_only_split(geo, ts, T)
+    tex = S.parse_textures(textures)
+    rep = {"used": [], "missing": []}
+    atest, acut = S.alpha_tester(geo, tex, tex_root, material_attrib, uv_attrib, (tex_cop, splat_cop, detail_cop), rep)
+    if acut is not None:                                     # cut-out faces cast no sun or sky shadow
+        T = (T[0], T[1][~acut[T[2]]]) if len(T) > 2 else (T[0], T[1][~acut[ts[1]]])
+    T = T[:2]
+    rast = R.rasterize(geo, cam, max_pairs=S._PAIRS, soup=ts, alpha=S.with_hidden(atest, hid))
     hit = rast["hit"]
     m = hit >= 0
     dfw = (D @ fwd.astype(np.float32))                      # cos between ray and forward: z -> distance
@@ -169,8 +176,6 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         alb[m] = S.srgb_to_linear(cd[m])
     del cd
     alb[gplane] = S.srgb_to_linear(np.asarray(ground_color, np.float64))
-    tex = S.parse_textures(textures)
-    rep = {"used": [], "missing": []}
     pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.8, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
     if tex:

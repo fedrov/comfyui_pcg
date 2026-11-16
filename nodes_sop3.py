@@ -367,19 +367,26 @@ class PCG_BuildingGenerator:
             "floor_overrides": _sec("Customization", ("STRING", {"default": "", "multiline": True})),
             "footprint_inset": I(_f(0.0, 0.0, 100.0, 0.1)),
             "foundation_depth": I(_f(0.0, 0.0, 100.0, 0.1)),
+            "front_attribute": Pw(_s("front")),
+            "front_pattern": Pw(_s("")),
+            "roof_pitch": Rf(_f(35.0, 5.0, 75.0, 1.0)),
+            "roof_overhang": Rf(_f(0.3, 0.0, 5.0, 0.05)),
+            "roof_attribute": Rf(_s("")),
         }, "optional": {"modules": (GEO,)}}
 
     def run(self, geo, group, color_floors, floor_height, floors_min, floors_max, floors_attribute,
             height_attribute, rand_seed, facade_pattern, module_width, window_width, window_height, window_sill,
             inset, corners, corner_width, convex_corner_module, concave_corner_module, top_ledge, top_ledge_height,
             bottom_ledge, bottom_ledge_height, ledge_depth, roof, parapet_height, parapet_thickness,
-            floor_overrides, footprint_inset=0.0, foundation_depth=0.0, modules=None):
+            floor_overrides, footprint_inset=0.0, foundation_depth=0.0, front_attribute="front", front_pattern="",
+            roof_pitch=35.0, roof_overhang=0.3, roof_attribute="", modules=None):
         g, r = _bg.building_generator(
             geo, modules, group, floor_height, floors_min, floors_max, floors_attribute, height_attribute,
             rand_seed, facade_pattern, module_width, window_width, window_height, window_sill, inset, corners,
             corner_width, convex_corner_module, concave_corner_module, top_ledge, top_ledge_height, bottom_ledge,
             bottom_ledge_height, ledge_depth, roof, parapet_height, parapet_thickness, floor_overrides,
-            color_floors, footprint_inset, foundation_depth)
+            color_floors, footprint_inset, foundation_depth, front_attribute, front_pattern, roof_pitch,
+            roof_overhang, roof_attribute)
         return (g, _rep(r))
 
 
@@ -408,13 +415,13 @@ class PCG_LODCreate:
             "view": _sec("Visualize", (list(_lc.VIEWS),)),
             "level": _sec("Visualize", _i(0, 0, 32)),
             "spacing": _sec("Visualize", _f(1.2, 0.0, 100.0, 0.05)),
-        }}
+        }, "optional": {"custom": (GEO,)}}
 
     def run(self, geo, percents, distances, first_distance, last_lod_impostor, preserve_uvs, boundary_weight,
-            recalculate_normals, cusp_angle, name_prefix, view, level, spacing):
+            recalculate_normals, cusp_angle, name_prefix, view, level, spacing, custom=None):
         g, r = _lc.lod_create(geo, percents, distances, first_distance, preserve_uvs, boundary_weight,
                               recalculate_normals, cusp_angle, last_lod_impostor, name_prefix, view, level,
-                              spacing)
+                              spacing, custom)
         return (g, _rep(r))
 
 

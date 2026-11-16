@@ -233,6 +233,61 @@ ba_, _ = B.building_generator(FA, floors_min=1, floors_max=1)
 check("the footprint's prim attributes go to every face of its building",
       set(np.asarray(ba_.get(PRIM, "name")).reshape(-1)) == {"Town_07"} and (np.asarray(ba_.get(PRIM, "lot")) == 42).all())
 
+RCT = poly([(0, 0), (12, 0), (12, 8), (0, 8)])
+for roof_ in ("gable", "hip"):
+    br_, rr_ = B.building_generator(RCT, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof=roof_,
+                                    facade_pattern="wall", roof_pitch=30.0, roof_overhang=0.0)
+    Pr_ = np.asarray(br_.get(POINT, "P"), np.float64)
+    prt = np.asarray(br_.get(PRIM, "part")).reshape(-1)
+    nr_ = np.asarray(ops.compute_normals(br_, add_to="prim").get(PRIM, "N"), np.float64)
+    ra_ = sum(area3(prim_pts(br_, i)) for i in np.nonzero(prt == "roof")[0])
+    exp_a = 12 * 8 / np.cos(np.radians(30))                       # every slope at the pitch: plan area / cos
+    check(f"{roof_} roof: the ridge at 6 + tan(30°) x 4 m, the slopes face up, their area = plan / cos(pitch)",
+          abs(Pr_[:, 1].max() - (6 + np.tan(np.radians(30)) * 4)) < 1e-6 and (nr_[prt == "roof"][:, 1] > 0.5).all()
+          and abs(ra_ - exp_a) < 1e-3, (round(float(ra_), 3), round(float(exp_a), 3)))
+    if roof_ == "gable":
+        gw_ = np.nonzero(np.asarray(br_.get(PRIM, "module")).reshape(-1) == "gable")[0]
+        check("  gable: two wall triangles close the ends (area 2 x 8 x 2.31 / 2), facing out",
+              len(gw_) == 2 and abs(sum(area3(prim_pts(br_, i)) for i in gw_) - 8 * 4 * np.tan(np.radians(30))) < 1e-3)
+        rdg = Pr_[np.abs(Pr_[:, 1] - Pr_[:, 1].max()) < 1e-6]
+        check("  the ridge runs along the longer sides (x)", np.ptp(rdg[:, 0]) > 11.9 and np.ptp(rdg[:, 2]) < 1e-6)
+    else:
+        top = Pr_[np.abs(Pr_[:, 1] - Pr_[:, 1].max()) < 1e-6]
+        check("  hip: the ridge is shortened by half the span at each end (12 - 8 = 4 m long)", abs(np.ptp(top[:, 0]) - 4) < 1e-6)
+bo_, _ = B.building_generator(RCT, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="gable",
+                              facade_pattern="wall", roof_overhang=0.5)
+Po_ = np.asarray(bo_.get(POINT, "P"))
+check("  Roof Overhang: the eaves stand 0.5 m out", np.allclose(Po_.min(0)[[0, 2]], -0.5) and np.allclose(Po_.max(0)[[0, 2]], [12.5, 8.5]))
+check("  a footprint that is not four-cornered gets a flat roof",
+      "roof" in B.building_generator(UU, roof="gable")[1]["parts"] and
+      (np.asarray(ops.compute_normals(B.building_generator(UU, roof="gable", roof_overhang=0)[0], add_to="prim")
+                  .get(PRIM, "N"))[np.asarray(B.building_generator(UU, roof="gable", roof_overhang=0)[0].get(PRIM, "part")).reshape(-1) == "roof"][:, 1] > 0.999).all())
+RA = ops.merge(RCT, Geometry.from_mesh(np.asarray(RCT.get(POINT, "P")) + np.array([30.0, 0, 0]), [[3, 2, 1, 0]]))
+RA.set_string(PRIM, "rf", np.array(["hip", "flat"]))
+bra, _ = B.building_generator(RA, floors_min=1, floors_max=1, roof="gable", roof_attribute="rf", facade_pattern="wall",
+                              corners=False, top_ledge=False)
+Pra = np.asarray(bra.get(POINT, "P"))
+check("Roof Attribute picks the roof per footprint (hip over the first, flat over the second)",
+      Pra[Pra[:, 0] < 20][:, 1].max() > 3.5 and abs(Pra[Pra[:, 0] > 20][:, 1].max() - 3.0) < 1e-6)
+err("  an unknown roof in it is named", lambda: B.building_generator(
+    RA.copy() if False else (lambda g_: (g_.set_string(PRIM, "rf", np.array(["dome", "flat"])), g_)[1])(RA.copy()),
+    roof_attribute="rf"), "dome")
+FR = RCT.copy()
+FR.set(PRIM, "front", np.array([[0.0, 0.0, 1.0]]))
+bf_, _ = B.building_generator(FR, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="flat",
+                              facade_pattern="window", front_pattern="door")
+pf_ = np.asarray(bf_.get(PRIM, "part")).reshape(-1)
+cf_ = np.array([prim_pts(bf_, i).mean(0) for i in np.nonzero(pf_ == "door")[0]])
+check("Front Pattern: doors only on the ground floor of the wall facing the front (+z, 4 bays)",
+      len(cf_) == 4 and np.allclose(cf_[:, 2], 8 - 0.15, atol=1e-6) and (cf_[:, 1] < 3).all())
+FR.set(PRIM, "front", np.array([[-1.0, 0.0, 0.0]]))
+bf2, _ = B.building_generator(FR, floors_min=2, floors_max=2, corners=False, top_ledge=False, roof="flat",
+                              facade_pattern="window", front_pattern="door")
+cf2 = np.array([prim_pts(bf2, i).mean(0) for i in np.nonzero(np.asarray(bf2.get(PRIM, "part")).reshape(-1) == "door")[0]])
+check("  ... and they follow the front (-x: the 8 m wall, 3 bays)", len(cf2) == 3 and np.allclose(cf2[:, 0], 0.15, atol=1e-6))
+check("  negative control: without a front pattern no doors",
+      "door" not in B.building_generator(FR, facade_pattern="window")[1]["parts"])
+
 print("-- COP WFC")
 s = np.zeros((8, 8, 3), np.float32); s[3, :] = 1; s[:, 5] = 1                    # two crossing roads
 S = CopImage(8, 8, {"C": s})
@@ -320,6 +375,25 @@ two.set_string(PRIM, "name", np.array(["ball"] * SPH.nprims + ["crate"] * (two.n
 oa, ra = LC.lod_create(two, "100 50")
 check("assets (prim name) get their own chains: ball_LOD0, ball_LOD1, crate_LOD0, crate_LOD1",
       set(np.asarray(oa.get(PRIM, "name")).reshape(-1)) == {"ball_LOD0", "ball_LOD1", "crate_LOD0", "crate_LOD1"})
+MAS = build.box(size=(2, 2, 2))
+MAS.set(PRIM, "lod", np.ones(MAS.nprims, np.int32))
+oc_, rc_ = LC.lod_create(SPH, "100 100 50", custom=MAS)
+lv_ = np.asarray(oc_.get(PRIM, "lod")).reshape(-1)
+check("Custom Mesh: faces with lod 1 replace level 1 (a box for the sphere), level 2 is still reduced from the original",
+      rc_["lods"][1]["custom"] and int((lv_ == 1).sum()) == MAS.nprims and not rc_["lods"][2]["custom"]
+      and abs(rc_["lods"][2]["triangles"] / T0 - 0.5) < 0.01)
+MAS2 = MAS.copy()
+MAS2.set(PRIM, "lod", np.full(MAS.nprims, 2, np.int32))
+oc2, rc2 = LC.lod_create(SPH, "100 100 50", custom=MAS2)
+check("  a custom level is reduced by its own percent (the box's 12 triangles -> 6)", rc2["lods"][2]["triangles"] == 6)
+twc = MAS.copy()
+twc.set_string(PRIM, "name", np.full(MAS.nprims, "crate"))
+oa2, ra2 = LC.lod_create(two, "100 100", custom=twc)
+check("  with asset names a custom face goes to its own asset only",
+      [r["custom"] for r in ra2["lods"]] == [False, False, False, True])
+bad_ = MAS.copy()
+bad_.set(PRIM, "lod", np.full(MAS.nprims, 7, np.int32))
+err("  a custom level that does not exist is refused", lambda: LC.lod_create(SPH, "100 50", custom=bad_), "does not exist")
 err("distances must match the levels", lambda: LC.lod_create(SPH, "100 50", "0 10 20"), "2 LODs")
 err("a level that does not exist is named", lambda: LC.lod_create(SPH, "100 50", view="single", level=5), "does not exist")
 
@@ -395,6 +469,18 @@ check("Impostor Textures (node) of the buildings: a 128² atlas with the five la
       (c4.xres, c4.yres) == (128, 128) and all(k in c4 for k in ("C", "alpha", "N", "depth", "beauty")) and k4.nprims == 1)
 c5, r5 = call("PCG_COPWFC", sample=S, **dflt("PCG_COPWFC", wrap_input=True, grid_x=40, grid_y=30, rand_seed=1))
 check("COP WFC (node) = the engine", np.array_equal(getn(c5, "C"), getn(o if False else W.wfc(S, xres=40, yres=30, wrap_input=True, seed=1)[0], "C")))
+
+# Merge: an attribute with different tuple sizes takes the largest, the shorter padded with 0 (a 2-float point uv
+# from one input and a 3-float one from another, as the world preview's terrain and impostor cards)
+m2_ = Geometry.from_mesh(np.zeros((3, 3)), [[0, 1, 2]])
+m2_.set(POINT, "uv", np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]], np.float32))
+m3_ = Geometry.from_mesh(np.ones((3, 3)), [[0, 1, 2]])
+m3_.set(POINT, "uv", np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], np.float32))
+mm_ = ops.merge(m2_, m3_)
+mu_ = np.asarray(mm_.get(POINT, "uv"))
+check("Merge: a 2-float and a 3-float uv merge to 3 floats, the 2-float padded with 0, the 3-float kept",
+      mu_.shape == (6, 3) and np.allclose(mu_[:3], [[0.1, 0.2, 0], [0.3, 0.4, 0], [0.5, 0.6, 0]])
+      and np.allclose(mu_[3:], np.arange(1, 10).reshape(3, 3)) and ops.merge(m3_, m2_).get(POINT, "uv").shape == (6, 3))
 
 n = len(OK)
 print(f"\n{sum(OK)}/{n} passed")

@@ -167,18 +167,25 @@ def merge(*geos):
                      np.concatenate([[0]] + offs).astype(np.int32),
                      np.concatenate(closeds), np.concatenate(types))
 
-    # Union of attributes; attributes missing on some input are filled with 0 (Houdini does the same)
+    # Union of attributes; attributes missing on some input are filled with 0 (Houdini does the same); an
+    # attribute with different tuple sizes takes the largest, the shorter ones padded with 0 (a 2-float uv merged
+    # with a 3-float one, as Houdini does)
     for cls in (POINT, VERTEX, PRIM):
         names = {}
         for g in geos:
             for k, v in g.attribs[cls].items():
-                names.setdefault(k, (v.shape[1], v.dtype))
+                c0, dt0 = names.get(k, (0, v.dtype))
+                names[k] = (max(c0, v.shape[1]), dt0)
         for k, (c, dt) in names.items():
             parts = []
             for g in geos:
                 a = g.get(cls, k)
                 n = g.count(cls)
-                parts.append(a if a is not None else np.zeros((n, c), dt))
+                if a is None:
+                    a = np.zeros((n, c), dt)
+                elif a.shape[1] < c:
+                    a = np.concatenate([a, np.zeros((n, c - a.shape[1]), a.dtype)], 1)
+                parts.append(a)
             out.set(cls, k, np.concatenate(parts), owned=True)
     # Groups are unioned too. merge is called repeatedly inside carve / spline_to_polygons / polyextrude;
     # if it drops groups, a whole swath downstream loses them -- this is the place that most needs guarding.

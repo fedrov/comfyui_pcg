@@ -289,7 +289,7 @@ An impostor replaces a distant object by a single card that shows a picture of t
 - **Fixed Axis**: all frames go round the up axis at one `Elevation` - for billboards that only turn about Y.
 - **3D**: `XY Frames` azimuths by `XY Frames (Y)` elevations, a latitude / longitude grid.
 
-The atlas has the layers `C` (base colour from the geometry's `Cd`, unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).
+The atlas has the layers `C` (linear base colour from the geometry's `Cd`, which is a display colour and is decoded; unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).
 
 The `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.
 

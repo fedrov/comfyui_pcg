@@ -16,7 +16,11 @@ the Facade Module Pattern.
                 Module from the library, fitted to the strip.
     Ledges      Top: a band along the top of every floor; Bottom: along its foot. Simple extruded ledges (Houdini's
                 Simple Ledges), mitred round the corners.
-    Roof        flat, or with a parapet.
+    Roof        flat, with a parapet, or (over a four-cornered footprint) gable or hip: Roof Pitch degrees, the
+                ridge along the longer sides, eaves standing out by Roof Overhang; other footprints get a flat roof.
+                Roof Attribute (a string prim attribute: flat / parapet / gable / hip) picks it per footprint.
+    Front       Front Pattern (if given) is the ground-floor pattern of the wall whose outward normal is nearest the
+                footprint's Front Attribute (a vector prim attribute): the door and shopfronts face the street.
     Floors      per building: the footprint's prim attribute Height Attribute (metres) / Full Floor Height, else
                 its Floors Attribute, else a seeded random number between Floors Min and Max.
     Plinth      Foundation Depth adds a plain band of wall below the base (part `plinth`, floor -2), so a building
@@ -37,7 +41,7 @@ import numpy as np
 from .core import Geometry, POINT, VERTEX, PRIM
 from .groups import resolve
 
-ROOFS = ("parapet", "flat")
+ROOFS = ("parapet", "flat", "gable", "hip")
 BUILTIN = ("wall", "window", "door", "shopfront")
 _COL = {"wall": (0.72, 0.66, 0.58), "glass": (0.16, 0.22, 0.28), "frame": (0.85, 0.83, 0.80),
         "door": (0.30, 0.20, 0.14), "corner": (0.62, 0.58, 0.52), "ledge": (0.80, 0.78, 0.74),
@@ -179,6 +183,83 @@ def _offset(p, d):
     return p + (n0 + nr) / den * d
 
 
+def _face_up(M, pts, uvs, part, module, floor, bld, outward=None):
+    """A face whose normal points up (or along `outward`, for a wall)."""
+    P = np.asarray(pts, np.float64)
+    q = P - P.mean(0)
+    n = np.cross(q, np.roll(q, -1, axis=0)).sum(0)
+    ref = np.array([0.0, 1.0, 0.0]) if outward is None else np.asarray(outward, np.float64)
+    if n @ ref < 0:
+        P, uvs = P[::-1], np.asarray(uvs)[::-1]
+    M.face(P, uvs, part, module, floor, bld)
+
+
+def _pitched_roof(M, p, y, base, kind, pitch, overhang, nb):
+    """
+    A gable or hip roof over a four-cornered footprint p (CCW, (x, z)) whose walls end at height y. The ridge runs
+    along the longer pair of opposite sides, at tan(pitch) x half the span above the eaves; the eaves stand out by
+    overhang (and drop with the slope). Gable ends are walls (part wall); a hip roof slopes on all four sides (a
+    pyramid where the ridge would have no length).
+    """
+    tn = np.tan(np.radians(np.clip(pitch, 5.0, 75.0)))
+    e = np.roll(p, -1, axis=0) - p
+    Ls = np.linalg.norm(e, axis=1)
+    k = 0 if Ls[0] + Ls[2] >= Ls[1] + Ls[3] else 1                 # sides k and k + 2 carry the eaves
+    q = _offset(p, overhang) if overhang > 0 else p
+    ye = y - overhang * tn
+    i0, i1, i2, i3 = k, (k + 1) % 4, (k + 2) % 4, (k + 3) % 4
+    span = 0.5 * (Ls[i1] + Ls[i3])
+    h = y + tn * span * 0.5                                         # ridge height
+    Ra = 0.5 * (q[i3] + q[i0])                                      # ridge ends, over the gable sides
+    Rb = 0.5 * (q[i1] + q[i2])
+    ax = Rb - Ra
+    la = float(np.linalg.norm(ax))
+    ax = ax / max(la, 1e-9)
+    perp = np.array([-ax[1], ax[0]])
+
+    def v3(xz, yy):
+        return (xz[0], yy, xz[1])
+
+    def uvs(pts):
+        P = np.asarray(pts, np.float64)
+        o = q[i0]
+        return [((pp[[0, 2]] - o) @ ax, abs((pp[[0, 2]] - o) @ perp) / max(np.cos(np.arctan(tn)), 1e-6), 0)
+                for pp in P]
+    if kind == "hip":
+        hw = 0.5 * float(np.linalg.norm(q[i1] - q[i2]))             # half the (overhung) span
+        if la <= 2 * hw:                                             # a pyramid
+            Ra = Rb = 0.5 * (Ra + Rb)
+        else:
+            Ra, Rb = Ra + ax * hw, Rb - ax * hw
+    sl1 = [v3(q[i0], ye), v3(q[i1], ye), v3(Rb, h), v3(Ra, h)]
+    sl2 = [v3(q[i2], ye), v3(q[i3], ye), v3(Ra, h), v3(Rb, h)]
+    if kind == "hip" and np.allclose(Ra, Rb):
+        sl1, sl2 = sl1[:3], sl2[:3]
+    _face_up(M, sl1, uvs(sl1), "roof", "roof", -1, nb)
+    _face_up(M, sl2, uvs(sl2), "roof", "roof", -1, nb)
+    if kind == "hip":
+        for a_, b_, r_ in ((i1, i2, Rb), (i3, i0, Ra)):
+            t_ = [v3(q[a_], ye), v3(q[b_], ye), v3(r_, h)]
+            _face_up(M, t_, uvs(t_), "roof", "roof", -1, nb)
+        # the soffit (underside of the eaves) is left open, as in most game roofs seen from the street
+        return
+    # gable ends: wall triangles over the end walls, facing out
+    for a_, b_ in ((i1, i2), (i3, i0)):
+        A, B = p[a_], p[b_]
+        mid = 0.5 * (A + B)
+        out = np.array([(B - A)[1], 0.0, -(B - A)[0]])
+        tri = [v3(A, y), v3(B, y), v3(mid, h)]
+        wl = float(np.linalg.norm(B - A))
+        _face_up(M, tri, [(0, y - base, 0), (wl, y - base, 0), (wl / 2, h - base, 0)], "wall", "gable", -1, nb, out)
+    # the overhang under the gable ends: the slopes reach past the end walls, so close the triangle under them
+    if overhang > 0:
+        for (a_, b_), r_ in (((i1, i2), Rb), ((i3, i0), Ra)):
+            out = p[b_] - p[a_]
+            out = np.array([out[1], 0.0, -out[0]])
+            t_ = [v3(q[a_], ye), v3(q[b_], ye), v3(r_, h)]
+            _face_up(M, t_, uvs(t_), "roof", "roof", -1, nb, out)
+
+
 def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min=2, floors_max=6,
                        floors_attribute="floors", height_attribute="height", seed=0,
                        facade_pattern="window", module_width=3.0,
@@ -186,7 +267,9 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
                        corners=True, corner_width=0.4, convex_corner_module="", concave_corner_module="",
                        top_ledge=True, top_ledge_height=0.25, bottom_ledge=False, bottom_ledge_height=0.4,
                        ledge_depth=0.15, roof="parapet", parapet_height=0.8, parapet_thickness=0.3,
-                       floor_overrides="", color_floors=False, footprint_inset=0.0, foundation_depth=0.0):
+                       floor_overrides="", color_floors=False, footprint_inset=0.0, foundation_depth=0.0,
+                       front_attribute="front", front_pattern="", roof_pitch=35.0, roof_overhang=0.3,
+                       roof_attribute=""):
     """Footprint polygons -> buildings; see the module docstring. -> Geometry, report dict."""
     if roof not in ROOFS:
         raise ValueError(f"Roof must be one of {ROOFS}")
@@ -196,8 +279,20 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
              window_sill=float(np.clip(window_sill, 0.0, 0.9)), inset=max(0.0, float(inset)))
     lib = _library(modules)
     pat0 = _pattern(facade_pattern)
+    patf = _pattern(front_pattern) if str(front_pattern).strip() else None
+    fa = geo.get(PRIM, str(front_attribute).strip()) if (patf is not None and str(front_attribute).strip()) else None
+    if fa is not None and (np.asarray(fa).dtype.kind == "U" or np.asarray(fa).shape[1] < 3):
+        raise ValueError(f"Front Attribute '{front_attribute}' must be a vector prim attribute (the front's direction)")
     over = _overrides(floor_overrides)
     sel = resolve(geo, PRIM, group)
+    ra = geo.get(PRIM, str(roof_attribute).strip()) if str(roof_attribute).strip() else None
+    if ra is not None:
+        if np.asarray(ra).dtype.kind != "U":
+            raise ValueError(f"Roof Attribute '{roof_attribute}' must be a string prim attribute ({', '.join(ROOFS)})")
+        ra = np.asarray(ra).reshape(-1).astype(str)
+        bad = sorted(set(ra) - set(ROOFS) - {""})
+        if bad:
+            raise ValueError(f"Roof Attribute: unknown roof {bad[0]!r} (one of {ROOFS}; empty = the Roof menu)")
     P = np.asarray(geo.get(POINT, "P"), np.float64)
     vp, off, closed = np.asarray(geo.vertex_point), np.asarray(geo.prim_offset), np.asarray(geo.prim_closed)
     hattr = geo.get(PRIM, str(height_attribute).strip()) if str(height_attribute).strip() else None
@@ -248,6 +343,11 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
         # convex corner (seen from outside) at vertex k: the outline turns left there
         tp = np.roll(t2, 1, axis=0)
         turn = tp[:, 0] * t2[:, 1] - tp[:, 1] * t2[:, 0]
+        front_k = -1                                                # the wall whose outward normal is nearest the front
+        if fa is not None:
+            fv = np.asarray(fa, np.float64)[i, [0, 2]]
+            if np.linalg.norm(fv) > 1e-9:
+                front_k = int(np.argmax(t2[:, 1] * fv[0] - t2[:, 0] * fv[1]))
         if float(foundation_depth) > 0:                             # a plinth below the base, for uneven ground
             fd = float(foundation_depth)
             s0 = 0.0
@@ -262,6 +362,7 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
             fh = float(ov.get("height", floor_height))
             pat = ov.get("pattern", pat0)
             for k in range(m):
+                pat_k = patf if (k == front_k and f == 0) else pat
                 a, b = p[k], p[(k + 1) % m]
                 t3 = np.array([t2[k, 0], 0.0, t2[k, 1]])
                 n3 = np.array([t2[k, 1], 0.0, -t2[k, 0]])           # outward
@@ -285,7 +386,7 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
                         faces = (_module(cm, w, fh, o, lib) if cm
                                  else [([(0, 0, 0), (w, 0, 0), (w, fh, 0), (0, fh, 0)], "corner")])
                     else:
-                        alt = pat[(nbay - 1 - j) % len(pat)]        # the pattern reads left to right from outside
+                        alt = pat_k[(nbay - 1 - j) % len(pat_k)]    # the pattern reads left to right from outside
                         name = alt[int(rng.integers(len(alt)))] if len(alt) > 1 else alt[0]
                         faces = _module(name, w, fh, o, lib)
                     for pts, part in faces:
@@ -314,7 +415,14 @@ def building_generator(geo, modules=None, group="", floor_height=3.0, floors_min
             y += fh
         tot_floors += nf
         rp = p
-        if roof == "parapet" and float(parapet_height) > 0 and float(parapet_thickness) > 0:
+        roof_i = ra[i] if ra is not None and ra[i] else roof
+        if roof_i in ("gable", "hip") and m == 4:
+            _pitched_roof(M, p, y, base, roof_i, float(roof_pitch), max(0.0, float(roof_overhang)), nb)
+            M.tint = getattr(M, "tint", [])
+            M.tint.append(tint)
+            nb += 1
+            continue
+        if roof_i == "parapet" and float(parapet_height) > 0 and float(parapet_thickness) > 0:
             ph = float(parapet_height)
             q = _offset(p, -float(parapet_thickness))
             s = 0.0

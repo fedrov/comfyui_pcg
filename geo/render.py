@@ -204,7 +204,7 @@ def project(cam, P):
 
 
 # ════════════════════════════════════════════════════════════════ rasterization
-def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None):
+def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None):
     """
     z-buffer rasterization. Returns a dict:
 
@@ -217,6 +217,9 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None):
 
     soup: an earlier tri_soup(geo, group) result to reuse (cutting ngons costs seconds on millions of faces, and a
     lit render rasterizes the same geometry several times).
+    alpha: alpha test (cutout), a function (triangle numbers of the soup, barycentric weights (n, 3) in those
+    triangles, this dict) -> bool keep per fragment; a fragment it drops does not hide what lies behind it (leaves,
+    fences, impostor cards).
     """
     from .spatial import tri_soup
     W, H = int(cam["xres"]), int(cam["yres"])
@@ -264,7 +267,7 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None):
     idx = np.nonzero(keep)[0]
     if not len(idx):
         return out
-    rast = (rtri, rsrc, lam, len(plain))
+    rast = (rtri, rsrc, lam, len(plain), alpha, out)
 
     x0 = np.maximum(np.floor(np.minimum.reduce(
         [sx[A[idx]], sx[B[idx]], sx[C[idx]]])).astype(np.int64), 0)
@@ -345,7 +348,7 @@ def _clip_near(P, tri, zt, ins, cnt, cut, near):
 
 
 def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H):
-    tri, rsrc, lam, nplain = rast
+    tri, rsrc, lam, nplain, alpha, outd = rast
     # Each block gets 0..area-1 -- local indices within the bounding box
     flat = _gather_blocks(np.zeros(len(area), np.int64), area)
     tid = np.repeat(idx, area)
@@ -385,6 +388,20 @@ def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H):
     else:
         zz = w0 * z[a] + w1 * z[b] + w2 * z[c]
         b0, b1, b2 = w0, w1, w2
+
+    if alpha is not None:
+        # the alpha test, before the depth test: a cut-out fragment must not win a pixel
+        bb = np.stack([b0, b1, b2], 1)
+        if lam is not None:
+            cl = tid >= nplain
+            if cl.any():
+                bb[cl] = np.einsum("mk,mkj->mj", bb[cl], lam[tid[cl] - nplain])
+        keep = np.asarray(alpha(rsrc[tid], bb, outd), bool)
+        if not keep.all():
+            tid, px, py, zz = tid[keep], px[keep], py[keep], zz[keep]
+            b0, b1, b2 = b0[keep], b1[keep], b2[keep]
+        if not len(tid):
+            return
 
     pix = py * W + px
     zbuf = out["z"].reshape(-1)

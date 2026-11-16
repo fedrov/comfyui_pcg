@@ -1784,6 +1784,8 @@ Builds a chain of levels of detail from a mesh, optionally ending in impostor ca
 
 With `Preserve UVs` on, UV seams are kept in place, so every level can use the textures baked for LOD0. `Recalculate Normals` writes new vertex normals on the reduced levels, split at edges sharper than `Cusp Angle`. `Last LOD is Impostor` replaces the last level by two crossed upright cards the size of the bounding box, with uv 0-1 each, ready for an atlas from Impostor Textures (PCG).
 
+**Custom meshes.** A model made another way can replace a level: connect it to `custom` with an integer prim attribute `lod` on its faces (and `name`, to match an asset). The level's percent then applies to it, 100 keeping it as it is. This is the way for meshes that reduction would tear -- a building's facade full of openings, say, replaced at a distance by its massing.
+
 If the mesh has a string prim attribute `name`, every name is treated as one asset and gets its own chain.
 
 All levels come out in one geometry. Each prim carries `lod` (the level), `part` (`LOD0`, `LOD1`, ...), `name` (`<asset>_LOD0`, or `LOD0` without asset names), `lod_distance` and `impostor`; there is a prim group per level. Export Mesh (PCG) writes one node per `name`, which is how engines pick up LOD chains.
@@ -1793,6 +1795,7 @@ All levels come out in one geometry. Each prim carries `lod` (the level), `part`
 | Input | Type | Description |
 |---|---|---|
 | `geo` | GEOMETRY | Mesh to make levels of detail for. |
+| `custom` *(optional)* | GEOMETRY | Optional custom meshes: faces with an integer prim attribute `lod` replace that level (matched to the asset by `name`, if any). |
 
 **Outputs**
 
@@ -1837,7 +1840,7 @@ All levels come out in one geometry. Each prim carries `lod` (the level), `part`
 
 **Compared with Houdini**
 
-Corresponds to SideFX Labs LOD Create 2.0: LOD count, Percent Triangles, Threshold Distance, Last LOD is Impostor, Recalculate Normals with Cusp Angle, the mesh name prefix and the viewing modes. Not included: FBX export and texture baking (use Export Mesh and COP Bake Textures), shader consolidation, Remove Insides, Preserve Quads (the reduced levels are triangles) and the camera-driven viewing mode.
+Corresponds to SideFX Labs LOD Create 2.0: LOD count, Percent Triangles, Threshold Distance, Custom Mesh (as a second input), Last LOD is Impostor, Recalculate Normals with Cusp Angle, the mesh name prefix and the viewing modes. Not included: FBX export and texture baking (use Export Mesh and COP Bake Textures), shader consolidation, Remove Insides, Preserve Quads (the reduced levels are triangles) and the camera-driven viewing mode.
 
 ---
 

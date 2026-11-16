@@ -825,7 +825,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 80,
@@ -854,6 +854,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -900,7 +905,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    492
+    512
    ],
    "size": [
     340,
@@ -1483,7 +1488,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 86,
@@ -1512,6 +1517,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -1558,7 +1568,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    492
+    512
    ],
    "size": [
     340,
@@ -2096,7 +2106,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 92,
@@ -2125,6 +2135,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -2171,7 +2186,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    492
+    512
    ],
    "size": [
     340,
@@ -2709,7 +2724,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 98,
@@ -2738,6 +2753,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -2784,7 +2804,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    492
+    512
    ],
    "size": [
     340,
@@ -3322,7 +3342,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 104,
@@ -3351,6 +3371,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -3397,7 +3422,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3552
+    3572
    ],
    "size": [
     340,
@@ -3935,7 +3960,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 110,
@@ -3964,6 +3989,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -4010,7 +4040,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3552
+    3572
    ],
    "size": [
     340,
@@ -4548,7 +4578,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 116,
@@ -4577,6 +4607,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -4623,7 +4658,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3552
+    3572
    ],
    "size": [
     340,
@@ -5206,7 +5241,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 122,
@@ -5235,6 +5270,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -5281,7 +5321,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3552
+    3572
    ],
    "size": [
     340,
@@ -5864,7 +5904,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 128,
@@ -5893,6 +5933,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -5939,7 +5984,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    6612
+    6632
    ],
    "size": [
     340,
@@ -6522,7 +6567,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 134,
@@ -6551,6 +6596,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -6597,7 +6647,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    6612
+    6632
    ],
    "size": [
     340,
@@ -7180,7 +7230,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 140,
@@ -7209,6 +7259,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -7255,7 +7310,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    6612
+    6632
    ],
    "size": [
     340,
@@ -7838,7 +7893,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 146,
@@ -7867,6 +7922,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -7913,7 +7973,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    6612
+    6632
    ],
    "size": [
     340,
@@ -8451,7 +8511,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 152,
@@ -8480,6 +8540,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -8526,7 +8591,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    9672
+    9692
    ],
    "size": [
     340,
@@ -9064,7 +9129,7 @@
    ],
    "size": [
     340,
-    448
+    468
    ],
    "flags": {},
    "order": 158,
@@ -9093,6 +9158,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -9139,7 +9209,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    9672
+    9692
    ],
    "size": [
     340,

@@ -16,7 +16,8 @@ Frames are laid out row by row; frame (0, 0) is the lower-left sprite (row 0 = t
 COP). `frame_directions` gives the direction from the object toward the camera for every frame.
 
 Layers of the atlas:
-    C        base colour: the geometry's Cd (vertex, point or prim; 0.8 grey without), unlit
+    C        base colour, linear: the geometry's Cd (vertex, point or prim; a display colour, decoded; 0.8 grey
+             without), unlit
     alpha    1 on the object
     N        normal, in World space or View space (x right, y up, z toward the camera), signed
     depth    0..1 across the bounding sphere along the view (0.5 = the centre's plane, 1 = nearest), 0 off the object
@@ -131,7 +132,8 @@ def impostor_textures(geo, kind="octahedron", sprite_res=128, frames_x=8, frames
                    "target": ctr, "distance": radius * 3.0}
             rast = rasterize(geo, cam, "", "none", soup=soup)
             m = rast["hit"] >= 0
-            col = np.where(m[:, :, None], _colour(geo, rast), 0.0)
+            from .studio import srgb_to_linear
+            col = np.where(m[:, :, None], srgb_to_linear(np.clip(_colour(geo, rast), 0, None)), 0.0)  # Cd: display
             nw = _interp(rast, pn) if pn is not None else _face_normals(geo, rast)
             ln = np.linalg.norm(nw, axis=-1, keepdims=True)
             nw = nw / np.where(ln < 1e-12, 1.0, ln)

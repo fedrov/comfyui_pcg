@@ -265,10 +265,34 @@ else:
         attr_ = lambda n: np.asarray(g_.get(PRIM, n)).reshape(-1)[first_]          # noqa: E731
         floors_ = np.zeros(nb_, int)
         np.maximum.at(floors_, bp_, fl_ + 1)
-        return {"base": base_, "feet": P_[vp_[feet_]][:, [0, 2]], "feet_b": b_[feet_], "tc": np.stack(
-            [attr_("tcx"), attr_("tcz")], 1), "name": attr_("name"), "floors": floors_,
-            "parts": {str(k): int((np.asarray(g_.get(PRIM, "part")).reshape(-1) == k).sum())
-                      for k in np.unique(np.asarray(g_.get(PRIM, "part")).reshape(-1))}}
+        # each face's centre (x, z), for the doors' and the walls' distance to the road
+        fc_ = np.zeros((g_.nprims, 3))
+        np.add.at(fc_, np.repeat(np.arange(g_.nprims), cnt_), P_[vp_])
+        fc_ = fc_[:, [0, 2]] / cnt_[:, None]
+        pp_ = np.asarray(g_.get(PRIM, "part")).reshape(-1)
+        rt_ = np.full(nb_, -1e9)
+        rv_ = part_ == "roof"
+        np.maximum.at(rt_, b_[rv_], P_[vp_[rv_], 1])
+        md_ = np.asarray(g_.get(PRIM, "module")).reshape(-1)
+        return {"base": base_, "feet": P_[vp_[feet_]][:, [0, 2]], "feet_b": b_[feet_], "name": attr_("name"),
+                "floors": floors_, "tc": attr_("tc_avg"), "rf": attr_("rf"), "door_c": fc_[pp_ == "door"], "door_b": bp_[pp_ == "door"],
+                "wall_c": fc_[pp_ == "wall"], "wall_b": bp_[pp_ == "wall"], "gable": int((md_ == "gable").sum()),
+                "roof_top": rt_,
+                "parts": {str(k): int((pp_ == k).sum()) for k in np.unique(pp_)}}
+
+    def _cards(out):
+        g_ = out[0]
+        uv_ = np.asarray(g_.get(POINT, "uv"), np.float64)
+        return {"n": g_.nprims, "uv": (float(uv_[:, :2].min()), float(uv_[:, :2].max())),
+                "frames": len(np.unique(np.floor(uv_[:, :2].reshape(-1, 4, 2).mean(1) * 8), axis=0))}
+
+    def _lods(out):
+        g_ = out[0]
+        lv_ = np.asarray(g_.get(PRIM, "lod")).reshape(-1)
+        return {int(k): int((lv_ == k).sum()) for k in np.unique(lv_)}
+
+    def _towns(out):
+        return np.asarray(out[0].get(POINT, "P"), np.float64)[:, [0, 2]].copy()
 
     def _wfc(out):
         from comfyui_pcg.geo.cop.pixel import getn as _g
@@ -276,11 +300,12 @@ else:
 
     def _eco(out):
         from comfyui_pcg.geo.cop.pixel import getn as _g
-        return {k: _g(out[0], k)[..., 0].astype(np.float32) for k in ("farm", "field_id", "town", "ForestFloor", "N")} | {
+        return {k: _g(out[0], k)[..., 0].astype(np.float32) for k in ("farm", "field_id", "town", "ForestFloor", "N", "fieldw")} | {
             "Nz": _g(out[0], "N")[..., 2].astype(np.float32)}
     cap = {"Grass tufts": _grass, "Close range: material terrain": _pts, "Material: terrain": _pts,
            "Terrain: full map + close range": lambda out: out[0].npoints,
-           "Buildings (Building Generator)": _bld, "Fields: WFC over the map (128² cells, tileable)": _wfc,
+           "Buildings (Building Generator)": _bld, "Towns: numbered": _towns, "Valley: cards' uv on their frame": _cards,
+           "Valley: the towns at that LOD": _lods, "Fields: WFC over the map (128² cells, tileable)": _wfc,
            "Ecology: seven weight layers + scatter densities": _eco}
     api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap)
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
@@ -472,22 +497,50 @@ else:
               f"negative control, the same footprints 60 m away: {np.mean(spc_ < 0.5):.0%}",
               np.mean(sp_ < 0.5) > 0.9 and np.mean(spc_ < 0.5) < 0.6,
               (round(float(np.mean(sp_ < 0.5)), 2), round(float(np.mean(spc_ < 0.5)), 2)))
-        dr_ = cKDTree(RV[:, [0, 2]] - 2048.0).query(bq["feet"])[0]
-        dtc_ = cKDTree(RV[:, [0, 2]] - 2048.0).query(np.unique(bq["tc"], axis=0))[0]
+        tp_ = cap["got"].get("Towns: numbered")
+        rkd = cKDTree(RV[:, [0, 2]] - 2048.0)
+        dr_ = rkd.query(bq["feet"])[0]
+        dtc_ = rkd.query(tp_)[0]
         check(f"  off the roads: every wall at least 8 m from a road centre line (min {dr_.min():.1f} m); negative "
               f"control, the town centres: median {np.median(dtc_):.1f} m from a road",
               dr_.min() > 8.0 and np.median(dtc_) < 10.0)
         cen_ = np.array([bq["feet"][bq["feet_b"] == k].mean(0) for k in range(nb_)])
-        dcen = np.linalg.norm(cen_ - bq["tc"], axis=1)
-        cr_ = float(np.corrcoef(dcen, bq["floors"])[0, 1])
-        check(f"  in the town discs (all within 170 m of their centre, max {dcen.max():.0f} m), 1-5 floors, "
-              f"taller toward the centre (correlation of floors with distance {cr_:.2f})",
-              dcen.max() < 170 and bq["floors"].min() >= 1 and bq["floors"].max() <= 5 and cr_ < -0.3)
+        ti_ = np.array([int(n_[5:]) - 1 for n_ in bq["name"]])
+        dcen = np.linalg.norm(cen_ - tp_[ti_], axis=1)
+        dcr_ = rkd.query(cen_)[0]
+        cr_ = float(np.corrcoef(bq["tc"], bq["floors"])[0, 1])
+        check(f"  plots along the roads: every building in its town's disc (within 170 m of the centre, max "
+              f"{dcen.max():.0f} m), 90% within 90 m of a road (median {np.median(dcr_):.0f} m); 1-5 floors, taller "
+              f"toward the town core (correlation of floors with the core weight {cr_:.2f})",
+              dcen.max() < 170 and np.mean(dcr_ < 90) > 0.9 and bq["floors"].min() >= 1 and bq["floors"].max() <= 5
+              and cr_ > 0.3)
+        # the doors face the road: a door is nearer the road than its building's centre; negative control, the
+        # building's walls on average (half of them face away)
+        dd_ = rkd.query(bq["door_c"])[0] - dcr_[bq["door_b"]]
+        wd_ = rkd.query(bq["wall_c"])[0] - dcr_[bq["wall_b"]]
+        hd_ = len(np.unique(bq["door_b"]))
+        check(f"  the doors on the street side (Front Pattern): {hd_} buildings with doors, {np.mean(dd_ < 0):.0%} of "
+              f"the doors nearer the road than their building's centre; negative control, the walls: "
+              f"{np.mean(wd_ < 0):.0%}", hd_ > 0.8 * nb_ and np.mean(dd_ < 0) > 0.9 and np.mean(wd_ < 0) < 0.65,
+              (round(float(np.mean(dd_ < 0)), 3), round(float(np.mean(wd_ < 0)), 3)))
+        rf_ = bq["rf"]
+        ridge_ = bq["roof_top"] - bq["base"] - 3.4 - 3.1 * (bq["floors"] - 1)
+        check(f"  pitched roofs: gable on 1-3 floors, hip on 4-5 ({dict(zip(*np.unique(rf_, return_counts=True)))}), "
+              f"{bq['gable']} gable-end walls, the ridges above the eaves (median {np.median(ridge_):.1f} m)",
+              set(rf_.tolist()) <= {"gable", "hip"} and np.all((rf_ == "hip") == (bq["floors"] >= 4))
+              and bq["gable"] > 0 and np.median(ridge_) > 1.5, np.percentile(ridge_, [1, 50, 99]).round(2))
         js_, tn_ = node_meshes(os.path.join(WD, "buildings/Towns.glb"))
         allv = np.concatenate([v[0] for v in tn_.values()])
-        check(f"  Towns.glb: one node per town ({len(tn_)}), in the north-west-origin frame (0..4096), material slots "
-              "for the parts", sorted(tn_) == towns_ and allv[:, [0, 2]].min() > 0 and allv[:, [0, 2]].max() < 4096
-              and {"wall", "glass", "roof", "plinth"} <= {m["name"] for m in js_["materials"]})
+        want_ = sorted(f"{t}_LOD{k}" for t in towns_ for k in range(3))
+        tri_ = {n_: len(v[2]) for n_, v in tn_.items()}
+        lodok = all(tri_[f"{t}_LOD1"] < 0.5 * tri_[f"{t}_LOD0"] and tri_[f"{t}_LOD2"] < tri_[f"{t}_LOD1"]
+                    for t in towns_) if sorted(tn_) == want_ else False
+        mats_ = {m["name"] for m in js_["materials"]}
+        check(f"  Towns.glb: a node per town and LOD ({len(tn_)}: the buildings, their massing, the massing reduced), "
+              f"in the north-west-origin frame (0..4096), the material library's materials {sorted(mats_)}",
+              sorted(tn_) == want_ and lodok and allv[:, [0, 2]].min() > 0 and allv[:, [0, 2]].max() < 4096
+              and {"M_Glass", "M_Door", "M_Trim", "M_Roof"} <= mats_ and len(mats_ & {"M_Stucco", "M_BrickBuff", "M_Wall"}) >= 2,
+              {t: (tri_.get(f"{t}_LOD0"), tri_.get(f"{t}_LOD1"), tri_.get(f"{t}_LOD2")) for t in towns_[:3]})
     # the fields: a WFC patchwork round the towns, cleared of woodland
     fw = cap["got"].get("Fields: WFC over the map (128² cells, tileable)")
     if fw is None:
@@ -512,6 +565,7 @@ else:
               f"sample's ({ok_w:.1%}); negative control, random cells: {np.mean([tuple(w) in have for w in wr]):.0%}",
               fw.shape == (128, 128) and set(np.unique(fw)) == set(range(5)) and ok_w == 1.0
               and np.mean([tuple(w) in have for w in wr]) < 0.2)
+    fwm = None
     ec = cap["got"].get("Ecology: seven weight layers + scatter densities")
     if ec is not None:
         gentle = ec["Nz"] > 0.98
@@ -521,6 +575,7 @@ else:
         check(f"  the fields are cleared of woodland: ForestFloor {ffc:.3f} on {int(crop.sum())} crop pixels; "
               f"negative control, the margins between them (hedgerows, copses): {ffm:.3f}",
               crop.sum() > 2000 and marg.sum() > 1000 and ffc < 0.02 and ffm > 3 * ffc)
+        fwm = ec["fieldw"][::-1].copy()                # image row 0 is the bottom; the stitched tiles start at the top
         del ec
     # the far view: the tree proxies as LOD chains ending in impostor cards, and their impostor atlases
     ad_ = os.path.join(WD, "assets")
@@ -538,6 +593,13 @@ else:
               sorted(nm_) == [f"SM_Proxy_{a_}_LOD{i}" for i in range(3)] and t_[2] == 4 and 0.3 < t_[1] / t_[0] < 0.5
               and bc_.shape[:2] == (1024, 1024) and min(frames) > 0.05 and max(frames) < 0.95
               and abs(np.median(np.linalg.norm(nn_[on_], axis=-1)) - 1) < 0.05)
+    # the previews' far view: from the valley camera, the trees beyond 500 m as impostor cards on their frames, the
+    # towns at the LOD of their distance
+    cq_, lq_ = cap["got"].get("Valley: cards' uv on their frame"), cap["got"].get("Valley: the towns at that LOD")
+    check(f"preview far view (valley camera): {cq_ and cq_['n']} impostor cards, uv on the atlas "
+          f"{cq_ and cq_['uv']} over {cq_ and cq_['frames']} frames; the towns' faces by LOD {lq_}",
+          cq_ is not None and cq_["n"] > 5000 and cq_["uv"][0] >= 0 and cq_["uv"][1] <= 1 and cq_["frames"] >= 4
+          and lq_ is not None and len(lq_) >= 2 and sum(lq_.values()) > 0)
     # grass (preview only): tufts around the road camera, dense at the camera, on the ground, off the road
     gg_ = cap["got"].get("Grass tufts")
     if gg_ is None:
@@ -623,11 +685,12 @@ else:
           and all(wrap_jump(c) < 2.0 for c in col) and all(h.min() < 0.05 and h.max() > 0.95 for h in hts)
           and all(c.std() > 0.02 for c in col) and all(np.linalg.norm(n_, axis=-1).mean() > 0.02 for n_ in nrm_),
           [round(float(wrap_jump(c)), 2) for c in col])
-    SP = np.zeros((2048, 2048, 12))
+    NSP = (len(MW.LAYERS) + 3) // 4
+    SP = np.zeros((2048, 2048, 4 * NSP))
     MC = np.zeros((2048, 2048, 3))
     for i in range(4):
         for j in range(4):
-            for k in range(3):
+            for k in range(NSP):
                 t_ = img(os.path.join(WD, f"texture/T_Terrain_Splat{k}_x{i}_y{j}.png"))
                 SP[j * 512:(j + 1) * 512, i * 512:(i + 1) * 512, 4 * k:4 * k + 4] = t_[..., :4] / 255.0
             MC[j * 512:(j + 1) * 512, i * 512:(i + 1) * 512] = \
@@ -636,8 +699,8 @@ else:
     rs = np.minimum(((np.arange(1025) + 0.5) * 2048 / 1025).astype(int), 2047)
     sub_ = SP[np.ix_(rs, rs)]
     land = wfull["Water"] < 0.05
-    check("splat maps: 3 RGBA x 16 tiles of 512², twelve weights that sum to 1 on land (the water takes the rest) "
-          "and never above it", SP.shape[2] == 12 and np.median(ssum[np.ix_(rs, rs)][land]) > 0.97
+    check(f"splat maps: {NSP} RGBA x 16 tiles of 512², {len(MW.LAYERS)} weights that sum to 1 on land (the water "
+          "takes the rest) and never above it", NSP == 4 and len(MW.LAYERS) == 13 and np.median(ssum[np.ix_(rs, rs)][land]) > 0.97
           and np.percentile(ssum, 99.9) < 1.06, (round(float(np.median(ssum[np.ix_(rs, rs)][land])), 3),
                                                round(float(np.percentile(ssum, 99.9)), 3)))
     rk_ = wfull["Rock"] > 0.8
@@ -652,6 +715,15 @@ else:
     check("  macro map: 1x on average over the land (stored halved: median about 0.5), and varied",
           0.35 < np.median(mland) < 0.65 and mland.std() > 0.03, (round(float(np.median(mland)), 3),
                                                                 round(float(mland.std()), 3)))
+    ci_ = [n for n, _ in MW.LAYERS].index("Crops")
+    if fwm is not None and fwm.shape == sub_.shape[:2]:
+        on_, off_ = (fwm > 0.8) & land, (fwm < 0.05) & land
+        cf_, co_ = float(sub_[..., ci_][on_].mean()), float(sub_[..., ci_][off_].mean())
+        check(f"  Crops (layer {ci_ + 1}): {cf_:.2f} on the fields ({int(on_.sum())} px); negative control, off "
+              f"them: {co_:.3f}", on_.sum() > 1000 and cf_ > 0.6 and co_ < 0.02)
+    else:
+        check("  Crops: the ecology's field weight was captured at the map's size", False,
+              None if fwm is None else fwm.shape)
     del SP, MC, ssum, sub_, mland, hts, gsoil
     # the stitched 4096² images and the decoded tiles are a gigabyte or two: let them go before the next pipeline
     del BC, NM, nv, lnv, BCs, bct, nmt, wfull, tiles, full, st, Hm, rows, RV, rl, col, nrm_

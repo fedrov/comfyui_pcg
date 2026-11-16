@@ -58,7 +58,9 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              # weights layer, multiplying the base colour (0.5 = no change) and bending the normal
              "detail1", "detail2", "detail3", "detail4",
              "detail_normal1", "detail_normal2", "detail_normal3", "detail_normal4",
-             "detail_weights", "detail_tiling", "detail_triplanar")
+             "detail_weights", "detail_tiling", "detail_triplanar",
+             # cutout: a texture whose first channel below alpha_cutoff (default 0.5) removes the surface there
+             "alpha", "alpha_cutoff")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
 # terrain layers (an engine's landscape material): layerN = a tiled colour, layerN_normal / _rough / _height its other
@@ -77,7 +79,14 @@ def parse_textures(text):
     metallic on its own (first channel); {material} in the path is replaced by each face's material name. A value
     '@layer' takes that layer of the COP image connected to the node instead of a file (e.g. straight from COP Bake
     Textures, so no file has to be written first); '@ao roughness metallic' packs several layers like a file.
-    '#' starts a comment.
+    '#' starts a comment. A '@layer' is looked up in textures_cop, then splat_cop, then detail_cop. 'a | b' takes
+    the first alternative that exists for each material (a terrain's '@{material}_albedo' layers and a building's
+    'T_{material}_BaseColor.png' files in one slot).
+
+    Cutout: alpha = a texture (file or '@layer', {material} allowed) whose first channel below alpha_cutoff (a
+    number, default 0.5) removes the surface at that point: what lies behind shows through (leaves, fences, impostor
+    cards). Cut-out faces cast no sun or sky shadow; a face with the prim attribute shadow_only = 1 casts shadows
+    but is not seen (a stand-in shadow caster for cut-out cards).
 
     Detail maps: detail1..4 are tiled colour maps read linear, mean 0.5 = no change (the base colour is multiplied by
     2 x detail, Unity's "Detail Albedo x2"); detail_normal1..4 tangent-space normals; detail_weights a layer or file
@@ -110,7 +119,7 @@ def parse_textures(text):
         if (k.lower() not in TEX_SLOTS and not _LAYER_SLOT.fullmatch(k.lower())) or not v:
             raise ValueError(f"Textures: slot must be one of {TEX_SLOTS} or layer1.. / layer1_normal .. / "
                              f"layer_weights / layer_blend / layer_macro with a path, got {line!r}")
-        if k.lower() in ("detail_tiling", "detail_triplanar", "layer_blend", "layer_antitile") or re.fullmatch(r"layer\d+_(size|triplanar)",
+        if k.lower() in ("detail_tiling", "detail_triplanar", "layer_blend", "layer_antitile", "alpha_cutoff") or re.fullmatch(r"layer\d+_(size|triplanar)",
                                                                                             k.lower()):
             try:
                 float(v)
@@ -273,7 +282,12 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     shift = cam["right"] * cx + cam["up"] * cy
     cam["eye"] = cam["eye"] + shift
     cam["target"] = cam["target"] + shift
-    rast = R.rasterize(geo, cam, max_pairs=_PAIRS)
+    tex = parse_textures(textures)
+    rep0 = {}
+    atest, acut = alpha_tester(geo, tex, tex_root, material_attrib, uv_attrib, (tex_cop, splat_cop, detail_cop), rep0)
+    from . import skylight as _K
+    ts0, T0, hid0 = shadow_only_split(geo, *_K.soup(geo))
+    rast = R.rasterize(geo, cam, max_pairs=_PAIRS, alpha=with_hidden(atest, hid0), soup=ts0)
     hit = rast["hit"]
     m = hit >= 0
 
@@ -321,8 +335,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
         cd = np.repeat(cd, 3, -1) if cd.shape[2] == 1 else cd[..., :3]
         alb[m] = srgb_to_linear(cd[m])
     del cd
-    tex = parse_textures(textures)
-    rep = {"used": [], "missing": []}
+    rep = {"used": list(rep0.get("used", [])), "missing": list(rep0.get("missing", []))}
     # material maps; a face without one keeps the defaults (no extra occlusion, roughness 0.5, dielectric)
     pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.5, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
@@ -345,7 +358,10 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     # pcg125: the key is a softbox, not a point -- soft shadows that are crisp at contact and widen with distance
     # (skylight.sun_shadow), from one 2048² depth map
     from . import skylight as K
-    T = K.soup(geo)[1] if (shadows or ao) else None
+    T = T0 if (shadows or ao) else None
+    if T is not None and acut is not None:                    # cut-out faces cast no shadow
+        T = (T[0], T[1][~acut[T[2]]], T[2])
+    T = T[:2] if T is not None else None
     sh = np.ones(m.shape, np.float32)
     if shadows:
         dmap, meta = K.depth_map(T, Ldir, center, radius * 1.05, 2048)
@@ -574,6 +590,113 @@ def _masked_interp(rast, idx, values, corner):
     return (V[ids[:, 0]] * w[:, 0:1] + V[ids[:, 1]] * w[:, 1:2] + V[ids[:, 2]] * w[:, 2:3]).astype(np.float32)
 
 
+def shadow_only_split(geo, ts, T):
+    """
+    Faces with a prim attribute shadow_only = 1 cast shadows (they stay in the shadow / sky triangles T) but the
+    camera does not see them: a cheap stand-in that gives cut-out impostor cards -- which cast none -- a shadow.
+    -> (ts, (P, tri, src), hidden): T with its prim per triangle as a third value, and a bool per prim for
+    with_hidden() (None when nothing is hidden). The soup is not filtered (a copy of millions of triangles for a
+    few hidden ones): the hidden faces' fragments are dropped in the rasterizer instead.
+    """
+    T = (T[0], T[1], ts[1])
+    so = geo.get(PRIM, "shadow_only") if geo is not None else None
+    if so is None or is_string(so):
+        return ts, T, None
+    hid = np.asarray(so, np.float64).reshape(-1) >= 0.5
+    return ts, T, (hid if hid.any() else None)
+
+
+def with_hidden(test, hidden):
+    """rasterize's alpha test that also drops the fragments of hidden (shadow-only) prims."""
+    if hidden is None:
+        return test
+
+    def t(tt, bb, rast):
+        k = ~hidden[rast["src"][tt]]
+        if test is not None and k.any():
+            k &= np.asarray(test(tt, bb, rast), bool)
+        return k
+    return t
+
+
+def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), report=None):
+    """
+    The cutout of the 'alpha' texture slot for rasterize(alpha=...): -> (test function, bool per prim: faces that
+    have a cutout), or (None, None) when there is none. The texture's first channel at the fragment's uv, bilinear
+    from the full-resolution level, is compared with alpha_cutoff (default 0.5).
+    """
+    if not tex or "alpha" not in tex or geo is None or geo.nprims == 0:
+        return None, None
+    cutoff = float(tex.get("alpha_cutoff", 0.5))
+    pattern = tex["alpha"]
+    a = geo.get(PRIM, mattr)
+    if "{material}" in pattern:
+        if a is None or not is_string(a):
+            raise ValueError(f"Textures: alpha uses {{material}} but there is no string prim attribute '{mattr}'")
+        mats, pm = np.unique(np.asarray(a)[:, 0].astype(str), return_inverse=True)
+    else:
+        mats, pm = np.array([""]), np.zeros(geo.nprims, np.int64)
+    maps = {}
+    for mi, mat in enumerate(str(x) for x in mats):
+        path = pattern.replace("{material}", mat)
+        img = None
+        if path.startswith("@"):
+            names = path[1:].split()
+            for c_ in cops:
+                if c_ is not None and all(n_ in c_ for n_ in names):
+                    img = _cop_texture(c_, names[0], "ao")[..., 0]
+                    break
+        else:
+            full = path if os.path.isabs(path) or not root else os.path.join(root, path)
+            if os.path.exists(full):
+                img = load_texture(path, root, srgb=False)[..., 0]
+        if img is None:
+            if report is not None:
+                report.setdefault("missing", []).append(path)
+            continue
+        if report is not None:
+            report.setdefault("used", []).append(path)
+        maps[mi] = np.ascontiguousarray(img, np.float32)
+    if not maps:
+        return None, None
+    cut = np.isin(pm, list(maps))
+    vuv = geo.get(VERTEX, uvattr)
+    puv = geo.get(POINT, uvattr) if vuv is None else None
+    if vuv is None and puv is None:
+        raise ValueError(f"Textures: alpha needs a '{uvattr}' attribute (vertex or point)")
+    UV = np.asarray(vuv if vuv is not None else puv, np.float32)[:, :2]
+
+    def sample(img, uv):
+        H, W = img.shape
+        x = np.clip(uv[:, 0] * W - 0.5, 0, W - 1)
+        y = np.clip(uv[:, 1] * H - 0.5, 0, H - 1)
+        x0 = np.minimum(x.astype(np.int64), W - 2) if W > 1 else np.zeros(len(x), np.int64)
+        y0 = np.minimum(y.astype(np.int64), H - 2) if H > 1 else np.zeros(len(y), np.int64)
+        fx, fy = x - x0, y - y0
+        x1, y1 = np.minimum(x0 + 1, W - 1), np.minimum(y0 + 1, H - 1)
+        return (img[y0, x0] * (1 - fx) * (1 - fy) + img[y0, x1] * fx * (1 - fy)
+                + img[y1, x0] * (1 - fx) * fy + img[y1, x1] * fx * fy)
+
+    def test(t, bb, rast):
+        keep = np.ones(len(t), bool)
+        prim = rast["src"][t]
+        on = cut[prim]
+        if not on.any():
+            return keep
+        ts = t[on]
+        corners = rast["cor"][ts] if vuv is not None else rast["tri"][ts]
+        uv = (UV[corners] * bb[on][:, :, None]).sum(1)
+        mi = pm[prim[on]]
+        av = np.ones(len(ts), np.float32)
+        for k_, img in maps.items():
+            s_ = mi == k_
+            if s_.any():
+                av[s_] = sample(img, uv[s_])
+        keep[on] = av >= cutoff
+        return keep
+    return test, cut
+
+
 def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None,
                     P=None, cop_splat=None):
     """
@@ -666,7 +789,25 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         return cache[key]
 
     def fetch(pattern, slot, mat):
-        """The mip chain for this slot's texture on this material, or None (missing: listed in the report)."""
+        """The mip chain for this slot's texture on this material, or None (missing: listed in the report).
+        'a | b': the first of the alternatives that is there (terrain layers on a COP image, building textures
+        from files, in one slot)."""
+        alts = [a_.strip() for a_ in str(pattern).split("|") if a_.strip()]
+        if len(alts) <= 1:
+            return fetch1(pattern, slot, mat)
+        miss = []
+        for a_ in alts:
+            n0 = len(report["missing"])
+            ch = fetch1(a_, slot, mat)
+            if ch is not None:
+                del report["missing"][n0:]
+                return ch
+            miss += report["missing"][n0:]
+            del report["missing"][n0:]
+        report["missing"].extend(miss)
+        return None
+
+    def fetch1(pattern, slot, mat):
         path = pattern.replace("{material}", mat)
         key = (path, slot)
         src = cop_detail if (cop_detail is not None and slot.startswith(("detail", "layer"))
@@ -674,6 +815,13 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         if slot == "layer_macro" and cop_splat is not None:
             src = cop_splat
         if path.startswith("@"):
+            # not in its own image: the other connected images are looked in too (an impostor atlas merged into the
+            # splat set, say)
+            if src is None or any(n_ not in src for n_ in path[1:].split()):
+                for o_ in (cop, cop_splat, cop_detail):
+                    if o_ is not None and all(n_ in o_ for n_ in path[1:].split()):
+                        src = o_
+                        break
             # a layer named per material ('@{material}_albedo') that the image does not have: like a missing
             # file, those faces keep their Cd -- lets one image texture the terrain and leave the trees alone
             if src is not None and "{material}" in pattern and any(n_ not in src for n_ in path[1:].split()):
@@ -701,7 +849,7 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         sel = pm == mi
         tgt = (idx[0][sel], idx[1][sel])
         for slot, pattern in tex.items():
-            if slot in _DETAIL_SLOTS or slot.startswith("layer"):
+            if slot in _DETAIL_SLOTS or slot.startswith("layer") or slot in ("alpha", "alpha_cutoff"):
                 continue
             ch = fetch(pattern, slot, mat)
             if ch is None:

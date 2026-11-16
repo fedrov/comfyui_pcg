@@ -17187,7 +17187,7 @@
    ],
    "size": [
     520,
-    733
+    753
    ],
    "flags": {},
    "order": 328,
@@ -17216,6 +17216,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -17261,7 +17266,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    35568
+    35588
    ],
    "size": [
     520,
@@ -17289,7 +17294,7 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    36012
+    36032
    ],
    "size": [
     520,
@@ -17354,11 +17359,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    36306
+    36326
    ],
    "size": [
     520,
-    733
+    753
    ],
    "flags": {},
    "order": 329,
@@ -17387,6 +17392,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -17432,7 +17442,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    37083
+    37123
    ],
    "size": [
     520,
@@ -17460,7 +17470,7 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    37527
+    37567
    ],
    "size": [
     520,
@@ -17514,7 +17524,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    37901
+    37941
    ],
    "size": [
     520,
@@ -17572,7 +17582,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    38192
+    38232
    ],
    "size": [
     520,
@@ -17627,11 +17637,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    38611
+    38651
    ],
    "size": [
     520,
-    448
+    468
    ],
    "flags": {},
    "order": 318,
@@ -17660,6 +17670,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -17705,7 +17720,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    39103
+    39163
    ],
    "size": [
     520,

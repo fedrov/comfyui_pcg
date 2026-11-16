@@ -544,7 +544,7 @@
    ],
    "size": [
     520,
-    433
+    453
    ],
    "flags": {},
    "order": 9,
@@ -573,6 +573,11 @@
     {
      "name": "splat_cop",
      "type": "COPIMAGE",
+     "link": null
+    },
+    {
+     "name": "extra_geo",
+     "type": "GEOMETRY",
      "link": null
     }
    ],
@@ -618,7 +623,7 @@
    "type": "PreviewImage",
    "pos": [
     1260,
-    477
+    497
    ],
    "size": [
     520,
@@ -646,7 +651,7 @@
    "type": "PCG_Viewport",
    "pos": [
     1260,
-    841
+    861
    ],
    "size": [
     520,

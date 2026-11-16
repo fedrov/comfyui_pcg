@@ -228,7 +228,9 @@ Every footprint polygon (taken as seen from above; up is +Y, the base is the foo
 
 **Modules and patterns.** `Facade Module Pattern` is a list of module names separated by spaces, repeated along the wall as seen from outside, left to right: `window window door`. Writing `a|b|c` picks one of the alternatives at random per bay. Four modules are built in: `wall` (blank), `window`, `door` and `shopfront` (a wide, low window); their openings are recessed by `Inset`. If a module library is connected to the `modules` input, a name found there is used instead. A library is ordinary geometry whose prims carry a string attribute `name`; all prims with one name form one module. The module's width (x) and height (y) are fitted to the bay, z = 0 is the wall plane and +z points out of the building, so a balcony can stick out and a window can be recessed. A prim attribute `part` on the library is kept.
 
-**Corners, ledges, roof.** With `Corners` on, a strip at both ends of every wall is a pilaster, or the convex / concave corner module from the library. `Top` and `Bottom` add an extruded band along the top or the foot of every floor, mitred round the corners. The roof is flat, or flat inside a parapet.
+**Corners, ledges, roof.** With `Corners` on, a strip at both ends of every wall is a pilaster, or the convex / concave corner module from the library. `Top` and `Bottom` add an extruded band along the top or the foot of every floor, mitred round the corners. The roof is flat, flat inside a parapet, or -- over a four-cornered footprint -- a gable or hip roof: the ridge runs along the longer sides at `Roof Pitch`, the eaves stand out by `Roof Overhang`, and a gable's end triangles are walls. `Roof Attribute` picks the roof per footprint from a string prim attribute.
+
+**Front.** With a `Front Pattern` and a vector prim attribute on the footprint (`Front Attribute`, the direction toward the street), the wall facing that way gets the front pattern on its ground floor: doors and shopfronts face the street, the other walls keep the facade pattern.
 
 **Setback.** `Footprint Inset` moves the walls in from the footprint, so lots that touch each other leave streets and yards between the buildings; a footprint too small for it is left empty.
 
@@ -306,7 +308,7 @@ The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 o
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| Roof `roof` | menu | Parapet | Flat roof, or a flat roof inside a parapet. Options: Parapet (`parapet`), Flat (`flat`). |
+| Roof `roof` | menu | Parapet | Flat, flat inside a parapet, gable or hip. Gable and hip need a four-cornered footprint; others get a flat roof. Options: Parapet (`parapet`), Flat (`flat`), Gable (`gable`), Hip (`hip`). |
 | Parapet Height `parapet_height` | float [0.0..20.0] | 0.8 | Height of the parapet above the roof. *Disabled when roof ≠ parapet.* |
 | Parapet Thickness `parapet_thickness` | float [0.0..10.0] | 0.3 | Thickness of the parapet. *Disabled when roof ≠ parapet.* |
 
@@ -323,9 +325,24 @@ The output carries the prim attributes `building`, `floor` (-1 on the roof, -2 o
 | Footprint Inset `footprint_inset` | float [0.0..100.0] | 0 | Moves the walls in from the footprint by this distance, so lots that touch each other leave streets and yards between the buildings. A footprint too small for the setback gets no building. |
 | Foundation Depth `foundation_depth` | float [0.0..100.0] | 0 | Adds a plain band of wall this deep below the base (part `plinth`), so a building on uneven ground shows no gap under its walls. |
 
+*Wall Face*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Front Attribute `front_attribute` | string | `front` | Vector prim attribute on the footprints giving the direction their front faces (toward the street). The wall whose outward normal is nearest to it is the front. |
+| Front Pattern `front_pattern` | string | *(empty)* | Ground-floor module pattern of the front wall, so doors and shopfronts face the street. Empty turns it off. |
+
+*Roof*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Roof Pitch `roof_pitch` | float [5.0..75.0] | 35 | Slope of gable and hip roofs in degrees. |
+| Roof Overhang `roof_overhang` | float [0.0..5.0] | 0.3 | How far the eaves of gable and hip roofs stand out from the walls. |
+| Roof Attribute `roof_attribute` | string | *(empty)* | Optional string prim attribute on the footprints that picks the roof per building (`flat`, `parapet`, `gable` or `hip`; empty values use the Roof menu). |
+
 **Compared with Houdini**
 
-Corresponds to SideFX Labs Building Generator 4.0: floors, facade module pattern, corner modules, top and bottom ledges and floor overrides. Differences: the input is footprints rather than building volumes; ledges are always the simple extruded kind (Houdini's Simple Ledges); bays stretch to fill the wall, so there is no sideslop module; the built-in modules and the roof are additions, so the node works without a library.
+Corresponds to SideFX Labs Building Generator 4.0: floors, facade module pattern, corner modules, top and bottom ledges and floor overrides. Differences: the input is footprints rather than building volumes; ledges are always the simple extruded kind (Houdini's Simple Ledges); bays stretch to fill the wall, so there is no sideslop module; the built-in modules, the roofs (flat, parapet, gable, hip) and the front pattern are additions, so the node works without a library.
 
 ---
 

@@ -12,6 +12,11 @@ LOD Create (after SideFX Labs LOD Create 2.0): a chain of levels of detail from 
                 of the bounding box, for an impostor atlas
     Assets      if the mesh has a string prim attribute `name` (one name per asset), every asset gets its own
                 chain
+    Custom      a second input whose faces carry an integer prim attribute `lod` replaces those levels (Labs'
+                Custom Mesh): a simplified model made another way -- a building's massing without its openings, say,
+                where reducing the detailed one would tear the facade. The level's percent then applies to the custom
+                mesh (100 = as it is). With asset names, a custom face goes to the asset of the same `name` (no name:
+                to every asset)
 
 Output: all levels in one geometry. Prim attributes `lod` (level), `part` (`LOD0`...), `name`
 (`<asset>_<prefix><n>`, or `<prefix><n>`), `lod_distance`, `impostor` (1 on impostor cards); prim groups `LOD0`...
@@ -52,7 +57,7 @@ def _cards(g):
 
 def lod_create(geo, percents="100 50 25 10", distances="", first_distance=20.0, preserve_uvs=True,
                boundary_weight=4.0, recalculate_normals=True, cusp_angle=60.0, last_lod_impostor=False,
-               name_prefix="LOD", view="all", level=0, spacing=1.2):
+               name_prefix="LOD", view="all", level=0, spacing=1.2, custom=None):
     """Build the LOD chain of geo; see the module docstring. -> Geometry, report dict."""
     from .ops import merge, delete_prims, compute_normals
     from .polyreduce import reduce_mesh
@@ -78,6 +83,22 @@ def lod_create(geo, percents="100 50 25 10", distances="", first_distance=20.0, 
         assets = [(str(a), delete_prims(geo, nm == a)) for a in np.unique(nm)]
     else:
         assets = [("", geo)]
+    cust = {}                                                       # (asset, level) -> custom mesh of that level
+    if custom is not None and custom.nprims:
+        cl = custom.get(PRIM, "lod")
+        if cl is None or np.asarray(cl).dtype.kind == "U":
+            raise ValueError("Custom Mesh needs an integer prim attribute 'lod' (the level each face replaces)")
+        cl = np.rint(np.asarray(cl, np.float64).reshape(-1)).astype(int)
+        cn = custom.get(PRIM, "name")
+        cn = (np.asarray(cn).reshape(-1).astype(str) if cn is not None and np.asarray(cn).dtype.kind == "U"
+              else np.full(custom.nprims, ""))
+        for a_, _ in assets:
+            for n_ in np.unique(cl):
+                if n_ < 0 or n_ >= len(pc):
+                    raise ValueError(f"Custom Mesh: lod {n_} does not exist (there are {len(pc)} LODs)")
+                sel = (cl == n_) & ((cn == a_) | (cn == "") if a_ else np.ones(len(cl), bool))
+                if sel.any():
+                    cust[(a_, int(n_))] = delete_prims(custom, sel)
     P = np.asarray(geo.get(POINT, "P"), np.float64)
     width = float(np.ptp(P[:, 0])) if len(P) else 1.0
     parts, rep = [], []
@@ -88,6 +109,12 @@ def lod_create(geo, percents="100 50 25 10", distances="", first_distance=20.0, 
             imp = bool(last_lod_impostor) and n == len(pc) - 1 and n > 0
             if imp:
                 g = _cards(g0)
+            elif (aname, n) in cust:                                # a custom mesh, reduced by its own percent
+                gc = cust[(aname, n)]
+                g = gc.copy() if pct >= 100.0 else reduce_mesh(
+                    gc, "percentage", pct, boundary_weight=float(boundary_weight), preserve_uvs=bool(preserve_uvs))
+                if recalculate_normals and g.nprims:
+                    g = compute_normals(g, add_to="vertex", cusp_angle=float(cusp_angle))
             else:
                 g = g0.copy() if pct >= 100.0 else reduce_mesh(
                     g0, "percentage", pct, boundary_weight=float(boundary_weight), preserve_uvs=bool(preserve_uvs))
@@ -102,7 +129,7 @@ def lod_create(geo, percents="100 50 25 10", distances="", first_distance=20.0, 
             g.set(PRIM, "lod_distance", np.full(k, ds[n], np.float32))
             g.set(PRIM, "impostor", np.full(k, int(imp), np.int32))
             rep.append({"asset": aname, "lod": n, "triangles": _tris(g), "of": t0, "distance": ds[n],
-                        "impostor": imp})
+                        "impostor": imp, "custom": (aname, n) in cust})
             if view == "single" and n != int(level):
                 continue
             if view == "debug" and n:
