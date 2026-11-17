@@ -583,6 +583,18 @@
       9
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {

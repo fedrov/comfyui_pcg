@@ -6,6 +6,7 @@ The third SOP node file (pcg121): nodes added after the code review.
   Modelling     Thicken
   Packed        Pack, Unpack, Assemble (+ Copy to Points' Pack and Instance, viewport instancing; see geo/packed.py)
   Scene         Lot Subdivision, Building Generator, LOD Create, Impostor Textures (after SideFX Labs)
+  Output        World Manifest (World.json + per-tile streaming manifests)
 
 The end of nodes.py merges the mappings here into the main table; the Houdini mapping is in tests/sop_map.py.
 """
@@ -15,6 +16,7 @@ from .nodes_common import GEO, CAT, _f, _i, _group, _names, _sec  # noqa: F401
 from .geo import distgeo as _dg, pathdeform as _pd, polywire as _pw, thicken as _th, curvefillet as _cf
 from .geo import packed as _pk
 from .geo import lotsubdiv as _ls, building as _bg, lodcreate as _lc, impostor as _imp
+from .geo import worldmanifest as _wm
 from .nodes_common import COP
 from .geo.ramp import MODES as _RAMP_MODES
 
@@ -464,6 +466,49 @@ class PCG_ImpostorTextures:
         return (img, card, _rep(r))
 
 
+@_node("output", returns=(("STRING", "path"), ("STRING", "report")))
+class PCG_WorldManifest:
+    """
+    Writes World.json: one file describing a world the export nodes wrote under Folder -- image sets (COP Write
+    File sidecars: height, colour, splat ... tiles), instance tables (Export Instances), meshes (Export Mesh glbs:
+    nodes, materials, bounds, with their LOD manifests), polylines (OBJ roads), other files -- and the coordinate
+    convention (origin, axes, tile grid, how Unreal and Unity map them). Also one tiles/Tile_x{i}_y{j}.json per
+    tile for streaming: that tile's terrain files, instance counts per asset, the building nodes (LOD assets by
+    their centre), road length per polyline set, water nodes, and its bounds (the terrain's decoded height range
+    and the contents). Everything is read back from the files, so link the exports' outputs to the after inputs:
+    they then run first (any output will do: a late render's image orders everything it reads before the manifest).
+    Extra JSON (an object) adds keys to World.json, e.g. road classes and their materials.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "folder": _s("pcg/world"),
+            "world_size": _f(4096.0, 1.0, 1e7, 1.0),
+            "tile_size": _f(1024.0, 1.0, 1e7, 1.0),
+            "origin": (list(_wm.ORIGINS),),
+            "extra_json": ("STRING", {"default": "", "multiline": True}),
+        }, "optional": {
+            # any type: an export's path or report, or a render's image -- only so that they run first
+            **{f"after{k}": ("*", {}) for k in range(1, 9)},
+        }}
+    OUTPUT_NODE = True
+
+    def run(self, folder, world_size, tile_size, origin, extra_json="", **after):
+        import json
+        from .nodes import output_dir
+        extra = None
+        if str(extra_json).strip():
+            try:
+                extra = json.loads(extra_json)
+            except ValueError as e:
+                raise ValueError(f"World Manifest: Extra JSON is not valid JSON ({e})") from None
+            if not isinstance(extra, dict):
+                raise ValueError("World Manifest: Extra JSON must be an object ({...})")
+        path, _, r = _wm.build_manifest(output_dir(), str(folder).strip().strip("/\\"), world_size, tile_size,
+                                        origin, extra)
+        return (path, _rep(r))
+
+
 _NAMES = {
     "PCG_DistanceFromGeometry": "Distance from Geometry (PCG)",
     "PCG_DistanceAlongGeometry": "Distance along Geometry (PCG)",
@@ -478,6 +523,7 @@ _NAMES = {
     "PCG_BuildingGenerator": "Building Generator (PCG)",
     "PCG_LODCreate": "LOD Create (PCG)",
     "PCG_ImpostorTextures": "Impostor Textures (PCG)",
+    "PCG_WorldManifest": "World Manifest (PCG)",
 }
 
 NODE_CLASS_MAPPINGS = {k: globals()[k] for k in _NAMES}

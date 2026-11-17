@@ -167,4 +167,15 @@ SPECS = {
             "attempts": {"label": "Number Of Solve Attempts"},
         },
     },
+    "PCG_WorldManifest": {
+        "order": ["folder", "world_size", "tile_size", "origin", "extra_json"],
+        "inputs": {
+            "folder": {"label": "Folder", "help": "The world's folder under ComfyUI's output folder"},
+            "world_size": {"label": "World Size", "help": "Edge of the square world in metres"},
+            "tile_size": {"label": "Tile Size", "help": "Edge of a streaming tile in metres (the files' _x{i}_y{j})"},
+            "origin": {"label": "Origin", "menu": _m("north_west_corner", "North-West Corner", "center", "Center"),
+                       "help": "Where (0, 0) lies: the corner (the world in 0..size) or the centre"},
+            "extra_json": {"label": "Extra JSON", "help": "An object whose keys are added to World.json"},
+        },
+    },
 }

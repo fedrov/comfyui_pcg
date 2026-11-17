@@ -1,6 +1,6 @@
 # Node reference
 
-All 529 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
+All 530 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
 
 In the parameter tables, the first column is the label shown in the node's panel followed by the input's internal name (the name used in saved workflows, relative references and `ch()` expressions). *Hidden when* / *Disabled when* repeat the panel's own rules.
 
@@ -74,7 +74,7 @@ Preview images, 3D viewport, cameras and render passes.
 
 Writing files and exporting to other applications.
 
-[Display (PCG)](output.md#pcg-display), [Export Instances (PCG)](output.md#pcg-exportinstances), [Export Mesh (PCG)](output.md#pcg-exportmesh), [File Cache (PCG)](output.md#pcg-filecache), [Geo Metrics (PCG)](output.md#pcg-geometrics), [Geometry Preview (PCG)](output.md#pcg-previewimage), [Geometry Spreadsheet (PCG)](output.md#pcg-geospreadsheet), [Viewport (PCG)](output.md#pcg-viewport)
+[Display (PCG)](output.md#pcg-display), [Export Instances (PCG)](output.md#pcg-exportinstances), [Export Mesh (PCG)](output.md#pcg-exportmesh), [File Cache (PCG)](output.md#pcg-filecache), [Geo Metrics (PCG)](output.md#pcg-geometrics), [Geometry Preview (PCG)](output.md#pcg-previewimage), [Geometry Spreadsheet (PCG)](output.md#pcg-geospreadsheet), [Viewport (PCG)](output.md#pcg-viewport), [World Manifest (PCG)](output.md#pcg-worldmanifest)
 
 ## [Loops](loop.md)
 
@@ -686,6 +686,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [Voronoi Cluster (PCG)](modify.md#pcg-voronoicluster) | `PCG_VoronoiCluster` | Modify |
 | [Voronoi Fracture (PCG)](modify.md#pcg-voronoifracture) | `PCG_VoronoiFracture` | Modify |
 | [Voronoi Split (PCG)](modify.md#pcg-voronoisplit) | `PCG_VoronoiSplit` | Modify |
+| [World Manifest (PCG)](output.md#pcg-worldmanifest) | `PCG_WorldManifest` | Output & Export |
 | [Wrangle (PCG)](attribute.md#pcg-wrangle) | `PCG_Wrangle` | Attributes |
 
 See also: [Houdini node index](houdini-index.md) — find the node that replaces a Houdini SOP or COP.

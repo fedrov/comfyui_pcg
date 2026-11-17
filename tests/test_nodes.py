@@ -434,7 +434,9 @@ EXPECT_REFUSE = {"PCG_AttribFade", "PCG_GroupExpand", "PCG_UVFlatten",
                  # (the test image has no repeating patterns, so there is no solution)
                  "PCG_BuildingGenerator", "PCG_COPWFC",
                  # LOD Create's custom mesh needs the integer prim attribute lod (the level each face replaces)
-                 "PCG_LODCreate"}
+                 "PCG_LODCreate",
+                 # World Manifest reads an exported world back from the output folder: there is none in the test
+                 "PCG_WorldManifest"}
 try:
     import torch                                        # noqa: F401
 except ImportError:

@@ -2,7 +2,7 @@
 
 Writing files and exporting to other applications.
 
-8 nodes.
+9 nodes.
 
 [Back to the reference index](README.md)
 
@@ -16,6 +16,7 @@ Writing files and exporting to other applications.
 - [Geometry Preview (PCG)](#pcg-previewimage) — Renders a software-rasterised preview of geometry to a standard IMAGE.
 - [Geometry Spreadsheet (PCG)](#pcg-geospreadsheet) — Shows geometry attributes in a table inside the node, like Houdini's Geometry Spreadsheet.
 - [Viewport (PCG)](#pcg-viewport) — Shows geometry in an interactive 3D viewport embedded in the node body and passes the geometry through.
+- [World Manifest (PCG)](#pcg-worldmanifest) — Writes World.json, one file describing an exported world, plus one manifest per streaming tile.
 
 ## Nodes
 
@@ -284,6 +285,8 @@ The **Outdoor** look renders an environment shot instead of an object on a studi
 
 The outdoor look lights the scene like a photograph: the sky is an area light with shadows and one bounce of light off the scene, so narrow streets are darker than open squares and shadowed walls pick up warm light from sunlit ground; sun shadows are crisp at contact and soften with distance; the sky's colours follow the sun's elevation; the frame is finished with bloom, a slight vignette and the AgX tone curve.
 
+**Guide passes**: the outdoor look also returns the same frame's depth and normal passes (outputs `depth` and `normal`), so a render can steer a ControlNet with exactly the geometry it shows.
+
 **Inputs**
 
 | Input | Type | Description |
@@ -300,6 +303,8 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | Output | Type | Description |
 |---|---|---|
 | `image` | IMAGE | The rendered preview as an IMAGE. |
+| `depth` | IMAGE | Outdoor look: the frame's inverse depth (near white, far ground and sky black), scaled between the 5th and 99.5th percentile of the distances and square-rooted so that distant ridges keep some grey: the convention depth ControlNets read. Other looks give a black image. |
+| `normal` | IMAGE | Outdoor look: the frame's normals in camera space (R = right, G = up, B = toward the camera, mapped to 0..1; the sky is flat, facing the camera), for normal ControlNets. Other looks give a flat (0.5, 0.5, 1) image. |
 
 **Parameters**
 
@@ -402,5 +407,63 @@ The `geo` output passes the input through unchanged, so Viewport can sit in the 
 **Compared with Houdini**
 
 The template display is an input link instead of a node flag, so the dependency is visible on the canvas.
+
+---
+
+### World Manifest (PCG)
+
+<a id="pcg-worldmanifest"></a>
+
+`PCG_WorldManifest` · category `PCG/output`
+
+Writes World.json, one file describing an exported world, plus one manifest per streaming tile.
+
+An engine import should not have to know how a world's files are named. This node reads back everything the export nodes wrote under **Folder** and writes `World.json` beside them, with one `tiles/Tile_x{i}_y{j}.json` per tile, so an import script reads a single file.
+
+What it recognises, by content rather than by name:
+
+- **Image sets**: every sidecar JSON of COP Write File (height, colour, normal, splat maps, layer textures ...) with its channels, bit depth, decode rule, size and files. A set tiled on the same grid as the world lists its file in each tile. The height map (the set in the `height` folder) also becomes the `terrain` section: range in metres, samples, metres per sample, shared edges.
+- **Instance tables**: Export Instances' index and its CSVs. Every row is counted per asset and per tile.
+- **Meshes**: every glb with its nodes, meshes, materials, triangle counts and bounds (POSITION min / max with the node's translation and scale; a GPU-instanced node lists its instance count). A `.lods.json` beside it (Export Mesh's LOD Manifest) adds each asset's LOD nodes and switch distances, and LOD assets are placed in the tile of their bounds' centre. Other meshes with bounds (water, say) are listed in every tile they overlap. The `assets` folder is treated as a library and not placed.
+- **Polylines**: OBJ `l` records (roads), with their count, length and bounds; each tile gets the length of each set inside it.
+- Everything else is listed under `files`.
+
+The role of a file is its first folder under Folder (height, texture, instances, buildings, roads, water, assets ...). `coordinates` states the convention: metres, +Y up, x east and z south, where (0, 0) lies (**Origin**), the tile grid (**Tile Size**; tile (i, j) covers x from i × tile), the image orientation (row 0 at the tile's smallest z) and how Unreal and Unity map the axes. A tile's `bounds` joins the terrain's decoded height range over its extent with the instances, buildings and roads in it.
+
+The manifest only sees files that exist when it runs: link the exports' outputs (Export Mesh's path, Export Instances' and COP Write File's reports) to the `after` inputs, and they run first. The inputs take any type, so the image of a render that comes last can be linked too: ComfyUI runs an export as soon as its input is ready, so everything that render read has been written by then. **Extra JSON** (an object) adds keys of your own, such as road classes with their widths and materials; it cannot replace format, version, coordinates or tiles.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `after1` *(optional)* | * | Optional, any type: an export's path or report, or a render's image. Only used to make those nodes (and everything they read) run before the manifest; likewise after2 to after8. |
+| `after2` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after3` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after4` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after5` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after6` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after7` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+| `after8` *(optional)* | * | Optional, any type: like after1, another output that must run before the manifest. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `path` | STRING | World.json's path, relative to the output folder. |
+| `report` | STRING | JSON counts: tiles, image sets, meshes, polylines, instances, other files. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Folder `folder` | string | `pcg/world` | The world's folder under ComfyUI's output folder. |
+| World Size `world_size` | float [1.0..] | 4096 | Edge of the square world in metres. |
+| Tile Size `tile_size` | float [1.0..] | 1024 | Edge of a streaming tile in metres, the grid of the _x{i}_y{j} files. |
+| Origin `origin` | menu | North-West Corner | Where (0, 0) lies: the north-west corner (the world spans 0 to World Size) or the centre (minus half to plus half). Options: North-West Corner (`north_west_corner`), Center (`center`). |
+| Extra JSON `extra_json` | string | *(empty)* | A JSON object whose keys are added to World.json (for example road classes). Empty adds nothing. |
+
+**Compared with Houdini**
+
+No Houdini node; in a Houdini pipeline this is the job of a PDG / Python step after the ROPs, collecting their outputs into a level description.
 
 ---

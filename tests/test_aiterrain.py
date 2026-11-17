@@ -615,7 +615,7 @@ def validate(wf):
             probs.append(f"{n['type']}: wrong output name")
     for lid, a, sa, b, sb, t in wf["links"]:
         na, nb = ids[a], ids[b]
-        if na["outputs"][sa]["type"] != t or nb["inputs"][sb]["type"] != t:
+        if na["outputs"][sa]["type"] != t or nb["inputs"][sb]["type"] not in (t, "*"):     # "*" takes any type
             probs.append(f"link {lid} type mismatch")
         if nb["inputs"][sb]["link"] != lid or \
                 lid not in na["outputs"][sa]["links"]:

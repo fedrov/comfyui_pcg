@@ -870,6 +870,18 @@
       15
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -1533,6 +1545,18 @@
       27
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -2151,6 +2175,18 @@
       39
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -2769,6 +2805,18 @@
       51
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -3387,6 +3435,18 @@
       63
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -4005,6 +4065,18 @@
       75
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -4623,6 +4695,18 @@
       87
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -5286,6 +5370,18 @@
       99
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -5949,6 +6045,18 @@
       111
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -6612,6 +6720,18 @@
       123
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -7275,6 +7395,18 @@
       135
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -7938,6 +8070,18 @@
       147
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -8556,6 +8700,18 @@
       159
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {
@@ -9174,6 +9330,18 @@
       171
      ],
      "slot_index": 0
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "normal",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
     }
    ],
    "properties": {

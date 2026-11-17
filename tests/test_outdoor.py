@@ -229,5 +229,54 @@ check("  without N the face normal turns to the viewer, and an authored N facing
       np.allclose(n_none, [0, 0, -fs], atol=1e-3) and np.allclose(n_away, [0, 0, -fs], atol=1e-3),
       (np.round(n_none, 3), np.round(n_away, 3)))
 
+print("\n[7. Guide passes: depth and normal]")
+# a 200 m ground grid and a 4 m box on it, seen from 6 m up, pitched down 20 degrees
+gnd = build.grid(size_x=400.0, size_z=400.0, cols=8, rows=8)
+gb = build.box(size=(4.0, 4.0, 4.0), center=(0.0, 2.0, -20.0))
+from comfyui_pcg.geo.ops import merge as _mg  # noqa: E402
+scene = _mg(gnd, gb)
+pitch = np.radians(20.0)
+eye_ = np.array([0.0, 6.0, 0.0])
+tgt_ = eye_ + np.array([0.0, -np.sin(pitch), -np.cos(pitch)]) * 10
+camg = R.camera(None, "perspective", eye=list(eye_), target=list(tgt_), fov=50)
+aux = {}
+img7 = O.render_outdoor(scene, 96, 72, cam=camg, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, aux=aux)
+dep, nrm = aux.get("depth"), aux.get("normal")
+check("the passes come back at the image's size, row 0 on top as the image", dep is not None and nrm is not None
+      and dep.shape == img7.shape == nrm.shape)
+# the ground below the box (rows near the bottom) is nearer than the ground near the horizon: brighter
+col = dep[:, 10, 0]
+gr_rows = np.nonzero(col > 0)[0]
+check("depth: inverse (near white): the ground at the bottom of the frame is brighter than near the horizon, "
+      "and it falls monotonically up the frame", len(gr_rows) > 10 and col[gr_rows[-1]] > col[gr_rows[0]] + 0.3
+      and np.all(np.diff(col[gr_rows]) >= -1e-3), np.round(col[gr_rows[[0, -1]]], 3))
+check("  the sky is black (rows above the horizon)", dep[:5].max() == 0.0, float(dep[:5].max()))
+# the ground's normal (world up) in camera space: right 0, up cos(pitch), toward the camera sin(pitch)
+exp_ = np.array([0.5, 0.5 + 0.5 * np.cos(pitch), 0.5 + 0.5 * np.sin(pitch)])
+gpx = nrm[-3, 5]
+check("normal: the ground (world up) is (0.5, 0.5 + cos 20 / 2, 0.5 + sin 20 / 2) in camera space",
+      np.allclose(gpx, exp_, atol=0.02), (np.round(gpx, 3), np.round(exp_, 3)))
+# the box's face toward the camera (+z in world): pure 'toward the camera' tilted by the pitch
+fy, fx = np.nonzero((np.abs(nrm[..., 1] - (0.5 - 0.5 * np.sin(pitch))) < 0.03)
+                    & (np.abs(nrm[..., 2] - (0.5 + 0.5 * np.cos(pitch))) < 0.03))
+check("  the box's front face reads (0.5, 0.5 - sin 20 / 2, 0.5 + cos 20 / 2); negative control: not the ground's",
+      len(fy) > 20 and not np.allclose(exp_, [0.5, 0.5 - 0.5 * np.sin(pitch), 0.5 + 0.5 * np.cos(pitch)], atol=0.05),
+      len(fy))
+check("  the sky is flat, facing the camera (0.5, 0.5, 1)", np.allclose(nrm[1, 1], [0.5, 0.5, 1.0]))
+aux2 = {}
+img2 = O.render_outdoor(scene, 96, 72, cam=camg, ssaa=2, haze=0.0, clouds=0.0, sky_samples=0, ground=False, aux=aux2)
+check("  supersampled (2x): the passes are block means at the image's size, close to the 1x ones away from edges",
+      aux2["depth"].shape == img2.shape == aux2["normal"].shape and np.allclose(aux2["normal"][-3, 5], exp_, atol=0.02)
+      and abs(float(np.median(aux2["depth"][-10:, :20])) - float(np.median(dep[-10:, :20]))) < 0.05)
+rn = node.run(scene, 96, 72, 0, 0, "color", look="outdoor", supersampling=1, camera=camg, haze=0.0,
+              ground_plane=False, sky_samples=0)
+rn = rn["result"] if isinstance(rn, dict) else rn
+rb = node.run(scene, 48, 36, 25, 35, "color", look="basic")
+rb = rb["result"] if isinstance(rb, dict) else rb
+check("the node: image, depth, normal; the outdoor passes equal render_outdoor's; other looks give a black depth "
+      "and a flat normal", len(rn) == 3 and np.allclose(rn[1][0].numpy(), dep, atol=1e-6)
+      and np.allclose(rn[2][0].numpy(), nrm, atol=1e-6) and float(rb[1].max()) == 0.0
+      and np.allclose(rb[2][0, 0, 0].numpy(), [0.5, 0.5, 1.0]))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

@@ -1893,6 +1893,12 @@ class PCG_PreviewImage:
     throws soft shadows on the ground; the frame is finished with bloom, a slight vignette and the AgX tone curve.
     Sky Samples 0 falls back to a plain hemisphere fill (fast). pcg126: Compute = auto runs the shadow maps and the
     sky light on CUDA when there is one (the bulk of the render time); the node shows progress and can be cancelled.
+
+    Guide passes (outputs depth / normal, the outdoor look): the same frame's inverse depth (near white, far and sky
+    black; scaled between the 5th and 99.5th percentile of the distances and square-rooted, so far ridges keep some
+    grey) and camera-space normals (R right, G up,
+    B toward the camera; the sky flat), ready for depth and normal ControlNets. Other looks give a black depth and a
+    flat normal image.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -1940,7 +1946,8 @@ class PCG_PreviewImage:
             # copy of the large one for every shot
             "extra_geo": ("GEOMETRY", {"tooltip": "Drawn with geo (Outdoor: without merging the two)"}),
         }}
-    RETURN_TYPES = ("IMAGE",); RETURN_NAMES = ("image",)
+    # appended outputs: the outdoor look's guide passes (for ControlNet: depth, normal); other looks give flat ones
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE"); RETURN_NAMES = ("image", "depth", "normal")
     FUNCTION = "run"; CATEGORY = CAT + "/output"
 
     def run(self, geo, width, height, elevation, azimuth, shading,
@@ -1971,6 +1978,7 @@ class PCG_PreviewImage:
         # A bare `import torch` leaves only "No module named 'torch'" in the log,
         # which says neither which node needs it nor which python to install it into. Same treatment as other optional dependencies
         torch = convert.need("torch", "Preview Image (to hand the result to ComfyUI)")
+        aux = {}
         if look == "outdoor":
             from .geo import outdoor as _od
             try:
@@ -1984,7 +1992,7 @@ class PCG_PreviewImage:
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
                                      tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
                                      sky_samples=sky_samples, compute=compute, detail_cop=detail_cop,
-                                     splat_cop=splat_cop, extra=extra_od)
+                                     splat_cop=splat_cop, extra=extra_od, aux=aux)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,
@@ -1994,7 +2002,15 @@ class PCG_PreviewImage:
         else:
             img = convert.render_preview(geo, width, height, elevation, azimuth,
                                          shading, color_attrib)
-        return (torch.from_numpy(img)[None, ...],)
+        import numpy as _np
+        dep = aux.get("depth")
+        nrm = aux.get("normal")
+        if dep is None or dep.shape != img.shape:
+            dep = _np.zeros(img.shape, _np.float32)
+        if nrm is None or nrm.shape != img.shape:
+            nrm = _np.empty(img.shape, _np.float32)
+            nrm[...] = (0.5, 0.5, 1.0)
+        return tuple(torch.from_numpy(_np.ascontiguousarray(a_, _np.float32))[None, ...] for a_ in (img, dep, nrm))
 
 
 def output_dir():

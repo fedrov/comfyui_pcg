@@ -3188,7 +3188,7 @@ export const NODE_GLYPH = {
   Channel: "channel", Channel3: "channel",
   TimeBlend: "timeblend", Trail: "trail", Retime: "retime",
   ExportMesh: "export_", ImportMesh: "import_",
-  FromJSON: "json_in", GeoToJSON: "json_out",
+  FromJSON: "json_in", GeoToJSON: "json_out", WorldManifest: "json_out",
   PreviewImage: "preview",
   ConvertLine: "line", Trace: "trace",
   PolyPath: "polypath", Join: "join",

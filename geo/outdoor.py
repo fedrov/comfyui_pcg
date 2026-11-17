@@ -92,12 +92,16 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
-                   detail_cop=None, splat_cop=None, extra=None):
+                   detail_cop=None, splat_cop=None, extra=None, aux=None):
     """
     (H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective).
     extra: a second geometry drawn with geo without merging the two (each is rasterized on its own and the nearer
     surface wins per pixel; shadows and sky light see both): a per-shot addition to a large shared scene costs no
     copy of the scene.
+    aux: a dict to receive the frame's guide passes, (H, W, 3) float32 0..1 like the image: 'depth' (inverse depth,
+    near white, sky black, as depth ControlNets read it: scaled between the 5th and 99.5th percentile of the
+    distances and square-rooted) and 'normal' (camera space: R right, G up, B toward the camera; the sky flat,
+    facing the camera).
     """
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
@@ -360,12 +364,51 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         f = 1.0 - np.exp(-float(haze) * ds / HAZE_METRES)
         fogc = _haze_colour(Dv, L, sun)
         lin_img[so] = lin * (1 - f[:, None]) + fogc * f[:, None]
+    if aux is not None:
+        _guides(aux, dist, N, valid, fwd, rgt, up, k)
     sk_all = np.nonzero(~valid)
     for s0 in range(0, len(sk_all[0]), step):
         sk = (sk_all[0][s0:s0 + step], sk_all[1][s0:s0 + step])
         Dk = D[sk].astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     return _develop(lin_img, exposure, k)
+
+
+def _guides(aux, dist, N, valid, fwd, rgt, up, k):
+    """The depth and normal guide passes of a frame (see render_outdoor's aux), at the output resolution: block means
+    of the supersampled frame, computed without a full-size copy of the normals (this runs at the render's peak)."""
+    H, W = (dist.shape[0] // k) * k, (dist.shape[1] // k) * k
+
+    def down(a):
+        return a[:H, :W].reshape(H // k, k, W // k, k, *a.shape[2:]).mean((1, 3))
+    vv = valid & np.isfinite(dist)
+    if vv.any():
+        # the percentiles from a sample (a full copy of the distances, sorted, would be the render's peak)
+        dv = dist[::k, ::k][vv[::k, ::k]]
+        near = max(float(np.percentile(dv, 5.0)), 1e-3)
+        far = max(float(np.percentile(dv, 99.5)), near * 1.001)
+        del dv
+        # inverse depth between the 5th and 99.5th percentile, square-rooted: a landscape's far ridges keep some
+        # grey instead of all falling to black behind a near foreground (in place, row blocks of float32)
+        inv = np.zeros(dist.shape, np.float32)
+        a_, b_ = np.float32(1.0 / far), np.float32(1.0 / (1.0 / near - 1.0 / far))
+        for r0 in range(0, dist.shape[0], 256):
+            dd = dist[r0:r0 + 256]
+            m_ = vv[r0:r0 + 256]
+            with np.errstate(divide="ignore"):
+                t_ = (np.float32(1.0) / np.maximum(dd, np.float32(1e-6)) - a_) * b_
+            inv[r0:r0 + 256] = np.where(m_, np.sqrt(np.clip(t_, 0.0, 1.0)), 0.0)
+        d_ = down(inv).astype(np.float32)
+        del inv
+    else:
+        d_ = np.zeros((H // k, W // k), np.float32)
+    aux["depth"] = np.ascontiguousarray(np.repeat(d_[..., None], 3, -1)[::-1], np.float32)
+    nb = down(N).astype(np.float32)
+    vb = down(valid).astype(np.float32)
+    nc = np.stack([nb @ np.asarray(ax, np.float32) for ax in (rgt, up, -np.asarray(fwd))], -1)
+    nc = nc / np.maximum(np.linalg.norm(nc, axis=-1, keepdims=True), 1e-6) * 0.5 + 0.5
+    nc[vb < 0.5] = (0.5, 0.5, 1.0)
+    aux["normal"] = np.ascontiguousarray(np.clip(nc, 0, 1)[::-1], np.float32)
 
 
 def _haze_colour(Dv, L, sun):

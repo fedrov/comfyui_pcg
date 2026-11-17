@@ -67,6 +67,14 @@ CORE = {
     "VAEDecode": (
         [("samples", "LATENT", None), ("vae", "VAE", None)],
         [("IMAGE", "IMAGE")]),
+    "VAEEncode": (
+        [("pixels", "IMAGE", None), ("vae", "VAE", None)],
+        [("LATENT", "LATENT")]),
+    "ImageScale": (
+        [("image", "IMAGE", None),
+         ("upscale_method", ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"], "nearest-exact"),
+         ("width", "INT", 512), ("height", "INT", 512), ("crop", ["disabled", "center"], "disabled")],
+        [("IMAGE", "IMAGE")]),
     "SaveImage": (
         [("images", "IMAGE", None), ("filename_prefix", "STRING", "pcg/ai")],
         []),
@@ -160,7 +168,7 @@ class Graph:
         if itype is None:
             raise KeyError(f"{b['type']} has no input {inp}")
         want = "FLOAT" if itype == "FLOAT" else itype
-        if not isinstance(want, list) and want != otype:
+        if not isinstance(want, list) and want != otype and want != "*":
             raise TypeError(f"{a['type']}.{out} ({otype}) cannot connect to "
                             f"{b['type']}.{inp} ({itype})")
         lid = len(self.links) + 1
@@ -1434,7 +1442,8 @@ GRUNGE = (("gr_streaks", "PCG_COPGrungeLeakingStreaks", dict(element_size=0.5, r
 LAYERS = (("GrassLush", 3.0), ("GrassDry", 3.0), ("Moss", 2.0), ("ForestFloor", 2.5),
           ("Soil", 3.0), ("Mud", 4.0), ("Gravel", 3.0), ("Sand", 4.0),
           ("RockCliff", 12.0), ("RockStrata", 16.0), ("RockSlab", 9.0), ("Road", 4.0),
-          ("Crops", 4.0))                       # the fields round the towns: rows of plants (Splat3's red channel)
+          ("Crops", 4.0),                       # the fields round the towns: rows of plants (Splat3's red channel)
+          ("Setts", 3.0), ("Track", 4.0))       # the town streets' granite setts and the lanes' dirt track (Splat3 g, b)
 
 
 def _grass(n, soil, g0, g1, dryc, dryp, seed, scales=(11, 17, 27, 41), blade=28.0):
@@ -1635,6 +1644,33 @@ def layer_library_code():
           "@lay_Crops = lerp(soilc, leafc * (0.8 + 0.4 * pl), plant)",
           "@layh_Crops = 0.05 * row + 0.03 * plant * pl + 0.002 * sn",
           "@layr_Crops = 0.9 - 0.15 * plant + 0 * x"]
+    L += ["# Setts: granite setts in courses (running bond, 14 x 24 a tile), sand in the joints, worn tops",
+          "ry = y * 24",
+          "ri = floor(ry)",
+          "rf = ry - ri",
+          "rx = x * 14 + 0.5 * (ri - 2 * floor(ri / 2))",
+          "ci = floor(rx)",
+          "cf = rx - ci",
+          "ci = ci - 14 * floor(ci / 14)",
+          "e = min(min(cf, 1 - cf) * 0.58, min(rf, 1 - rf))",
+          "st = smoothstep(0.03, 0.12, e)",
+          "k = rand(ri * 37.0 + ci * 3.1 + 0.7)",
+          "sn = pnoise(set(x * 120, y * 120, 150.3), 120)",
+          "c = lerp(set(0.42, 0.41, 0.40), set(0.56, 0.54, 0.51), k) * (0.9 + 0.2 * sn)",
+          "c = lerp(c, c * set(1.08, 1.0, 0.9), smoothstep(0.7, 0.9, rand(ri * 5.3 + ci * 11.7)))",
+          "@lay_Setts = lerp(set(0.36, 0.33, 0.28), c, st)",
+          "@layh_Setts = 0.015 * st * (0.8 + 0.4 * k) + 0.001 * sn",
+          "@layr_Setts = 0.7 - 0.15 * st * k + 0 * x",
+          "# Setts wear: damp joints, tonal breakup",
+          "@lay_Setts = @lay_Setts * (1 - 0.15 * @gr_moist * (1 - st)) * (0.94 + 0.12 * @gr_layers)"]
+    L += _stones("Track", (0.40, 0.33, 0.24), ((0.50, 0.47, 0.42), (0.55, 0.50, 0.42), (0.40, 0.38, 0.35)), 0.18,
+                 (26, 72), 160.0, rough=0.9)
+    L += ["# Track: a dirt lane, grass tufts in patches where the wheels do not go",
+          "tg = smoothstep(0.55, 0.7, pnoise(set(x * 5, y * 5, 161.3), 5) + 0.25 * (pnoise(set(x * 30, y * 30, 161.9), 30) - 0.5))",
+          "gc_ = lerp(set(0.30, 0.38, 0.14), set(0.42, 0.46, 0.20), pnoise(set(x * 60, y * 60, 162.5), 60))",
+          "@lay_Track = lerp(@lay_Track, gc_, 0.85 * tg) * (1 - 0.12 * @gr_moist)",
+          "@layh_Track = @layh_Track * 0.6 + 0.012 * tg",
+          "@layr_Track = @layr_Track - 0.2 * @gr_moist"]
     L += ["# heights 0..1 per layer, for blending by height (the higher material wins at a seam)"]
     for n, _ in LAYERS:
         L += [f"@layb_{n} = (@layh_{n} - @layh_{n}.min()) / max(@layh_{n}.max() - @layh_{n}.min(), 1e-6)"]
@@ -1662,6 +1698,8 @@ LAYER_TINT = {
     "RockSlab": (0.712, 0.638, 0.520),
     "Road": (0.826, 0.851, 0.672),
     "Crops": (0.830, 0.994, 0.671),
+    "Setts": (0.62, 0.62, 0.62),
+    "Track": (0.80, 0.83, 0.68),
 }
 # the layers' mean colours (linear, tinted), for the macro map: the 1 m colour over the mean of the layers under it
 LAYER_MEAN = {
@@ -1678,6 +1716,8 @@ LAYER_MEAN = {
     "RockSlab": (0.1423, 0.1174, 0.0742),
     "Road": (0.1433, 0.1123, 0.0554),
     "Crops": (0.1602, 0.1668, 0.0368),          # the fields' mean colour (the WFC palette, linear)
+    "Setts": (0.0900, 0.0862, 0.0790),
+    "Track": (0.0920, 0.0880, 0.0420),
 }
 
 
@@ -1699,7 +1739,7 @@ def _macro_code():
 
 
 
-# the thirteen layer weights from the surface's masks (the same thresholds as the surface Wrangle's materials), at 2 m
+# the fifteen layer weights from the surface's masks (the same thresholds as the surface Wrangle's materials), at 2 m
 SPLAT_CODE = (
     "x = @u * 4100\n"
     "y = @v * 4100\n"
@@ -1722,7 +1762,11 @@ SPLAT_CODE = (
     "moss = smoothstep(0.72, 0.86, @N.z + 0.2 * (n15 - 0.5)) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\n"
     "bare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\n"
     "verge = clamp(@rdv - @rd, 0, 1) * land\n"
+    "# the roads by class: the town streets (setts), the lanes (a dirt track), the main roads (the rest)\n"
     "rdw_ = clamp(@rd, 0, 1) * land\n"
+    "st_ = min(clamp(@rds, 0, 1) * land, rdw_)\n"
+    "ln_ = min(clamp(@rdl, 0, 1) * land, rdw_ - st_)\n"
+    "mn_ = clamp(rdw_ - st_ - ln_, 0, 1)\n"
     "keep = 1 - rdw_\n"
     "# grass: dry on sunny spurs and steep ground, lush where water collects, moss in the wettest hollows\n"
     "dryg = smoothstep(0.42, 0.68, 0.55 * n50 + 0.25 * n15 + 0.35 * smoothstep(0.3, 2.0, ero) + 0.6 * slope - 0.7 * @wet)\n"
@@ -1751,8 +1795,8 @@ SPLAT_CODE = (
     "strat = smoothstep(0.52, 0.66, noise(set(x / 180, y / 180, 12.7))) * (0.4 + 0.6 * hard)\n"
     "@terrain_w0 = set(w_lush, w_dry, w_moss, ff) * keep\n"
     "@terrain_w1 = set(w_soil, w_mud, sc, sd - w_mud) * keep\n"
-    "@terrain_w2 = set(rk2 * cliffw * (1 - strat), rk2 * cliffw * strat, rk2 * (1 - cliffw), rdw_ + 0 * x)\n"
-    "@terrain_w3 = set(w_crop * keep, 0 * x, 0 * x, 0 * x)\n")
+    "@terrain_w2 = set(rk2 * cliffw * (1 - strat), rk2 * cliffw * strat, rk2 * (1 - cliffw), mn_ + 0 * x)\n"
+    "@terrain_w3 = set(w_crop * keep, st_ + 0 * x, ln_ + 0 * x, 0 * x)\n")
 
 
 def _terrain_textures():
@@ -1789,6 +1833,31 @@ CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)
 CAM3 = (540.5, 14.6, 376.9, 77.9, 84.6, -5.3)    # on the south-east road, 1.8 m above it, along it toward the main peak   # a ridge south-west of the main peak
 
 
+# what World.json adds to what it reads from the files: the road classes (each its own polylines, width, splat layer,
+# lamp asset and spacing), the water (its glb, the flow in the vertex colour, its normal map), the concept passes
+WORLD_EXTRA = {
+    "road_classes": {
+        "main": {"polylines": "roads/Roads_Main", "width_m": 6.5, "splat_layer": "Road", "material": "M_Road_Main",
+                 "surface": "packed gravel with wheel ruts and a grass crown", "lamp": "SM_RoadLamp",
+                 "lamp_spacing_m": 70, "lamps_where": "approaching a town (one side)"},
+        "street": {"polylines": "roads/Streets", "width_m": 8.0, "splat_layer": "Setts", "material": "M_Road_Street",
+                   "surface": "granite setts", "lamp": "SM_StreetLamp", "lamp_spacing_m": 28,
+                   "lamps_where": "inside the towns (alternating sides)"},
+        "lane": {"polylines": "roads/Lanes", "width_m": 4.0, "splat_layer": "Track", "material": "M_Road_Lane",
+                 "surface": "dirt track with grass", "lamp": "SM_LaneLamp", "lamp_spacing_m": 40,
+                 "lamps_where": "along the lanes (one side)"},
+    },
+    "water": {"mesh": "water/Water.glb", "nodes": "Water_x{i}_y{j}, one per tile", "material": "water",
+              "normal_map": "water/T_Water_Normal.png", "normal_map_size_m": 4.0, "uv": "metres / 4 (u east, v north)",
+              "flow": "vertex colour: r = 0.5 + 0.5 flow.x, g = 0.5 + 0.5 flow.z (downstream, scaled by speed), "
+                      "b = speed 0..1; lakes are still (0.5, 0.5, 0)",
+              "rivers": "about 0.7 m over their bed, flat across the channel", "lakes": "flat at their level"},
+    "splat_layers": [{"name": n, "size_m": sz} for n, sz in LAYERS],
+    "concept": {"render": "concept/Road_render_*.png", "depth": "concept/Road_depth_*.png (inverse depth, near white)",
+                "normal": "concept/Road_normal_*.png (camera space: r right, g up, b toward the camera)"},
+}
+
+
 def world_tiles():
     g = Graph()
     W = 360
@@ -1813,7 +1882,15 @@ def world_tiles():
         "8-bit greyscale PNG per tile per layer, **summing to 1 everywhere** (usable directly as the engine's terrain layers).\n"
         "  · Instances: trees (3 pine and 2 broadleaf kinds, split by altitude), bushes, rocks (asset names match the "
         "SM_Rock_0N exported by the rock pipeline), written as CSV in 1024 m tiles, plus Instances_index.json listing each tile.\n"
-        "  · Roads: centre lines as OBJ polylines (on the cut road bed), and 1 m terrain textures (BaseColor + normal) in 1024² tiles.\n"
+        "  · Roads in three classes: main roads between the towns (packed gravel, tall lamps as they near a town), town "
+        "streets (granite setts, street lamps 28 m apart) and lanes (a dirt track, low lamps), each its own OBJ polylines "
+        "and splat layer; 1 m terrain textures (BaseColor + normal) in 1024² tiles.\n"
+        "  · Water: the rivers and a dammed lake as a mesh of their own (flow in the vertex colour, uv in metres), one "
+        "node per tile; the preview shows them reflecting the sky.\n"
+        "  · World.json (World Manifest): every file above, the coordinate convention and one manifest per tile for "
+        "streaming; engine/unreal and engine/unity in the plugin read it.\n"
+        "  · AI: the road view's render with its depth and normal passes saved under concept/; the muted Concept "
+        "group (select it, Ctrl+M) turns them into concept art with SDXL and a union ControlNet.\n"
         "  · Towns: the buildings (Lot Subdivision → levelled pads → Building Generator) as one glb, a node per town.\n"
         "  · Far view: the tree proxies as LOD chains ending in impostor cards (LOD Create) and their impostor atlases "
         "(Impostor Textures).\n\n"
@@ -1830,12 +1907,14 @@ def world_tiles():
         "Collapse patchwork. About three minutes on numpy, much less with CUDA.\n"
         "② Ecology and colour from the erosion masks: cliffs above 55°, scree below them, sand on the beach and in the "
         "river beds, water in the sea and the trunk rivers, woodland in the valleys, grass that is lush where water "
-        "collects, dry on the ridges and heath-coloured on the high ground, darker along every gully.\n"
+        "collects, dry on the ridges and heath-coloured on the high ground, darker along every gully; the forest thins "
+        "out over a soft edge with a belt of shrubs, ferns grow under the trees, and up high the trees are fewer and "
+        "smaller.\n"
         "③ Distribution: each of the three instance kinds scatters by its density map, samples height, picks an asset and sets orientation (trees upright with random rotation, "
         "rocks tilted a bit towards the slope).\n"
         "④ Write files + preview: the full-map mesh with instance proxies, the buildings and a sea to the horizon, shot from the air "
         "in the Outdoor look (afternoon sun, clouds, haze)."),
-        h=800, title="Open-world terrain tiles (read me first)", w=W)
+        h=980, title="Open-world terrain tiles (read me first)", w=W)
 
     # ① Terrain: grown by Stream Power at 513² (8 m cells) over the whole island, detailed and eroded at 1025²
     nz = A("PCG_COPNoise", title="Base noise (513²)", resolution_x=513, resolution_y=513,
@@ -1944,7 +2023,77 @@ def world_tiles():
     # (switchbacks on the hills), avoids the river beds and stays off the sea; then cut into the ground
     nr = C("PCG_COPHeightToNormal", title="Slopes (for the town sites)", strength=2048.0, world_size=4100.0,
            out_layer="Nr")
-    g.link(cv, "cop", nr, "cop")
+    # lakes: up to three where a large river crosses a valley floor between 12 and 200 m. Each floods what lies
+    # below its level inside a wobbly outline (the river bed + 10 m), deepened toward the middle, with a dam where
+    # the ground round the outline is lower; the lake counts as a bed (roads and towns keep off)
+    lks = C("PCG_COPWrangle", title="Lake sites: trunk rivers on valley floors", code=(
+        "hm = @C * 2048\n"
+        "big = smoothstep(0.003, 0.05, @catchment)\n"
+        "@d_lake = smoothstep(0.5, 0.8, @bed) * smoothstep(0.03, 0.3, big) * smoothstep(12, 30, hm)"
+        " * (1 - smoothstep(150, 220, hm)) * @land\n"
+        "# the lakes' layers start empty (with no site there is nothing to draw)\n"
+        "@lk = 0 * @C\n"
+        "@lkl = 0 * @C\n"
+        "@lkl_lk_h = 0 * @C"))
+    g.link(cv, "cop", lks, "cop")
+    lkp = C("PCG_COPLayerToPoints", title="Lake candidates", mode="scatter", count=400, density_layer="d_lake",
+            height_layer="C", height_scale=2048.0, attribs="d_lake", plane="xz", world_size=4100.0, rand_seed=9)
+    g.link(lks, "cop", lkp, "cop")
+    lkr = C("PCG_AdaptivePrune", title="Lakes at least 900 m apart (best sites first)", radius=900.0,
+            priority="attribute", priority_attribute="d_lake", mode="delete")
+    g.link(lkp, "geo", lkr, "geo")
+    lko = C("PCG_Sort", title="Lakes: best sites first", point_sort="attribute", point_attrib="d_lake",
+            reverse_point_sort=True)
+    g.link(lkr, "geo", lko, "geo")
+    lkb = C("PCG_Blast", title="Lakes: the best three", cls="point", group="@ptnum >= 3")
+    g.link(lko, "geo", lkb, "geo")
+    lkw = C("PCG_Wrangle", title="Lakes: level 10 m above the bed, size", code=(
+        "@lk_h = @P.y + 10.0\n@pscale = 0.85 + 0.4 * rand(@ptnum + 3.7)"))
+    g.link(lkb, "geo", lkw, "geo")
+    lkc0 = C("PCG_Circle", title="Lake outline (140 m)", prim_type="polygon", orientation="zx", radius_x=140.0,
+             radius_y=140.0, divisions=40)
+    lkc1 = C("PCG_Wrangle", title="Lake outline: wobbly", code=(
+        "a = atan2(@P.z, @P.x)\n"
+        "@P = @P * (1 + 0.22 * sin(3 * a + 1.0) + 0.1 * sin(5 * a + 2.3) + 0.05 * sin(9 * a + 0.4))"))
+    g.link(lkc0, "geo", lkc1, "geo")
+    lkcp = C("PCG_CopyToPoints", title="An outline at each lake", transform_using_orientations=False,
+             target_point_attributes="lk_h")
+    g.link(lkc1, "geo", lkcp, "source")
+    g.link(lkw, "geo", lkcp, "points")
+    lkra = C("PCG_COPRasterizeCurves", title="Lakes: outline + level", width=1.0, fill=True, attrib="lk_h",
+             plane="xz", mapping="world", world_size=4100.0, out_layer="lk")
+    g.link(lkcp, "geo", lkra, "geo")
+    g.link(lks, "cop", lkra, "cop")
+    # the level all round each lake (a 520 m stroke on a short line at its centre: the outline's attribute is only
+    # drawn along the line itself)
+    lkl0 = C("PCG_Line", title="Lake level: a 1 m line", dx=1.0, dy=0.0, dz=0.0, length=1.0, points=2,
+             origin_x=-0.5, origin_y=0.0, origin_z=0.0)
+    lklc = C("PCG_CopyToPoints", title="Lake level: at each lake", transform_using_orientations=False,
+             target_point_attributes="lk_h")
+    g.link(lkl0, "geo", lklc, "source")
+    g.link(lkw, "geo", lklc, "points")
+    lklr = C("PCG_COPRasterizeCurves", title="Lake level: round each lake (520 m)", width=130.0, attrib="lk_h",
+             plane="xz", mapping="world", world_size=4100.0, out_layer="lkl")
+    g.link(lklc, "geo", lklr, "geo")
+    g.link(lkra, "cop", lklr, "cop")
+    lkro = C("PCG_COPLayerEdit", title="Lakes: a copy of the outline (for the dam)", op="copy", spec="lk=lakeo")
+    g.link(lklr, "cop", lkro, "cop")
+    lkrb = C("PCG_COPBlur", title="Lakes: the outline spread 12 m (the dam's ring)", sigma_pixels=3.0,
+             border="clamp", layers="lakeo")
+    g.link(lkro, "cop", lkrb, "cop")
+    lkcv = C("PCG_COPWrangle", title="Lakes: flood, deepen, dam", code=(
+        "L = @lkl_lk_h / 2048\n"
+        "m = smoothstep(0.3, 0.7, @lk)\n"
+        "# the dam: round the outline, where the ground is below the level\n"
+        "ring = smoothstep(0.02, 0.15, @lakeo) * (1 - m)\n"
+        "@C = lerp(@C, max(@C, L + 0.8 / 2048), ring * where(@lkl > 0.5, 1.0, 0.0))\n"
+        "# the lake bed: what lies below the level inside the outline, up to 5 m deeper away from the shore\n"
+        "under = where(@C < L, 1.0, 0.0) * m\n"
+        "@C = @C - 5.0 / 2048 * smoothstep(0.0, 3.0 / 2048, L - @C) * under\n"
+        "@lakew = smoothstep(0.0, 0.3 / 2048, L - @C) * m\n"
+        "@bed = max(@bed, @lakew)"))
+    g.link(lkrb, "cop", lkcv, "cop")
+    g.link(lkcv, "cop", nr, "cop")
     ts = C("PCG_COPWrangle", title="Town sites: flat, low, dry", code=(
         "hm = @C * 2048\n"
         "flat = 1 - smoothstep(0.015, 0.06, 1 - @Nr.z)\n"
@@ -1984,6 +2133,24 @@ def world_tiles():
            plane="xz", mapping="world", world_size=4100.0, out_layer="town")
     g.link(tcp, "geo", rt, "geo")
     g.link(rc, "cop", rt, "cop")
+    # the road classes: the town streets (inside the town discs) and the main roads between the towns; the lanes are
+    # the third class. Each class is its own polyline file, splat layer and lamp spacing (World.json lists them)
+    rsp = C("PCG_Resample", title="Road classes: a point every 4 m", method="max_segment_length", length=4.0,
+            use_out_attribs=True)
+    g.link(rn, "geo", rsp, "geo")
+    rsu = C("PCG_Wrangle", title="Road classes: their place on the map",
+            code="@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)")
+    g.link(rsp, "geo", rsu, "geo")
+    rst = C("PCG_AttribFromMap", title="Road classes: in a town?", layer="town", name="tw", uv_from="point",
+            **{"class": "point"})
+    g.link(rsu, "geo", rst, "geo")
+    g.link(rt, "cop", rst, "cop")
+    rcs = C("PCG_PolyCut", title="Streets: the roads inside the towns", mode="threshold", attribute="tw",
+            threshold=0.5, keep="above")
+    g.link(rst, "geo", rcs, "geo")
+    rcm = C("PCG_PolyCut", title="Main roads: the roads between the towns", mode="threshold", attribute="tw",
+            threshold=0.5, keep="below")
+    g.link(rst, "geo", rcm, "geo")
     # the town core: the discs blurred, 1 in the middle falling to 1/2 at the edge (the taller buildings go there)
     rtc = C("PCG_COPLayerEdit", title="Town core: a copy of the discs", op="copy", spec="town=tcore")
     g.link(rt, "cop", rtc, "cop")
@@ -2361,7 +2528,7 @@ def world_tiles():
         '# water: the sea (below 0 m), and the trunk rivers (largest catchments) inside their beds\n'
         'sea = 1 - smoothstep(-0.6, 0.3, hm)\n'
         'big = smoothstep(0.003, 0.05, @catchment)\n'
-        'riv = @bed * smoothstep(0.25, 0.7, big)\n'
+        'riv = max(@bed * smoothstep(0.25, 0.7, big), @lakew)\n'
         'water = clamp(max(sea, riv), 0, 1)\n'
         '# the fields: crops round the towns where the ground is gentle (the margins, field_id 0, stay grass)\n'
         'fieldw = @farm * (1 - @town) * (1 - smoothstep(0.02, 0.06, steep)) * (1 - water) * clamp(@field_id, 0, 1)\n'
@@ -2376,7 +2543,10 @@ def world_tiles():
         'scree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n'
         '# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\n'
         'soil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.30, 0.42, steep))\n'
-        'clump = smoothstep(0.5, 0.62, 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06)\n'
+        'cl_ = 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06\n'
+        'clump = smoothstep(0.5, 0.62, cl_)\n'
+        '# the same clumps with a wide, soft edge: the band where the forest thins out into the open\n'
+        'woodsoft = smoothstep(0.36, 0.72, cl_)\n'
         '# the fields are cleared of woodland (their margins keep it: hedgerows and copses)\n'
         'wood = clamp(soil * clump, 0, 1) * (1 - fieldw)\n'
         '# layer the seven weights: each takes its share of what the ones above left; the road first (fords and\n'
@@ -2404,9 +2574,20 @@ def world_tiles():
         '# hedgerows along the field margins\n'
         '@d_hedge = @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1)) * (1 - smoothstep(0.02, 0.06, steep))'
         ' * (1 - water) * (1 - orch) * clear\n'
-        '@d_tree = (@ForestFloor + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear * (1 - orch)\n'
+        '# the forest edge is feathered, not a cut: trees thin out over the soft band, broken up by noise; and the\n'
+        '# tree line: fewer trees up high (they are also smaller there, see the trees Wrangle)\n'
+        'feather = soil * woodsoft * (1 - fieldw) * (1 - water) * smoothstep(0.25, 0.75, noise(set(@u * 90, @v * 90, 8.8)) + 0.5 * woodsoft - 0.25)\n'
+        'treeline = 1 - 0.85 * smoothstep(0.3, 0.65, hn)\n'
+        '@treeline = treeline\n'
+        '@d_tree = (max(@ForestFloor, 0.55 * feather) + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear * (1 - orch) * treeline\n'
         'edge_ = wood * (1 - wood) * 4\n'
+        '# shrubs in a belt round the woodland (the soft band\'s middle): the edge from forest to meadow\n'
+        'belt = woodsoft * (1 - woodsoft) * 4 * soil * (1 - water) * (1 - fieldw)\n'
+        '@belt = belt\n'
+        '# understory: ferns and low shrubs under the trees, in patches\n'
+        '@d_under = @ForestFloor * clear * (1 - orch) * smoothstep(0.3, 0.6, noise(set(@u * 60, @v * 60, 9.4))) * treeline\n'
         '@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn) + 0.6 * @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1))) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n'
+        '@d_bush = @d_bush + 0.8 * belt * clear * (1 - orch)\n'
         '@d_rock = (0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed) * clear\n'
         '@wet = wet\n'
         '# colour (display values, made linear at the end)\n'
@@ -2477,16 +2658,27 @@ def world_tiles():
            world_size=4100.0, out_layer="rd")
     g.link(rn, "geo", sr, "geo")
     g.link(sl, "cop", sr, "cop")
-    srl = S("PCG_COPRasterizeCurves", title="Lanes (4 m) and squares at 1 m", width=4.0, fill=True, plane="xz",
+    srl = S("PCG_COPRasterizeCurves", title="Lanes at 1 m (4 m)", width=4.0, plane="xz",
             mapping="world", world_size=4100.0, out_layer="rdl")
-    g.link(lsq, "geo", srl, "geo")
+    g.link(lanes, "geo", srl, "geo")
     g.link(sr, "cop", srl, "cop")
-    srm = S("PCG_COPWrangle", title="Lanes and squares join the road surface", code="@rd = max(@rd, 0.85 * @rdl)")
-    g.link(srl, "cop", srm, "cop")
+    sqs = S("PCG_Merge", title="Streets and squares")
+    g.link(rcs, "geo", sqs, "geo1")
+    g.link(sqp, "geo", sqs, "geo2")
+    srs = S("PCG_COPRasterizeCurves", title="Streets (8 m) and squares at 1 m", width=8.0, fill=True, plane="xz",
+            mapping="world", world_size=4100.0, out_layer="rds")
+    g.link(sqs, "geo", srs, "geo")
+    g.link(srl, "cop", srs, "cop")
+    srm = S("PCG_COPWrangle", title="Lanes, streets and squares join the road surface; the class in one layer",
+            code="@rd = max(max(@rd, 0.85 * @rdl), @rds)\n# streets positive, lanes negative\n@rdk = @rds - @rdl * (1 - @rds)")
+    g.link(srs, "cop", srm, "cop")
+    srd = S("PCG_COPLayerEdit", title="Road classes: drop the separate layers (4096² each)", op="delete",
+            spec="rds rdl")
+    g.link(srm, "cop", srd, "cop")
     sv = S("PCG_COPRasterizeCurves", title="Verges (11 m)", width=11.0, plane="xz", mapping="world",
            world_size=4100.0, out_layer="rdv")
     g.link(rn, "geo", sv, "geo")
-    g.link(srm, "cop", sv, "cop")
+    g.link(srd, "cop", sv, "cop")
     # wheel ruts 1.1 m either side of the centre (the road's road_t gives the side), a grassy crown between them
     rul = S("PCG_Wrangle", title="Rut: left", code="@P = @P + 1.1 * set(0 - @road_t.z, 0 * @road_t.x, @road_t.x)")
     g.link(rn, "geo", rul, "geo")
@@ -2635,22 +2827,26 @@ def world_tiles():
         'c = lerp(c, c * set(0.9, 0.86, 0.78) + set(0.05, 0.04, 0.03), 0.6 * verge)\n'
         'roadc = set(0.60, 0.53, 0.41) * (0.82 + 0.22 * n4 + 0.12 * (crk - 0.3)) * (1 - 0.15 * @wet)\n'
         'c = lerp(c, roadc, @rd * land)\n'
-        'ruts = @ruts * @rd * land\n'
+        '# the town streets are paved with setts (no ruts, no crown); the lanes are a darker dirt track\n'
+        'pave = clamp(@rdk, 0, 1) * land\n'
+        'trk = clamp(0 - @rdk, 0, 1) * land\n'
+        'c = lerp(c, set(0.40, 0.37, 0.30) * (0.85 + 0.2 * n4) * (1 - 0.15 * @wet), 0.8 * trk)\n'
+        'c = lerp(c, set(0.50, 0.49, 0.46) * (0.88 + 0.16 * n4 + 0.1 * (crk - 0.3)), pave)\n'
+        'ruts = @ruts * @rd * land * (1 - pave)\n'
         'c = lerp(c, c * set(0.6, 0.56, 0.5), 0.9 * ruts)\n'
-        'crown = @crown * @rd * land * (1 - ruts)\n'
+        'crown = @crown * @rd * land * (1 - ruts) * (1 - pave)\n'
         'c = lerp(c, set(0.36, 0.40, 0.20) * (0.8 + 0.3 * n4), 0.75 * crown)\n'
         'dh = dh * (1 - @rdv * land) - 0.08 * ruts + 0.03 * crown\n'
         '@terrain_albedo = clamp(c, 0, 1) ** 2.2\n'
         '@dh = dh\n'
         '@terrain_rough = lerp(lerp(0.92 - 0.15 * @wet * rk, 0.05, @Water), 0.85, @rd * land)\n'
-        '@sea_rough = 0.05 + 0 * x\n'
 ))
     g.link(scw, "cop", sf, "cop")
     sn = S("PCG_COPHeightToNormal", title="Detail height -> normal map", layer="dh", strength=1.0,
            world_size=4100.0, out_layer="terrain_nrm")
     g.link(sf, "cop", sn, "cop")
     surf = S("PCG_COPLayerEdit", title="The texture set", op="keep",
-             spec="terrain_albedo terrain_nrm terrain_rough sea_rough")
+             spec="terrain_albedo terrain_nrm terrain_rough")
     g.link(sn, "cop", surf, "cop")
     # close-range terrain for the previews: a 2 m mesh over the road view (the valley, the town, the main peak),
     # displaced by the 1 m surface's detail height -- crags, ribs, ledges and rills as real relief that casts
@@ -2695,8 +2891,17 @@ def world_tiles():
     g.link(scw, "cop", swi, "cop")
     swr = S("PCG_COPResize", title="Splat: inputs at 2 m", resolution_x=2048, resolution_y=2048)
     g.link(swi, "cop", swr, "cop")
-    sww = S("PCG_COPWrangle", title="Splat weights: thirteen layers", code=SPLAT_CODE, rows_per_pass=256)
-    g.link(swr, "cop", sww, "cop")
+    # the road classes drawn again at 2 m (cheaper than carrying the 1 m ones through the 4096² Layer Edit)
+    sws = S("PCG_COPRasterizeCurves", title="Splat: streets (8 m) and squares at 2 m", width=4.0, fill=True,
+            plane="xz", mapping="world", world_size=4100.0, out_layer="rds")
+    g.link(sqs, "geo", sws, "geo")
+    g.link(swr, "cop", sws, "cop")
+    swl = S("PCG_COPRasterizeCurves", title="Splat: lanes (4 m) at 2 m", width=2.0, plane="xz", mapping="world",
+            world_size=4100.0, out_layer="rdl")
+    g.link(lanes, "geo", swl, "geo")
+    g.link(sws, "cop", swl, "cop")
+    sww = S("PCG_COPWrangle", title="Splat weights: fifteen layers", code=SPLAT_CODE, rows_per_pass=256)
+    g.link(swl, "cop", sww, "cop")
     swm = S("PCG_COPLayerMerge", title="+ the weights", layers="terrain_w0 terrain_w1 terrain_w2 terrain_w3")
     g.link(spr, "cop", swm, "a")
     g.link(sww, "cop", swm, "b")
@@ -2752,7 +2957,7 @@ def world_tiles():
         gn_ = S(node_, title=f"Wear: {ln_[3:]}", out_layer=ln_, **kw_)
         g.link(prev, "cop", gn_, "cop")
         prev = gn_
-    dcw = S("PCG_COPWrangle", title="Terrain layers: thirteen materials", code=layer_library_code())
+    dcw = S("PCG_COPWrangle", title="Terrain layers: fifteen materials", code=layer_library_code())
     g.link(prev, "cop", dcw, "cop")
     prev = dcw
     for n_, size_ in LAYERS:
@@ -2791,7 +2996,7 @@ def world_tiles():
         "@up = set(0, 1, 0)\n"
         "# big trees deep in the forest and where water collects, smaller at the edges and up toward the tree line\n"
         "d = clamp(@d_tree.x, 0, 1)\n"
-        "@pscale = (0.75 + 0.5 * d + 0.4 * @wet.x) * (1 - 0.4 * smoothstep(0.55, 0.8, @hn.x))"
+        "@pscale = (0.75 + 0.5 * d + 0.4 * @wet.x) * (1 - 0.5 * smoothstep(0.2, 0.6, @hn.x))"
         " * (0.7 + 0.6 * rand(@ptnum + 2.9))"))
     g.link(trees, "geo", tw, "geo")
     bush = scatter(D, "Bushes: woodland edges, wet ground, heath", 14000, "d_bush", 2)
@@ -2803,6 +3008,15 @@ def world_tiles():
         "@up = normalize(lerp(set(0, 1, 0), @tn, 0.4))\n"
         "@pscale = 0.9 + 1.2 * rand(@ptnum + 4.1)"))
     g.link(bush, "geo", bw, "geo")
+    under = scatter(D, "Understory: ferns and low shrubs under the trees", 12000, "d_under", 7)
+    uw = D("PCG_Wrangle", title="Understory", code=(
+        'names = np.array(["Fern_A", "Shrub_Low_A"])\n'
+        "s@name = names[(rand(@ptnum + 0.7) < 0.35).astype(int)]\n"
+        "a = rand(@ptnum + 2.1) * 2 * PI\n"
+        "@N = set(sin(a), 0 * a, cos(a))\n"
+        "@up = normalize(lerp(set(0, 1, 0), @tn, 0.6))\n"
+        "@pscale = 0.7 + 0.6 * rand(@ptnum + 4.9)"))
+    g.link(under, "geo", uw, "geo")
     rocks = scatter(E, "Rocks: scree, cliff feet, river beds", 4000, "d_rock", 3)
     rw = E("PCG_Wrangle", title="Rocks (using the 4 from the rock pipeline)", code=(
         "s@name = sprintf(\"SM_Rock_%02d\", (rand(@ptnum + 0.9) * 4).astype(int))\n"
@@ -2937,6 +3151,45 @@ def world_tiles():
         "@N = @tdir\n@up = set(0, 1, 0) + 0 * @N\n@pscale = 1 + 0 * @P.x\n"
         "@scale = set(1 + 0 * @P.x, hgt, 1 + 0 * @P.x)"))
     g.link(bpk, "geo", bpr, "geo")
+    # three classes of lamp: tall road lamps on the main roads as they near a town (70 m apart, one side), street
+    # lamps on the town streets (28 m, alternating sides), low lane lamps along the lanes (40 m, one side)
+    rtr = R4("PCG_AttribFromMap", title="Road points: near a town (the ring)", layer="tring", name="tr",
+             uv_from="point", **{"class": "point"})
+    g.link(rsa, "geo", rtr, "geo")
+    g.link(cut, "cop", rtr, "cop")
+    rlk = R4("PCG_Blast", title="Road lamps: main road points near a town", cls="point",
+             group="(@tw > 0.45) | (@tr < 0.15) | (@bd > 0.3)")
+    g.link(rtr, "geo", rlk, "geo")
+    rlp = R4("PCG_AdaptivePrune", title="Road lamps: 70 m apart", radius=70.0, priority="random", rand_seed=6,
+             mode="delete")
+    g.link(rlk, "geo", rlp, "geo")
+    rlw = R4("PCG_Wrangle", title="Road lamps: one side, 6 m out, the arm over the road", code=(
+        "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+        "s = set(t.z, 0 * @P.x, 0 - t.x)\n"
+        "@P = @P + s * 6\n"
+        's@name = "SM_RoadLamp"\n'
+        "@N = 0 - s\n@up = set(0, 1, 0) + 0 * s\n@pscale = 1 + 0 * @P.x"))
+    g.link(rlp, "geo", rlw, "geo")
+    llr = R4("PCG_Resample", title="Lane lamps: lane points every 4 m (with the tangent)",
+             method="max_segment_length", length=4.0, create_only_points=True, use_out_attribs=True)
+    g.link(lanes, "geo", llr, "geo")
+    llp = R4("PCG_AdaptivePrune", title="Lane lamps: 40 m apart", radius=40.0, priority="random", rand_seed=8,
+             mode="delete")
+    g.link(llr, "geo", llp, "geo")
+    llo = R4("PCG_Wrangle", title="Lane lamps: one side, 3.5 m out", code=(
+        "t = normalize(set(@tangentu.x, 0 * @P.x, @tangentu.z))\n"
+        "s = set(t.z, 0 * @P.x, 0 - t.x)\n"
+        "@P = @P + s * 3.5\n"
+        "@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)\n"
+        "@N = 0 - s\n@up = set(0, 1, 0) + 0 * s"))
+    g.link(llp, "geo", llo, "geo")
+    llg = R4("PCG_AttribFromMap", title="Lane lamps: the final ground there", layer="C", name="gl", uv_from="point",
+             **{"class": "point"})
+    g.link(llo, "geo", llg, "geo")
+    g.link(bio, "cop", llg, "cop")
+    llw = R4("PCG_Wrangle", title="Lane lamps: on it", code=(
+        '@P.y = @gl * 2048\ns@name = "SM_LaneLamp"\n@pscale = 1 + 0 * @P.x'))
+    g.link(llg, "geo", llw, "geo")
     lmk = R4("PCG_Blast", title="Lamps: road points in the towns", cls="point", group="@tw < 0.5")
     g.link(rsa, "geo", lmk, "geo")
     lmp = R4("PCG_AdaptivePrune", title="Lamps: 28 m apart", radius=28.0, priority="random", rand_seed=4,
@@ -2981,10 +3234,10 @@ def world_tiles():
             "@pscale = 1 + 0 * @P.x"))
         g.link(rk_, "geo", rw_, "geo")
         rails.append(rw_)
-    furn = merge_n(R4, "Road furniture", [brw, bpr, lmw] + rails)
+    furn = merge_n(R4, "Road furniture", [brw, bpr, lmw, rlw, llw] + rails)
     allp = E("PCG_Merge", title="All instances")
     g.link(tw, "geo", allp, "geo1")
-    g.link(bw, "geo", allp, "geo2")
+    g.link(merge_n(E, "Bushes and understory", [bw, uw]), "geo", allp, "geo2")
     g.link(rw, "geo", allp, "geo3")
     g.link(hw, "geo", allp, "geo4")
     g.link(ow, "geo", allp, "geo5")
@@ -3005,11 +3258,16 @@ def world_tiles():
            asset_attribute="name", tile_size=1024.0)
     g.link(inb, "geo", ei, "points")
     # the road centre lines (on the cut road bed, the same north-west origin) as OBJ polylines for the engine's splines
-    rco = E("PCG_Transform", title="Roads: origin to the north-west corner", tx=2048.0, tz=2048.0)
-    g.link(rn, "geo", rco, "geo")
-    rex = E("PCG_ExportMesh", title="Road centre lines (OBJ polylines)", filename="pcg/world/roads/Roads",
+    rco = E("PCG_Transform", title="Main roads: origin to the north-west corner", tx=2048.0, tz=2048.0)
+    g.link(rcm, "geo", rco, "geo")
+    rex = E("PCG_ExportMesh", title="Main road centre lines (OBJ polylines)", filename="pcg/world/roads/Roads_Main",
             format="obj")
     g.link(rco, "geo", rex, "geo")
+    sco = E("PCG_Transform", title="Streets: origin to the north-west corner", tx=2048.0, tz=2048.0)
+    g.link(rcs, "geo", sco, "geo")
+    sex = E("PCG_ExportMesh", title="Street centre lines (OBJ polylines)", filename="pcg/world/roads/Streets",
+            format="obj")
+    g.link(sco, "geo", sex, "geo")
     leu = E("PCG_AttribFromMap", title="Lanes: the final ground under them (their bed, or a road's where it wins)",
             layer="C", name="lf", uv_from="point", **{"class": "point"})
     g.link(lgh, "geo", leu, "geo")
@@ -3127,6 +3385,12 @@ def world_tiles():
     bsc = G("PCG_Color", title="Bush green", attribute_class="point", r=0.25, g=0.31, b=0.13)
     g.link(bst, "geo", bsc, "geo")
     bushp = named(G, bsc, "bush", 1.3)
+    fns = G("PCG_Sphere", title="Fern", radius=1.0, cols=8, rows=3)
+    fnt = G("PCG_Transform", title="Fern: low and wide", sx=0.75, sy=0.35, sz=0.75, ty=0.2)
+    g.link(fns, "geo", fnt, "geo")
+    fnc = G("PCG_Color", title="Fern green", attribute_class="point", r=0.20, g=0.30, b=0.10)
+    g.link(fnt, "geo", fnc, "geo")
+    fernp = named(G, fnc, "fern", 0.55)
     rk = G("PCG_Sphere", title="Rock", radius=1.0, cols=7, rows=5)
     rkj = G("PCG_PointJitter", title="Rock: angular", scale=0.45, rand_seed=8)
     g.link(rk, "geo", rkj, "geo")
@@ -3168,13 +3432,26 @@ def world_tiles():
     flc = G("PCG_Color", title="Lamp iron", attribute_class="point", r=0.12, g=0.12, b=0.13)
     g.link(flm, "geo", flc, "geo")
     lampp = named(G, flc, "lamp")
+    rpole = G("PCG_Box", title="Road lamp pole (8 m)", size_x=0.2, size_y=8.0, size_z=0.2, cy=4.0)
+    rarm = G("PCG_Box", title="Road lamp arm and head (2 m)", size_x=0.35, size_y=0.22, size_z=2.0, cy=8.0, cz=0.9)
+    rlm = merge_n(G, "Road lamp", [rpole, rarm])
+    rlc = G("PCG_Color", title="Road lamp steel", attribute_class="point", r=0.30, g=0.31, b=0.32)
+    g.link(rlm, "geo", rlc, "geo")
+    roadlampp = named(G, rlc, "roadlamp")
+    lpost = G("PCG_Box", title="Lane lamp post (3 m)", size_x=0.12, size_y=3.0, size_z=0.12, cy=1.5)
+    llan = G("PCG_Box", title="Lane lamp lantern", size_x=0.35, size_y=0.45, size_z=0.35, cy=3.2)
+    lnm = merge_n(G, "Lane lamp", [lpost, llan])
+    lnc = G("PCG_Color", title="Lane lamp iron", attribute_class="point", r=0.10, g=0.10, b=0.10)
+    g.link(lnm, "geo", lnc, "geo")
+    lanelampp = named(G, lnc, "lanelamp")
     frl_ = G("PCG_Box", title="Guard rail beam (4 m)", size_x=0.1, size_y=0.32, size_z=4.0, cy=0.6)
     fpo = G("PCG_Box", title="Guard rail post", size_x=0.12, size_y=0.75, size_z=0.12, cy=0.37)
     frr = merge_n(G, "Guard rail", [frl_, fpo])
     frc_ = G("PCG_Color", title="Galvanised steel", attribute_class="point", r=0.62, g=0.63, b=0.64)
     g.link(frr, "geo", frc_, "geo")
     railp = named(G, frc_, "rail")
-    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp, fruit, hedgep, bridgep, pierp, lampp, railp])
+    plib = merge_n(G, "Proxy library", [pine, broad, bushp, rockp, fruit, hedgep, bridgep, pierp, lampp, railp,
+                                         roadlampp, lanelampp, fernp])
     # ③b The far view: the tree proxies as engine assets, each a LOD chain (LOD Create: LOD0, LOD1 at 40% of the
     # triangles, LOD2 two crossed cards) and an impostor atlas for the cards (Impostor Textures: the upper half of
     # the sphere of views, 8 x 8 frames of 128²: colour, alpha, normal, depth)
@@ -3203,7 +3480,8 @@ def world_tiles():
     # the orchard tree, the hedge and the road furniture as engine assets (one glb, a node each)
     pnm_ = []
     for src_, nm_ in ((fruit, "SM_Proxy_Fruit"), (hedgep, "SM_Proxy_Hedge"), (bridgep, "SM_Bridge"),
-                      (pierp, "SM_BridgePier"), (lampp, "SM_StreetLamp"), (railp, "SM_GuardRail")):
+                      (pierp, "SM_BridgePier"), (lampp, "SM_StreetLamp"), (railp, "SM_GuardRail"),
+                      (roadlampp, "SM_RoadLamp"), (lanelampp, "SM_LaneLamp")):
         n_ = V("PCG_Wrangle", title=f"{nm_}: asset name", run_over="prim", code=f's@name = "{nm_}"')
         g.link(src_, "geo", n_, "geo")
         pnm_.append(n_)
@@ -3245,6 +3523,11 @@ def world_tiles():
     g.link(tw, "geo", kt, "geo")
     kb = G("PCG_Wrangle", title="Bushes → bush", code='s@kind = "bush"')
     g.link(bw, "geo", kb, "geo")
+    ku = G("PCG_Wrangle", title="Understory → fern / bush (a low one)", code=(
+        'f = @name.astype(str) == "Fern_A"\n'
+        's@kind = where(f, "fern", "bush")\n'
+        "@pscale = where(f, @pscale, 0.45 * @pscale)"))
+    g.link(uw, "geo", ku, "geo")
     kr = G("PCG_Wrangle", title="Rocks → rock", code='s@kind = "rock"')
     g.link(rw, "geo", kr, "geo")
     tint_code = ("# brightness 0.75..1.2, and a drift toward yellow-green or blue-green\n"
@@ -3254,9 +3537,10 @@ def world_tiles():
     kx = G("PCG_Wrangle", title="Hedges, orchards, road furniture → their kinds", code=(
         "n = @name.astype(str)\n"
         's@kind = where(n == "Hedge_A", "hedge", where(n == "Tree_Fruit_A", "fruit", where(n == "SM_Bridge", "bridge",'
-        ' where(n == "SM_BridgePier", "pier", where(n == "SM_StreetLamp", "lamp", "rail")))))'))
+        ' where(n == "SM_BridgePier", "pier", where(n == "SM_StreetLamp", "lamp", where(n == "SM_RoadLamp", "roadlamp",'
+        ' where(n == "SM_LaneLamp", "lanelamp", "rail")))))))'))
     g.link(merge_n(G, "Hedges, orchards, furniture", [hw, ow, furn]), "geo", kx, "geo")
-    kall0 = merge_n(G, "Proxy points: bushes, rocks, hedges, orchards, furniture", [kb, kr, kx])
+    kall0 = merge_n(G, "Proxy points: bushes, understory, rocks, hedges, orchards, furniture", [kb, ku, kr, kx])
     kall = G("PCG_Wrangle", title="Proxy points: scale 1 where none was given",
              code="@scale = where(length(@scale) < 1e-9, set(1, 1, 1) + 0 * @scale, @scale)")
     g.link(kall0, "geo", kall, "geo")
@@ -3276,10 +3560,96 @@ def world_tiles():
     g.link(sqt, "geo", sqc, "geo")
     sqm = G("PCG_Wrangle", title="Material: sea", run_over="prim", code='s@material = "sea"')
     g.link(sqc, "geo", sqm, "geo")
-    mg = G("PCG_Merge", title="Terrain + bushes and rocks + sea")
+    # ③d Water: the rivers and lakes as a mesh of their own (for the engine's water shader, and the preview's
+    # reflections): the level (rivers about 0.7 m over their bed, lakes flat at theirs) as a height field mesh where water
+    # lies; the flow along the smoothed level (downhill; still on the lakes) as the vertex colour (x, z in 0..1 around
+    # 0.5, speed) and the attribute flow; uv in metres / 4 along the world; one node per 1024 m tile
+    Wt = Col(g, 4780, width=W)
+    wsf = Wt("PCG_COPWrangle", title="Water: the river channels and their level", code=(
+        "big = smoothstep(0.003, 0.05, @catchment)\n"
+        "# the river beds of all but the smallest streams (not the lake)\n"
+        "@rivm = smoothstep(0.4, 0.6, @bed * smoothstep(0.01, 0.12, big) * (1 - @lakew))\n"
+        "@rivl = (@C + 0.7 / 2048) * @rivm"))
+    g.link(bio, "cop", wsf, "cop")
+    # a channel is a pixel or two wide: spread it a little, its level the mean over the channel nearby (flat across
+    # it, so on the banks the water lies under the ground instead of climbing them)
+    wsb = Wt("PCG_COPBlur", title="Water: the channels spread (5 m)", sigma_pixels=1.2, border="clamp",
+             layers="rivm rivl")
+    g.link(wsf, "cop", wsb, "cop")
+    wsl = Wt("PCG_COPWrangle", title="Water: the level and where it lies", code=(
+        "lk = @lakew > 0.5\n"
+        "rv = @rivm > 0.12\n"
+        "@wl = where(lk, @lkl_lk_h / 2048, where(rv, @rivl / max(@rivm, 1e-6), @C + 0.7 / 2048))\n"
+        "@wmask = where(lk | rv, 1.0, 0.0) * where(@C * 2048 > -0.5, 1.0, 0.0)"))
+    g.link(wsb, "cop", wsl, "cop")
+    wcp = Wt("PCG_COPLayerEdit", title="Water: a copy of the level (to smooth, for the flow)", op="copy",
+             spec="wl=wls")
+    g.link(wsl, "cop", wcp, "cop")
+    wbl = Wt("PCG_COPBlur", title="Water: the level smoothed (12 m)", sigma_pixels=3.0, border="clamp", layers="wls")
+    g.link(wcp, "cop", wbl, "cop")
+    wnm = Wt("PCG_COPHeightToNormal", title="Water: the smoothed level's slope", layer="wls", strength=2048.0,
+             world_size=4100.0, out_layer="wn")
+    g.link(wbl, "cop", wnm, "cop")
+    wfl = Wt("PCG_COPWrangle", title="Water: the flow (downhill along the level, still on the lakes)", code=(
+        "fx = @wn.x\n"
+        "fz = 0 - @wn.y\n"
+        "l = sqrt(fx * fx + fz * fz)\n"
+        "sp = clamp(l * 60, 0, 1) * (1 - smoothstep(0.3, 0.7, @lakew))\n"
+        "@flowc = set(0.5 + 0.5 * fx / max(l, 1e-6) * sp, 0.5 + 0.5 * fz / max(l, 1e-6) * sp, sp)"))
+    g.link(wnm, "cop", wfl, "cop")
+    wms = Wt("PCG_COPHeightfieldToMesh", title="Water: a mesh of the level (one point per sample)", layer="wl",
+             strength=2048.0, world_size=4100.0, step=1, attribs="wm=wmask Cd=flowc")
+    g.link(wfl, "cop", wms, "cop")
+    wbk = Wt("PCG_Blast", title="Water: only where it lies", cls="point", group="@wm < 0.5")
+    g.link(wms, "geo", wbk, "geo")
+    wuv = Wt("PCG_Wrangle", title="Water: uv, the flow, the tile's name", code=(
+        "@uv = set(@P.x / 4, 0 - @P.z / 4, 0)\n"
+        "@flow = set(@Cd.x * 2 - 1, 0 * @Cd.x, @Cd.y * 2 - 1)\n"
+        "i = clamp(floor((@P.x + 2048) / 1024), 0, 3).astype(int)\n"
+        "j = clamp(floor((@P.z + 2048) / 1024), 0, 3).astype(int)\n"
+        's@name = np.char.add(np.char.add("Water_x", i.astype(str)), np.char.add("_y", j.astype(str)))'))
+    g.link(wbk, "geo", wuv, "geo")
+    wnp = Wt("PCG_AttribPromote", title="Water: the tile's name to the faces", original_name="name",
+             original_class="point", new_class="prim", method="first_match", delete_original=True)
+    g.link(wuv, "geo", wnp, "geo")
+    wmt = Wt("PCG_Wrangle", title="Water: material water", run_over="prim", code='s@material = "water"')
+    g.link(wnp, "geo", wmt, "geo")
+    wco = Wt("PCG_Transform", title="Water: origin to the north-west corner", tx=2048.0, tz=2048.0)
+    g.link(wmt, "geo", wco, "geo")
+    wex = Wt("PCG_ExportMesh", title="Water: one glb, a node per tile", filename="pcg/world/water/Water",
+             format="glb", split_attribute="name")
+    g.link(wco, "geo", wex, "geo")
+    # its material (the preview's, and a normal map for the engine): ripples at three scales over a 4 m tile, dark
+    # blue-green, roughness about 0.05
+    wc0 = Wt("PCG_COPConstant", title="Water material: 256² canvas (4 m)", resolution_x=256, resolution_y=256,
+             layer="base")
+    wcw = Wt("PCG_COPWrangle", title="Water material: ripples, colour, roughness", code=(
+        "x = @u\ny = @v\n"
+        "@height = 0.012 * pnoise(set(x * 6, y * 6, 3.1), 6) + 0.006 * pnoise(set(x * 15, y * 13, 5.7), set(15, 13, 0))"
+        " + 0.002 * pnoise(set(x * 40, y * 40, 9.2), 40)\n"
+        "@basecolor = set(0.010, 0.024, 0.028) + 0 * x\n"
+        "@ao = 1 + 0 * x\n"
+        "@roughness = 0.03 + 0.04 * pnoise(set(x * 8, y * 8, 1.4), 8)\n"
+        "@metallic = 0 * x\n"
+        "# the sea's roughness (the preview's sea quad reads '@sea_rough'; a constant needs no 4096² layer)\n"
+        "@rough = 0.05 + 0 * x"))
+    g.link(wc0, "cop", wcw, "cop")
+    wcn = Wt("PCG_COPHeightToNormal", title="Water material: ripple normals", layer="height", strength=1.0,
+             world_size=4.0, tile=True, out_layer="N")
+    g.link(wcw, "cop", wcn, "cop")
+    wnf = Wt("PCG_COPWriteFile", title="Water: normal map (OpenGL, 4 m a tile)", filename="pcg/world/water/T_Water_Normal",
+             channels="N", format="png", bit_depth="8", remap="signed")
+    g.link(wcn, "cop", wnf, "cop")
+    mg = G("PCG_Merge", title="Terrain + bushes and rocks + sea + water")
     g.link(msh, "geo", mg, "geo1")
     g.link(ct, "geo", mg, "geo2")
     g.link(sqm, "geo", mg, "geo3")
+    # for the preview only what it reads (a string attribute merged onto the terrain's millions of faces would take
+    # the longest one's width on every one of them)
+    wpv = G("PCG_AttribDelete", title="Water for the preview: P, N, uv, Cd and the material", point="* ^P ^N ^uv ^Cd",
+            vertex="*", prim="* ^material")
+    g.link(wmt, "geo", wpv, "geo")
+    g.link(wpv, "geo", mg, "geo4")
     # ③c What each camera sees beyond the terrain (Preview Image's extra_geo): the trees near it as proxies and the
     # far ones as impostor cards (a quad turned about the up axis to the camera, its uv on the atlas frame of the
     # direction it is seen from; the atlas' alpha cuts the crown out) over a blob that only casts the shadow, and
@@ -3319,6 +3689,16 @@ def world_tiles():
         g.link(pdset, "cop", ml_, "a")
         g.link(mm_, "cop", ml_, "b")
         pdset = ml_
+    wlm = H("PCG_COPLayerMerge", title="Layer library + the water material", layers="basecolor N ao roughness metallic",
+            prefix="water_", overwrite=True)
+    g.link(pdset, "cop", wlm, "a")
+    g.link(wcn, "cop", wlm, "b")
+    pdset = wlm
+    slm = H("PCG_COPLayerMerge", title="Layer library + the sea's roughness", layers="rough", prefix="sea_",
+            overwrite=True)
+    g.link(pdset, "cop", slm, "a")
+    g.link(wcn, "cop", slm, "b")
+    pdset = slm
     for asset_, kind_ in (("Pine", "pine"), ("Broadleaf", "broad")):
         lm_ = H("PCG_COPLayerMerge", title=f"Layer library + the {asset_.lower()} atlas", layers="C alpha",
                 prefix=f"imp_{kind_}_", overwrite=True)
@@ -3443,6 +3823,69 @@ def world_tiles():
     g.link(cam3, "cam", pr3, "camera")
     pv3 = G("PreviewImage", title="On the road", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
+    # ⑤ AI: the road view's render with its depth and normal passes, saved for any image model; and (muted: select
+    # the Concept nodes and press Ctrl+M) SDXL with a union ControlNet turning them into concept art -- depth holds
+    # the town and the peaks in place, normal the facades and slopes, and the render itself is the starting image
+    # (denoise 0.7: its light and palette carry over)
+    A5 = Col(g, 5200, width=W)
+    for out_, nm_ in (("image", "Road_render"), ("depth", "Road_depth"), ("normal", "Road_normal")):
+        sv_ = A5("SaveImage", title=f"Save: {nm_}", filename_prefix=f"pcg/world/concept/{nm_}")
+        g.link(pr3, out_, sv_, "images")
+    cm_ = dict(node_mode=2)
+    ck = A5("CheckpointLoaderSimple", title="Concept: checkpoint (SDXL)", **cm_)
+    pos = A5("CLIPTextEncode", title="Concept: prompt", text=(
+        "concept art of a small mountain town of stone houses with tiled roofs on a green valley floor, a winding gravel "
+        "road, forests and meadows, granite peaks behind, late afternoon light, matte painting, highly detailed"), **cm_)
+    g.link(ck, "CLIP", pos, "clip")
+    neg = A5("CLIPTextEncode", title="Concept: negative", text=(
+        "text, watermark, logo, blurry, lowres, deformed, people, cars, modern buildings, power lines"), **cm_)
+    g.link(ck, "CLIP", neg, "clip")
+    cnl = A5("ControlNetLoader", title="Concept: union ControlNet (SDXL)", **cm_)
+    cnd = A5("SetUnionControlNetType", title="Concept: as depth", type="depth", **cm_)
+    g.link(cnl, "CONTROL_NET", cnd, "control_net")
+    cnn = A5("SetUnionControlNetType", title="Concept: as normal", type="normal", **cm_)
+    g.link(cnl, "CONTROL_NET", cnn, "control_net")
+    scl = {}
+    for out_ in ("image", "depth", "normal"):
+        sc_ = A5("ImageScale", title=f"Concept: {out_} to 1344 x 768", upscale_method="area", width=1344,
+                 height=768, crop="center", **cm_)
+        g.link(pr3, out_, sc_, "image")
+        scl[out_] = sc_
+    ap1 = A5("ControlNetApplyAdvanced", title="Concept: depth (0.65, to 80%)", strength=0.65, end_percent=0.8, **cm_)
+    g.link(pos, "CONDITIONING", ap1, "positive")
+    g.link(neg, "CONDITIONING", ap1, "negative")
+    g.link(cnd, "CONTROL_NET", ap1, "control_net")
+    g.link(scl["depth"], "IMAGE", ap1, "image")
+    g.link(ck, "VAE", ap1, "vae")
+    ap2 = A5("ControlNetApplyAdvanced", title="Concept: normal (0.35, to 60%)", strength=0.35, end_percent=0.6, **cm_)
+    g.link(ap1, "positive", ap2, "positive")
+    g.link(ap1, "negative", ap2, "negative")
+    g.link(cnn, "CONTROL_NET", ap2, "control_net")
+    g.link(scl["normal"], "IMAGE", ap2, "image")
+    g.link(ck, "VAE", ap2, "vae")
+    enc = A5("VAEEncode", title="Concept: the render as the starting image", **cm_)
+    g.link(scl["image"], "IMAGE", enc, "pixels")
+    g.link(ck, "VAE", enc, "vae")
+    ks = A5("KSampler", title="Concept: sample (denoise 0.7)", seed=7, steps=30, cfg=5.5, sampler_name="dpmpp_2m",
+            scheduler="karras", denoise=0.7, **cm_)
+    g.link(ck, "MODEL", ks, "model")
+    g.link(ap2, "positive", ks, "positive")
+    g.link(ap2, "negative", ks, "negative")
+    g.link(enc, "LATENT", ks, "latent_image")
+    dec = A5("VAEDecode", title="Concept: decode", **cm_)
+    g.link(ks, "LATENT", dec, "samples")
+    g.link(ck, "VAE", dec, "vae")
+    svc = A5("SaveImage", title="Concept: save", filename_prefix="pcg/world/concept/Concept_Road", **cm_)
+    g.link(dec, "IMAGE", svc, "images")
+    # ⑥ World.json: everything above read back from the files, with the coordinate convention, and a manifest per
+    # tile for streaming. The main exports and the last render are linked so they run first (ComfyUI runs a file
+    # writer as soon as its input is ready, so everything that render read has been written by then)
+    man = A5("PCG_WorldManifest", title="World Manifest: World.json + a manifest per tile", folder="pcg/world",
+             world_size=4096.0, tile_size=1024.0, origin="north_west_corner",
+             extra_json=json.dumps(WORLD_EXTRA, indent=1))
+    for k_, (src_, out_) in enumerate(((ei, "report"), (bex, "path"), (wex, "path"), (rex, "path"), (sex, "path"),
+                                       (lex, "path"), (wnf, "report"), (pr3, "image")), 1):
+        g.link(src_, out_, man, f"after{k_}")
     return g
 
 
@@ -5072,7 +5515,7 @@ def validate_ui(wf):
             probs.append(f"{n['type']}: wrong output names")
     for lid, a, sa, b, sb, t in wf["links"]:
         na, nb = ids[a], ids[b]
-        if na["outputs"][sa]["type"] != t or nb["inputs"][sb]["type"] != t:
+        if na["outputs"][sa]["type"] != t or nb["inputs"][sb]["type"] not in (t, "*"):
             probs.append(f"link {lid} type mismatch")
         if nb["inputs"][sb]["link"] != lid or lid not in na["outputs"][sa]["links"]:
             probs.append(f"link {lid} not registered at both ends")

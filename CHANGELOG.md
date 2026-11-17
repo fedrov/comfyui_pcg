@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **World Manifest** (new node): reads an exported world back from its folder and writes `World.json` (image sets
+  with their decode rules, instance tables, meshes with nodes, bounds and LOD chains, polylines, other files, the
+  coordinate convention and how Unreal and Unity map it) and `tiles/Tile_x{i}_y{j}.json` per streaming tile (its
+  terrain files, instance counts per asset, towns, water nodes, road length, bounds). Its `after` inputs take any
+  type, to order the exports before it; Extra JSON adds keys.
+- **Engine import examples** (`engine/`): an Unreal Editor Python script (Landscape settings that reproduce the
+  heights, textures, meshes with LOD chains and screen sizes, instances as HISM per tile, road splines) and a Unity
+  Editor importer (a Terrain per tile with layers and alphamaps, LODGroups, instances, roads) reading World.json;
+  their engine-independent parts are tested (the Unity core compiled and run with Mono).
+- **Preview Image**: outputs `depth` and `normal`, the outdoor look's guide passes (inverse depth, camera-space
+  normals) for ControlNet.
+- **World tiles: road classes, water, layered vegetation, World.json, ControlNet concept art**. Main roads, town
+  streets and lanes each get their own polylines (`Roads_Main.obj`, `Streets.obj`, `Lanes.obj`), splat layer (Road,
+  the new Setts and Track) and lamp (`SM_RoadLamp` 70 m apart near the towns, `SM_StreetLamp` 28 m, `SM_LaneLamp`
+  40 m); the rivers and a dammed lake are a water mesh (`water/Water.glb`, flow in the vertex colour, a node per
+  tile) that the previews show reflecting the sky; the forest edge is feathered with a shrub belt, ferns and low
+  shrubs grow under the trees, trees are fewer and smaller up high; World Manifest writes `World.json`; the road
+  view's render, depth and normal are saved for image models, and a muted Concept group (SDXL + union ControlNet)
+  turns them into concept art.
 - **World tiles: graded lanes, corner lots, cross gables, bridges by span**. The lanes are graded like the roads
   (a smoothed bed cut in over 10 m) and written to `roads/Lanes.obj`; a lot with a street beside it is a corner
   lot whose building faces both streets; L-shaped buildings get pitched roofs; a bridge spans its river bed
@@ -49,6 +68,8 @@ All notable changes to this project are documented here. The format follows
 - **LOD Create**: a `custom` input whose faces (prim `lod`) replace those levels, reduced by their own percent.
 
 ### Changed
+- **World tiles**: `roads/Roads.obj` is replaced by `roads/Roads_Main.obj` and `roads/Streets.obj` (the same network, by
+  class); the splat maps hold fifteen layers (Splat3: Crops, Setts, Track).
 - **Building Generator**: a front wall with fewer bays than its Front Pattern shows the pattern's middle (one bay
   of `window door window` is the door), where it used to show the pattern's start (a window).
 - **Impostor Textures**: the C layer is linear (Cd is a display colour), like the base colour everywhere else.

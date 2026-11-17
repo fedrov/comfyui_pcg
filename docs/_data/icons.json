@@ -526,4 +526,5 @@
 "PCG_VoronoiCluster":["voronoi_cluster","#8fb8e0"],
 "PCG_VoronoiFracture":["voronoi","#8fb8e0"],
 "PCG_VoronoiSplit":["voronoi_split","#8fb8e0"],
+"PCG_WorldManifest":["json_out","#cfd6de"],
 "PCG_Wrangle":["wrangle","#e0b464"]}}

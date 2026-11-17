@@ -527,5 +527,6 @@
 "PCG_VoronoiCluster": "PCG/modify",
 "PCG_VoronoiFracture": "PCG/modify",
 "PCG_VoronoiSplit": "PCG/modify",
+"PCG_WorldManifest": "PCG/output",
 "PCG_Wrangle": "PCG/attribute"
 }

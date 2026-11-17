@@ -187,13 +187,85 @@ class _Img:
         return ()
 
 
-def run(name, cwd, release=False, capture=None):
+# the image-model nodes of a workflow's muted AI group, as stubs that record what they were given (no model here)
+CONCEPT = {"control": [], "sample": None, "encode": None}
+
+
+def _stub(fn, returns):
+    class _S:
+        @classmethod
+        def INPUT_TYPES(cls):
+            return {"required": {}}
+        RETURN_TYPES = returns
+        FUNCTION = "run"
+
+        def run(self, **kw):
+            return fn(**kw)
+    return _S
+
+
+def _scale(image, upscale_method, width, height, crop):
+    import torch.nn.functional as tF
+    x = image.permute(0, 3, 1, 2)
+    if crop == "center":
+        h_, w_ = x.shape[2], x.shape[3]
+        r_ = width / height
+        if w_ / h_ > r_:
+            c_ = int(round(h_ * r_))
+            x = x[..., (w_ - c_) // 2:(w_ - c_) // 2 + c_]
+        else:
+            c_ = int(round(w_ / r_))
+            x = x[..., (h_ - c_) // 2:(h_ - c_) // 2 + c_, :]
+    return (tF.interpolate(x, size=(height, width), mode="area").permute(0, 2, 3, 1),)
+
+
+def _apply(positive, negative, control_net, image, strength, start_percent, end_percent, vae=None):
+    CONCEPT["control"].append((control_net.get("type"), np.asarray(image[0]).copy(), strength, end_percent))
+    return (positive + [control_net.get("type")], negative)
+
+
+def _sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise):
+    CONCEPT["sample"] = {"denoise": denoise, "conds": positive, "latent": latent_image}
+    return ({"from": latent_image},)
+
+
+def _encode(pixels, vae):
+    CONCEPT["encode"] = tuple(pixels.shape)
+    return ({"pixels": tuple(pixels.shape)},)
+
+
+def _decode(samples, vae):
+    import torch as _t
+    s_ = samples["from"]["pixels"]
+    return (_t.zeros(s_),)
+
+
+CONCEPT_STUBS = {
+    "CheckpointLoaderSimple": _stub(lambda ckpt_name: ("MODEL", "CLIP", "VAE"), ("MODEL", "CLIP", "VAE")),
+    "CLIPTextEncode": _stub(lambda text, clip: ([text],), ("CONDITIONING",)),
+    "ControlNetLoader": _stub(lambda control_net_name: ({"name": control_net_name},), ("CONTROL_NET",)),
+    "SetUnionControlNetType": _stub(lambda control_net, type: (dict(control_net, type=type),), ("CONTROL_NET",)),
+    "ImageScale": _stub(_scale, ("IMAGE",)),
+    "ControlNetApplyAdvanced": _stub(_apply, ("CONDITIONING", "CONDITIONING")),
+    "VAEEncode": _stub(_encode, ("LATENT",)),
+    "KSampler": _stub(_sample, ("LATENT",)),
+    "VAEDecode": _stub(_decode, ("IMAGE",)),
+}
+
+
+def run(name, cwd, release=False, capture=None, unmute=None):
     """capture: {node title: fn(outputs) -> summary}; the summaries go to capture["got"] (the outputs themselves are
-    not kept, so a release run stays released)."""
+    not kept, so a release run stays released). unmute: a title prefix; those (muted) nodes run, image-model nodes
+    as recording stubs."""
     wf = MW.WORKFLOWS[name]().to_ui()
+    if unmute:
+        for n_ in wf["nodes"]:
+            if str(n_.get("title") or "").startswith(unmute):
+                n_["mode"] = 0
     pr = MW.validate_ui(wf)
     api = MW.ui_to_api(wf)
     classes = dict(MAP)
+    classes.update(CONCEPT_STUBS)
     classes["PreviewImage"] = _Img
     classes["SaveImage"] = _Img
     old = os.getcwd()
@@ -327,9 +399,30 @@ else:
            "Buildings (Building Generator)": _bld, "Towns: numbered": _towns, "Lanes": lambda out: _lanes(out), "Valley: cards' uv on their frame": _cards,
            "Valley: the towns at that LOD": _lods, "Fields: WFC over the map (128² cells, tileable)": _wfc,
            "Ecology: seven weight layers + scatter densities": _eco}
-    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap)
+    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap, unmute="Concept:")
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     WD = os.path.join(OUT, "pcg/world")
+    # AI: the road view's render, depth and normal saved; the Concept group (unmuted here, the image model stubbed)
+    # gets the depth and normal as ControlNet images and the render as the starting image
+    svd = {p_: sh_ for p_, sh_ in IMGS if p_ and p_.startswith("pcg/world/concept/")}
+    ctl = {t_: (im_, st_, en_) for t_, im_, st_, en_ in CONCEPT["control"]}
+    dpt, nrm = (ctl.get("depth") or (None,))[0], (ctl.get("normal") or (None,))[0]
+    ok_c = dpt is not None and nrm is not None and dpt.shape == (768, 1344, 3) and nrm.shape == (768, 1344, 3)
+    check(f"AI: the road view's render, depth and normal saved at 1600 x 900 ({sorted(svd)}); the concept group: "
+          f"depth (strength {ctl.get('depth', (0, 0))[1]}) then normal ({ctl.get('normal', (0, 0))[1]}) ControlNets on "
+          f"1344 x 768 crops, the render encoded as the start ({CONCEPT['encode']}), denoise "
+          f"{(CONCEPT['sample'] or {}).get('denoise')}, saved",
+          all(svd.get(f"pcg/world/concept/{k_}") == (1, 900, 1600, 3) for k_ in ("Road_render", "Road_depth", "Road_normal"))
+          and "pcg/world/concept/Concept_Road" in svd and ok_c and CONCEPT["encode"] == (1, 768, 1344, 3)
+          and (CONCEPT["sample"] or {}).get("denoise") == 0.7
+          and (CONCEPT["sample"] or {}).get("conds", [])[-2:] == ["depth", "normal"])
+    if ok_c:
+        sky_ = dpt[:60].mean()
+        near_, far_ = dpt[-80:].mean(), dpt[300:400].mean()
+        check(f"  the depth image: the road at the bottom near (bright {near_:.2f}), the valley farther ({far_:.2f}), "
+              f"the sky black ({sky_:.3f}); the normal image facing the camera (mean blue {nrm[..., 2].mean():.2f}), "
+              f"the sky flat (0.5, 0.5, 1)", near_ > far_ + 0.2 and sky_ < 0.02 and nrm[..., 2].mean() > 0.55
+              and np.allclose(nrm[:30].reshape(-1, 3).mean(0), [0.5, 0.5, 1.0], atol=0.02))
     tiles = {(i, j): img(os.path.join(WD, f"height/Height_x{i}_y{j}.png"))[..., 0].astype(np.int64)
              for i in range(4) for j in range(4)}
     check("height: 16 tiles of 16-bit PNG, 257² each", len(tiles) == 16
@@ -450,11 +543,13 @@ else:
 
     # roads: OBJ polylines on the cut road bed, at a drivable grade, under the Road weight
     vs_, ls_ = [], []
-    for ln in open(os.path.join(WD, "roads/Roads.obj"), encoding="utf-8"):
-        if ln.startswith("v "):
-            vs_.append([float(t) for t in ln.split()[1:4]])
-        elif ln.startswith("l "):
-            ls_.append([int(t) - 1 for t in ln.split()[1:]])
+    for fn_ in ("roads/Roads_Main.obj", "roads/Streets.obj"):          # the main roads and the town streets
+        v0_ = len(vs_)
+        for ln in open(os.path.join(WD, fn_), encoding="utf-8"):
+            if ln.startswith("v "):
+                vs_.append([float(t) for t in ln.split()[1:4]])
+            elif ln.startswith("l "):
+                ls_.append([v0_ + int(t) - 1 for t in ln.split()[1:]])
     RV = np.array(vs_)
     rl = [RV[i] for i in ls_]
     rlen = sum(float(np.linalg.norm(np.diff(p[:, [0, 2]], axis=0), axis=1).sum()) for p in rl)
@@ -624,6 +719,7 @@ else:
               and np.mean([tuple(w) in have for w in wr]) < 0.2)
     fwm = None
     ecs = None
+    tree_ff = None
     ec = cap["got"].get("Ecology: seven weight layers + scatter densities")
     if ec is not None:
         gentle = ec["Nz"] > 0.98
@@ -634,6 +730,16 @@ else:
               f"negative control, the margins between them (hedgerows, copses): {ffm:.3f}",
               crop.sum() > 2000 and marg.sum() > 1000 and ffc < 0.02 and ffm > 3 * ffc)
         fwm = ec["fieldw"][::-1].copy()                # image row 0 is the bottom; the stitched tiles start at the top
+        ffi = ec["ForestFloor"][::-1]
+        tsel = np.array([r_["asset"].startswith("Tree_Pine") or r_["asset"].startswith("Tree_Broadleaf") for r_ in rows])
+        fft = ffi[np.clip((zs[tsel] / 4).astype(int), 0, 1024), np.clip((xs[tsel] / 4).astype(int), 0, 1024)]
+        core_ = np.argwhere(ffi > 0.6) * 4.0
+        if len(core_) and tsel.any():
+            cq_ = cKDTree(core_)
+            outs_ = np.stack([zs[tsel][fft < 0.3], xs[tsel][fft < 0.3]], 1)
+            lpz_ = np.argwhere(Hm > 5.0)[::40] * 4.0
+            tree_ff = (float((fft < 0.3).mean()), float(np.median(cq_.query(outs_)[0])) if len(outs_) else 1e9,
+                       float(np.median(cq_.query(lpz_)[0])))
         ecs = {k_: ec[k_] for k_ in ("farm", "field_id", "town", "tring")}
         del ec
     # side streets, road furniture, orchards and hedgerows
@@ -705,6 +811,115 @@ else:
           f"{rough_b.mean():.2f} m per 8 m step), grade median {np.median(grd):.0%}, 95% under {np.percentile(grd, 95):.0%}",
           len(lpl) >= 8 and np.median(onb) < 0.3 and rough_l.mean() < 0.7 * rough_b.mean()
           and np.median(grd) < 0.2 and np.percentile(grd, 95) < 0.5)
+    # road classes: main roads between the towns, streets inside them, lanes; a lamp of each class at its spacing
+    def obj_pts(fn_):
+        """The vertices the polylines use (PolyCut leaves the cut-away points in the file, unused)."""
+        v__, u__ = [], set()
+        for ln in open(os.path.join(WD, fn_), encoding="utf-8"):
+            if ln.startswith("v "):
+                v__.append([float(t) for t in ln.split()[1:4]])
+            elif ln.startswith("l "):
+                u__.update(int(t) - 1 for t in ln.split()[1:])
+        return np.array(v__)[sorted(u__)]
+    MV, SV = obj_pts("roads/Roads_Main.obj"), obj_pts("roads/Streets.obj")
+    tkq = cKDTree(tpq) if tpq is not None else None
+    dmt = tkq.query(MV[:, [0, 2]] - 2048.0)[0] if tkq else np.zeros(1)
+    dst = tkq.query(SV[:, [0, 2]] - 2048.0)[0] if tkq else np.full(1, 1e9)
+    check(f"road classes: {len(SV)} street points inside the towns ({(dst < 175).mean():.0%} within 175 m of a town "
+          f"centre), {len(MV)} main road points between them ({(dmt > 150).mean():.0%} beyond 150 m; the town discs are "
+          "160 m); negative control: the other way round fails", len(SV) > 200 and len(MV) > 500
+          and (dst < 175).mean() > 0.95 and (dmt > 150).mean() > 0.85 and (dst > 150).mean() < 0.3
+          and (dmt < 175).mean() < 0.3)
+    nnd = {}
+    for a_ in ("SM_StreetLamp", "SM_RoadLamp", "SM_LaneLamp"):
+        m_ = an_ == a_
+        nnd[a_] = (int(m_.sum()), float(np.median(cKDTree(XZ[m_]).query(XZ[m_], k=2)[0][:, 1])) if m_.sum() > 2 else 0.0)
+    rl_, ll_m = an_ == "SM_RoadLamp", an_ == "SM_LaneLamp"
+    mkq = cKDTree(MV[:, [0, 2]] - 2048.0)
+    lkq_ = cKDTree(np.concatenate(lpl)[:, [0, 2]] - 2048.0) if lpl else None
+    drl = mkq.query(XZ[rl_])[0] if rl_.any() else np.full(1, 1e9)
+    dll = lkq_.query(XZ[ll_m])[0] if (ll_m.any() and lkq_ is not None) else np.full(1, 1e9)
+    gll = np.abs(ys[ll_m] - hgt(xs[ll_m], zs[ll_m])) if ll_m.any() else np.full(1, 9.0)
+    check(f"lamps by class (count, median spacing): street {nnd['SM_StreetLamp']}, road {nnd['SM_RoadLamp']}, lane "
+          f"{nnd['SM_LaneLamp']}; road lamps 6 m off a main road (median {np.median(drl):.1f} m) near the towns, lane "
+          f"lamps 3.5 m off a lane (median {np.median(dll):.1f} m) on the ground (median {np.median(gll):.2f} m)",
+          nnd["SM_RoadLamp"][0] >= 5 and nnd["SM_LaneLamp"][0] >= 5
+          and nnd["SM_RoadLamp"][1] > 55 and 32 < nnd["SM_LaneLamp"][1] < 70 and nnd["SM_StreetLamp"][1] < 45
+          and abs(np.median(drl) - 6.0) < 1.5 and abs(np.median(dll) - 3.5) < 1.5 and np.median(gll) < 0.3
+          and (dtw[rl_] > 120).all() and (dtw[rl_] < 400).mean() > 0.9)
+    # water: rivers and the lake as a mesh, a node per tile; the rivers 0.7 m over their bed with the flow downhill,
+    # the lake flat
+    wjs, wacc = glb_parse(os.path.join(WD, "water/Water.glb"))
+    wn_ = [n_["name"] for n_ in wjs["nodes"]]
+    WP_, WC_, okn = [], [], True
+    for n_ in wjs["nodes"]:
+        for pr__ in wjs["meshes"][n_["mesh"]]["primitives"]:
+            p__ = wacc(pr__["attributes"]["POSITION"])[0]
+            WP_.append(p__)
+            WC_.append(wacc(pr__["attributes"]["COLOR_0"])[0][:, :3])
+            okn &= n_["name"] == f"Water_x{int(np.median(p__[:, 0]) // 1024)}_y{int(np.median(p__[:, 2]) // 1024)}"
+    WP_, WC_ = np.concatenate(WP_), np.concatenate(WC_)
+    spd = WC_[:, 2]
+    riv_, still_ = spd > 0.15, spd < 0.02
+    dzw = WP_[:, 1] - hgt(WP_[:, 0], WP_[:, 2])
+    fl_ = np.stack([WC_[:, 0] * 2 - 1, WC_[:, 1] * 2 - 1], 1)
+    fn_ = fl_ / np.maximum(np.linalg.norm(fl_, axis=1, keepdims=True), 1e-9)
+    q_ = riv_ & (np.linalg.norm(fl_, axis=1) > 0.1)
+    Xq, Zq = WP_[q_, 0], WP_[q_, 2]
+    down_ = (hgt(Xq + 20 * fn_[q_, 0], Zq + 20 * fn_[q_, 1]) < hgt(Xq - 20 * fn_[q_, 0], Zq - 20 * fn_[q_, 1])).mean()
+    rr_ = np.random.default_rng(5).normal(size=(int(q_.sum()), 2))
+    rr_ /= np.linalg.norm(rr_, axis=1, keepdims=True)
+    rdn_ = (hgt(Xq + 20 * rr_[:, 0], Zq + 20 * rr_[:, 1]) < hgt(Xq - 20 * rr_[:, 0], Zq - 20 * rr_[:, 1])).mean()
+    vis_ = riv_ & (dzw > 0)                 # the channels are spread a little: on the banks the water is under ground
+    check(f"water: {len(WP_)} vertices in {len(wn_)} tile nodes ({', '.join(wn_[:4])}...); rivers ({int(riv_.sum())}, "
+          f"{vis_.sum() / max(riv_.sum(), 1):.0%} above the ground) about 0.7 m over it where seen (median "
+          f"{np.median(dzw[vis_]) if vis_.any() else 0:.2f} m), their flow downhill for {down_:.0%} (negative control, "
+          f"random directions: {rdn_:.0%}); the lake ({int(still_.sum())} still vertices) flat "
+          f"(spread {np.ptp(WP_[still_, 1]) if still_.any() else 0:.3f} m) over a deepened bed",
+          okn and riv_.sum() > 500 and vis_.sum() > 0.3 * riv_.sum() and 0.3 < np.median(dzw[vis_]) < 1.3
+          and down_ > 0.8 and rdn_ < 0.65
+          and still_.sum() > 100 and np.ptp(WP_[still_, 1]) < 0.05 and np.median(dzw[still_]) > 1.0)
+    # vegetation: understory under the trees, shrubs round the woodland, fewer and smaller trees up high
+    trs = np.array([a_.startswith("Tree_Pine") or a_.startswith("Tree_Broadleaf") for a_ in an_])
+    tq_ = cKDTree(XZ[trs])
+    und = np.isin(an_, ["Fern_A", "Shrub_Low_A"])
+    bsh = np.isin(an_, ["Bush_A", "Bush_B"])
+    lp_ = np.argwhere(Hm > 5.0)[::40][:, ::-1] * 4.0 - 2048.0
+    d_u, d_b, d_r = (float(np.median(tq_.query(v_)[0])) for v_ in (XZ[und], XZ[bsh], lp_))
+    ht_ = ys[trs]
+    scl_ = sxyz[trs, 0]
+    lo_s, hi_s = float(np.median(scl_[ht_ < 60])), float(np.median(scl_[ht_ > 150])) if (ht_ > 150).any() else 0.0
+    area_ = lambda a, b: max(float(((Hm > a) & (Hm < b)).sum()) * 16 / 1e6, 1e-9)     # noqa: E731
+    den_lo, den_hi = ((ht_ < 60) & (ht_ > 0)).sum() / area_(0, 60), (ht_ > 150).sum() / area_(150, 1e4)
+    check(f"vegetation: {int(und.sum())} ferns and low shrubs under the trees (median {d_u:.1f} m to a tree), "
+          f"bushes along the woodland ({d_b:.1f} m); negative control, land points {d_r:.1f} m; trees above 150 m "
+          f"smaller (median scale {hi_s:.2f} vs {lo_s:.2f} below 60 m) and sparser ({den_hi:.0f} vs {den_lo:.0f} a km²)",
+          und.sum() > 1000 and d_u < 0.6 * d_r and d_b < d_r and hi_s < 0.85 * lo_s and den_hi < 0.4 * den_lo)
+    if tree_ff is not None:
+        check(f"  the forest edge is feathered: {tree_ff[0]:.0%} of the trees stand outside the woodland proper "
+              f"(ForestFloor < 0.3), {tree_ff[1]:.0f} m from it (median); negative control, land points "
+              f"{tree_ff[2]:.0f} m", 0.04 < tree_ff[0] < 0.5 and tree_ff[1] < 0.5 * tree_ff[2])
+    # World.json: the files, the convention, a manifest per tile
+    wj_ = json.load(open(os.path.join(WD, "World.json"), encoding="utf-8"))
+    tls_ = [json.load(open(os.path.join(OUT, t_["file"]), encoding="utf-8")) for t_ in wj_["tiles"]]
+    nb_t = sum(len(t_["buildings"]) for t_ in tls_)
+    ni_t = sum(t_["instances"]["count"] for t_ in tls_)
+    ok_b = True
+    for r_ in rows[::97]:
+        x_, z_ = float(r_["px"]), float(r_["pz"])
+        t_ = tls_[[tuple(t["tile"]) for t in wj_["tiles"]].index((int(x_ // 1024), int(z_ // 1024)))]
+        ok_b &= t_["bounds"]["min"][0] <= x_ <= t_["bounds"]["max"][0] and t_["bounds"]["min"][1] - 1e-3 <= \
+            float(r_["py"]) <= t_["bounds"]["max"][1] + 1e-3
+    check(f"World.json: 16 tiles, the terrain (range {wj_['terrain']['range_metres'][0]:.0f}..{wj_['terrain']['range_metres'][1]:.0f} m), "
+          f"{len(wj_['images'])} image sets, {wj_['instances']['count']} instances (= the tables, = the tiles' {ni_t}), "
+          f"the {nb_t} towns placed once each, the road classes' polylines, the water nodes in their tiles; every "
+          "sampled instance inside its tile's bounds",
+          len(tls_) == 16 and np.allclose(wj_["terrain"]["range_metres"], [lo_m, hi_m], atol=1e-3)
+          and wj_["instances"]["count"] == len(rows) == ni_t and nb_t == len(towns_)
+          and {"roads/Roads_Main", "roads/Streets", "roads/Lanes"} <= set(wj_["polylines"])
+          and set(wj_["road_classes"]) == {"main", "street", "lane"}
+          and sorted({w_["node"] for t_ in tls_ for w_ in t_["water"]}) == sorted(wn_)
+          and "height/Height" in tls_[0]["terrain"] and ok_b)
     pr_ = np.array([a_.startswith("Tree_Pine") for a_ in an_])
     bl_ = np.array([a_.startswith("Tree_Broadleaf") for a_ in an_])
     fr_ = an_ == "Tree_Fruit_A"
@@ -765,9 +980,9 @@ else:
     check(f"  Towns.lods.json: the LOD chain of every town for an engine (distances, screen sizes, transitions, "
           f"triangles falling)", sorted(la_) == towns_ and lok, lj["assets"][0]["lods"])
     _, pn_ = node_meshes(os.path.join(WD, "assets/SM_Props.glb"))
-    check("  SM_Props.glb: the orchard tree, hedge, bridge, pier, lamp and guard rail proxies, named as in the tables",
-          sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_BridgePier", "SM_StreetLamp",
-                                 "SM_GuardRail"]))
+    check("  SM_Props.glb: the orchard tree, hedge, bridge, pier, the three lamps and guard rail proxies, named as in "
+          "the tables", sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_BridgePier",
+                                               "SM_StreetLamp", "SM_GuardRail", "SM_RoadLamp", "SM_LaneLamp"]))
     # the far view: the tree proxies as LOD chains ending in impostor cards, and their impostor atlases
     ad_ = os.path.join(WD, "assets")
     for a_ in ("Pine", "Broadleaf"):
@@ -893,9 +1108,32 @@ else:
     sub_ = SP[np.ix_(rs, rs)]
     land = wfull["Water"] < 0.05
     check(f"splat maps: {NSP} RGBA x 16 tiles of 512², {len(MW.LAYERS)} weights that sum to 1 on land (the water "
-          "takes the rest) and never above it", NSP == 4 and len(MW.LAYERS) == 13 and np.median(ssum[np.ix_(rs, rs)][land]) > 0.97
+          "takes the rest) and never above it", NSP == 4 and len(MW.LAYERS) == 15 and np.median(ssum[np.ix_(rs, rs)][land]) > 0.97
           and np.percentile(ssum, 99.9) < 1.06, (round(float(np.median(ssum[np.ix_(rs, rs)][land])), 3),
                                                round(float(np.percentile(ssum, 99.9)), 3)))
+    # the road classes in the splat maps: along each class's polylines (every 2 m) its own layer, not the others
+    def along(fn_):
+        v__, ls__ = [], []
+        for ln in open(os.path.join(WD, fn_), encoding="utf-8"):
+            if ln.startswith("v "):
+                v__.append([float(t) for t in ln.split()[1:4]])
+            elif ln.startswith("l "):
+                ls__.append([int(t) - 1 for t in ln.split()[1:]])
+        v__ = np.array(v__)
+        seg_ = [a_ + (b_ - a_) * (np.arange(max(int(np.linalg.norm(b_ - a_) / 2), 1))[:, None]
+                                   / max(int(np.linalg.norm(b_ - a_) / 2), 1))
+                for l_ in ls__ for a_, b_ in zip(v__[l_][:-1], v__[l_][1:])]
+        return np.concatenate(seg_)
+    lnames = [n for n, _ in MW.LAYERS]
+    cls_ = {}
+    for fn_, nm_ in (("roads/Roads_Main.obj", "Road"), ("roads/Streets.obj", "Setts"), ("roads/Lanes.obj", "Track")):
+        p_ = along(fn_)
+        w_ = SP[np.clip((p_[:, 2] / 2).astype(int), 0, 2047), np.clip((p_[:, 0] / 2).astype(int), 0, 2047)]
+        own_ = lnames.index(nm_)
+        oth_ = [lnames.index(o_) for o_ in ("Road", "Setts", "Track") if o_ != nm_]
+        cls_[nm_] = (round(float(np.median(w_[:, own_])), 2), round(float(max(np.median(w_[:, o_]) for o_ in oth_)), 2))
+    check(f"  the road classes' own splat layers along their polylines (median own, highest other): {cls_}",
+          all(v_[0] > 0.6 and v_[1] < 0.1 for v_ in cls_.values()))
     rk_ = wfull["Rock"] > 0.8
     gr_ = wfull["Grass"] > 0.8
     gsoil = sub_[..., [0, 1, 2, 4]].sum(-1)              # grass, moss and the bare soil between
