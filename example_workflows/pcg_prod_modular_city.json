@@ -17190,7 +17190,7 @@
    ],
    "size": [
     520,
-    753
+    1048
    ],
    "flags": {},
    "order": 328,
@@ -17224,6 +17224,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -17273,7 +17283,13 @@
     0.35,
     5,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ]
   },
   {
@@ -17281,7 +17297,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    35588
+    35883
    ],
    "size": [
     520,
@@ -17309,7 +17325,7 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    36032
+    36327
    ],
    "size": [
     520,
@@ -17374,11 +17390,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    36326
+    36621
    ],
    "size": [
     520,
-    753
+    1048
    ],
    "flags": {},
    "order": 329,
@@ -17412,6 +17428,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -17461,7 +17487,13 @@
     0.35,
     5,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ]
   },
   {
@@ -17469,7 +17501,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    37123
+    37713
    ],
    "size": [
     520,
@@ -17497,7 +17529,7 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    37567
+    38157
    ],
    "size": [
     520,
@@ -17551,7 +17583,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    37941
+    38531
    ],
    "size": [
     520,
@@ -17609,7 +17641,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    38232
+    38822
    ],
    "size": [
     520,
@@ -17664,11 +17696,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    38651
+    39241
    ],
    "size": [
     520,
-    468
+    508
    ],
    "flags": {},
    "order": 318,
@@ -17702,6 +17734,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -17751,7 +17793,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ]
   },
   {
@@ -17759,7 +17807,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    39163
+    39793
    ],
    "size": [
     520,

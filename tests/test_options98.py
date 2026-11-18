@@ -99,7 +99,7 @@ tails = {"PCG_Normal": ["weighting", "group_type", "normal_name", "compute_norma
                                           "measure_method", "measure", "maintain_prim_order", "resample_by_edge",
                                           "attrib_override", "maintain_last_vertex", "randomize_first",
                                           "subdivide_later"],
-         "PCG_Sweep": ["end_cap_type", "cross"], "PCG_PolyExtrude": ["extrusion_mode", "spine"]}
+         "PCG_Sweep": ["end_cap_type", "cross", "fixed_up"], "PCG_PolyExtrude": ["extrusion_mode", "spine"]}
 bad = [k for k, v in tails.items() if names(k)[-len(v):] != v]
 check("Normal / Resample / Sweep / PolyExtrude: new widgets come after all old widgets", not bad, bad)
 it = lambda k, n: list(M[k].INPUT_TYPES()["required"][n][0])     # noqa: E731
@@ -341,6 +341,30 @@ for bad_kw in (dict(surface_type="hexes"), dict(end_cap_type="fan")):
         check(f"{list(bad_kw)[0]} set to something else: error", False)
     except ValueError:
         check(f"{list(bad_kw)[0]} set to something else: error", True)
+
+# Keep Square to Up Vector (fixed_up): a ribbon along a climbing spiral stays level across (a road)
+t_ = np.linspace(0, 3 * np.pi, 60)
+hel = Geometry.from_mesh(np.stack([20 * np.cos(t_), 4 * t_, 20 * np.sin(t_)], 1).astype(np.float32), [np.arange(60)],
+                         closed=False)
+r_fix = run("PCG_Sweep", backbone=hel, shape="ribbon", radius=2.0, use_rotation=True, fixed_up=True)
+r_rmf = run("PCG_Sweep", backbone=hel, shape="ribbon", radius=2.0, use_rotation=True)
+r_off = run("PCG_Sweep", backbone=hel, shape="ribbon", radius=2.0, fixed_up=True)
+
+
+def across(g_):
+    """per cross section (the ribbon's two points): height difference and horizontal width"""
+    p_ = P_(g_).reshape(-1, 2, 3)
+    return np.abs(p_[:, 0, 1] - p_[:, 1, 1]), np.linalg.norm(p_[:, 0, [0, 2]] - p_[:, 1, [0, 2]], axis=1)
+
+
+dy_f, w_f = across(r_fix)
+dy_r, w_r = across(r_rmf)
+check("Sweep fixed_up: along a climbing spiral every ribbon section is level (height difference 0) and 4 m wide "
+      "(+0.3% where Stretch Around Turns widens it); "
+      "negative control, the rotation-minimizing frame: tilted", dy_f.max() < 1e-4 and np.allclose(w_f, 4.0, atol=0.02)
+      and dy_r.max() > 0.5, (round(float(dy_f.max()), 5), round(float(dy_r.max()), 3)))
+check("  fixed_up is read only with Rotation on (off: the default frame)", np.allclose(P_(r_off), P_(run(
+    "PCG_Sweep", backbone=hel, shape="ribbon", radius=2.0))))
 
 # ═══════════════════════════════════════════════════════ PolyExtrude
 sec("PolyExtrude:Extrusion Mode = Point Normal")

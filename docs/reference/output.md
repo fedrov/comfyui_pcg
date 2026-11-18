@@ -287,6 +287,8 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 
 **Guide passes**: the outdoor look also returns the same frame's depth and normal passes (outputs `depth` and `normal`), so a render can steer a ControlNet with exactly the geometry it shows.
 
+**Weather and light** (Outdoor, all off by default): Snow lays snow on upward faces above Snow Line; Wetness darkens and glosses the ground with puddles; Emit Attribute adds emitted light (lit windows), and the lights input adds point lights (street lamps), so with the sun just below the horizon a town lights up. **Camera sequences**: with the cameras input every camera is rendered into a batch of frames, for a flyby.
+
 **Inputs**
 
 | Input | Type | Description |
@@ -297,6 +299,8 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | `detail_cop` *(optional)* | COPIMAGE | Optional COP image holding small tiled maps: the detail maps (detail1..4, detail_normal1..4) and the terrain layers (layer1.., layer1_normal ..) in Textures read `@layer` from here (the textures image is terrain-sized; a tile is a few hundred pixels). |
 | `splat_cop` *(optional)* | COPIMAGE | Optional COP image with the terrain layers' masks and macro map (layer_weights, layer_macro), at their own resolution: 2 m splat maps beside a 1 m surface. Without it they are read from textures_cop. |
 | `extra_geo` *(optional)* | GEOMETRY | Optional geometry drawn together with `geo`: a per-shot part, such as trees and impostor cards turned to this camera, beside a large shared scene. In the Outdoor look the two are rasterized separately and the nearer surface wins each pixel (shadows and sky light see both), so the scene is not copied; the other looks merge them, with only what the render reads (P, N, Alpha, the colour, uv and material attributes, shadow_only). A geometry lacking the material or uv attribute is treated as having empty / zero values, as a merge would fill them. |
+| `lights` *(optional)* | GEOMETRY | Optional points lit as unshadowed point lights (Outdoor): `P` the light's place, `Cd` its colour (default warm), `intensity` its strength (default 10; the irradiance at 1 m is about intensity / 2), falling to nothing at Light Range. Street lamps at dusk. |
+| `cameras` *(optional)* | PCGCAMSEQ | Optional camera sequence (Camera Path, Camera from Points; Outdoor): every camera is rendered and the outputs are batches of frames, ready for a video or animated image node. |
 
 **Outputs**
 
@@ -325,7 +329,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| Sun Elevation `sun_elevation` | float [1.0..90.0] | 35 | Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light. *Hidden when look ≠ outdoor.* |
+| Sun Elevation `sun_elevation` | float [-10.0..90.0] | 35 | Outdoor: the sun's height above the horizon in degrees; low sun gives long shadows and warmer light. From -10: a sun just below the horizon gives twilight (no direct sun, a dim warm sky), for a dusk shot with lights. *Hidden when look ≠ outdoor.* |
 | Sun Azimuth `sun_azimuth` | float [-360.0..360.0] | 135 | Outdoor: the sun's direction in world space (0 = toward +Z, 90 = toward +X), so the light stays put when the camera moves. *Hidden when look ≠ outdoor.* |
 | Haze `haze` | float [0.0..20.0] | 1 | Outdoor: aerial perspective in metres. At 1, light from a surface falls to 1/e over 12 km (3 gives 4 km: a hazy day); the haze glows toward the sun. 0 turns it off. *Hidden when look ≠ outdoor.* |
 | Clouds `clouds` | float [0.0..1.0] | 0 | Outdoor: cumulus cover from 0 (clear) to 1 (overcast). The clouds are drawn in the sky and throw soft shadows on the scene. *Hidden when look ≠ outdoor.* |
@@ -335,6 +339,27 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | Ground Color `ground_color` | string | `0.32 0.31 0.27` | Outdoor: colour of the ground plane, three numbers 0..1. *Hidden when look ≠ outdoor } { ground_plane is off.* |
 | Exposure `exposure` | float [0.05..8.0] | 1 | Outdoor: brightness multiplier before the tone curve. *Hidden when look ≠ outdoor.* |
 | Compute `compute` | menu | Auto (CUDA if available) | Outdoor: where the shadow maps and the sky light are computed. Auto uses CUDA when available, otherwise numpy; the result differs only at float32 rounding level. Options: Auto (CUDA if available) (`auto`), CPU (numpy) (`cpu`), CUDA (`cuda`). *Hidden when look ≠ outdoor.* |
+
+*Weather*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Snow Line `snow_line` | float | 150 | Outdoor: height in metres above which upward-facing surfaces take snow (with Snow above 0). The line is ragged (two scales of noise) and fades over 25 m. *Hidden when look ≠ outdoor.* |
+| Snow `snow_amount` | float [0.0..1.0] | 0 | Outdoor: how much snow lies above the snow line, 0 (none, the default) to 1. Only faces turned up (the normal's height above about 0.45) take it. *Hidden when look ≠ outdoor.* |
+| Wetness `wetness` | float [0.0..1.0] | 0 | Outdoor: wet ground, 0 to 1: upward faces darker and much glossier (they reflect the sky), puddles on the flattest. Switches to PBR shading. *Hidden when look ≠ outdoor.* |
+
+*Lights*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Emit Attribute `emit_attrib` | string | `emit` | Outdoor: a colour attribute added as emitted light (linear, before exposure): lit windows, lamp heads. Empty reads none. *Hidden when look ≠ outdoor.* |
+| Light Range `light_range` | float [0.1..] | 40 | Outdoor: how far the point lights on the lights input reach, in metres. *Hidden when look ≠ outdoor.* |
+
+*Weather*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Weather Attribute `weather_attrib` | string | `weather` | Outdoor: a float attribute 0..1 that scales the snow and the wetness per surface, so grass blades (whose normals point up like the ground's) can stay dry: 0 keeps a surface as it is. Where the attribute is absent the weather applies in full. *Hidden when look ≠ outdoor.* |
 
 ---
 

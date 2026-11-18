@@ -1832,6 +1832,9 @@ class PCG_COPText:
     (Latin characters only); for Chinese give a system font name, e.g. msyh.ttc (Microsoft YaHei), simhei.ttf.
     Position is uv (v up); Align / VAlign decide which point of the text block lines up with it. If
     Composite Layer is given, Color is composited by the mask onto that layer.
+    Labels (appended): with points connected, one text per point -- its Label Attribute (a string point attribute;
+    without one, Text and the point number) at the point's place on the map (World Size > 0: x, z in a centred
+    square of that size, as HeightField to Mesh lays it out; 0: x, z are already uv), Position then an offset.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -1844,14 +1847,29 @@ class PCG_COPText:
             "spacing": _f(1.2, 0.1, 10, 0.05),
             "color": _s("1 1 1"), "composite_layer": _s(),
             "out_layer": _s("text"), **_res()},
-            "optional": {"cop": (COP,)}}
+            "optional": {"cop": (COP,),
+                         # appended: label points
+                         "points": (GEO,),
+                         "label_attribute": _s("name"),
+                         "world_size": _f(0.0, 0.0, 1e7, 1.0)}}
 
     def run(self, text, font, size, position, align, valign, spacing, color,
             composite_layer, out_layer, resolution_x, resolution_y,
-            cop=None):
+            cop=None, points=None, label_attribute="name", world_size=0.0):
+        labels = None
+        if points is not None:
+            import numpy as np
+            P = np.asarray(points.get("point", "P"), np.float64).reshape(-1, 3)
+            la = points.get("point", str(label_attribute).strip()) if str(label_attribute).strip() else None
+            names = (np.asarray(la).reshape(-1).astype(str) if la is not None and np.asarray(la).dtype.kind == "U"
+                     else np.array([f"{text}{i}" for i in range(len(P))]))
+            ws = float(world_size)
+            u = P[:, 0] / ws + 0.5 if ws > 0 else P[:, 0]
+            v = 0.5 - P[:, 2] / ws if ws > 0 else P[:, 2]
+            labels = list(zip(u.tolist(), v.tolist(), names.tolist()))
         return (_pt.text(cop, text, font, size, position, align, valign,
                          spacing, color, composite_layer, out_layer,
-                         resolution_x, resolution_y),)
+                         resolution_x, resolution_y, labels),)
 
 
 @_node

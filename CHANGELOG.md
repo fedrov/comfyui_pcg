@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Tree Generator** (new node): a procedural tree as a game asset -- broadleaf (a branching crown) or conifer
+  (whorls along a trunk to the top) -- bark tubes with uv in metres, leaf cards with normals bent out of the crown,
+  part / material / level attributes, seed variants.
+- **Preview Image / Outdoor**: weather and light -- `snow_line` / `snow_amount`, `wetness` (puddles), `emit_attrib`
+  (emitted light), a `lights` input (unshadowed point lights, `light_range`), `sun_elevation` down to -10 (twilight);
+  a `cameras` input renders a camera sequence into a batch of frames; `weather_attrib` scales the weather per surface
+  (grass blades kept dry).
+- **Sweep**: `fixed_up` (Keep Square to Up Vector, with Rotation on) keeps every cross section square to the up
+  vector, so a ribbon stays level across as the curve climbs and turns (a road).
+- **COP Text**: label points -- a `points` input with `label_attribute` and `world_size` puts one text per point.
+- **World tiles: procedural trees, road surfaces, an arch bridge, shore, map, dusk / rain / snow, a flyby**. The
+  trees are Tree Generator assets (LOD1 a coarse variant, then impostor cards; full trees within 120 m in the
+  previews); `roads/Roads_Mesh.glb` has the road surfaces by class with shoulders and pavements; the bridge is a stone
+  arch; a wet band and surf along the shore; `Map.png` is a game map with town names, legend and scale bar; three
+  more shots at dusk (lamps and windows lit), in the rain and under snow (`variants/`); a muted Flyby group renders
+  240 frames to an animated WebP.
 - **World Manifest** (new node): reads an exported world back from its folder and writes `World.json` (image sets
   with their decode rules, instance tables, meshes with nodes, bounds and LOD chains, polylines, other files, the
   coordinate convention and how Unreal and Unity map it) and `tiles/Tile_x{i}_y{j}.json` per streaming tile (its

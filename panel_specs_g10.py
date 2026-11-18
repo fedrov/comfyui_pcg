@@ -454,7 +454,7 @@ SPECS = {
         "order": ["group", "shape", "surface_type", "cols", "radius",
                   "end_caps", "end_cap_type", "cap_group",
                   "use_scale", "scale_start", "scale_end", "use_pscale",
-                  "use_rotation", "up_x", "roll", "full_twists", "partial_twist",
+                  "use_rotation", "up_x", "roll", "full_twists", "partial_twist", "fixed_up",
                   "use_cross_opts", "cross_group", "reverse_cross",
                   "stretch_around_turns", "max_stretch",
                   "use_uv", "uv_attrib"],
@@ -492,6 +492,10 @@ SPECS = {
             "roll": {"folder": "Rotation", "label": "Roll"},
             "full_twists": {"folder": "Rotation", "label": "Full Twists"},
             "partial_twist": {"folder": "Rotation", "label": "Partial Twist"},
+            "fixed_up": {"folder": "Rotation", "label": "Keep Square to Up Vector",
+                         "disable": "{ use_rotation == 0 }",
+                         "help": "Every cross section square to the up vector (a road stays level across as it "
+                                 "climbs), instead of the rotation-minimizing frame"},
             "use_cross_opts": {"folder": "Cross Sections"},
             # cross_group only selects cross sections from the second input in the second_input mode
             "cross_group": {"folder": "Cross Sections", "label": "Cross Section Group",

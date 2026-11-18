@@ -430,6 +430,7 @@
 "PCG_Transform": "PCG/modify",
 "PCG_TransformByAttrib": "PCG/modify",
 "PCG_TransformPieces": "PCG/deform",
+"PCG_TreeGenerator": "PCG/generate",
 "PCG_TriDivide": "PCG/topology",
 "PCG_Triangulate2D": "PCG/modify",
 "PCG_Tube": "PCG/generate",

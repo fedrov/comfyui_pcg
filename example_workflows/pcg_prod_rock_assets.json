@@ -2269,7 +2269,7 @@
    ],
    "size": [
     520,
-    468
+    508
    ],
    "flags": {},
    "order": 43,
@@ -2303,6 +2303,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -2352,7 +2362,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "LOD0 + baked textures (studio)"
   },
@@ -2361,7 +2377,7 @@
    "type": "SaveImage",
    "pos": [
     2520,
-    3607
+    3647
    ],
    "size": [
     520,
@@ -2538,11 +2554,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    3891
+    3931
    ],
    "size": [
     520,
-    453
+    493
    ],
    "flags": {},
    "order": 33,
@@ -2576,6 +2592,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -2625,7 +2651,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "High-poly (with bake colour)"
   },
@@ -2634,7 +2666,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    4388
+    4468
    ],
    "size": [
     520,
@@ -2662,7 +2694,7 @@
    "type": "PCG_Blast",
    "pos": [
     2520,
-    4692
+    4772
    ],
    "size": [
     520,
@@ -2703,7 +2735,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    4872
+    4952
    ],
    "size": [
     520,
@@ -2764,7 +2796,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    5279
+    5359
    ],
    "size": [
     520,
@@ -2825,11 +2857,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    5686
+    5766
    ],
    "size": [
     520,
-    468
+    508
    ],
    "flags": {},
    "order": 44,
@@ -2863,6 +2895,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -2912,7 +2954,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "LOD0 / 1 / 2 with the baked textures"
   },
@@ -2921,7 +2969,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    6198
+    6318
    ],
    "size": [
     520,
@@ -2949,7 +2997,7 @@
    "type": "PCG_Viewport",
    "pos": [
     2520,
-    6662
+    6782
    ],
    "size": [
     520,

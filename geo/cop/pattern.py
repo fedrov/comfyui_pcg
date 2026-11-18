@@ -812,12 +812,13 @@ ALIGNS = ("left", "center", "right")
 
 def text(img=None, text="Text", font="", size=64, position="0.5 0.5",
          align="center", valign="center", spacing=1.2, color="1 1 1",
-         composite_layer="", out_layer="text", xres=512, yres=512):
+         composite_layer="", out_layer="text", xres=512, yres=512, labels=None):
     """
     Font. Lays text out on the image: out_layer is the coverage mask (0-1, FreeType anti-aliased).
     Position is uv (v up); Align / VAlign pick which point of the text block is aligned to it. If
     Composite Layer is given, Color is composited over that layer by the mask (otherwise a new black layer is created).
     Size is the font size in pixels -- text is inherently laid out in pixels, so adjust it yourself when changing resolution.
+    labels: [(u, v, text), ...] -- one text per entry at uv (u, v) + Position (an offset then), instead of Text once.
     """
     if align not in ALIGNS:
         raise ValueError(f"Align must be one of {ALIGNS}")
@@ -825,13 +826,20 @@ def text(img=None, text="Text", font="", size=64, position="0.5 0.5",
         raise ValueError("VAlign must be one of top / center / bottom")
     out, like = _base(img, xres, yres)
     W, H = out.xres, out.yres
-    g = render_text(text, int(size), font, spacing, align)[::-1]  # flip to v up
-    gh, gw = g.shape
     pu, pv = _vec(position, 2)
-    x0 = pu * W - {"left": 0, "center": gw / 2, "right": gw}[align]
-    y0 = pv * H - {"bottom": 0, "center": gh / 2, "top": gh}[valign]
     m = np.zeros((H, W))
-    _stamp_max(m, g, int(round(x0)), int(round(y0)))
+    items = [(pu, pv, text)] if labels is None else [(u + pu, v + pv, t) for u, v, t in labels]
+    cache = {}
+    for u, v, t in items:
+        if not str(t):
+            continue
+        if t not in cache:
+            cache[t] = render_text(str(t), int(size), font, spacing, align)[::-1]  # flip to v up
+        g = cache[t]
+        gh, gw = g.shape
+        x0 = u * W - {"left": 0, "center": gw / 2, "right": gw}[align]
+        y0 = v * H - {"bottom": 0, "center": gh / 2, "top": gh}[valign]
+        _stamp_max(m, g, int(round(x0)), int(round(y0)))
     put(out, str(out_layer).strip() or "text", m, like)
     cl = str(composite_layer).strip()
     if cl:

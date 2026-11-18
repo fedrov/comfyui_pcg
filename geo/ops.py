@@ -831,7 +831,7 @@ def sweep(backbone: Geometry, cross: Geometry | None = None,
           scale_start=1.0, scale_end=1.0, use_pscale=True,
           stretch_around_turns=True, max_stretch=10.0,
           end_caps=False, cap_group="endcaps",
-          uv_attrib="", end_cap_type="single_polygon") -> Geometry:
+          uv_attrib="", end_cap_type="single_polygon", fixed_up=False) -> Geometry:
     """
     Matches Houdini's Sweep: sweep a cross-section along a backbone curve.
 
@@ -884,6 +884,16 @@ def sweep(backbone: Geometry, cross: Geometry | None = None,
             continue
 
         tan, E1, E2 = rmf_frames(pts, up)
+        if fixed_up:
+            # square to the up vector at every point (a road stays level across as it climbs and turns); where the
+            # curve runs along up the rotation-minimizing frame stays
+            u_ = np.asarray(up, np.float64)
+            u_ = u_ / max(np.linalg.norm(u_), 1e-12)
+            f1 = np.cross(u_[None], tan)
+            ok_ = np.linalg.norm(f1, axis=1) > 1e-3
+            f1[ok_] /= np.linalg.norm(f1[ok_], axis=1, keepdims=True)
+            E1 = np.where(ok_[:, None], f1, E1)
+            E2 = np.cross(tan, E1)
         nv = len(pts)
 
         # Arc-length parameter, used to interpolate scale/twist along the curve

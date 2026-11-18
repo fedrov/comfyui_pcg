@@ -1275,7 +1275,7 @@
    ],
    "size": [
     340,
-    453
+    493
    ],
    "flags": {},
    "order": 26,
@@ -1309,6 +1309,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -1358,7 +1368,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ]
   },
   {
@@ -1366,7 +1382,7 @@
    "type": "PreviewImage",
    "pos": [
     2280,
-    795
+    835
    ],
    "size": [
     420,
@@ -1394,7 +1410,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     2280,
-    1299
+    1339
    ],
    "size": [
     340,

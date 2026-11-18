@@ -92,7 +92,8 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
-                   detail_cop=None, splat_cop=None, extra=None, aux=None):
+                   detail_cop=None, splat_cop=None, extra=None, aux=None, snow_line=0.0, snow_amount=0.0,
+                   wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, weather_attrib="weather"):
     """
     (H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective).
     extra: a second geometry drawn with geo without merging the two (each is rasterized on its own and the nearer
@@ -102,6 +103,11 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     near white, sky black, as depth ControlNets read it: scaled between the 5th and 99.5th percentile of the
     distances and square-rooted) and 'normal' (camera space: R right, G up, B toward the camera; the sky flat,
     facing the camera).
+    Weather and lights (all off by default): snow_amount > 0 lays snow on the upward faces above snow_line (metres,
+    a ragged line); wetness 0..1 darkens and smooths the upward faces, with puddles on the flattest; emit_attrib names
+    a colour attribute added as emitted light (lit windows, lamp heads); lights: points (P, Cd colour, intensity) lit
+    as unshadowed point lights within light_range metres (street lamps at dusk). weather_attrib names a float
+    attribute 0..1 that scales the snow and the wetness per surface (grass blades kept dry: 0); where it is absent, 1.
     """
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
@@ -249,6 +255,39 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
             _trim()
     _trim()
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
+    emit = None
+    if emit_attrib:
+        for g_, r_, mk in zip(parts, rasts, masks):
+            if not (g_.has(POINT, emit_attrib) or any(g_.has(c_, emit_attrib) for c_ in _CLASSES)):
+                continue
+            e_ = _attrib_image(g_, r_, emit_attrib)
+            if e_ is None:
+                continue
+            if emit is None:
+                emit = np.zeros((H, W, 3), np.float16)
+            e_ = np.repeat(e_, 3, -1) if e_.shape[2] == 1 else e_[..., :3]
+            emit[mk] = np.maximum(e_[mk], 0.0)
+            del e_
+    if emit is not None:                          # sparse: lit windows and lamp heads are a few pixels
+        on_ = np.nonzero(emit.reshape(-1, 3).max(1) > 0)[0]
+        emit = (on_, emit.reshape(-1, 3)[on_].copy()) if len(on_) else None
+    if float(snow_amount) > 0 or float(wetness) > 0:
+        wm = None
+        if weather_attrib:
+            for g_, r_, mk in zip(parts, rasts, masks):
+                if not (g_.has(POINT, weather_attrib) or any(g_.has(c_, weather_attrib) for c_ in _CLASSES)):
+                    continue
+                e_ = _attrib_image(g_, r_, weather_attrib)
+                if e_ is None:
+                    continue
+                if wm is None:
+                    wm = np.ones((H, W), np.float32)
+                wm[mk] = np.clip(e_[..., 0][mk], 0.0, 1.0)
+                del e_
+        _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm)
+        # wet ground needs the reflections
+        use_pbr = use_pbr or (float(wetness) > 0 and (wm is None or float(wm[surf].max(initial=0.0)) > 0))
+        wm = None
     rasts = masks = None
     if report is not None:
         report.update({k_: sorted(set(v)) for k_, v in rep.items()})
@@ -336,6 +375,8 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     bounce = gcol * (sun * max(float(L[1]), 0.0) * lit_frac + sky_flat)
     cam_d = float(np.linalg.norm(eye - center))
     env = _env(L)
+    Ept = _point_lights(lights, P, N, valid, eye, fwd, rgt, up, th, aspect, float(light_range)) \
+        if lights is not None and lights.npoints else None
     lin_img = np.zeros((H, W, 3), np.float32)
     # shading per chunk of pixels: the PBR and haze terms make a dozen float64 (n, 3) temporaries, which over a whole
     # supersampled frame were the render's memory peak (several gigabytes)
@@ -360,6 +401,15 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         # aerial perspective in metres: Haze 1 = light falls to 1/e over HAZE_METRES; the haze glows toward the sun
         # (forward scattering). It used to scale with the bounding box, which a sea quad to the horizon made 60 km wide:
         # the haze then started some 600 km out, and near and far ridges looked the same
+        if Ept is not None:
+            lin = lin + alb[so].astype(np.float64) * Ept[so].astype(np.float64) * occ[so][:, None]
+        if emit is not None:
+            fl_ = so[0].astype(np.int64) * W + so[1]
+            j_ = np.searchsorted(emit[0], fl_)
+            j_ = np.minimum(j_, len(emit[0]) - 1)
+            hit_ = emit[0][j_] == fl_
+            if hit_.any():
+                lin[hit_] += emit[1][j_[hit_]].astype(np.float64)
         ds = dist[so].astype(np.float64)
         f = 1.0 - np.exp(-float(haze) * ds / HAZE_METRES)
         fogc = _haze_colour(Dv, L, sun)
@@ -372,6 +422,102 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         Dk = D[sk].astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     return _develop(lin_img, exposure, k)
+
+
+_CLASSES = ("vertex", "prim", "detail")
+
+
+def _vnoise(x, z, scale, seed=0.0):
+    """Smooth value noise 0..1 of world x, z at the given scale (metres), float32."""
+    x = np.asarray(x, np.float32) / np.float32(scale) + np.float32(seed * 17.3)
+    z = np.asarray(z, np.float32) / np.float32(scale) + np.float32(seed * 5.1)
+    xi, zi = np.floor(x), np.floor(z)
+    fx, fz = x - xi, z - zi
+    fx, fz = fx * fx * (3 - 2 * fx), fz * fz * (3 - 2 * fz)
+
+    def h(a, b):
+        v = np.sin(a * np.float32(127.1) + b * np.float32(311.7)) * np.float32(43758.5453)
+        return v - np.floor(v)
+    return (h(xi, zi) * (1 - fx) * (1 - fz) + h(xi + 1, zi) * fx * (1 - fz) + h(xi, zi + 1) * (1 - fx) * fz
+            + h(xi + 1, zi + 1) * fx * fz).astype(np.float32)
+
+
+def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None):
+    """Snow and wet ground on the surface pixels, in place (albedo, roughness); wm: (H, W) 0..1 scales both."""
+    vi = np.nonzero(surf)
+    step = 1 << 20
+    for s0 in range(0, len(vi[0]), step):
+        so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
+        p_, ny = P[so], N[so][:, 1]
+        a_ = alb[so]
+        r_ = pbr["roughness"][so]
+        k_ = np.float32(1.0) if wm is None else wm[so]
+        if snow_amount > 0:
+            n1 = _vnoise(p_[:, 0], p_[:, 2], 60.0, 1.0)
+            n2 = _vnoise(p_[:, 0], p_[:, 2], 9.0, 2.0)
+            line = snow_line + 45.0 * (n1 - 0.5) + 8.0 * (n2 - 0.5)
+            up_ = np.clip((ny - 0.45) / 0.3, 0, 1)
+            sw = np.clip((p_[:, 1] - line) / 25.0, 0, 1) * up_ * up_ * (3 - 2 * up_) * np.float32(min(snow_amount, 1.0)) * k_
+            snow = np.float32(0.82) * np.array([0.96, 0.98, 1.0], np.float32) * (0.92 + 0.08 * n2[:, None])
+            a_ = a_ * (1 - sw[:, None]) + snow * sw[:, None]
+            r_ = r_ * (1 - sw) + np.float32(0.55) * sw
+        if wetness > 0:
+            w_ = np.float32(min(wetness, 1.0)) * np.clip((ny - 0.6) / 0.3, 0, 1) * k_
+            a_ = a_ * (1 - 0.45 * w_[:, None])
+            r_ = r_ * (1 - 0.7 * w_)
+            pud = np.clip((_vnoise(p_[:, 0], p_[:, 2], 3.0, 4.0) - 0.62) / 0.06, 0, 1) * np.clip((ny - 0.985) / 0.01, 0, 1)
+            pud = pud * np.float32(min(wetness, 1.0)) * k_
+            a_ = a_ * (1 - 0.5 * pud[:, None])
+            r_ = r_ * (1 - pud) + np.float32(0.02) * pud
+        alb[so] = a_
+        pbr["roughness"][so] = r_
+
+
+def _point_lights(lights, P, N, valid, eye, fwd, rgt, up, th, aspect, rng):
+    """Unshadowed point lights (P, Cd, intensity) -> (H, W, 3) irradiance on the surface pixels; each light only
+    touches the pixels its range can reach on screen."""
+    from .core import POINT as _P
+    H, W = valid.shape
+    lp = np.asarray(lights.get(_P, "P"), np.float64).reshape(-1, 3)
+    cd = lights.get(_P, "Cd")
+    cd = np.ones((len(lp), 3)) * (1.0, 0.75, 0.45) if cd is None else np.asarray(cd, np.float64).reshape(len(lp), -1)[:, :3]
+    it = lights.get(_P, "intensity")
+    it = np.full(len(lp), 10.0) if it is None else np.asarray(it, np.float64).reshape(-1)
+    E = np.zeros((H, W, 3), np.float16)
+    corners = np.array([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)], np.float64) * rng
+    r2 = rng * rng
+    for k in range(len(lp)):
+        c = lp[k] + corners - eye
+        zc = c @ fwd
+        if (zc <= 0).all():
+            continue
+        zc = np.maximum(zc, 1e-3)
+        sx = (c @ rgt) / (zc * th * aspect)
+        sy = (c @ up) / (zc * th)
+        if (zc > 1e-3).all():
+            j0, j1 = int(np.floor((sx.min() + 1) / 2 * W)), int(np.ceil((sx.max() + 1) / 2 * W))
+            i0, i1 = int(np.floor((sy.min() + 1) / 2 * H)), int(np.ceil((sy.max() + 1) / 2 * H))
+        else:                                                  # the camera inside the light's box: everything
+            j0, j1, i0, i1 = 0, W, 0, H
+        j0, j1, i0, i1 = max(j0, 0), min(j1, W), max(i0, 0), min(i1, H)
+        if j0 >= j1 or i0 >= i1:
+            continue
+        for r0 in range(i0, i1, 128):                          # row blocks: a near lamp covers the whole frame
+            sl = (slice(r0, min(r0 + 128, i1)), slice(j0, j1))
+            d = lp[k].astype(np.float32) - P[sl]
+            d2 = (d * d).sum(-1)
+            m = valid[sl] & (d2 < r2)
+            if not m.any():
+                continue
+            dl = d[m] / np.sqrt(np.maximum(d2[m], 1e-6))[:, None]
+            cos = np.clip((N[sl][m] * dl).sum(-1), 0, 1)
+            fall = (1 - d2[m] / r2) ** 2
+            e = (it[k] * cos * fall / (d2[m] + 1.0))[:, None] * cd[k][None].astype(np.float32)
+            blk = E[sl].astype(np.float32)
+            blk[m] += e.astype(np.float32)
+            E[sl] = blk.astype(np.float16)
+            del d, d2, m, dl, cos, fall, e, blk
+    return E
 
 
 def _guides(aux, dist, N, valid, fwd, rgt, up, k):

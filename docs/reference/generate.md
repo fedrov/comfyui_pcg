@@ -2,7 +2,7 @@
 
 Primitives, curves, terrain and other nodes that create geometry from nothing.
 
-26 nodes.
+27 nodes.
 
 [Back to the reference index](README.md)
 
@@ -32,6 +32,7 @@ Primitives, curves, terrain and other nodes that create geometry from nothing.
 - [Sphere (PCG)](#pcg-sphere) — Creates a sphere as a latitude/longitude mesh or a subdivided icosahedron.
 - [Sweep (PCG)](#pcg-sweep) — Sweeps a cross section along backbone curves to make tubes, ribbons or custom profiles.
 - [Torus (PCG)](#pcg-torus) — Creates a torus.
+- [Tree Generator (PCG)](#pcg-treegenerator) — Builds a procedural tree as a game asset: a trunk and branches as tapered tubes, leaves as cards.
 - [Tube (PCG)](#pcg-tube) — Creates a tube, cylinder or cone with optional end caps.
 - [Volume (PCG)](#pcg-volume) — Creates a constant-value volume.
 
@@ -1246,6 +1247,7 @@ At turns the section is stretched by `1/cos(half turn angle)` so the tube keeps 
 | Roll `roll` | float [-3600..3600] | 0 | Rotates the cross section around the backbone, in degrees. |
 | Full Twists `full_twists` | float [-100..100] | 0 | Number of complete turns the section makes from start to end. |
 | Partial Twist `partial_twist` | float [-3600..3600] | 0 | Additional twist from start to end, in degrees. |
+| Keep Square to Up Vector `fixed_up` | toggle | off | With Rotation on: every cross section is kept square to the up vector (its first axis horizontal, across the curve), so a ribbon stays level across as the curve climbs and turns -- a road. The rotation-minimizing frame, the default, tilts the section on a curve that turns while it climbs. Where the curve runs along the up vector the rotation-minimizing frame is kept. *Disabled when use_rotation is off.* |
 
 *Cross Sections › Cross Section*
 
@@ -1311,6 +1313,93 @@ Rows is the number of segments around the cross section and Columns the number o
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | Center `center_x` `center_y` `center_z` | float | 0, 0, 0 | Center of the torus. |
+
+---
+
+### Tree Generator (PCG)
+
+<a id="pcg-treegenerator"></a>
+
+`PCG_TreeGenerator` · category `PCG/generate`
+
+Builds a procedural tree as a game asset: a trunk and branches as tapered tubes, leaves as cards.
+
+A tree to place thousands of times needs to be light, varied by a seed, and ready for an LOD chain. This node grows one in two forms:
+
+- **Broadleaf**: the trunk ends in the crown. From the crown base up, branches leave it in a spiral (golden-angle turns), each at about `Branch Angle` from its parent, curving up and wandering by `Gnarl`; each level is `Length Ratio` of its parent's length, and the last level carries the leaves on its outer part.
+- **Conifer**: the trunk runs to the top. Whorls of slightly drooping branches leave it, long at the bottom and short at the top (a cone), with needle sprays (cards) along them.
+
+Branches are tubes with `Sides` around the trunk (fewer on thinner branches), tapered, with a flare at the root; their uv runs in metres (u around, v along), so a tiling bark texture keeps its size. Each leaf is one quad card of about `Leaf Size`, `Leaves` of them in all.
+
+Point attributes: `Cd` (bark colour; leaves darker inside and low in the crown, where less sky reaches), `N` (bark radial; each leaf card's normal bent toward "out of the crown" by `Normal Bend`, so the crown shades as one soft volume instead of a cloud of facets) and `uv`. Prim attributes: `part` (bark / leaf), `material` (M_Bark / M_Leaf) and `level` (0 the trunk, 1.. the branch levels, -1 the leaves).
+
+The same seed gives the same tree. For an LOD chain, decimating cards does little (each is an island of four points), so use a coarser tree of the same seed (one branch level, fewer and larger leaves, three sides) as LOD Create's custom level, and Impostor Textures for the far cards.
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `geo` | GEOMETRY | The tree: bark tubes and leaf cards. |
+| `report` | STRING | JSON: kind, points, faces, triangles, bark faces, leaf cards, height. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Kind `kind` | menu | Broadleaf | Broadleaf (branching crown) or conifer (a trunk to the top with whorls of branches). Options: Broadleaf (`broadleaf`), Conifer (`conifer`). |
+
+*Shape*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Height `height` | float [0.1..200.0] | 10 | Height of the tree in metres (a conifer's top is exactly here). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Trunk Radius `trunk_radius` | float [0.005..10.0] | 0.25 | Radius of the trunk at the base (the root flare is 1.25 times this). |
+| Crown Base `crown_base` | float [0.0..0.95] | 0.35 | Where the branches start, as a fraction of the height. |
+| Crown Width `crown_width` | float [0.1..100.0] | 6 | Diameter of the crown in metres. |
+
+*Branches*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Branch Levels `branch_levels` | int [1..3] | 2 | Broadleaf: levels of branching; the last carries the leaves. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Branches `branches` | int [1..20] | 5 | Branches per parent and level; for a conifer it sets the number of whorls. |
+| Branch Angle `branch_angle` | float [0.0..120.0] | 45 | Angle of a branch from its parent, in degrees. |
+| Length Ratio `length_ratio` | float [0.05..1.5] | 0.6 | A child branch's length as a fraction of its parent's. |
+| Gnarl `gnarl` | float [0.0..3.0] | 0.3 | How much the branches wander. |
+
+*Leaves*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Leaves `leaves` | int [0..20000] | 300 | Number of leaf cards. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Leaf Size `leaf_size` | float [0.01..10.0] | 0.7 | Size of a leaf card in metres. |
+| Leaf Color `leaf_color` | string | `0.26 0.40 0.13` | Leaf colour, three numbers 0..1 (display values, like Cd). |
+| Bark Color `bark_color` | string | `0.24 0.18 0.13` | Bark colour, three numbers 0..1. |
+
+*Detail*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Sides `sides` | int [3..24] | 6 | Sides around the trunk; thinner branches get fewer. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Normal Bend `normal_bend` | float [0.0..1.0] | 0.8 | How far each leaf card's normal is turned toward out of the crown (0 = the card's own normal). |
+| Seed `rand_seed` | int [0..] | 1 | Random seed: another seed, another tree of the same kind. |
+| Segments `segments` | int [2..64] | 8 | Rings along the trunk; the branches get proportionally fewer. Lower for a light, distant variant. |
+
+**Compared with Houdini**
+
+Corresponds to SideFX Labs' tree tools (Tree Trunk / Branch / Leaf generators) or a SpeedTree asset, in one node.
 
 ---
 

@@ -278,5 +278,69 @@ check("the node: image, depth, normal; the outdoor passes equal render_outdoor's
       and np.allclose(rn[2][0].numpy(), nrm, atol=1e-6) and float(rb[1].max()) == 0.0
       and np.allclose(rb[2][0, 0, 0].numpy(), [0.5, 0.5, 1.0]))
 
+print("\n[8. Weather, emitted light, point lights, camera sequences]")
+# a slope rising from 0 m at the near edge to 200 m at the far edge, a vertical wall on it
+slope = build.grid(size_x=400.0, size_z=400.0, cols=41, rows=41)
+Ps_ = np.asarray(slope.get(POINT, "P"), np.float64)
+Ps_[:, 1] = (200.0 - Ps_[:, 2]) * 0.5                      # z = 200 -> 0 m, z = -200 -> 200 m
+slope.set(POINT, "P", Ps_.astype(np.float32))
+slope.set(POINT, "Cd", np.tile(np.array([[0.2, 0.35, 0.1]], np.float32), (slope.npoints, 1)))   # grass green
+cams_ = R.camera(None, "perspective", eye=[0, 150, 380], target=[0, 80, 0], fov=50)
+kw_ = dict(cam=cams_, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False)
+base_ = O.render_outdoor(slope, 96, 72, **kw_)
+snow_ = O.render_outdoor(slope, 96, 72, snow_line=100.0, snow_amount=1.0, **kw_)
+d_ = snow_.mean(-1) - base_.mean(-1)
+hi_r, lo_r = d_[18:30], d_[-12:]                            # the far, high part (above the sky rows), the near low part
+check("snow: above the snow line (the far, high slope) much brighter; below it (near, low) unchanged",
+      np.median(hi_r) > 0.15 and np.abs(np.median(lo_r)) < 0.01, (round(float(np.median(hi_r)), 3),
+                                                                round(float(np.median(lo_r)), 3)))
+flat = build.grid(size_x=400.0, size_z=400.0, cols=21, rows=21)
+camf = R.camera(None, "perspective", eye=[0, 10, 60], target=[0, 0, 0], fov=50)
+kf_ = dict(cam=camf, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False)
+dry_ = O.render_outdoor(flat, 96, 72, sun_elev=35, sun_azim=180, **kf_)
+wet_ = O.render_outdoor(flat, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **kf_)
+check("wetness: the flat ground darker (and glossier) than dry; the sky unchanged",
+      wet_[-20:].mean() < dry_[-20:].mean() - 0.02 and np.allclose(wet_[:3], dry_[:3], atol=1e-4),
+      (round(float(wet_[-20:].mean()), 3), round(float(dry_[-20:].mean()), 3)))
+flw = flat.copy()
+flw.set(POINT, "weather", np.zeros(flw.npoints, np.float32))
+dw_ = O.render_outdoor(flw, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **kf_)
+check("weather_attrib: a surface with weather = 0 stays dry under wetness 1 (as the dry render, not the wet one)",
+      abs(dw_[-20:].mean() - dry_[-20:].mean()) < 0.25 * abs(wet_[-20:].mean() - dry_[-20:].mean()),
+      (round(float(dw_[-20:].mean()), 3), round(float(dry_[-20:].mean()), 3)))
+dn_ = O.render_outdoor(flw, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, weather_attrib="", **kf_)
+check("  with weather_attrib empty the attribute is not read: wet again", np.allclose(dn_, wet_, atol=1e-5))
+bx_ = build.box(size=(4.0, 4.0, 4.0), center=(0.0, 2.0, 0.0))
+bx2 = bx_.copy()
+bx2.set(POINT, "emit", np.tile(np.array([[2.0, 1.5, 0.8]], np.float32), (bx2.npoints, 1)))
+camb = R.camera(None, "perspective", eye=[0, 3, 14], target=[0, 2, 0], fov=40)
+kb_ = dict(cam=camb, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, sun_elev=-5.0)
+e0, e1 = O.render_outdoor(bx_, 64, 48, **kb_), O.render_outdoor(bx2, 64, 48, **kb_)
+check("emitted light: at dusk (sun 5 degrees below the horizon) a box with emit glows, warm; without it stays dark",
+      e1[24, 32].mean() > e0[24, 32].mean() + 0.3 and e1[24, 32, 0] > e1[24, 32, 2], (np.round(e1[24, 32], 2),
+                                                                                    np.round(e0[24, 32], 2)))
+lt = Geometry.from_points(np.array([[0.0, 6.0, 0.0]], np.float32))
+lt.set(POINT, "intensity", np.array([40.0], np.float32))
+kl_ = dict(cam=camf, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, sun_elev=-5.0)
+l0 = O.render_outdoor(flat, 96, 72, **kl_)
+l1 = O.render_outdoor(flat, 96, 72, lights=lt, light_range=30.0, **kl_)
+dl_ = l1.mean(-1) - l0.mean(-1)
+check("point lights: the ground round the lamp lit (warm), beyond its 30 m range untouched",
+      dl_.max() > 0.2 and abs(float(dl_[32:40, :10].mean())) < 1e-3 and (l1 - l0)[dl_ > 0.1].mean(0)[0]
+      > (l1 - l0)[dl_ > 0.1].mean(0)[2], (round(float(dl_.max()), 3), round(float(dl_[32:40, :10].mean()), 4)))
+cp_ = nrun("CameraPath", frames=3, mode="orbit", resolution_x=48, resolution_y=36, elev=20.0, elev_end=20.0,
+           azim=0.0, azim_end=90.0, loop=False)
+cseq_ = cp_
+rs_ = node.run(bx_, 48, 36, 0, 0, "color", look="outdoor", supersampling=1, cameras=cseq_, haze=0.0, sky_samples=0,
+               ground_plane=False)
+rs_ = rs_["result"] if isinstance(rs_, dict) else rs_
+r0_ = node.run(bx_, 48, 36, 0, 0, "color", look="outdoor", supersampling=1, camera=cseq_[0], haze=0.0, sky_samples=0,
+               ground_plane=False)
+r0_ = r0_["result"] if isinstance(r0_, dict) else r0_
+check("a camera sequence renders a batch of frames (images, depth, normal); frame 0 = the render with camera 0; "
+      "the frames differ", tuple(rs_[0].shape) == (3, 36, 48, 3) and tuple(rs_[1].shape) == (3, 36, 48, 3)
+      and np.allclose(rs_[0][0].numpy(), r0_[0][0].numpy(), atol=1e-5)
+      and not np.allclose(rs_[0][0].numpy(), rs_[0][2].numpy(), atol=1e-2))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

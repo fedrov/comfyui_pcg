@@ -716,6 +716,7 @@
    "roll": "Rotates the cross section around the backbone, in degrees.",
    "full_twists": "Number of complete turns the section makes from start to end.",
    "partial_twist": "Additional twist from start to end, in degrees.",
+   "fixed_up": "With Rotation on: every cross section is kept square to the up vector (its first axis horizontal, across the curve), so a ribbon stays level across as the curve climbs and turns -- a road. The rotation-minimizing frame, the default, tilts the section on a curve that turns while it climbs. Where the curve runs along the up vector the rotation-minimizing frame is kept.",
    "use_cross_opts": "Enables the cross section options.",
    "cross_group": "Primitive group pattern selecting which curve of the cross input to use (the first in the group). Needs Use Cross Opts.",
    "reverse_cross": "Reverses the point order of the cross section, flipping the face orientation. Needs Use Cross Opts.",

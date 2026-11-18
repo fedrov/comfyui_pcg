@@ -429,6 +429,7 @@
 "PCG_Transform":["transform","#8fb8e0"],
 "PCG_TransformByAttrib":["xform_attrib","#8fb8e0"],
 "PCG_TransformPieces":["transform_pieces","#c49ae0"],
+"PCG_TreeGenerator":["lsystem","#7ec87e"],
 "PCG_TriDivide":["tri_divide","#8fb8e0"],
 "PCG_Triangulate2D":["tri2d","#8fb8e0"],
 "PCG_Tube":["tube","#7ec87e"],

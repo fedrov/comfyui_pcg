@@ -1000,7 +1000,7 @@ SPECS = {
     "PCG_COPText": {
         "order": ["text", "font", "size", "spacing", "position", "align", "valign",
                   "composite_layer", "color", "out_layer",
-                  "resolution_x", "resolution_y"],
+                  "resolution_x", "resolution_y", "label_attribute", "world_size"],
         "inputs": {
             "text": {"label": "Text"},
             "font": {"label": "Font", "help": "Empty = Pillow's built-in (Latin only); for Chinese use msyh.ttc etc."},
@@ -1016,6 +1016,10 @@ SPECS = {
             "color": {"label": "Text Color", "disable": '{ composite_layer == "" }'},
             "out_layer": {"label": "Output Layer", "sep": True},
             "resolution_x": {"help": _RES_HELP},
+            "label_attribute": {"label": "Label Attribute", "section": "Labels",
+                                "help": "With points connected: each point's text (a string point attribute)"},
+            "world_size": {"label": "World Size", "section": "Labels",
+                           "help": "> 0: the points' x, z in a centred square of this size; 0: x, z are uv"},
         },
     },
 

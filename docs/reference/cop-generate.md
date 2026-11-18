@@ -2242,11 +2242,14 @@ If `Composite Layer` is set, `Color` is laid over that layer through the mask (a
 
 The empty font uses the bundled Pillow font, which only has Latin characters; for other scripts give the file name of a system font that covers them.
 
+**Labels**: connect points and each one gets its own text (Label Attribute) at its place on the map, Position then an offset -- town names on a map, tile numbers.
+
 **Inputs**
 
 | Input | Type | Description |
 |---|---|---|
 | `cop` *(optional)* | COPIMAGE | Optional image to draw into. Without it a new image of the given resolution is created. |
+| `points` *(optional)* | GEOMETRY | Optional points to label: one text per point, at its place on the map. |
 
 **Outputs**
 
@@ -2269,6 +2272,13 @@ The empty font uses the bundled Pillow font, which only has Latin characters; fo
 | Text Color `color` | string | `1 1 1` | RGB color used when compositing. *Disabled when composite_layer = "".* |
 | Output Layer `out_layer` | string | `text` | Layer that receives the coverage mask. |
 | Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Output resolution (width, height) used when nothing is connected to the input. With an input, its resolution is used. |
+
+*Labels*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Label Attribute `label_attribute` | string | `name` | With points connected: the string point attribute that holds each point's text. Without one, Text followed by the point number. |
+| World Size `world_size` | float [0.0..] | 0 | With points connected: greater than 0 places a point by its x, z in a centred square of this size (as HeightField to Mesh lays a terrain out, north up); 0 takes x, z as uv. Position is then an offset in uv. |
 
 ---
 

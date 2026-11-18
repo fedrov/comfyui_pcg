@@ -337,5 +337,35 @@
    "extra_json": "A JSON object whose keys are added to World.json (for example road classes). Empty adds nothing."
   },
   "houdini_notes": "No Houdini node; in a Houdini pipeline this is the job of a PDG / Python step after the ROPs, collecting their outputs into a level description."
+ },
+ "PCG_TreeGenerator": {
+  "summary": "Builds a procedural tree as a game asset: a trunk and branches as tapered tubes, leaves as cards.",
+  "description": "A tree to place thousands of times needs to be light, varied by a seed, and ready for an LOD chain. This node grows one in two forms:\n\n- **Broadleaf**: the trunk ends in the crown. From the crown base up, branches leave it in a spiral (golden-angle turns), each at about `Branch Angle` from its parent, curving up and wandering by `Gnarl`; each level is `Length Ratio` of its parent's length, and the last level carries the leaves on its outer part.\n- **Conifer**: the trunk runs to the top. Whorls of slightly drooping branches leave it, long at the bottom and short at the top (a cone), with needle sprays (cards) along them.\n\nBranches are tubes with `Sides` around the trunk (fewer on thinner branches), tapered, with a flare at the root; their uv runs in metres (u around, v along), so a tiling bark texture keeps its size. Each leaf is one quad card of about `Leaf Size`, `Leaves` of them in all.\n\nPoint attributes: `Cd` (bark colour; leaves darker inside and low in the crown, where less sky reaches), `N` (bark radial; each leaf card's normal bent toward \"out of the crown\" by `Normal Bend`, so the crown shades as one soft volume instead of a cloud of facets) and `uv`. Prim attributes: `part` (bark / leaf), `material` (M_Bark / M_Leaf) and `level` (0 the trunk, 1.. the branch levels, -1 the leaves).\n\nThe same seed gives the same tree. For an LOD chain, decimating cards does little (each is an island of four points), so use a coarser tree of the same seed (one branch level, fewer and larger leaves, three sides) as LOD Create's custom level, and Impostor Textures for the far cards.",
+  "inputs": {},
+  "outputs": {
+   "geo": "The tree: bark tubes and leaf cards.",
+   "report": "JSON: kind, points, faces, triangles, bark faces, leaf cards, height."
+  },
+  "params": {
+   "kind": "Broadleaf (branching crown) or conifer (a trunk to the top with whorls of branches).",
+   "height": "Height of the tree in metres (a conifer's top is exactly here).",
+   "trunk_radius": "Radius of the trunk at the base (the root flare is 1.25 times this).",
+   "crown_base": "Where the branches start, as a fraction of the height.",
+   "crown_width": "Diameter of the crown in metres.",
+   "branch_levels": "Broadleaf: levels of branching; the last carries the leaves.",
+   "branches": "Branches per parent and level; for a conifer it sets the number of whorls.",
+   "branch_angle": "Angle of a branch from its parent, in degrees.",
+   "length_ratio": "A child branch's length as a fraction of its parent's.",
+   "gnarl": "How much the branches wander.",
+   "leaves": "Number of leaf cards.",
+   "leaf_size": "Size of a leaf card in metres.",
+   "leaf_color": "Leaf colour, three numbers 0..1 (display values, like Cd).",
+   "bark_color": "Bark colour, three numbers 0..1.",
+   "sides": "Sides around the trunk; thinner branches get fewer.",
+   "normal_bend": "How far each leaf card's normal is turned toward out of the crown (0 = the card's own normal).",
+   "rand_seed": "Random seed: another seed, another tree of the same kind.",
+   "segments": "Rings along the trunk; the branches get proportionally fewer. Lower for a light, distant variant."
+  },
+  "houdini_notes": "Corresponds to SideFX Labs' tree tools (Tree Trunk / Branch / Leaf generators) or a SpeedTree asset, in one node."
  }
 }

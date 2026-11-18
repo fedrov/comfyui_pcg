@@ -152,6 +152,17 @@ def node_meshes(path):
     return js, out
 
 
+def obj_lines_pts(path):
+    """The vertices an OBJ's polylines use."""
+    v_, u_ = [], set()
+    for ln in open(path, encoding="utf-8"):
+        if ln.startswith("v "):
+            v_.append([float(t) for t in ln.split()[1:4]])
+        elif ln.startswith("l "):
+            u_.update(int(t) - 1 for t in ln.split()[1:])
+    return np.array(v_)[sorted(u_)]
+
+
 def img(path):
     from PIL import Image
     im = Image.open(path)
@@ -188,7 +199,7 @@ class _Img:
 
 
 # the image-model nodes of a workflow's muted AI group, as stubs that record what they were given (no model here)
-CONCEPT = {"control": [], "sample": None, "encode": None}
+CONCEPT = {"control": [], "sample": None, "encode": None, "webp": None}
 
 
 def _stub(fn, returns):
@@ -250,20 +261,26 @@ CONCEPT_STUBS = {
     "VAEEncode": _stub(_encode, ("LATENT",)),
     "KSampler": _stub(_sample, ("LATENT",)),
     "VAEDecode": _stub(_decode, ("IMAGE",)),
+    "SaveAnimatedWEBP": _stub(lambda images, filename_prefix, fps, lossless, quality, method: (
+        CONCEPT.__setitem__("webp", (tuple(images.shape), filename_prefix, fps)) or ()), ()),
 }
 
 
-def run(name, cwd, release=False, capture=None, unmute=None):
+def run(name, cwd, release=False, capture=None, unmute=None, patch=None):
     """capture: {node title: fn(outputs) -> summary}; the summaries go to capture["got"] (the outputs themselves are
     not kept, so a release run stays released). unmute: a title prefix; those (muted) nodes run, image-model nodes
     as recording stubs."""
     wf = MW.WORKFLOWS[name]().to_ui()
     if unmute:
         for n_ in wf["nodes"]:
-            if str(n_.get("title") or "").startswith(unmute):
+            if str(n_.get("title") or "").startswith(tuple(unmute) if isinstance(unmute, (list, tuple)) else unmute):
                 n_["mode"] = 0
     pr = MW.validate_ui(wf)
     api = MW.ui_to_api(wf)
+    for t_, kv_ in (patch or {}).items():            # widget values by node title (the API format names them)
+        for n_ in wf["nodes"]:
+            if n_.get("title") == t_ and str(n_["id"]) in api:
+                api[str(n_["id"])]["inputs"].update(kv_)
     classes = dict(MAP)
     classes.update(CONCEPT_STUBS)
     classes["PreviewImage"] = _Img
@@ -363,6 +380,10 @@ else:
                                     for i in np.nonzero(pp_ == "door")[0]]).reshape(-1, 2),
                 "parts": {str(k): int((pp_ == k).sum()) for k in np.unique(pp_)}}
 
+    def _shot(out):
+        a_ = np.asarray(out[0]).astype(np.float32)
+        return {"shape": a_.shape, "img": a_[0, ::4, ::4].copy(), "frames": [a_[i, ::4, ::4].copy() for i in range(min(len(a_), 4))]}
+
     def _cards(out):
         g_ = out[0]
         uv_ = np.asarray(g_.get(POINT, "uv"), np.float64)
@@ -398,8 +419,13 @@ else:
            "Terrain: full map + close range": lambda out: out[0].npoints,
            "Buildings (Building Generator)": _bld, "Towns: numbered": _towns, "Lanes": lambda out: _lanes(out), "Valley: cards' uv on their frame": _cards,
            "Valley: the towns at that LOD": _lods, "Fields: WFC over the map (128² cells, tileable)": _wfc,
-           "Ecology: seven weight layers + scatter densities": _eco}
-    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap, unmute="Concept:")
+           "Ecology: seven weight layers + scatter densities": _eco,
+           "Road: the preview": _shot, "Valley: the preview": _shot, "Dusk: the preview": _shot,
+           "Rain: the preview": _shot, "Snow: the preview": _shot, "Flyby: the frames": _shot}
+    api, res, pr, dt = run("pcg_prod_world_tiles", CWD, release=True, capture=cap, unmute=("Concept:", "Flyby:"),
+                           patch={"Flyby: 240 cameras along it (looking 150 m ahead)": dict(frames=3, resolution_x=160,
+                                                                                            resolution_y=90),
+                                  "Flyby: the frames": dict(width=160, height=90)})
     check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
     WD = os.path.join(OUT, "pcg/world")
     # AI: the road view's render, depth and normal saved; the Concept group (unmuted here, the image model stubbed)
@@ -423,6 +449,68 @@ else:
               f"the sky black ({sky_:.3f}); the normal image facing the camera (mean blue {nrm[..., 2].mean():.2f}), "
               f"the sky flat (0.5, 0.5, 1)", near_ > far_ + 0.2 and sky_ < 0.02 and nrm[..., 2].mean() > 0.55
               and np.allclose(nrm[:30].reshape(-1, 3).mean(0), [0.5, 0.5, 1.0], atol=0.02))
+    from scipy.spatial import cKDTree
+    # the same world at dusk, in the rain, under snow: saved, and each reads as itself against the day shots
+    got_ = cap["got"]
+    svv = {p_: sh_ for p_, sh_ in IMGS if p_ and p_.startswith("pcg/world/variants/")}
+    sv3 = {k_: svv.get(f"pcg/world/variants/{k_}") for k_ in ("Dusk", "Rain", "Snow")}
+    day_, val_ = (got_.get("Road: the preview") or {}).get("img"), (got_.get("Valley: the preview") or {}).get("img")
+    dsk_, rn_, snw_ = ((got_.get(k_) or {}).get("img") for k_ in ("Dusk: the preview", "Rain: the preview",
+                                                                  "Snow: the preview"))
+    if all(a_ is not None for a_ in (day_, val_, dsk_, rn_, snw_)):
+        gnd = lambda a_: float(np.median(a_[a_.shape[0] // 2:].mean(-1)))  # noqa: E731  (the lower half)
+        # lamps and windows: warm pixels far brighter than the frame (3 x its mean): none in daylight
+        hot = lambda a_: int(((a_[..., 0] > 3 * a_.mean()) & (a_[..., 0] > a_[..., 2] + 0.25)).sum())  # noqa: E731
+        warm, warm_day = hot(dsk_), hot(day_)
+        sat = lambda a_: (a_.max(-1) - a_.min(-1))[:a_.shape[0] // 3].mean()  # noqa: E731  (the sky: overcast)
+        def snow(a_):
+            """near-white, unsaturated pixels on the mountains (the band below the sky)"""
+            b_ = a_[int(a_.shape[0] * 0.3):int(a_.shape[0] * 0.75)]
+            return float(((b_.min(-1) > 0.6) & (b_.max(-1) - b_.min(-1) < 0.12)).mean())
+        check(f"variants saved at 1280 x 720 ({sv3}); dusk: the ground darker (median {gnd(dsk_):.2f} vs day {gnd(day_):.2f}) "
+              f"with {warm} warm, bright pixels (lamps, windows; day {warm_day}); rain: a greyer sky (saturation "
+              f"{sat(rn_):.3f} vs {sat(day_):.3f}); snow: white on the mountains ({snow(snw_):.1%} of them, "
+              f"{snow(val_):.1%} without snow)",
+              all(v_ == (1, 720, 1280, 3) for v_ in sv3.values()) and gnd(dsk_) < 0.7 * gnd(day_)
+              and warm >= 20 and warm > 5 * warm_day and sat(rn_) < 0.7 * sat(day_)
+              and snow(snw_) > 0.05 and snow(snw_) > 4 * snow(val_))
+    else:
+        check("variants: the Dusk / Rain / Snow and day previews ran", False)
+    fly_ = got_.get("Flyby: the frames")
+    wp_ = CONCEPT.get("webp")
+    check(f"flyby (unmuted here, 3 frames of 160 x 90): the frames {fly_ and fly_['shape']}, each different, saved as "
+          f"an animated WebP {wp_}", fly_ is not None and fly_["shape"] == (3, 90, 160, 3) and wp_ is not None
+          and wp_[0] == (3, 90, 160, 3) and wp_[2] == 24.0
+          and not np.allclose(fly_["frames"][0], fly_["frames"][2], atol=0.02))
+    # the map: 2048², the sea blue in the corners, the main roads red along their centre lines, the legend and title
+    mp_ = img(os.path.join(WD, "Map.png"))[..., :3].astype(np.float32) / 255
+    MVc = obj_lines_pts(os.path.join(WD, "roads/Roads_Main.obj"))
+    rr_, cc_ = (MVc[:, 2] * 2048 / 4100 + 2 * 1024 / 4100).astype(int), (MVc[:, 0] * 2048 / 4100).astype(int)
+    pix_ = mp_[np.clip(rr_, 0, 2047), np.clip(cc_, 0, 2047)]
+    redf = float(((pix_[:, 0] > pix_[:, 1] + 0.15) & (pix_[:, 0] > pix_[:, 2] + 0.15)).mean())
+    corner = mp_[:40, -40:].reshape(-1, 3).mean(0)
+    leg_ = mp_[int(2048 * 0.78):int(2048 * 0.97), int(2048 * 0.085):int(2048 * 0.28)]  # right of the swatches
+    tit_ = mp_[int(2048 * 0.02):int(2048 * 0.06), int(2048 * 0.03):int(2048 * 0.4)]
+    check(f"map: Map.png 2048², the sea blue in a corner {np.round(corner, 2)}, {redf:.0%} of the main road points red, "
+          f"text in the legend ({(leg_.max(-1) < 0.6).mean():.1%} dark) and the title ({(tit_.max(-1) < 0.6).mean():.1%})",
+          mp_.shape == (2048, 2048, 3) and corner[2] > corner[0] + 0.1 and redf > 0.6
+          and (leg_.max(-1) < 0.6).mean() > 0.005 and (tit_.max(-1) < 0.6).mean() > 0.01)
+    # the road surfaces: a ribbon per class on its centre lines, level across, as wide as the class
+    rjs, rnm = node_meshes(os.path.join(WD, "roads/Roads_Mesh.glb"))
+    rok, rinfo = True, {}
+    for nm_, fn_, w_, dy_ in (("Road_Main", "Roads_Main", 6.5, 0.12), ("Road_Street", "Streets", 8.0, 0.10),
+                              ("Road_Lane", "Lanes", 4.0, 0.08)):
+        if nm_ not in rnm:
+            rok = False
+            continue
+        Pm_, _, Im_, Nm_ = rnm[nm_]
+        cl_ = obj_lines_pts(os.path.join(WD, f"roads/{fn_}.obj"))
+        d_, k_ = cKDTree(cl_[:, [0, 2]]).query(Pm_[:, [0, 2]])
+        dyy = Pm_[:, 1] - cl_[k_, 1]
+        rinfo[nm_] = (round(float(np.median(d_)), 2), round(float(np.median(dyy)), 3), round(float(Nm_[:, 1].min()), 3))
+        rok &= abs(np.median(d_) - w_ / 2) < 0.35 and abs(np.median(dyy) - dy_) < 0.1 and Nm_[:, 1].min() > 0.99
+    check(f"road surfaces: Roads_Mesh.glb ({sorted(rnm)}); per class the ribbon's edge from its centre line, its "
+          f"height over it, the lowest normal's y: {rinfo}", rok and {"Road_Shoulder_Main", "Pavement_Street"} <= set(rnm))
     tiles = {(i, j): img(os.path.join(WD, f"height/Height_x{i}_y{j}.png"))[..., 0].astype(np.int64)
              for i in range(4) for j in range(4)}
     check("height: 16 tiles of 16-bit PNG, 257² each", len(tiles) == 16
@@ -993,10 +1081,12 @@ else:
         nn_ = img(os.path.join(ad_, f"T_Impostor_{a_}_Normal.png"))[..., :3] / 255.0 * 2 - 1
         on_ = al_ > 0.5
         frames = [al_[j * 128:(j + 1) * 128, i * 128:(i + 1) * 128].mean() for i in range(8) for j in range(8)]
-        check(f"{a_} proxy: SM_Proxy_{a_}.glb with LOD0 / LOD1 (≈40%) / LOD2 (two crossed cards) {t_}; an 8 x 8 "
+        check(f"{a_} tree: SM_Proxy_{a_}.glb with LOD0 (Tree Generator) / LOD1 (the coarse tree) / LOD2 (two crossed "
+              f"cards) {t_}; an 8 x 8 "
               f"impostor atlas of 1024², the tree in every frame (coverage {min(frames):.2f}..{max(frames):.2f}), "
               f"unit normals on it",
-              sorted(nm_) == [f"SM_Proxy_{a_}_LOD{i}" for i in range(3)] and t_[2] == 4 and 0.3 < t_[1] / t_[0] < 0.5
+              sorted(nm_) == [f"SM_Proxy_{a_}_LOD{i}" for i in range(3)] and t_[2] == 4 and t_[0] >= 1000
+              and 0.05 < t_[1] / t_[0] < 0.45
               and bc_.shape[:2] == (1024, 1024) and min(frames) > 0.05 and max(frames) < 0.95
               and abs(np.median(np.linalg.norm(nn_[on_], axis=-1)) - 1) < 0.05)
     # the previews' far view: from the valley camera, the trees beyond 500 m as impostor cards on their frames, the

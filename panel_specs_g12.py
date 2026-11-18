@@ -1051,7 +1051,8 @@ SPECS = {
         "order": ["width", "height", "elevation", "azimuth", "look", "shading",
                   "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
                   "sun_elevation", "sun_azimuth", "haze", "clouds", "cloud_seed", "sky_samples",
-                  "ground_plane", "ground_color", "exposure", "compute"],
+                  "ground_plane", "ground_color", "exposure", "compute", "snow_line", "snow_amount",
+                  "wetness", "emit_attrib", "light_range", "weather_attrib"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
@@ -1096,6 +1097,18 @@ SPECS = {
             "compute": {"label": "Compute", "section": "Outdoor", "hide": "{ look != outdoor }",
                         "menu": {"auto": "Auto (CUDA if available)", "cpu": "CPU (numpy)", "cuda": "CUDA"},
                         "help": "Where the shadow maps and the sky light are computed"},
+            "snow_line": {"label": "Snow Line", "section": "Weather", "hide": "{ look != outdoor }",
+                          "help": "Height in metres above which the upward faces take snow (a ragged line)"},
+            "snow_amount": {"label": "Snow", "section": "Weather", "hide": "{ look != outdoor }"},
+            "wetness": {"label": "Wetness", "section": "Weather", "hide": "{ look != outdoor }",
+                        "help": "Wet ground: darker, glossier, puddles on the flattest"},
+            "emit_attrib": {"label": "Emit Attribute", "section": "Lights", "hide": "{ look != outdoor }",
+                            "help": "A colour attribute added as emitted light (lit windows); empty = none"},
+            "light_range": {"label": "Light Range", "section": "Lights", "hide": "{ look != outdoor }",
+                            "help": "How far the point lights (the lights input) reach, metres"},
+            "weather_attrib": {"label": "Weather Attribute", "section": "Weather", "hide": "{ look != outdoor }",
+                               "help": "A float 0..1 scaling the snow and wetness per surface (0 keeps grass dry); "
+                                       "absent = 1"},
         },
     },
 

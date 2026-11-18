@@ -655,7 +655,9 @@ class PCG_Sweep:
             }.items()},
             # pcg98 addition
             "end_cap_type": _sec("End Caps", (list(ops.SWEEP_CAPS),)),
-        }, "optional": {"cross": (GEO,)}}
+        }, "optional": {"cross": (GEO,),
+                        # appended: frames square to the up vector (a level road) instead of rotation-minimizing
+                        "fixed_up": _sec("Rotation", ("BOOLEAN", {"default": False}))}}
     RETURN_TYPES = (GEO,); RETURN_NAMES = ("geo",)
     FUNCTION = "run"; CATEGORY = CAT + "/generate"
 
@@ -664,7 +666,7 @@ class PCG_Sweep:
             use_rotation, roll, full_twists, partial_twist, up_x, up_y, up_z,
             use_scale, scale_start, scale_end, use_pscale,
             stretch_around_turns, max_stretch, end_caps, cap_group,
-            use_uv, uv_attrib, end_cap_type="single_polygon", cross=None):
+            use_uv, uv_attrib, end_cap_type="single_polygon", cross=None, fixed_up=False):
         rot = use_rotation
         return (ops.sweep(
             backbone, cross, shape, cols, radius, surface_type, group,
@@ -678,7 +680,7 @@ class PCG_Sweep:
             use_pscale if use_scale else True,
             stretch_around_turns, max_stretch,
             end_caps, cap_group if end_caps else "",
-            uv_attrib if use_uv else "", end_cap_type),)
+            uv_attrib if use_uv else "", end_cap_type, bool(fixed_up) and rot),)
 
 
 class PCG_Skin:
@@ -1923,7 +1925,7 @@ class PCG_PreviewImage:
             "textures_cop": ("COPIMAGE",),
             # pcg123, appended: the outdoor look (perspective, sky, sun, haze); camera optional for it
             "camera": (CAM,),
-            "sun_elevation": _f(35.0, 1.0, 90.0, 1.0),
+            "sun_elevation": _f(35.0, -10.0, 90.0, 1.0),
             "sun_azimuth": _f(135.0, -360.0, 360.0, 1.0),
             "haze": _f(1.0, 0.0, 20.0, 0.05),
             "ground_plane": ("BOOLEAN", {"default": True}),
@@ -1945,6 +1947,15 @@ class PCG_PreviewImage:
             # near this camera, impostor cards turned to it -- beside a large shared one, without keeping a merged
             # copy of the large one for every shot
             "extra_geo": ("GEOMETRY", {"tooltip": "Drawn with geo (Outdoor: without merging the two)"}),
+            # appended (defaults = off): weather, emitted light, point lights, a camera sequence (Outdoor)
+            "snow_line": _f(150.0, -1e5, 1e5, 1.0),
+            "snow_amount": _f(0.0, 0.0, 1.0, 0.05),
+            "wetness": _f(0.0, 0.0, 1.0, 0.05),
+            "emit_attrib": ("STRING", {"default": "emit"}),
+            "lights": ("GEOMETRY", {"tooltip": "Points: P, Cd (colour), intensity -- unshadowed point lights"}),
+            "light_range": _f(40.0, 0.1, 1e5, 1.0),
+            "cameras": (CAMSEQ, {"tooltip": "Outdoor: render every camera of the sequence (a batch of frames)"}),
+            "weather_attrib": ("STRING", {"default": "weather"}),
         }}
     # appended outputs: the outdoor look's guide passes (for ControlNet: depth, normal); other looks give flat ones
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE"); RETURN_NAMES = ("image", "depth", "normal")
@@ -1955,7 +1966,17 @@ class PCG_PreviewImage:
             material_attrib="material", uv_attrib="uv", textures_cop=None, camera=None,
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
-            compute="auto", detail_cop=None, splat_cop=None, extra_geo=None):
+            compute="auto", detail_cop=None, splat_cop=None, extra_geo=None, snow_line=150.0, snow_amount=0.0,
+            wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, cameras=None, weather_attrib="weather"):
+        if cameras is not None and len(cameras) and look == "outdoor":
+            import torch as _torch
+            outs = [self.run(geo, width, height, elevation, azimuth, shading, color_attrib, look, supersampling,
+                             textures, material_attrib, uv_attrib, textures_cop, c_, sun_elevation, sun_azimuth, haze,
+                             ground_plane, ground_color, exposure, clouds, cloud_seed, sky_samples, compute,
+                             detail_cop, splat_cop, extra_geo, snow_line, snow_amount, wetness, emit_attrib, lights,
+                             light_range, None, weather_attrib) for c_ in cameras]
+            outs = [o_["result"] if isinstance(o_, dict) else o_ for o_ in outs]
+            return tuple(_torch.cat([o_[i] for o_ in outs], 0) for i in range(3))
         extra_od = None
         if extra_geo is not None and extra_geo.nprims and look == "outdoor" and geo is not None and geo.nprims:
             extra_od, extra_geo = extra_geo, None                # drawn beside geo, no merged copy of the scene
@@ -1963,7 +1984,8 @@ class PCG_PreviewImage:
             from .geo.ops import merge as _merge
             # only what the render reads is merged (the merge copies; a terrain's other attributes and groups would
             # be copied for nothing, and filled in for the extra geometry): shallow copies without the rest
-            keep = {"P", "N", "Alpha", "shadow_only", str(color_attrib), str(uv_attrib), str(material_attrib)}
+            keep = {"P", "N", "Alpha", "shadow_only", str(color_attrib), str(uv_attrib), str(material_attrib),
+                    str(emit_attrib), str(weather_attrib)}
 
             def _slim(g_):
                 s_ = g_.copy()
@@ -1992,7 +2014,9 @@ class PCG_PreviewImage:
                                      sun_elevation, sun_azimuth, haze, ground_plane, gc, exposure,
                                      tex_cop=textures_cop, clouds=clouds, cloud_seed=cloud_seed,
                                      sky_samples=sky_samples, compute=compute, detail_cop=detail_cop,
-                                     splat_cop=splat_cop, extra=extra_od, aux=aux)
+                                     splat_cop=splat_cop, extra=extra_od, aux=aux, snow_line=snow_line,
+                                     snow_amount=snow_amount, wetness=wetness, emit_attrib=emit_attrib,
+                                     lights=lights, light_range=light_range, weather_attrib=weather_attrib)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,

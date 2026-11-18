@@ -412,6 +412,21 @@ check("  Composite: red where the text is, unchanged elsewhere",
       cc[..., 0].max() > 0.9 and cc[..., 1].max() == 0)
 err("  font not found raises", lambda: PT.text(None, "x", "no_such_font_zz"),
     "not found")
+# labels: one text per point, at the point's place on a centred map (World Size), from its name attribute
+from comfyui_pcg.geo import Geometry as _G  # noqa: E402
+lp_ = _G.from_points(np.array([[-1000.0, 0, 1000.0], [1000.0, 0, -1000.0]], np.float32))
+lp_.set_string("point", "name", np.array(["T", "TT"]))
+lr_ = MAP["PCG_COPText"]().run("x", "", 24, "0 0", "center", "center", 1.2, "1 1 1", "", "text", 256, 256,
+                               points=lp_, label_attribute="name", world_size=4000.0)
+lr_ = (lr_["result"] if isinstance(lr_, dict) else lr_)[0]
+lm_ = L(lr_, "text")[..., 0]
+q1, q2 = lm_[:128, :128], lm_[128:, 128:]                  # v up: z = +1000 -> v 0.25 (low), x -1000 -> u 0.25
+yy1, xx1 = np.nonzero(q1 > 0.5)
+check("  labels: a text at each point (x -1000, z 1000 -> uv 0.25, 0.25; x 1000, z -1000 -> 0.75, 0.75), from the "
+      "name attribute (TT wider than T); nothing in the other quarters",
+      len(yy1) and abs(xx1.mean() - 64) < 6 and abs(yy1.mean() - 64) < 8
+      and np.ptp(np.nonzero(q2 > 0.5)[1]) > 1.6 * np.ptp(xx1)
+      and lm_[:128, 128:].max() < 0.01 and lm_[128:, :128].max() < 0.01)
 
 # ═══════════════════════════════════════════════════════ Scatter shapes
 sec("Scatter shapes / geometry coordinates")

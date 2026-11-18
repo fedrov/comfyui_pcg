@@ -111,9 +111,10 @@
  "PCG_COPText": {
   "topic": "cop-generate",
   "summary": "Renders text into an anti-aliased coverage mask, optionally composited over a layer.",
-  "description": "Draws `Text` with FreeType anti-aliasing into `Output Layer` as a 0-1 coverage mask. `Position` is a UV point (V pointing up) and `Align` / `VAlign` choose which point of the text block is placed on it. Multi-line text is supported, with line distance set by `Line Spacing`.\n\nIf `Composite Layer` is set, `Color` is laid over that layer through the mask (a black layer is created if it does not exist yet). The font size is in pixels, so it does not follow resolution changes automatically.\n\nThe empty font uses the bundled Pillow font, which only has Latin characters; for other scripts give the file name of a system font that covers them.",
+  "description": "Draws `Text` with FreeType anti-aliasing into `Output Layer` as a 0-1 coverage mask. `Position` is a UV point (V pointing up) and `Align` / `VAlign` choose which point of the text block is placed on it. Multi-line text is supported, with line distance set by `Line Spacing`.\n\nIf `Composite Layer` is set, `Color` is laid over that layer through the mask (a black layer is created if it does not exist yet). The font size is in pixels, so it does not follow resolution changes automatically.\n\nThe empty font uses the bundled Pillow font, which only has Latin characters; for other scripts give the file name of a system font that covers them.\n\n**Labels**: connect points and each one gets its own text (Label Attribute) at its place on the map, Position then an offset -- town names on a map, tile numbers.",
   "inputs": {
-   "cop": "Optional image to draw into. Without it a new image of the given resolution is created."
+   "cop": "Optional image to draw into. Without it a new image of the given resolution is created.",
+   "points": "Optional points to label: one text per point, at its place on the map."
   },
   "outputs": {
    "cop": "The image with the text mask (and the composited layer, if requested)."
@@ -129,7 +130,9 @@
    "composite_layer": "Layer to draw `Color` onto through the mask. Empty only writes the mask.",
    "color": "RGB color used when compositing.",
    "out_layer": "Layer that receives the coverage mask.",
-   "resolution_x": "Output resolution (width, height) used when nothing is connected to the input. With an input, its resolution is used."
+   "resolution_x": "Output resolution (width, height) used when nothing is connected to the input. With an input, its resolution is used.",
+   "label_attribute": "With points connected: the string point attribute that holds each point's text. Without one, Text followed by the point number.",
+   "world_size": "With points connected: greater than 0 places a point by its x, z in a centred square of this size (as HeightField to Mesh lays a terrain out, north up); 0 takes x, z as uv. Position is then an offset in uv."
   }
  },
  "PCG_COPThermalErosion": {

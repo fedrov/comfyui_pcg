@@ -6,6 +6,7 @@ The third SOP node file (pcg121): nodes added after the code review.
   Modelling     Thicken
   Packed        Pack, Unpack, Assemble (+ Copy to Points' Pack and Instance, viewport instancing; see geo/packed.py)
   Scene         Lot Subdivision, Building Generator, LOD Create, Impostor Textures (after SideFX Labs)
+  Generate      Tree Generator (a procedural tree asset)
   Output        World Manifest (World.json + per-tile streaming manifests)
 
 The end of nodes.py merges the mappings here into the main table; the Houdini mapping is in tests/sop_map.py.
@@ -16,7 +17,7 @@ from .nodes_common import GEO, CAT, _f, _i, _group, _names, _sec  # noqa: F401
 from .geo import distgeo as _dg, pathdeform as _pd, polywire as _pw, thicken as _th, curvefillet as _cf
 from .geo import packed as _pk
 from .geo import lotsubdiv as _ls, building as _bg, lodcreate as _lc, impostor as _imp
-from .geo import worldmanifest as _wm
+from .geo import worldmanifest as _wm, tree as _tree
 from .nodes_common import COP
 from .geo.ramp import MODES as _RAMP_MODES
 
@@ -466,6 +467,57 @@ class PCG_ImpostorTextures:
         return (img, card, _rep(r))
 
 
+@_node("generate")
+class PCG_TreeGenerator:
+    """
+    A procedural tree as a game asset (after SideFX Labs' tree tools / SpeedTree): trunk and branches as tapered
+    tubes (bark, uv in metres), leaves as cards. Kind: broadleaf (the trunk ends in the crown, branches spiral out of
+    it level by level, the last level carries the leaves) or conifer (the trunk runs to the top, whorls of drooping
+    branches long at the bottom and short at the top, needle sprays along them). Point Cd (leaves darker inside and
+    low in the crown), N (leaf cards bent toward "out of the crown" by Normal Bend: the crown shades as one volume),
+    uv; prim part (bark / leaf), material (M_Bark / M_Leaf), level. Seed gives variants; LOD Create and Impostor
+    Textures turn it into an LOD chain with impostor cards.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "kind": (list(_tree.KINDS),),
+            "height": _f(10.0, 0.1, 200.0, 0.1),
+            "trunk_radius": _f(0.25, 0.005, 10.0, 0.01),
+            "crown_base": _f(0.35, 0.0, 0.95, 0.01),
+            "crown_width": _f(6.0, 0.1, 100.0, 0.1),
+            "branch_levels": _i(2, 1, 3),
+            "branches": _i(5, 1, 20),
+            "branch_angle": _f(45.0, 0.0, 120.0, 1.0),
+            "length_ratio": _f(0.6, 0.05, 1.5, 0.01),
+            "gnarl": _f(0.3, 0.0, 3.0, 0.01),
+            "leaves": _i(300, 0, 20000),
+            "leaf_size": _f(0.7, 0.01, 10.0, 0.01),
+            "leaf_color": _s("0.26 0.40 0.13"),
+            "bark_color": _s("0.24 0.18 0.13"),
+            "sides": _i(6, 3, 24),
+            "normal_bend": _f(0.8, 0.0, 1.0, 0.01),
+            "rand_seed": _i(1, 0, 1 << 30),
+            # appended: rings along the trunk (the branches proportionally fewer)
+            "segments": _i(8, 2, 64),
+        }}
+
+    def run(self, kind, height, trunk_radius, crown_base, crown_width, branch_levels, branches, branch_angle,
+            length_ratio, gnarl, leaves, leaf_size, leaf_color, bark_color, sides, normal_bend, rand_seed, segments=8):
+        def rgb(v, name):
+            try:
+                c = [float(x) for x in str(v).replace(",", " ").split()]
+            except ValueError:
+                c = []
+            if len(c) != 3:
+                raise ValueError(f"Tree Generator: {name} takes three numbers 0..1 (r g b), got {v!r}")
+            return c
+        g, r = _tree.tree(kind, height, trunk_radius, crown_base, crown_width, branch_levels, branches, branch_angle,
+                          length_ratio, gnarl, leaves, leaf_size, rgb(leaf_color, "Leaf Color"),
+                          rgb(bark_color, "Bark Color"), sides, normal_bend, rand_seed, segments)
+        return (g, _rep(r))
+
+
 @_node("output", returns=(("STRING", "path"), ("STRING", "report")))
 class PCG_WorldManifest:
     """
@@ -524,6 +576,7 @@ _NAMES = {
     "PCG_LODCreate": "LOD Create (PCG)",
     "PCG_ImpostorTextures": "Impostor Textures (PCG)",
     "PCG_WorldManifest": "World Manifest (PCG)",
+    "PCG_TreeGenerator": "Tree Generator (PCG)",
 }
 
 NODE_CLASS_MAPPINGS = {k: globals()[k] for k in _NAMES}

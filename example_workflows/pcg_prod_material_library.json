@@ -825,7 +825,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 80,
@@ -859,6 +859,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -908,7 +918,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Wall: studio preview"
   },
@@ -917,7 +933,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    512
+    552
    ],
    "size": [
     340,
@@ -1500,7 +1516,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 86,
@@ -1534,6 +1550,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -1583,7 +1609,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "Ground_Cobble: studio preview"
   },
@@ -1592,7 +1624,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    512
+    552
    ],
    "size": [
     340,
@@ -2130,7 +2162,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 92,
@@ -2164,6 +2196,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -2213,7 +2255,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Door: studio preview"
   },
@@ -2222,7 +2270,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    512
+    552
    ],
    "size": [
     340,
@@ -2760,7 +2808,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 98,
@@ -2794,6 +2842,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -2843,7 +2901,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Roof: studio preview"
   },
@@ -2852,7 +2916,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    512
+    552
    ],
    "size": [
     340,
@@ -3390,7 +3454,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 104,
@@ -3424,6 +3488,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -3473,7 +3547,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Trim: studio preview"
   },
@@ -3482,7 +3562,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3572
+    3612
    ],
    "size": [
     340,
@@ -4020,7 +4100,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 110,
@@ -4054,6 +4134,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -4103,7 +4193,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Glass: studio preview"
   },
@@ -4112,7 +4208,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3572
+    3612
    ],
    "size": [
     340,
@@ -4650,7 +4746,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 116,
@@ -4684,6 +4780,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -4733,7 +4839,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Metal: studio preview"
   },
@@ -4742,7 +4854,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3572
+    3612
    ],
    "size": [
     340,
@@ -5325,7 +5437,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 122,
@@ -5359,6 +5471,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -5408,7 +5530,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Sign: studio preview"
   },
@@ -5417,7 +5545,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3572
+    3612
    ],
    "size": [
     340,
@@ -6000,7 +6128,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 128,
@@ -6034,6 +6162,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -6083,7 +6221,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_BrickBuff: studio preview"
   },
@@ -6092,7 +6236,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    6632
+    6672
    ],
    "size": [
     340,
@@ -6675,7 +6819,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 134,
@@ -6709,6 +6853,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -6758,7 +6912,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_Stucco: studio preview"
   },
@@ -6767,7 +6927,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    6632
+    6672
    ],
    "size": [
     340,
@@ -7350,7 +7510,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 140,
@@ -7384,6 +7544,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -7433,7 +7603,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "Ground_Asphalt: studio preview"
   },
@@ -7442,7 +7618,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    6632
+    6672
    ],
    "size": [
     340,
@@ -8025,7 +8201,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 146,
@@ -8059,6 +8235,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -8108,7 +8294,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_RoofFlat: studio preview"
   },
@@ -8117,7 +8309,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    6632
+    6672
    ],
    "size": [
     340,
@@ -8655,7 +8847,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 152,
@@ -8689,6 +8881,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -8738,7 +8940,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_FacadeFar: studio preview"
   },
@@ -8747,7 +8955,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    9692
+    9732
    ],
    "size": [
     340,
@@ -9285,7 +9493,7 @@
    ],
    "size": [
     340,
-    468
+    508
    ],
    "flags": {},
    "order": 158,
@@ -9319,6 +9527,16 @@
     {
      "name": "extra_geo",
      "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "lights",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "cameras",
+     "type": "PCGCAMSEQ",
      "link": null
     }
    ],
@@ -9368,7 +9586,13 @@
     0.0,
     0,
     32,
-    "auto"
+    "auto",
+    150.0,
+    0.0,
+    0.0,
+    "emit",
+    40.0,
+    "weather"
    ],
    "title": "M_FacadeFarBrick: studio preview"
   },
@@ -9377,7 +9601,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    9692
+    9732
    ],
    "size": [
     340,
