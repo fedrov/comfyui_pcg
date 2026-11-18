@@ -413,7 +413,7 @@ else:
 
     def _eco(out):
         from comfyui_pcg.geo.cop.pixel import getn as _g
-        return {k: _g(out[0], k)[..., 0].astype(np.float32) for k in ("farm", "field_id", "town", "ForestFloor", "N", "fieldw", "tring")} | {
+        return {k: _g(out[0], k)[..., 0].astype(np.float32) for k in ("farm", "field_id", "town", "ForestFloor", "N", "fieldw", "tring", "upb")} | {
             "Nz": _g(out[0], "N")[..., 2].astype(np.float32)}
     cap = {"Grass tufts": _grass, "Close range: material terrain": _pts, "Material: terrain": _pts,
            "Terrain: full map + close range": lambda out: out[0].npoints,
@@ -810,7 +810,7 @@ else:
     tree_ff = None
     ec = cap["got"].get("Ecology: seven weight layers + scatter densities")
     if ec is not None:
-        gentle = ec["Nz"] > 0.98
+        gentle = ec["upb"] > 0.98                       # the up-ness the ecology classes by (mostly the broad slope)
         crop = gentle & (ec["farm"] > 0.6) & (ec["town"] < 0.1) & (np.rint(ec["field_id"]) >= 1)
         marg = gentle & (ec["farm"] > 0.6) & (ec["town"] < 0.1) & (np.rint(ec["field_id"]) == 0)
         ffc, ffm = float(ec["ForestFloor"][crop].mean()), float(ec["ForestFloor"][marg].mean())

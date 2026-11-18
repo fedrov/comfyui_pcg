@@ -345,7 +345,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | Snow Line `snow_line` | float | 150 | Outdoor: height in metres above which upward-facing surfaces take snow (with Snow above 0). The line is ragged (two scales of noise) and fades over 25 m. *Hidden when look ≠ outdoor.* |
-| Snow `snow_amount` | float [0.0..1.0] | 0 | Outdoor: how much snow lies above the snow line, 0 (none, the default) to 1. Only faces turned up (the normal's height above about 0.45) take it. *Hidden when look ≠ outdoor.* |
+| Snow `snow_amount` | float [0.0..1.0] | 0 | Outdoor: how much snow lies above the snow line, 0 (none, the default) to 1. Only faces turned up (the normal's height above about 0.45) take it. The snow and the wetness read the slope at the scale of a mountainside: the mesh normal blurred over about 1/80 of the frame, weighted 3:1 over the normal-mapped one, so gullies and normal-map ripples do not stripe them. *Hidden when look ≠ outdoor.* |
 | Wetness `wetness` | float [0.0..1.0] | 0 | Outdoor: wet ground, 0 to 1: upward faces darker and much glossier (they reflect the sky), puddles on the flattest. Switches to PBR shading. *Hidden when look ≠ outdoor.* |
 
 *Lights*

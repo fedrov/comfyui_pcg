@@ -13,15 +13,21 @@ All notable changes to this project are documented here. The format follows
   (emitted light), a `lights` input (unshadowed point lights, `light_range`), `sun_elevation` down to -10 (twilight);
   a `cameras` input renders a camera sequence into a batch of frames; `weather_attrib` scales the weather per surface
   (grass blades kept dry).
+- **Preview Image / Outdoor**: the snow and the wetness read the slope at the scale of a mountainside (the mesh
+  normal blurred over about 1/80 of the frame, 3:1 over the normal-mapped one), so gullies and normal-map ripples no
+  longer stripe the snow.
 - **Sweep**: `fixed_up` (Keep Square to Up Vector, with Rotation on) keeps every cross section square to the up
   vector, so a ribbon stays level across as the curve climbs and turns (a road).
 - **COP Text**: label points -- a `points` input with `label_attribute` and `world_size` puts one text per point.
 - **World tiles: procedural trees, road surfaces, an arch bridge, shore, map, dusk / rain / snow, a flyby**. The
-  trees are Tree Generator assets (LOD1 a coarse variant, then impostor cards; full trees within 120 m in the
+  trees are Tree Generator assets (LOD1 a coarse variant, then impostor cards; full trees within 60 m in the
   previews); `roads/Roads_Mesh.glb` has the road surfaces by class with shoulders and pavements; the bridge is a stone
   arch; a wet band and surf along the shore; `Map.png` is a game map with town names, legend and scale bar; three
   more shots at dusk (lamps and windows lit), in the rain and under snow (`variants/`); a muted Flyby group renders
   240 frames to an animated WebP.
+- **World tiles: no more stripes on the slopes**. Rock, grass, moss and bare soil are classed mostly by the slope
+  of the height blurred over ~20 m, not by each first-order gully on the steady-state flanks; the snow likewise (the
+  renderer's broad slope).
 - **World Manifest** (new node): reads an exported world back from its folder and writes `World.json` (image sets
   with their decode rules, instance tables, meshes with nodes, bounds and LOD chains, polylines, other files, the
   coordinate convention and how Unreal and Unity map it) and `tiles/Tile_x{i}_y{j}.json` per streaming tile (its

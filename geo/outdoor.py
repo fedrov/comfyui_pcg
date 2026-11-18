@@ -248,6 +248,12 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     alb[gplane] = S.srgb_to_linear(np.asarray(ground_color, np.float64))
     pbr = {"ao": np.ones((H, W), np.float32), "roughness": np.full((H, W), 0.8, np.float32),
            "metallic": np.zeros((H, W), np.float32)}
+    # the weather reads the surface's own up-ness (the mesh normal) more than the normal map's: snow and water lie
+    # where the ground is flat at the scale of metres, not on every up-facing flank of a fine ripple
+    ny_geo = None
+    if float(snow_amount) > 0 or float(wetness) > 0:
+        # ... and at the scale of a slope, not of each gully on it: blurred over the surface (about 1/80 of the frame)
+        ny_geo = _blur_masked(N[..., 1], m & ~gplane, max(2, W // 160))
     if tex:
         for g_, r_, mk in zip(parts, rasts, masks):
             S._apply_textures(g_, r_, alb, N, surf & mk, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
@@ -284,7 +290,8 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
                     wm = np.ones((H, W), np.float32)
                 wm[mk] = np.clip(e_[..., 0][mk], 0.0, 1.0)
                 del e_
-        _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm)
+        _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm, ny_geo)
+        ny_geo = None
         # wet ground needs the reflections
         use_pbr = use_pbr or (float(wetness) > 0 and (wm is None or float(wm[surf].max(initial=0.0)) > 0))
         wm = None
@@ -442,13 +449,32 @@ def _vnoise(x, z, scale, seed=0.0):
             + h(xi + 1, zi + 1) * fx * fz).astype(np.float32)
 
 
-def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None):
-    """Snow and wet ground on the surface pixels, in place (albedo, roughness); wm: (H, W) 0..1 scales both."""
+def _blur_masked(v, mask, r):
+    """(H, W) v averaged over a (2r+1)² box, twice (about a Gaussian), over the mask's pixels only."""
+    def box(a):
+        for ax in (0, 1):
+            c = np.cumsum(np.pad(a, [(r + 1, r) if k == ax else (0, 0) for k in range(2)]), axis=ax, dtype=np.float64)
+            a = (np.take(c, range(2 * r + 1, c.shape[ax]), axis=ax)
+                 - np.take(c, range(0, c.shape[ax] - 2 * r - 1), axis=ax)).astype(np.float32)
+        return a
+    w = mask.astype(np.float32)
+    num, den = v.astype(np.float32) * w, w
+    for _ in range(2):
+        num, den = box(num), box(den)
+    return np.where(den > 1e-6, num / np.maximum(den, 1e-6), v).astype(np.float32)
+
+
+def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_geo=None):
+    """Snow and wet ground on the surface pixels, in place (albedo, roughness); wm: (H, W) 0..1 scales both;
+    ny_geo: (H, W) the mesh normal's y before the normal maps, blurred to the scale of a slope, weighted 3:1 over
+    the mapped normal's."""
     vi = np.nonzero(surf)
     step = 1 << 20
     for s0 in range(0, len(vi[0]), step):
         so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
         p_, ny = P[so], N[so][:, 1]
+        if ny_geo is not None:
+            ny = 0.75 * ny_geo[so] + 0.25 * ny
         a_ = alb[so]
         r_ = pbr["roughness"][so]
         k_ = np.float32(1.0) if wm is None else wm[so]

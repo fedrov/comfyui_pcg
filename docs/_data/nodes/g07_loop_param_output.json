@@ -426,7 +426,7 @@
    "sky_samples": "Outdoor: number of directions the sky light is sampled and shadowed from, one depth map each. More is smoother and slower; 0 uses a plain hemisphere fill without sky shadows.",
    "compute": "Outdoor: where the shadow maps and the sky light are computed. Auto uses CUDA when available, otherwise numpy; the result differs only at float32 rounding level.",
    "snow_line": "Outdoor: height in metres above which upward-facing surfaces take snow (with Snow above 0). The line is ragged (two scales of noise) and fades over 25 m.",
-   "snow_amount": "Outdoor: how much snow lies above the snow line, 0 (none, the default) to 1. Only faces turned up (the normal's height above about 0.45) take it.",
+   "snow_amount": "Outdoor: how much snow lies above the snow line, 0 (none, the default) to 1. Only faces turned up (the normal's height above about 0.45) take it. The snow and the wetness read the slope at the scale of a mountainside: the mesh normal blurred over about 1/80 of the frame, weighted 3:1 over the normal-mapped one, so gullies and normal-map ripples do not stripe them.",
    "wetness": "Outdoor: wet ground, 0 to 1: upward faces darker and much glossier (they reflect the sky), puddles on the flattest. Switches to PBR shading.",
    "emit_attrib": "Outdoor: a colour attribute added as emitted light (linear, before exposure): lit windows, lamp heads. Empty reads none.",
    "light_range": "Outdoor: how far the point lights on the lights input reach, in metres.",

@@ -302,6 +302,30 @@ wet_ = O.render_outdoor(flat, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **
 check("wetness: the flat ground darker (and glossier) than dry; the sky unchanged",
       wet_[-20:].mean() < dry_[-20:].mean() - 0.02 and np.allclose(wet_[:3], dry_[:3], atol=1e-4),
       (round(float(wet_[-20:].mean()), 3), round(float(dry_[-20:].mean()), 3)))
+# the weather reads the mesh normal 3:1 over the normal-mapped one: ripples in a normal map do not stripe the snow
+Pw = np.zeros((8, 8, 3), np.float32)
+Pw[..., 1] = 300.0
+Nw = np.zeros((8, 8, 3), np.float32)
+Nw[..., 0], Nw[..., 1] = 0.866, 0.5                        # the mapped normal: a steep flank of a ripple
+alb0 = np.full((8, 8, 3), 0.1, np.float32)
+sw_ = {}
+for k_, ng_ in (("geo", np.ones((8, 8), np.float32)), ("mapped", None)):
+    a_, pb_ = alb0.copy(), {"roughness": np.full((8, 8), 0.8, np.float32)}
+    O._weather(Pw, Nw, a_, pb_, np.ones((8, 8), bool), 100.0, 1.0, 0.0, None, ng_)
+    sw_[k_] = float(a_.mean())
+check("snow on a flat mesh whose normal map tilts (a ripple's flank): covered, as the mesh is flat (0.1 albedo -> "
+      "near snow); negative control, the mapped normal alone: much less", sw_["geo"] > 0.6 and sw_["mapped"] < 0.4,
+      (round(sw_["geo"], 3), round(sw_["mapped"], 3)))
+# ... blurred to the scale of a slope: a fluted face (ny alternating every 4 px) reads as its mean; pixels outside the
+# surface (ny -1 there: the sky) do not leak in
+fl_ = np.where((np.arange(64) // 4) % 2 == 0, 1.0, 0.5).astype(np.float32)[None].repeat(48, 0)
+mk_ = np.ones((48, 64), bool)
+mk_[:, 48:] = False
+fl_[:, 48:] = -1.0
+bl_ = O._blur_masked(fl_, mk_, 6)
+check("the weather's slope blur: a fluted face reads as its mean (0.75, spread < 0.05 against 0.5 unblurred); the sky "
+      "beside it does not leak in", np.ptp(bl_[:, 10:40]) < 0.05 and abs(bl_[:, 10:40].mean() - 0.75) < 0.03
+      and bl_[:, 40:48].min() > 0.6, (round(float(np.ptp(bl_[:, 10:40])), 3), round(float(bl_[:, 40:48].min()), 3)))
 flw = flat.copy()
 flw.set(POINT, "weather", np.zeros(flw.npoints, np.float32))
 dw_ = O.render_outdoor(flw, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **kf_)

@@ -2530,9 +2530,20 @@ def world_tiles():
     fmg = T("PCG_COPLayerMerge", title="+ the fields", layers="field field_id")
     g.link(fbl, "cop", fmg, "a")
     g.link(wfc, "cop", fmg, "b")
+    # the slope at the scale of a mountainside (the height blurred over ~20 m): the steady-state flanks are fluted by
+    # first-order gullies a few cells apart, and classing rock / grass / snow by the 4 m slope alone drew them as
+    # stripes. The materials read both, mostly this one
+    cbw = C("PCG_COPWrangle", title="Height copy for the broad slope", code="@Cb = @C")
+    g.link(fmg, "cop", cbw, "cop")
+    cbb = C("PCG_COPBlur", title="Broad slope: the height blurred (~20 m)", sigma_pixels=5.0, border="clamp",
+            layers="Cb")
+    g.link(cbw, "cop", cbb, "cop")
+    cbn = C("PCG_COPHeightToNormal", title="Broad slope: its normal", layer="Cb", strength=2048.0,
+            world_size=4100.0, out_layer="Nb")
+    g.link(cbb, "cop", cbn, "cop")
     nm = C("PCG_COPHeightToNormal", title="Normal (slopes, aligning rocks)", strength=2048.0,
            world_size=4100.0, out_layer="N")
-    g.link(fmg, "cop", nm, "cop")
+    g.link(cbn, "cop", nm, "cop")
     cu = C("PCG_COPCurvature", title="Curvature (ridges +, hollows -, 1/m)", kind="mean", strength=2048.0,
            world_size=4100.0, out_layer="curv")
     g.link(nm, "cop", cu, "cop")
@@ -2540,7 +2551,10 @@ def world_tiles():
         'hm = @C * 2048\n'
         'tn = normalize(set(@N.x, @N.z, -@N.y))\n'
         '@tn = tn\n'
-        'steep = 1 - @N.z\n'
+        '# the up-ness the materials read: mostly the broad slope (Nb), a little of the 4 m one\n'
+        '@upb = lerp(@N.z, @Nb.z, 0.7)\n'
+        '# (the broad slope is gentler than the 4 m one: the thresholds below match the old shares of rock and soil)\n'
+        'steep = 1 - @upb\n'
         'wet = clamp(@flow, 0, 1) * @land\n'
         'hn = clamp(hm / (@C.max() * 2048), 0, 1)\n'
         '@hn = hn\n'
@@ -2553,15 +2567,15 @@ def world_tiles():
         'fieldw = @farm * (1 - @town) * (1 - smoothstep(0.02, 0.06, steep)) * (1 - water) * clamp(@field_id, 0, 1)\n'
         'pad = smoothstep(0.35, 0.9, @pad)\n'
         '# cliffs: above ~55 degrees everywhere; from ~45 degrees on in patches (bare outcrops in the grass)\n'
-        'cliff = max(smoothstep(0.38, 0.48, steep), smoothstep(0.27, 0.35, steep)'
+        'cliff = max(smoothstep(0.23, 0.34, steep), smoothstep(0.13, 0.2, steep)'
         ' * smoothstep(0.5, 0.65, noise(set(@u * 40, @v * 40, 2.2)) + 0.2 * (noise(set(@u * 140, @v * 140, 5.5)) - 0.5)))\n'
         '# sand: the beach (0-4 m above the sea, gentle), dry river beds and gravel bars\n'
-        'beach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.08, 0.2, steep))\n'
+        'beach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.065, 0.1, steep))\n'
         'sand = clamp(max(beach, @bed * (1 - smoothstep(0.25, 0.7, big))), 0, 1)\n'
         '# scree: what slumped (debris), below the cliffs\n'
         'scree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n'
         '# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\n'
-        'soil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.30, 0.42, steep))\n'
+        'soil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.16, 0.27, steep))\n'
         'cl_ = 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06\n'
         'clump = smoothstep(0.5, 0.62, cl_)\n'
         '# the same clumps with a wide, soft edge: the band where the forest thins out into the open\n'
@@ -2653,7 +2667,7 @@ def world_tiles():
     # by material ('@{material}_albedo' etc.) and they are written as 4 × 4 tiles for the engine
     S = Col(g, 3100, width=W)
     sk = S("PCG_COPLayerEdit", title="Keep what the surface needs", op="keep",
-           spec="C N Grass ForestFloor Sediment Rock Sand Water wet bed grass_c rock_c fieldw")
+           spec="C N upb Grass ForestFloor Sediment Rock Sand Water wet bed grass_c rock_c fieldw")
     g.link(bio, "cop", sk, "cop")
     # the height alone goes to 4096² first: the erosion filter's working memory then sits next to one layer, not all
     # of them; the rest join after it (Layer Merge resamples them to the 4096² image, bilinear like Resize)
@@ -2764,8 +2778,8 @@ def world_tiles():
         '# rock in four layers, as a terrain material is built: cliff faces (the steepest: cool and dark, with couloirs),\n'
         '# slabs (less steep: warm and lighter), moss on the flatter rock and the ledge tops, and stains hanging under the\n'
         '# ledges. One layer with streaks everywhere read as brushed metal\n'
-        'slope = 1 - @N.z\n'
-        'cliffw = smoothstep(0.36, 0.56, slope + 0.12 * (n15 - 0.5))\n'
+        'slope = 1 - @upb\n'
+        'cliffw = smoothstep(0.21, 0.43, slope + 0.12 * (n15 - 0.5))\n'
         '# couloirs in patches, not on every face\n'
         'patch = smoothstep(0.38, 0.62, n50 + 0.4 * (noise(set(x / 30, y / 30, 2.2)) - 0.5))\n'
         '# ledges: each 9 m bed crops out as a ledge over stretches of some 40-120 m (a noise of its own per bed), so the\n'
@@ -2807,7 +2821,7 @@ def world_tiles():
         'rock = lerp(rock, rock * set(0.62, 0.6, 0.58), 0.4 * under * smoothstep(0.4, 0.65, st))\n'
         'rock = rock * (1 + 0.18 * lip)\n'
         '# moss and lichen on the flatter rock and the ledge tops, in patches\n'
-        'moss = clamp(smoothstep(0.72, 0.86, @N.z + 0.2 * (n15 - 0.5)) + 0.8 * lip, 0, 1) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\n'
+        'moss = clamp(smoothstep(0.86, 0.92, @upb + 0.1 * (n15 - 0.5)) + 0.8 * lip, 0, 1) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\n'
         'rock = lerp(rock, lerp(base, set(0.30, 0.36, 0.20), 0.7), 0.75 * moss)\n'
         'lich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * (1 - cliffw)\n'
         'rock = lerp(rock, set(0.62, 0.62, 0.52), 0.35 * lich)\n'
@@ -2820,7 +2834,7 @@ def world_tiles():
         'g = lerp(g, g * set(1.06, 1.04, 0.9), smoothstep(0.5, 2.0, ero) * 0.3)\n'
         'g = lerp(g, g * set(0.82, 0.92, 0.8), smoothstep(-0.5, -2.0, ero) * 0.4)\n'
         'soilc = set(0.42, 0.35, 0.26) * (0.85 + 0.3 * n4)\n'
-        'bare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\n'
+        'bare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.07, 0.16, 1 - @upb) + 0.12 * ero) * (1 - @wet)\n'
         'g = lerp(g, soilc, 0.85 * bare)\n'
         'dg = 0.25 * (n4 - 0.5) + 0.15 * (n15 - 0.5)\n'
         '# forest floor, scree (stones and gaps), sand (wet at the waterline), water\n'
