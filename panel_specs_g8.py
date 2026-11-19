@@ -309,9 +309,12 @@ SPECS = {
 
     # ── Resample: resolution + border
     "PCG_COPResize": {
-        "order": ["resolution_x", "resolution_y", "border"],
+        "order": ["resolution_x", "resolution_y", "border", "align"],
         "inputs": {
             "border": {"label": "Border", "menu": _BORDER_MENU},
+            "align": {"label": "Align", "menu": {"centres": "Pixel Centres", "corners": "Corners (samples)"},
+                      "help": "Corners: the outermost pixels stay in place, for grids of samples (1025 -> 2049 "
+                              "keeps every old sample on an even new one)"},
         },
     },
 

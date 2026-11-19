@@ -382,7 +382,7 @@
    ],
    "size": [
     360,
-    485
+    510
    ],
    "flags": {},
    "order": 7,
@@ -410,7 +410,8 @@
    "widgets_values": [
     1024,
     1024,
-    "clamp"
+    "clamp",
+    "centres"
    ],
    "title": "Upsample to 1024²"
   },
@@ -419,7 +420,7 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    1583
+    1608
    ],
    "size": [
     360,
@@ -461,7 +462,7 @@
    "type": "PCG_COPFlowAccumulation",
    "pos": [
     840,
-    2153
+    2178
    ],
    "size": [
     360,
@@ -522,7 +523,7 @@
    "type": "PCG_COPSplatMap",
    "pos": [
     840,
-    3132
+    3157
    ],
    "size": [
     360,

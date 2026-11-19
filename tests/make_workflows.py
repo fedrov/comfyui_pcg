@@ -1757,11 +1757,21 @@ SPLAT_CODE = (
     "n50 = noise(set(x / 50, y / 50, 4.1))\n"
     "land = 1 - @Water\n"
     "rk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n"
+    "# the fine pass's masks, as the surface uses them: rock where the water wore the slope, scree and gravel where\n"
+    "# it dropped material\n"
+    "wearm = smoothstep(0.3, 1.5, @wear) * smoothstep(0.12, 0.3, 1 - @upb)\n"
+    "depm = smoothstep(0.15, 1.2, @sedf * 2048) * (1 - smoothstep(0.25, 0.45, 1 - @upb))\n"
+    "debm = smoothstep(0.1, 0.8, @debf * 2048)\n"
+    "rk = max(rk, 0.85 * wearm * land * (1 - @Water))\n"
     "k = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\n"
     "sd = @Sand * k\n"
     "sc = @Sediment * k\n"
     "ff = @ForestFloor * k\n"
     "gr = @Grass * k\n"
+    "dm_ = clamp(0.6 * depm + 0.8 * debm, 0, 1) * (1 - rk)\n"
+    "sc = sc + (gr + ff) * dm_\n"
+    "gr = gr * (1 - dm_)\n"
+    "ff = ff * (1 - dm_)\n"
     "slope = 1 - @N.z\n"
     "cliffw = smoothstep(0.36, 0.56, slope + 0.12 * (n15 - 0.5))\n"
     "hard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\n"
@@ -1841,7 +1851,7 @@ LEAF_TEXTURES = "basecolor = @{material}_C\nalpha = @{material}_alpha\nbasecolor
 # town and main peak
 DETAIL_WINDOW = (-480.0, 1100.0, -800.0, 848.0)
 CAM2 = (-1150.0, 230.0, 250.0, 296.0, 150.0, -1080.0)
-CAM3 = (540.5, 14.6, 376.9, 77.9, 84.6, -5.3)    # on the south-east road, 1.8 m above it, along it toward the main peak   # a ridge south-west of the main peak
+CAM3 = (553.5, 9.8, 406.6, 196.9, 162.3, -51.2)    # on the south-east road, 1.8 m above it, along it toward the main peak
 
 
 # what World.json adds to what it reads from the files: the road classes (each its own polylines, width, splat layer,
@@ -1898,7 +1908,7 @@ def world_tiles(quick=False):
 
     A.note((
         "A 4 km × 4 km island for an open world, delivered as 4 × 4 tiles, engine-agnostic:\n"
-        "  · Height: 1025² samples, 4 m per cell; each tile a 257² 16-bit PNG, **neighbouring tiles share the row of "
+        "  · Height: 2049² samples, 2 m per cell (a fine erosion pass at 2 m); each tile a 513² 16-bit PNG, **neighbouring tiles share the row of "
         "pixels on their common edge** (heights at the seams are bit-identical when stitched); metres = minimum + value × range, the range is in "
         "Height.json's range_scaled (one range for the whole map, the same for all tiles; the sea floor is negative). A full-map .r16 is included too.\n"
         "  · Weight maps: seven layers Grass / ForestFloor / Sediment / Rock / Sand / Water / Road, one "
@@ -1927,12 +1937,13 @@ def world_tiles(quick=False):
         "is what the table says.\n\n"
         "① Terrain, grown by its rivers: an island outline, a ridged uplift map (the main range) and a rock-hardness map → "
         "Stream Power at 513² with the sea as base level: the whole island rises while rivers cut it, hard rock stands as "
-        "crags → resize to 1025² → buttresses and couloirs down the steep faces, gully pattern (erosion filter) → "
+        "crags → HeightField Erode at 8 m (branching valleys, sediment on their floors) → resize to 1025² → buttresses and couloirs down the steep faces, gully pattern (erosion filter) → "
         "HeightField Erode → distort → erode again (Houdini's recipe; writes the flow, sediment and debris masks) → "
         "flow accumulation → river beds cut 1.5-5 m into the valley floors → town sites on flat low ground, a road "
         "network between them at a 10% grade (switchbacks on the hills), cut into the ground; each town's ground cut "
         "into lots, the lots levelled into pads, a building on each; farmland round the towns, its fields a Wave Function "
-        "Collapse patchwork. About three minutes on numpy, much less with CUDA.\n"
+        "Collapse patchwork; then a fine HeightField Erode pass at 2 m (rills, small gullies, fans; roads, lots and beds "
+        "kept) whose masks colour the surface. About five minutes on numpy, much less with CUDA.\n"
         "② Ecology and colour from the erosion masks: cliffs above 55°, scree below them, sand on the beach and in the "
         "river beds, water in the sea and the trunk rivers, woodland in the valleys, grass that is lush where water "
         "collects, dry on the ridges and heath-coloured on the high ground, darker along every gully; the forest thins "
@@ -1980,8 +1991,17 @@ def world_tiles(quick=False):
     g.link(mt, "cop", sp, "cop")
     bl = B("PCG_COPBlur", title="Soften the one-cell river cuts", sigma_pixels=0.5, border="clamp", layers="C")
     g.link(sp, "cop", bl, "cop")
+    # the large-scale pass, as Gaea's and Houdini's terrain workflows start: HeightField Erode (water flowing over the
+    # whole map, carrying and dropping material) at 8 m cells joins the steady-state gullies into branching valleys
+    # and lays sediment on the valley floors; the slopes are left steep (talus 62 degrees: a lower one slumps the
+    # 8 m cells of a mountainside into aprons)
+    mac = B("PCG_COPHeightfieldErode", title="Erode at 8 m: branching valleys, sediment on their floors",
+            strength=2048.0, world_size=4100.0, iterations=150, rain=0.04, capacity=4.0, deposit_rate=0.3,
+            talus_angle=62.0, thermal_rate=0.05, bed_change_limit=0.03, flow_layer="flowM",
+            sediment_layer="sedM", debris_layer="debM", water_layer="waterM")
+    g.link(bl, "cop", mac, "cop")
     r2 = B("PCG_COPResize", title="Upres to 1025²", resolution_x=1025, resolution_y=1025)
-    g.link(bl, "cop", r2, "cop")
+    g.link(mac, "cop", r2, "cop")
     nd = B("PCG_COPHeightToNormal", title="Slope direction (for the buttresses)", strength=2048.0, world_size=4100.0,
            out_layer="Nd")
     g.link(r2, "cop", nd, "cop")
@@ -2007,7 +2027,7 @@ def world_tiles(quick=False):
         "@pre = @C"))
     g.link(nd, "cop", dt, "cop")
     ef = B("PCG_COPErosion", title="Gully pattern (erosion filter)", strength=2048.0, world_size=4100.0,
-           amplitude=10.0, wavelength=36.0, octaves=5, steepness=3.0, mask_layer="")
+           amplitude=5.0, wavelength=36.0, octaves=5, steepness=3.0, mask_layer="")
     g.link(dt, "cop", ef, "cop")
     em = B("PCG_COPWrangle", title="Gullies on the land only", code="@C = lerp(@pre, @C, @land)")
     g.link(ef, "cop", em, "cop")
@@ -2670,6 +2690,52 @@ def world_tiles(quick=False):
         '@fieldw = fieldw\n'
         '@rock_c = rock\n'))
     g.link(cu, "cop", bio, "cop")
+    # ③a The fine pass, at 2 m: the finished terrain (towns, roads and rivers cut) upsampled to 2049² and eroded once
+    # more -- rills, small gullies, little fans -- with the roads, lanes, lots, river beds, lakes and the sea kept as
+    # they are. Its height is the exported one (513² tiles) and the 1 m surface's base; its masks (where water ran,
+    # where it dropped material, where slopes slumped, how much it wore away) colour the surface. The 4 m layers the
+    # rest of the chain uses get its change (dlt) back, so meshes and instances stand on the same ground
+    F2 = Col(g, 2100, 4400, width=W)
+    fp0 = F2("PCG_COPWrangle", title="Fine pass: what it must not touch (roads, lots, beds, lakes, sea)", code=(
+        "p = max(max(clamp(@road * 2, 0, 1), @lane), max(max(@pad, @bed), max(@lakew, 1 - @land)))\n"
+        "@prot = clamp(p, 0, 1)\n"
+        "@hardf = clamp(max(@hard, @prot), 0, 1)"))
+    g.link(bio, "cop", fp0, "cop")
+    fk = F2("PCG_COPLayerEdit", title="Fine pass: the height and the masks", op="keep", spec="C prot hardf")
+    g.link(fp0, "cop", fk, "cop")
+    fpb = F2("PCG_COPBlur", title="Fine pass: the kept ground's edge softened (6 m, outward)", sigma_pixels=1.5,
+             border="clamp", layers="prot")
+    g.link(fk, "cop", fpb, "cop")
+    fr2 = F2("PCG_COPResize", title="Fine pass: 2049² (2 m)", resolution_x=2049, resolution_y=2049,
+             align="corners")
+    g.link(fpb, "cop", fr2, "cop")
+    # the blur halves the mask on its edge: doubled, the kept ground is whole up to its edge and fades outside it
+    fc0 = F2("PCG_COPWrangle", title="Fine pass: the start kept; the kept ground whole to its edge",
+             code="@C0 = @C\n@prot = clamp(2 * @prot, 0, 1)")
+    g.link(fr2, "cop", fc0, "cop")
+    fe2 = F2("PCG_COPHeightfieldErode", title="Erode at 2 m: rills, small gullies, little fans", strength=2048.0,
+             world_size=4100.0, iterations=60, rain=0.03, capacity=6.0, erode_rate=0.25, deposit_rate=0.2,
+             talus_angle=48.0, thermal_rate=0.08, bed_change_limit=0.03, hardness_layer="hardf", flow_layer="flowf",
+             sediment_layer="sedf", debris_layer="debf", water_layer="waterf")
+    g.link(fc0, "cop", fe2, "cop")
+    fin = F2("PCG_COPWrangle", title="Fine pass: the kept ground back; the change and the wear (m)", code=(
+        "@C = lerp(@C, @C0, @prot)\n"
+        "@dlt = @C - @C0\n"
+        "@wear = clamp(0 - @dlt, 0, 1) * 2048\n"
+        "@sedf = @sedf * (1 - @prot)\n"
+        "@debf = @debf * (1 - @prot)\n"
+        "@flowf = @flowf * (1 - @prot)"))
+    g.link(fe2, "cop", fin, "cop")
+    fdn = F2("PCG_COPLayerEdit", title="Fine pass: its change alone", op="keep", spec="dlt")
+    g.link(fin, "cop", fdn, "cop")
+    fd4 = F2("PCG_COPResize", title="Fine pass: the change at 4 m", resolution_x=1025, resolution_y=1025,
+             align="corners")
+    g.link(fdn, "cop", fd4, "cop")
+    bm2 = F2("PCG_COPLayerMerge", title="The 4 m set + the fine pass's change", layers="dlt", overwrite=True)
+    g.link(bio, "cop", bm2, "a")
+    g.link(fd4, "cop", bm2, "b")
+    bio2 = F2("PCG_COPWrangle", title="The 4 m height with the fine pass's change", code="@C = @C + @dlt")
+    g.link(bm2, "cop", bio2, "cop")
 
     # ③b The 1 m surface textures: the ecology upsampled to 4096², sharpened and detailed (outcrops with strata,
     # joints and streaks; rills; mottled grass, gravel, wet sand), a detail height -> normal map. The preview reads them
@@ -2677,15 +2743,15 @@ def world_tiles(quick=False):
     S = Col(g, 3100, width=W)
     sk = S("PCG_COPLayerEdit", title="Keep what the surface needs", op="keep",
            spec="C N upb Grass ForestFloor Sediment Rock Sand Water wet bed grass_c rock_c fieldw")
-    g.link(bio, "cop", sk, "cop")
+    g.link(bio2, "cop", sk, "cop")
     # the height alone goes to 4096² first: the erosion filter's working memory then sits next to one layer, not all
     # of them; the rest join after it (Layer Merge resamples them to the 4096² image, bilinear like Resize)
-    sh_ = S("PCG_COPLayerEdit", title="Height only", op="keep", spec="C")
-    g.link(sk, "cop", sh_, "cop")
+    sh_ = S("PCG_COPLayerEdit", title="Height only (the fine pass's, 2 m)", op="keep", spec="C")
+    g.link(fin, "cop", sh_, "cop")
     su = S("PCG_COPResize", title=f"Upsample to {SR}² ({4096 // SR} m texels)", resolution_x=SR, resolution_y=SR)
     g.link(sh_, "cop", su, "cop")
     se = S("PCG_COPErosion", title="Rills at 1 m (erosion filter, to Ce)", strength=2048.0, world_size=4100.0,
-           amplitude=2.0, wavelength=10.0, octaves=3, steepness=3.0, out_layer="Ce", mask_layer="")
+           amplitude=1.2, wavelength=10.0, octaves=3, steepness=3.0, out_layer="Ce", mask_layer="")
     g.link(su, "cop", se, "cop")
     sw = S("PCG_COPNoise", title="Joints / stones (Worley cell edges, ~7 m)", resolution_x=SR, resolution_y=SR,
            noise_type="worley_f2f1", fractal="standard", frequency=600.0, octaves=1, layer="cr", rand_seed=5)
@@ -2693,7 +2759,7 @@ def world_tiles(quick=False):
     g.link(se, "cop", sm, "a")
     g.link(sw, "cop", sm, "b")
     sl = S("PCG_COPLayerMerge", title="+ the ecology layers (resampled to 4096²)",
-           layers="N Grass ForestFloor Sediment Rock Sand Water wet bed grass_c rock_c fieldw", overwrite=False)
+           layers="N upb Grass ForestFloor Sediment Rock Sand Water wet bed grass_c rock_c fieldw", overwrite=False)
     g.link(sm, "cop", sl, "a")
     g.link(sk, "cop", sl, "b")
     sr = S("PCG_COPRasterizeCurves", title="Roads at 1 m (6 m wide)", width=6.0, plane="xz", mapping="world",
@@ -2737,7 +2803,7 @@ def world_tiles(quick=False):
             world_size=4100.0, out_layer="crown")
     g.link(rn, "geo", scw, "geo")
     g.link(sru, "cop", scw, "cop")
-    sf = S("PCG_COPWrangle", title="Surface: albedo, roughness, detail height", rows_per_pass=64, code=(
+    sf = S("PCG_COPWrangle", title="Surface: albedo, roughness, detail height", rows_per_pass=32, code=(
         '# the 1 m surface: crisp material edges, rock strata and joints, rills, mottled grass; a detail height for the normal map\n'
         'x = @u * 4100\n'
         'y = @v * 4100\n'
@@ -2767,11 +2833,22 @@ def world_tiles(quick=False):
         '# crisp outcrops: the rock weight pushed past a ragged threshold; spurs (ero > 0) shed their soil first\n'
         'land = 1 - @Water\n'
         'rk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n'
+        '# the fine pass (2 m), as Gaea colours by its erosion masks: rock bared where the water wore the slope down,\n'
+        '# scree where slopes slumped, gravel and silt where the water dropped material, damper grass along its flow\n'
+        'wearm = smoothstep(0.3, 1.5, @wear) * smoothstep(0.12, 0.3, 1 - @upb)\n'
+        'depm = smoothstep(0.15, 1.2, @sedf * 2048) * (1 - smoothstep(0.25, 0.45, 1 - @upb))\n'
+        'debm = smoothstep(0.1, 0.8, @debf * 2048)\n'
+        'rk = max(rk, 0.85 * wearm * land * (1 - @Water))\n'
         'k = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\n'
         'sd = @Sand * k\n'
         'sc = @Sediment * k\n'
         'ff = @ForestFloor * k\n'
         'gr = @Grass * k\n'
+        'dm_ = clamp(0.6 * depm + 0.8 * debm, 0, 1) * (1 - rk)\n'
+        'sc = sc + (gr + ff) * dm_\n'
+        'gr = gr * (1 - dm_)\n'
+        'ff = ff * (1 - dm_)\n'
+
         '# rock: beds of two thicknesses (5 m and 13 m, warped, terraced where the faces are hard), joint cracks, rough;\n'
         '# colour banded by bed, lichen on the tops, dark streaks down the faces\n'
         '# the beds lie on a tilted plane (dipping about 13 degrees), not on the contours: level beds drew rings round every\n'
@@ -2837,6 +2914,8 @@ def world_tiles(quick=False):
         'varn = under\n'
         '# grass: mottled at 4 / 15 / 50 m, greener and darker in the rills, dry on the spurs, bare soil where the rill walls are steep\n'
         'g = @grass_c * (0.72 + 0.4 * n15 + 0.2 * n4)\n'
+        'g = lerp(g, g * set(0.78, 0.9, 0.78), 0.5 * smoothstep(0.55, 0.95, @flowf))\n'
+
         '# patches of a cooler, darker green (fern, scrub) and of a warmer one, at 50 m\n'
         'g = lerp(g, g * set(0.75, 0.92, 0.85), smoothstep(0.55, 0.7, n50))\n'
         'g = lerp(g, g * set(1.1, 1.0, 0.8), smoothstep(0.55, 0.7, 1 - n50) * 0.6)\n'
@@ -2859,6 +2938,8 @@ def world_tiles(quick=False):
         '# the detail height (metres) for the normal map: rills strongest on soil, ledges and joints on rock\n'
         'em = 0.2 + 0.4 * smoothstep(0.3, 0.7, n50)\n'
         'dh = (em * ero * (1 - rk) * land + dr * rk + dg * gr + dsc * sc)\n'
+        '# the relief of the fine pass between the 4 m mesh vertices (the meshes carry the rest)\n'
+        'dh = dh + (@C - @C4) * 2048\n'
         '# rills a little darker than the spurs between them\n'
         'c = c * (1 + 0.04 * clamp(ero, -2, 2) * land)\n'
         '# the roads, drawn at 1 m (the Road weight at 4 m is only a blur here): the other layers fill the rest,\n'
@@ -2889,7 +2970,24 @@ def world_tiles(quick=False):
         '@dh = dh\n'
         '@terrain_rough = lerp(lerp(lerp(0.92 - 0.15 * @wet * rk, 0.35, 0.7 * wetb), 0.05, @Water), 0.85, @rd * land)\n'
 ))
-    g.link(scw, "cop", sf, "cop")
+    # the fine pass's masks join only here (resampled to 4096²), so the chain above and the splat branch do not
+    # carry five more 4096² layers
+    smk = S("PCG_COPLayerEdit", title="The fine pass's masks", op="keep", spec="wear sedf debf flowf")
+    g.link(fin, "cop", smk, "cop")
+    smm = S("PCG_COPLayerMerge", title="+ the fine pass's masks (resampled to 4096²)",
+            layers="wear sedf debf flowf")
+    g.link(scw, "cop", smm, "a")
+    g.link(smk, "cop", smm, "b")
+    # the 4 m height the meshes are built from, so the detail height carries only what the 2 m pass adds between
+    # their vertices
+    sc4 = S("PCG_COPWrangle", title="The meshes' 4 m height (C4)", code="@C4 = @C")
+    g.link(bio2, "cop", sc4, "cop")
+    sc4k = S("PCG_COPLayerEdit", title="C4 only", op="keep", spec="C4")
+    g.link(sc4, "cop", sc4k, "cop")
+    smm4 = S("PCG_COPLayerMerge", title="+ C4 (resampled to 4096²)", layers="C4")
+    g.link(smm, "cop", smm4, "a")
+    g.link(sc4k, "cop", smm4, "b")
+    g.link(smm4, "cop", sf, "cop")
     sn = S("PCG_COPHeightToNormal", title="Detail height -> normal map", layer="dh", strength=1.0,
            world_size=4100.0, out_layer="terrain_nrm")
     g.link(sf, "cop", sn, "cop")
@@ -2909,7 +3007,7 @@ def world_tiles(quick=False):
     g.link(dgr, "geo", duv, "geo")
     dfm = duv
     # (the height from the 4 m map itself, bilinear: along the border that is exactly the full-map mesh's edges)
-    for src_, lay_, nm_ in ((bio, "C", "hC"), (sn, "dh", "hd"), (sn, "terrain_albedo", "Cd")):
+    for src_, lay_, nm_ in ((bio2, "C", "hC"), (sn, "dh", "hd"), (sn, "terrain_albedo", "Cd")):
         a_ = S("PCG_AttribFromMap", title=f"Close range: {nm_} from the surface", layer=lay_, name=nm_,
                filter="bilinear", border="clamp")
         g.link(dfm, "geo", a_, "geo")
@@ -2935,7 +3033,7 @@ def world_tiles(quick=False):
     # the weights are worked out at 2 m from the surface's inputs (the same masks as the surface Wrangle): at 1 m
     # twelve more channels in that Wrangle were a gigabyte more at its peak
     swi = S("PCG_COPLayerEdit", title="Splat: the masks' inputs", op="keep",
-            spec="C Ce N Rock Grass ForestFloor Sediment Sand Water wet bed rd rdv fieldw")
+            spec="C Ce N upb Rock Grass ForestFloor Sediment Sand Water wet bed rd rdv fieldw")
     g.link(scw, "cop", swi, "cop")
     swr = S("PCG_COPResize", title="Splat: inputs at 2 m", resolution_x=2048, resolution_y=2048)
     g.link(swi, "cop", swr, "cop")
@@ -2948,8 +3046,11 @@ def world_tiles(quick=False):
             world_size=4100.0, out_layer="rdl")
     g.link(lanes, "geo", swl, "geo")
     g.link(sws, "cop", swl, "cop")
-    sww = S("PCG_COPWrangle", title="Splat weights: fifteen layers", code=SPLAT_CODE, rows_per_pass=256)
-    g.link(swl, "cop", sww, "cop")
+    swfm = S("PCG_COPLayerMerge", title="Splat: + the fine pass's masks", layers="wear sedf debf")
+    g.link(swl, "cop", swfm, "a")
+    g.link(smk, "cop", swfm, "b")
+    sww = S("PCG_COPWrangle", title="Splat weights: fifteen layers", code=SPLAT_CODE, rows_per_pass=128)
+    g.link(swfm, "cop", sww, "cop")
     swm = S("PCG_COPLayerMerge", title="+ the weights", layers="terrain_w0 terrain_w1 terrain_w2 terrain_w3")
     g.link(spr, "cop", swm, "a")
     g.link(sww, "cop", swm, "b")
@@ -2973,8 +3074,8 @@ def world_tiles(quick=False):
         f"r = length(set(@u - 0.5, @v - 0.5)) * {GN * gt:.1f}\n"
         "g = clamp((@Grass + 0.35 * @ForestFloor) * (1 - clamp(@rd, 0, 1)) * (1 - @Water), 0, 1)\n"
         "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))\n"
-        "# on the close-range ground: the height with the detail relief\n"
-        "@Cdh = @C + @dh / 2048"))
+        "# on the close-range ground: the meshes' 4 m height with the detail relief\n"
+        "@Cdh = @C4 + @dh / 2048"))
     g.link(gcr, "cop", gcd, "cop")
     tb = S("PCG_COPWriteFile", title="BaseColor: 4×4 tiles of 1024² (sRGB)",
            filename="pcg/world/texture/T_Terrain_BaseColor_x{tx}_y{ty}", channels="terrain_albedo",
@@ -3193,8 +3294,10 @@ def world_tiles(quick=False):
     g.link(bpk0, "geo", bpk, "geo")
     bpr = R4("PCG_Wrangle", title="Piers: from the bed up to the deck", code=(
         "gy = @gh * 2048\n"
-        "hgt = max(max(@deckp, @P.y) - gy, 0.5)\n"
-        "@P.y = gy\n"
+        "dk = max(@deckp, @P.y)\n"
+        "hgt = max(dk - gy, 0.5)\n"
+        "# its top at the deck always: where the deck lies on the bed the 0.5 m stub sinks into it\n"
+        "@P.y = dk - hgt\n"
         's@name = "SM_BridgePier"\n'
         "@N = @tdir\n@up = set(0, 1, 0) + 0 * @N\n@pscale = 1 + 0 * @P.x\n"
         "@scale = set(1 + 0 * @P.x, hgt, 1 + 0 * @P.x)"))
@@ -3294,8 +3397,25 @@ def world_tiles(quick=False):
     alls = E("PCG_Wrangle", title="Instances: scale 1 where none was given",
              code="@scale = where(length(@scale) < 1e-9, set(1, 1, 1) + 0 * @scale, @scale)")
     g.link(allp, "geo", alls, "geo")
+    # standing on the exported (fine pass) ground: each instance moved by the fine pass's change under it (none on the
+    # roads, lots and beds it kept)
+    iuv = E("PCG_Wrangle", title="Instances: their place on the map (uv)",
+            code="@uv = set((@P.x + 2049) / 4098, (2049 - @P.z) / 4098, 0 * @P.x)")
+    g.link(alls, "geo", iuv, "geo")
+    idl = E("PCG_AttribFromMap", title="Instances: the fine pass's change under them", layer="dlt", name="dlt",
+            uv_from="point", **{"class": "point"})
+    g.link(iuv, "geo", idl, "geo")
+    g.link(fin, "cop", idl, "cop")
+    iup = E("PCG_Wrangle", title="Instances: on the fine pass's ground (pier tops kept at the deck)", code=(
+        "d = @dlt * 2048\n"
+        "pier = where(@name.astype(str) == \"SM_BridgePier\", 1.0, 0.0)\n"
+        "top = @P.y + @scale.y\n"
+        "psy = max(@scale.y - d, 0.5)\n"
+        "@P.y = where(pier > 0.5, top - psy, @P.y + d)\n"
+        "@scale = set(@scale.x, where(pier > 0.5, psy, @scale.y), @scale.z)"))
+    g.link(idl, "geo", iup, "geo")
     corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=2048.0, tz=2048.0)
-    g.link(alls, "geo", corner, "geo")
+    g.link(iup, "geo", corner, "geo")
     # Scatter works by pixel area (each sample covers 4 m square), so the outermost ring scatters half a cell beyond the terrain border -
     # those points land at places like x = −2 / 4098, and tiling then produces extra empty tiles like x−1, y4
     inb = E("PCG_Blast", title="Remove points in the half cell outside the border", cls="point",
@@ -3368,11 +3488,11 @@ def world_tiles(quick=False):
            filename="pcg/world/height/Height_x{tx}_y{ty}", channels="C",
            format="png", bit_depth="16", remap="normalize", tiles_x=4, tiles_y=4,
            shared_edge=True, value_scale=2048.0)
-    g.link(bio, "cop", wh, "cop")
+    g.link(fin, "cop", wh, "cop")
     wr = F("PCG_COPWriteFile", title="Height: full-map r16", filename="pcg/world/height/Height_full",
            channels="C", format="raw", bit_depth="16", remap="normalize",
            value_scale=2048.0)
-    g.link(bio, "cop", wr, "cop")
+    g.link(fin, "cop", wr, "cop")
     for layer in ("Grass", "ForestFloor", "Sediment", "Rock", "Sand", "Water", "Road"):
         w = F("PCG_COPWriteFile", title=f"Weight: {layer}",
               filename=f"pcg/world/weight/{layer}_x{{tx}}_y{{ty}}", channels=layer,
@@ -3501,7 +3621,7 @@ def world_tiles(quick=False):
     g.link(mpw, "preview", mpv, "images")
     msh0 = G("PCG_COPHeightfieldToMesh", title="Full-map mesh (one point per sample)",
              strength=2048.0, world_size=4100.0, step=1, attribs="Cd=albedo")
-    g.link(bio, "cop", msh0, "cop")
+    g.link(bio2, "cop", msh0, "cop")
     # albedo is linear (for the files); Cd is a display colour (the preview decodes it from sRGB). The material name
     # lets the preview texture this mesh from the 1 m surface set ('@{material}_albedo' ...) and leave the proxies alone
     msh1 = G("PCG_Wrangle", title="Cd to display colour; flat sea", code=(
@@ -4082,7 +4202,7 @@ def world_tiles(quick=False):
              mode="look_at", resolution_x=RW, resolution_y=RH, fov=55.0, eye_x=CAM3[0], eye_y=CAM3[1],
              eye_z=CAM3[2], target_x=CAM3[3], target_y=CAM3[4], target_z=CAM3[5])
     pr3 = G("PCG_PreviewImage", title="Road: the preview", width=RW, height=RH, elevation=10.0, azimuth=0.0, shading="color",
-            look="outdoor", textures=WORLD_TEXTURES, sun_elevation=15.0, sun_azimuth=124.0, haze=1.0,
+            look="outdoor", textures=WORLD_TEXTURES, sun_elevation=18.0, sun_azimuth=55.0, haze=1.0,
             ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="", **RQ)
     mg3 = G("PCG_Merge", title="+ grass around the road camera")
     g.link(far_view(CAM3, 350.0, "Road"), "geo", mg3, "geo1")
@@ -4110,9 +4230,9 @@ def world_tiles(quick=False):
     lbl = V5("PCG_Blast", title="Lamps: only the lamps", cls="point", group="@isl < 0.5")
     g.link(lsel, "geo", lbl, "geo")
     variants = (
-        ("Dusk", cam3, mg3, dict(sun_elevation=-4.0, sun_azimuth=124.0, haze=1.6, clouds=0.35, exposure=2.6,
+        ("Dusk", cam3, mg3, dict(sun_elevation=-4.0, sun_azimuth=55.0, haze=1.6, clouds=0.35, exposure=2.0,
                                  emit_attrib="emit", light_range=35.0), True),
-        ("Rain", cam3, mg3, dict(sun_elevation=22.0, sun_azimuth=124.0, haze=5.0, clouds=0.95, exposure=1.15,
+        ("Rain", cam3, mg3, dict(sun_elevation=22.0, sun_azimuth=55.0, haze=5.0, clouds=0.95, exposure=1.15,
                                  wetness=1.0, emit_attrib=""), False),
         ("Snow", cam2, far_view(CAM2, 500.0, "Snow", mute=quick), dict(sun_elevation=18.0, sun_azimuth=26.0, haze=1.4, clouds=0.5,
                                                          snow_line=140.0, snow_amount=1.0, emit_attrib=""), False))

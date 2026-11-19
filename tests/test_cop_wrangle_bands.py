@@ -75,5 +75,33 @@ check("noise's gradient table = Perlin's selects, bit for bit (all 16 gradients)
       np.array_equal(WG._grad3(h_, x_, y_, z_), WG._grad3_ref(h_, x_, y_, z_))
       and set(np.unique(h_ & 15)) == set(range(16)))
 
+# memory: a band's temporaries are freed when the band is done (its namespace and layer cache refer to each other, so
+# without breaking that they waited for the garbage collector), and only a few bands are in flight at once
+import gc  # noqa: E402
+import tracemalloc  # noqa: E402
+big = CopImage(1024, 1024)
+for i_ in range(12):
+    big.set(f"L{i_}", np.random.default_rng(i_).random((1024, 1024), dtype=np.float32))
+mcode = "t = noise(set(@L0, @L1, @L2))\n@D = t + " + " + ".join(f"@L{i}" for i in range(12))
+
+
+def _peak(rows):
+    gc.collect()
+    gc.disable()
+    try:
+        tracemalloc.start()
+        PX.wrangle(big, mcode, 1, chunk_rows=rows)
+        pk = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
+    finally:
+        gc.enable()
+    return pk / 2 ** 20
+
+
+pk_band, pk_whole = _peak(16), _peak(0)
+check(f"a banded run holds only the bands in flight: peak {pk_band:.0f} MB in 16-row bands (64 bands, 1024²), "
+      f"with the garbage collector off; negative control, the whole image at once: {pk_whole:.0f} MB",
+      pk_band < 0.25 * pk_whole, (round(pk_band), round(pk_whole)))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

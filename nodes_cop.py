@@ -386,6 +386,9 @@ class PCG_COPResize:
 
     `uv_grid` and `sample` use the same convention, so "generate noise then resize" and "directly generate
     resized noise" match.
+
+    Align = corners treats pixels as samples instead (endpoint-aligned): a heightfield's 1025 samples at 4 m resized
+    to 2049 land on every second sample at 2 m, and 2049 -> 1025 picks those samples back exactly.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -394,12 +397,13 @@ class PCG_COPResize:
             "resolution_x": _i(512, 1, _cop.MAX_RES),
             "resolution_y": _i(512, 1, _cop.MAX_RES),
             "border": (list(_cflt.BORDERS),),
+            "align": (list(_cflt.ALIGNS), {"default": "centres"}),
         }}
     RETURN_TYPES = (COP,); RETURN_NAMES = ("cop",)
     FUNCTION = "run"; CATEGORY = CAT + "/cop"
 
-    def run(self, cop, resolution_x, resolution_y, border):
-        return (_cflt.resize(cop, resolution_x, resolution_y, border),)
+    def run(self, cop, resolution_x, resolution_y, border, align="centres"):
+        return (_cflt.resize(cop, resolution_x, resolution_y, border, align),)
 
 
 class PCG_COPImport:

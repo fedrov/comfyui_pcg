@@ -1046,6 +1046,8 @@ Coordinates are converted using pixel centres: `x = (i+0.5)*W/W' - 0.5`, not the
 
 The UV grid and Sample nodes use the same convention, so generating noise and then resizing matches generating the noise directly at the target size.
 
+Align = Corners treats pixels as samples instead (end-point aligned): the first and last pixels stay in place. Use it for grids of samples such as heightfields: 1025 samples at 4 m resized to 2049 land exactly on every second sample at 2 m, and 2049 back to 1025 picks those samples again.
+
 **Inputs**
 
 | Input | Type | Description |
@@ -1064,6 +1066,7 @@ The UV grid and Sample nodes use the same convention, so generating noise and th
 |---|---|---|---|
 | Resolution `resolution_x` `resolution_y` | int [1..16384] | 512, 512 | Target width and height in pixels. |
 | Border `border` | menu | Clamp (Streak) | How samples outside the source are handled: clamp repeats the edge pixels, wrap tiles the image, constant fills black. Options: Clamp (Streak) (`clamp`), Wrap (`wrap`), Constant (Black) (`black`). |
+| Align `align` | menu | Pixel Centres | centres (default): pixels as cells, the convention above. corners: pixels as samples, the outermost ones kept in place (heightfield grids). Options: Pixel Centres (`centres`), Corners (samples) (`corners`). |
 
 ---
 

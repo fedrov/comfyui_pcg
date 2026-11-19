@@ -62,9 +62,17 @@ from . import backend as bk
 BORDERS = ("clamp", "wrap", "black")
 
 
-def _axis_index(n_out, n_in, border):
-    """Position of output pixel i in the input (pixel-centre convention); returns (i0, i1, frac)."""
-    x = (np.arange(n_out, dtype=np.float64) + 0.5) * n_in / n_out - 0.5
+ALIGNS = ("centres", "corners")
+
+
+def _axis_index(n_out, n_in, border, align="centres"):
+    """Position of output pixel i in the input; returns (i0, i1, frac). centres: the pixel-centre convention;
+    corners: the first and last pixels of both sit on each other, x = i·(W−1)/(W'−1) (grids of samples, e.g. a
+    heightfield at 4 m to one at 2 m: 1025 -> 2049 puts every old sample on an even new one)."""
+    if align == "corners":
+        x = np.arange(n_out, dtype=np.float64) * ((n_in - 1) / max(n_out - 1, 1))
+    else:
+        x = (np.arange(n_out, dtype=np.float64) + 0.5) * n_in / n_out - 0.5
     i0 = np.floor(x).astype(np.int64)
     f = (x - i0)
     i1 = i0 + 1
@@ -73,8 +81,9 @@ def _axis_index(n_out, n_in, border):
     return np.clip(i0, 0, n_in - 1), np.clip(i1, 0, n_in - 1), f
 
 
-def resize(img, xres, yres, border="clamp"):
-    """Bilinear resample to a new resolution. All layers together."""
+def resize(img, xres, yres, border="clamp", align="centres"):
+    """Bilinear resample to a new resolution. All layers together. align: centres (pixels as cells) or corners
+    (pixels as samples, the outermost ones kept in place)."""
     if img is None:
         return CopImage()
     x, y = check_res(xres, yres)
@@ -82,9 +91,11 @@ def resize(img, xres, yres, border="clamp"):
         return img.copy()
     if border not in BORDERS:
         raise ValueError(f"Border must be one of {BORDERS}")
+    if align not in ALIGNS:
+        raise ValueError(f"Align must be one of {ALIGNS}")
     xp = img.backend
-    ix0, ix1, fx = _axis_index(x, img.xres, border)
-    iy0, iy1, fy = _axis_index(y, img.yres, border)
+    ix0, ix1, fx = _axis_index(x, img.xres, border, align)
+    iy0, iy1, fy = _axis_index(y, img.yres, border, align)
     FX = xp.reshape(xp.asarray(fx), (1, x, 1))
     FY = xp.reshape(xp.asarray(fy), (y, 1, 1))
     out = CopImage(x, y)

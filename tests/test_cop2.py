@@ -770,6 +770,23 @@ try:
 except Exception as ex:
     check("backend consistency", False, f"{type(ex).__name__}: {ex}")
 
+
+print("\n── Resize: align = corners (heightfield samples)")
+_a = np.random.default_rng(3).random((33, 33)).astype(np.float32)
+_im = CopImage(33, 33); _im.set("C", _a)
+_up = np.asarray(F.resize(_im, 65, 65, align="corners").need("C"))[..., 0]
+check("corners 33 -> 65: every old sample on an even new one, bit-exact; the odd ones the midpoints",
+      np.array_equal(_up[::2, ::2], _a) and np.allclose(_up[1::2, ::2], (_a[:-1] + _a[1:]) / 2, atol=1e-6))
+_dn = np.asarray(F.resize(F.resize(_im, 65, 65, align="corners"), 33, 33, align="corners").need("C"))[..., 0]
+check("corners 65 -> 33 picks those samples back (round trip bit-exact)", np.array_equal(_dn, _a))
+_upc = np.asarray(F.resize(_im, 65, 65).need("C"))[..., 0]
+check("  negative control: centres puts the old samples between new ones (a quarter pixel off)",
+      float(np.abs(_upc[::2, ::2] - _a).max()) > 0.05, round(float(np.abs(_upc[::2, ::2] - _a).max()), 3))
+try:
+    F.resize(_im, 65, 65, align="edges"); check("an unknown align is refused", False)
+except ValueError:
+    check("an unknown align is refused", True)
+
 if BK.cuda_available():
     try:
         CU = img_rand(64, 64, 3, 12).to_device("cuda")

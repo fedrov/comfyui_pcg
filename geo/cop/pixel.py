@@ -1096,10 +1096,24 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
                     trim()
             return
         from concurrent.futures import ThreadPoolExecutor
+        from collections import deque
         with ThreadPoolExecutor(max_workers=nw) as ex:
-            futs = [ex.submit(_wrangle_band, img, code, seed, ch_params, r0, r1) for r0, r1 in bands]
-            for (r0, r1), f in zip(bands, futs):
-                yield (r0, r1) + f.result()
+            # a window of bands in flight, each dropped once it is used: holding every band's future kept all their
+            # results (float64) alive to the end
+            todo, fly = iter(bands), deque()
+            for r0, r1 in todo:
+                fly.append((r0, r1, ex.submit(_wrangle_band, img, code, seed, ch_params, r0, r1)))
+                if len(fly) >= nw:
+                    break
+            while fly:
+                r0, r1, f = fly.popleft()
+                res = f.result()
+                del f
+                nxt = next(todo, None)
+                if nxt is not None:
+                    fly.append(nxt + (ex.submit(_wrangle_band, img, code, seed, ch_params, *nxt),))
+                yield (r0, r1) + res
+                del res
                 if trim is not None:
                     trim()
     for r0, r1, py, part in _bands():
@@ -1201,6 +1215,11 @@ def _wrangle_band(img, code, seed, ch_params, r0, r1):
             if a.shape[1] > 4:
                 raise RuntimeError(f"@{k} has {a.shape[1]} channels; at most 4 allowed")
             part[k] = a
+    # the namespace and the layer cache refer to each other (ns holds _L, whose methods close over cache): left to
+    # the garbage collector, every band's temporaries and input rows stayed alive until it ran -- on a 2048² splat
+    # Wrangle in 64-row bands, a gigabyte that the bands were meant to save
+    ns.clear()
+    cache.clear()
     return py, part
 
 

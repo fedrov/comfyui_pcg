@@ -324,7 +324,7 @@
  "PCG_COPResize": {
   "topic": "cop-transform",
   "summary": "Resamples the image to a new resolution with bilinear filtering.",
-  "description": "Coordinates are converted using pixel centres: `x = (i+0.5)*W/W' - 0.5`, not the end-point-aligned `i*(W-1)/(W'-1)`. Pixels are cells with width, not points. Scaling 2 columns to 1 gives x = 0.5 (half of each) with centre alignment, whereas end-point alignment would sample only the left pixel.\n\nThe UV grid and Sample nodes use the same convention, so generating noise and then resizing matches generating the noise directly at the target size.",
+  "description": "Coordinates are converted using pixel centres: `x = (i+0.5)*W/W' - 0.5`, not the end-point-aligned `i*(W-1)/(W'-1)`. Pixels are cells with width, not points. Scaling 2 columns to 1 gives x = 0.5 (half of each) with centre alignment, whereas end-point alignment would sample only the left pixel.\n\nThe UV grid and Sample nodes use the same convention, so generating noise and then resizing matches generating the noise directly at the target size.\n\nAlign = Corners treats pixels as samples instead (end-point aligned): the first and last pixels stay in place. Use it for grids of samples such as heightfields: 1025 samples at 4 m resized to 2049 land exactly on every second sample at 2 m, and 2049 back to 1025 picks those samples again.",
   "inputs": {
    "cop": "Image to resize."
   },
@@ -333,7 +333,8 @@
   },
   "params": {
    "resolution_x": "Target width and height in pixels.",
-   "border": "How samples outside the source are handled: clamp repeats the edge pixels, wrap tiles the image, constant fills black."
+   "border": "How samples outside the source are handled: clamp repeats the edge pixels, wrap tiles the image, constant fills black.",
+   "align": "centres (default): pixels as cells, the convention above. corners: pixels as samples, the outermost ones kept in place (heightfield grids)."
   }
  },
  "PCG_COPRetile": {

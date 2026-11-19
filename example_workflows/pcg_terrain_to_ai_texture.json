@@ -342,7 +342,7 @@
    ],
    "size": [
     340,
-    465
+    490
    ],
    "flags": {},
    "order": 11,
@@ -370,7 +370,8 @@
    "widgets_values": [
     1024,
     1024,
-    "clamp"
+    "clamp",
+    "centres"
    ],
    "title": "Upsample to 1024² (the generation size)"
   },
@@ -379,7 +380,7 @@
    "type": "PCG_COPWrangle",
    "pos": [
     0,
-    3898
+    3923
    ],
    "size": [
     340,

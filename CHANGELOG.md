@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **World tiles: terrain v2** -- the Gaea / Houdini erosion workflow: a large-scale HeightField Erode pass at 8 m after
+  the river network (branching valleys, sediment on their floors), the 4 m passes as before, and a fine pass at 2 m
+  on the finished terrain (rills, small gullies, fans; roads, lots, beds, lakes and the sea kept). The exported
+  height is 2 m now (2049², 513² tiles); the meshes and instances get the fine pass's change; the 1 m surface is
+  coloured by its masks -- rock bared where it wore slopes down, scree on its debris, gravel and silt on its
+  deposits, damper grass along its flow -- and the splat weights follow the same masks; the normal map carries
+  the relief the 2 m pass adds between the 4 m mesh vertices. The road camera moved with its road.
 - **Faster renders and COP Wrangles, on every machine**: the Studio / Outdoor looks read their textures once per output
   pixel where one surface covers it (as MSAA shades once per pixel) instead of once per supersample; texture
   lookups and banded COP Wrangles (`rows_per_pass`) run on several threads (`PCG_THREADS`, up to 4 by default);
@@ -13,6 +20,8 @@ All notable changes to this project are documented here. The format follows
   18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
 
 ### Added
+- **Resize**: `align` -- centres (as before) or corners, for grids of samples such as heightfields (1025 at 4 m to
+  2049 at 2 m keeps every old sample on an even new one, and back).
 - **Preview Image / Outdoor on the GPU**: with Compute auto (CUDA available) or cuda, the frame is also rasterized and
   textured with torch -- the texture lookups were most of a terrain render's time on numpy -- besides the shadow maps
   and the sky light; same result as numpy to float32 rounding.
@@ -241,6 +250,14 @@ All notable changes to this project are documented here. The format follows
 - COP Write File's *preview* output is at most 2048 px on its longest side (box average); the files are full size.
 - COP Write File encodes tile by tile (same bytes as before): an sRGB 4096² BaseColor no longer peaks at 2 GB of
   whole-image float64 temporaries.
+
+### Fixed
+- **COP Wrangle in bands** (`rows_per_pass`) kept every finished band's input rows (and, on several threads, its
+  results) alive until the garbage collector ran: a 2048² splat Wrangle in 128-row bands peaked 1.9 GB over its input,
+  now 0.7 GB; the world tiles run peaks some 1.3 GB lower.
+- **World tiles**: the 1 m surface Wrangle read the slope layer `upb` without it ever reaching that set (a Wrangle
+  reads a missing layer as 0), so its slope-driven materials took every pixel for steep ground; the layer is merged
+  in now.
 
 ## [0.2.0] - 2026-11-13
 
