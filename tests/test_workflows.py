@@ -367,7 +367,7 @@ else:
                  .astype(int) == c).sum()) for c in A(peb, "class")[:, 0].astype(int))
     check("Copy to Points picks pieces by class: face count = Σ faces of the piece each point picks",
           rocks.nprims == n_expect, (rocks.nprims, n_expect))
-    ter = res[title_of(nm, "Colour + scatter weights")[0]][0]
+    ter = res[title_of(nm, "Terrain mesh (colour + scatter weights as point attributes)")[0]][0]
     Pt, Ct = A(ter, "P"), A(ter, "Cd")
     dt_ = A(ter, "dstream")[:, 0]
     check("the stream is water-coloured (points with d < 0.7 are bluer than red)", np.all(Ct[dt_ < 0.7, 2] > Ct[dt_ < 0.7, 0]))

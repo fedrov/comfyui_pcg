@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Rock assets**: four kinds of rock in turn (`seed % 4`) -- a chunky boulder, a bedded slab with stepped ledges, a
+  tall split shard, a weathered block with rounded arrises -- each with its own stone colour (grey-brown, buff
+  sandstone, dark speckled, weathered grey); strata faint and broken, cracks that widen and break into runs, fewer
+  pits, darker and less uniform overall.
+- **Rock garden**: the rocks come from the rock assets' signed distance field (8 broken stones, two of each kind);
+  the ground is a height field washed by HeightField Erode and the erosion filter, coloured by its masks (scree, silt,
+  rills, bare steep ground), which also place the boulders (on the scree) and the pebbles (on the banks and the silt).
+- **Faster previews**: the studio look reuses its soft shadow when only the textures change (the material library's
+  fourteen previews of one swatch: 282 to 233 s), shadow and sky depth maps of small scenes are remembered, and the
+  numpy rasterizer draws front to back, skipping triangles wholly behind what is already drawn (exact; 15-20% off a
+  big frame's raster time).
 - **World tiles: terrain v2** -- the Gaea / Houdini erosion workflow: a large-scale HeightField Erode pass at 8 m after
   the river network (branching valleys, sediment on their floors), the 4 m passes as before, and a fine pass at 2 m
   on the finished terrain (rills, small gullies, fans; roads, lots, beds, lakes and the sea kept). The exported

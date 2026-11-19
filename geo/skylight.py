@@ -58,7 +58,61 @@ def basis(d):
     return r, u
 
 
+# depth maps of small scenes, remembered: renders of the same geometry from the same lights (the material library's
+# fourteen previews of one swatch, a sequence of looks) draw the same maps again otherwise. Keyed by the triangles'
+# contents (hashed once per array), the direction, the framing and the size; exact, since the map is a pure function
+# of these. Large scenes (millions of triangles: the world previews) are not hashed or kept
+_DM_CACHE = {}
+_DM_BYTES = [0]
+_DM_MAX_BYTES = 64 << 20
+_DM_MAX_TRIS = 2_000_000
+_SIG = {}
+
+
+def _array_sig(a):
+    """A content hash of an array, computed once per array object (arrays are not changed after soup())."""
+    import hashlib
+    import weakref
+    e = _SIG.get(id(a))
+    if e is not None and e[0]() is a:
+        return e[1]
+    h = hashlib.blake2b(np.ascontiguousarray(a).view(np.uint8).reshape(-1), digest_size=16)
+    h.update(repr((a.dtype.str, a.shape)).encode())
+    sig = h.hexdigest()
+    try:
+        _SIG[id(a)] = (weakref.ref(a, lambda _r, k=id(a): _SIG.pop(k, None)), sig)
+    except TypeError:
+        pass
+    return sig
+
+
+def _dm_key(T, d, center, radius, res):
+    Pp, tri = T
+    if len(tri) > _DM_MAX_TRIS or not isinstance(Pp, np.ndarray) or not isinstance(tri, np.ndarray):
+        return None
+    return (_array_sig(Pp), _array_sig(tri), np.asarray(d, np.float64).tobytes(),
+            np.asarray(center, np.float64).tobytes(), float(radius), int(res))
+
+
 def depth_map(T, d, center, radius, res):
+    key = _dm_key(T, d, center, radius, res)
+    if key is not None:
+        hit = _DM_CACHE.pop(key, None)
+        if hit is not None:
+            _DM_CACHE[key] = hit                      # most recent last
+            return hit[0], dict(hit[1])
+    depth, meta = _depth_map(T, d, center, radius, res)
+    if key is not None and depth.nbytes <= _DM_MAX_BYTES // 4:
+        depth.flags.writeable = False
+        _DM_CACHE[key] = (depth, dict(meta))
+        _DM_BYTES[0] += depth.nbytes
+        while _DM_BYTES[0] > _DM_MAX_BYTES and _DM_CACHE:
+            old = _DM_CACHE.pop(next(iter(_DM_CACHE)))
+            _DM_BYTES[0] -= old[0].nbytes
+    return depth, meta
+
+
+def _depth_map(T, d, center, radius, res):
     """
     Orthographic depth map seen from direction d (looking along -d), framing the sphere (center, radius).
 

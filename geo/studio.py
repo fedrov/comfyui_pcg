@@ -350,6 +350,22 @@ def _ssao(P, N, valid, px_world, radius_world, samples=12):
 
 
 # ─────────────────────────────────────────────────────────────── main
+_SH_CACHE = {}
+def _shadow_key(T, Ldir, center, radius, P, FN, valid):
+    """Content key of a studio frame's soft shadow, or None for a scene too large to remember."""
+    import hashlib
+    from . import skylight as K
+    if T is None or len(T[1]) > K._DM_MAX_TRIS:
+        return None
+    h = hashlib.blake2b(digest_size=16)
+    for a in (np.asarray(Ldir, np.float64), np.asarray(center, np.float64), np.float64(radius), valid, P[valid],
+              FN[valid]):
+        a = np.ascontiguousarray(a)
+        h.update(repr((a.dtype.str, a.shape)).encode())
+        h.update(a.view(np.uint8).reshape(-1))
+    return (K._array_sig(T[0]), K._array_sig(T[1]), h.hexdigest())
+
+
 def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib="Cd",
                   ssaa=2, textures="", tex_root=None, material_attrib="material", uv_attrib="uv",
                   shadows=True, ao=True, ground=True, report=None, tex_cop=None, detail_cop=None,
@@ -464,13 +480,23 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     T = T[:2] if T is not None else None
     sh = np.ones(m.shape, np.float32)
     if shadows:
-        dmap, meta = K.depth_map(T, Ldir, center, radius * 1.05, 2048)
-        vi = np.nonzero(valid)
-        stp = 1 << 20
-        for s0 in range(0, len(vi[0]), stp):
-            sel = (vi[0][s0:s0 + stp], vi[1][s0:s0 + stp])
-            sh[sel] = K.sun_shadow(dmap, meta, P[sel], FN[sel], softness=0.07, max_px=48.0)
-        del dmap
+        # the soft shadow is a function of the triangles, the light and the visible points (positions, face normals);
+        # the same render with other textures (a material library's previews of one swatch) reuses it
+        skey = _shadow_key(T, Ldir, center, radius, P, FN, valid)
+        hit_ = _SH_CACHE.get(skey) if skey is not None else None
+        if hit_ is not None:
+            sh = hit_.copy()
+        else:
+            dmap, meta = K.depth_map(T, Ldir, center, radius * 1.05, 2048)
+            vi = np.nonzero(valid)
+            stp = 1 << 20
+            for s0 in range(0, len(vi[0]), stp):
+                sel = (vi[0][s0:s0 + stp], vi[1][s0:s0 + stp])
+                sh[sel] = K.sun_shadow(dmap, meta, P[sel], FN[sel], softness=0.07, max_px=48.0)
+            del dmap
+            if skey is not None:
+                _SH_CACHE.clear()                      # one frame kept: the previews of a library come in a row
+                _SH_CACHE[skey] = sh.copy()
     # shadow terminator: near the light's horizon a coarse mesh shadows its own facets in steps while the smooth
     # normal says "barely lit" -- fade the shadow in only where the facet clearly faces the light
     ndl_g = np.clip(FN @ L32, 0.0, 1.0)

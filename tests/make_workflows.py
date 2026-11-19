@@ -523,44 +523,42 @@ def rock_garden():
     E = Col(g, 1680, width=560)
     A.note(size_note := (
         "Purely procedural modelling, no model files at all.\n\n"
-        "① Left column: For-Each (count mode) runs 8 times, each pass takes a low-poly sphere; Point Jitter's and "
-        "Attribute Noise's rand_seed are both wired to iteration - the same chain produces 8 rocks, each with a "
-        "different shape. Match Size puts each rock's bottom on y = 0, Connectivity numbers each piece (class). "
-        "Poly Reduce then makes a low-poly set at 20% of the polygons for the small pebbles (LOD).\n\n"
-        "② Second column: terrain = grid + terrain fractal noise; a Wrangle colours by slope and computes a "
-        "\"gentle + noise patches\" boulder weight, promoted to primitives to act as the scatter group "
-        "(the group field just says @boulder > 0.5).\n\n"
+        "① Left column: a rock library. For-Each (count mode) runs 8 times; each pass fills a small volume with a "
+        "rock's signed distance field (the rock asset pipeline's: big broken faces with crisp arrises, chips, a "
+        "flat bottom; rand_seed wired to iteration picks the shape, and seed % 4 the kind -- boulder, bedded slab, "
+        "split shard, weathered block) and turns it into polygons. Match Size puts each rock's bottom on y = 0, "
+        "Connectivity numbers each piece (class). Poly Reduce makes a low-poly set at 10% for the pebbles (LOD).\n\n"
+        "② Second column: the ground as a height field (COP): a hybrid terrain fractal, a stream dug along a sine "
+        "curve, then HeightField Erode -- rills down the slopes, scree at their feet, silt and gravel where the water "
+        "slows -- and its masks colour the ground (soil on steep ground, scree on the debris, gravel along the stream, "
+        "grass lush where water runs and dry on the spurs) and place the rocks: boulders on the scree and the gentle "
+        "ground, pebbles on the stream banks. Height Field to Mesh turns it into a mesh with those as point "
+        "attributes; Attribute Promote makes the weights face groups (the group field just says @boulder > 0.5).\n\n"
         "③ Third column: Scatter and Align scatters the big rocks (Avoid Overlap pushes them apart with Point Relax, "
         "Tilt keeps them from all sitting upright), a Wrangle picks a random class for each point, "
         "Copy to Points with Piece Attribute = class picks rocks by number - one node places all 8 kinds. "
         "Pebbles work the same way, using the low-poly library, no avoidance, more tilt.\n\n"
-        "④ Rocks grow moss based on how upward-facing they are plus noise, get merged with the terrain, and output a preview image, a 3D viewport and a glb."),
-        h=520, title="Rock garden (read me first)", w=W)
+        "④ Rocks get a stone colour per kind and moss on the faces that point up, are merged with the terrain, and "
+        "output a preview image, a 3D viewport and a glb."),
+        h=600, title="Rock garden (read me first)", w=W)
     del size_note
 
-    # ① Rock library
-    sph = A("PCG_Sphere", radius=1.0, cols=12, rows=8)
+    # ① Rock library: the rock asset pipeline's SDF at 7 cm voxels (a garden needs many, so lighter than an asset)
+    vol = A("PCG_Volume", title="Sampling volume (2.8 × 2.5 × 2.6 m, 7 cm voxels)", res_x=40, res_y=36, res_z=37,
+            size_x=2.8, size_y=2.5, size_z=2.6, value=1.0)
     fb = A("PCG_ForEachBegin", title="Each rock (count × 8)", method="fetch_input",
            iterate_over="count", iterations=8)
-    g.link(sph, "geo", fb, "geo")
-    jit = A("PCG_PointJitter", scale=0.55)
-    g.link(fb, "geo", jit, "geo")
-    g.link(fb, "iteration", jit, "rand_seed")
-    sq = A("PCG_Transform", title="Squash a bit", sy=0.7)
-    g.link(jit, "geo", sq, "geo")
-    sd = A("PCG_Subdivide", depth=2)
-    g.link(sq, "geo", sd, "geo")
+    g.link(vol, "geo", fb, "geo")
+    sdf = A("PCG_VolumeWrangle", title="Rock SDF (seed = which rock)", code=ROCK_SDF)
+    g.link(fb, "geo", sdf, "geo")
+    g.link(fb, "iteration", sdf, "rand_seed")
+    cvt = A("PCG_Convert", title="Voxels → polygons", convert_to="polygons")
+    g.link(sdf, "geo", cvt, "geo")
     nm = A("PCG_Normal", cusp_angle=180.0)
-    g.link(sd, "geo", nm, "geo")
-    ns = B("PCG_AttribNoise", title="Pits on the rock surface (along normal)",
-           noise_along_vector=True, amplitude=0.12, noise_type="worley_f2f1",
-           fractal="standard", octaves=2, element_size_x=0.35,
-           element_size_y=0.35, element_size_z=0.35)
-    g.link(nm, "geo", ns, "geo")
-    g.link(fb, "iteration", ns, "rand_seed")
+    g.link(cvt, "geo", nm, "geo")
     ms = B("PCG_MatchSize", title="Bottom on the ground (sunk 0.15 more)", justify_y="min",
            use_justify_to=True, offset_y=-0.15)
-    g.link(ns, "geo", ms, "geo")
+    g.link(nm, "geo", ms, "geo")
     fe = B("PCG_ForEachEnd", gather="merge")
     g.link(ms, "geo", fe, "geo")
     g.link(fb, "loop", fe, "loop")
@@ -569,43 +567,64 @@ def rock_garden():
     g.link(fe, "geo", cn, "geo")
     lib = B("PCG_Normal", title="Rock library (8 pieces)", cusp_angle=180.0)
     g.link(cn, "geo", lib, "geo")
-    low = B("PCG_PolyReduce", title="Low-poly library (for pebbles)", keep_percent=20.0)
+    low = B("PCG_PolyReduce", title="Low-poly library (for pebbles)", keep_percent=10.0)
     g.link(lib, "geo", low, "geo")
 
-    # ② Terrain
-    grd = C("PCG_Grid", size_x=40.0, size_z=40.0, cols=240, rows=240)
-    ter = C("PCG_AttribNoise", title="Terrain relief", use_x=False, use_z=False,
-            amplitude=2.5, noise_type="perlin", fractal="terrain", octaves=5,
-            element_size_x=16.0, element_size_y=16.0, element_size_z=16.0,
-            rand_seed=3)
-    g.link(grd, "geo", ter, "geo")
-    cv = C("PCG_Wrangle", title="Dig a stream", code=(
-        "# distance to a sine curve → dig a trench along it (the code is Python syntax + @attributes, whole column computed at once)\n"
-        "@dstream = abs(@P.z - 5 * sin(@P.x * 0.16) - 2)\n"
-        "@P.y -= 1.2 * (1 - smoothstep(0.0, 3.0, @dstream))"))
-    g.link(ter, "geo", cv, "geo")
-    tn = C("PCG_Normal")
-    g.link(cv, "geo", tn, "geo")
-    tw = C("PCG_Wrangle", title="Colour + scatter weights", code=(
+    # ② Terrain: a height field (metres; 40 m over 256², 16 cm cells), eroded, its masks as colour and weights
+    tz = C("PCG_COPNoise", title="Ground relief (40 m, 256²)", resolution_x=256, resolution_y=256,
+           noise_type="simplex", fractal="hybrid_terrain", frequency=2.0, octaves=7, roughness=0.55,
+           amplitude=8.0, rand_seed=3)
+    ts = C("PCG_COPWrangle", title="Dig a stream", code=(
+        "# world x, z of the pixel (the mesh: x right, v toward -z); the distance to a sine curve, a trench along it\n"
+        "x = (@u - 0.5) * 40\n"
+        "z = (0.5 - @v) * 40\n"
+        "@dstream = abs(z - 5 * sin(x * 0.16) - 2)\n"
+        "@C = @C - 1.4 * (1 - smoothstep(0.0, 3.0, @dstream))"))
+    g.link(tz, "cop", ts, "cop")
+    te = C("PCG_COPHeightfieldErode", title="Erode: rills, scree, silt (masks flow / debris / sediment)",
+           strength=1.0, world_size=40.0, iterations=200, rain=0.02, capacity=4.0, erode_rate=0.25,
+           deposit_rate=0.2, talus_angle=38.0, thermal_rate=0.1, bed_change_limit=0.03)
+    g.link(ts, "cop", te, "cop")
+    # rills and spurs finer than the solver carves at 16 cm cells: the erosion filter (a gully pattern that follows
+    # the slope), about 25 cm deep at a 2.5 m spacing (16 pixels)
+    tr = C("PCG_COPErosion", title="Rills (erosion filter)", strength=1.0, world_size=40.0, amplitude=0.25,
+           wavelength=16.0, octaves=3, steepness=2.0, out_layer="C", mask_layer="")
+    g.link(te, "cop", tr, "cop")
+    tnm = C("PCG_COPHeightToNormal", title="Slope (normal)", strength=1.0, world_size=40.0, out_layer="N")
+    g.link(tr, "cop", tnm, "cop")
+    tw = C("PCG_COPWrangle", title="Colour + scatter weights (from the masks)", code=(
         "d = @dstream\n"
-        "steep = smoothstep(0.06, 0.22, 1 - @N.y)\n"
-        "# flat ground is grass, steep places show soil, the stream banks are gravel, the stream is water\n"
-        "# grass varies between lush and dry in broad patches, plus a fine mottle\n"
-        "dry = smoothstep(0.35, 0.65, noise(@P * 0.12 + 7.7)) * 0.7 + 0.3 * noise(@P * 1.3)\n"
-        "grass = lerp(set(0.20, 0.30, 0.11), set(0.36, 0.37, 0.18), dry)\n"
-        "@Cd = lerp(grass, set(0.40, 0.32, 0.23), steep)\n"
-        "@Cd = lerp(set(0.50, 0.46, 0.40), @Cd, smoothstep(1.2, 2.2, d))\n"
-        "@Cd = lerp(set(0.10, 0.22, 0.30), @Cd, smoothstep(0.7, 1.0, d))\n"
-        "# big rocks: gentle slope, inside noise patches, a bit away from the stream (appear in clusters, not scattered uniformly)\n"
-        "@boulder = (1 - steep) * smoothstep(0.46, 0.56, noise(@P * 0.09 + 3.1))"
+        "steep = smoothstep(0.25, 0.5, 1 - @N.z)\n"
+        "sed = smoothstep(0.08, 0.4, @sediment)\n"
+        "deb = smoothstep(0.02, 0.12, @debris)\n"
+        "flw = smoothstep(0.55, 0.9, @flow)\n"
+        "# grass: lush where water runs, dry on the spurs, in broad patches with a fine mottle\n"
+        "x = @u * 40\n"
+        "y = @v * 40\n"
+        "dry = clamp(smoothstep(0.35, 0.65, noise(set(x * 0.12, y * 0.12, 7.7))) * 0.7 + 0.3 * noise(set(x * 1.3, y * 1.3, 2.1)) - 0.6 * flw, 0, 1)\n"
+        "c = lerp(set(0.21, 0.27, 0.12), set(0.38, 0.36, 0.21), dry)\n"
+        "# darker, damper along the rills\n"
+        "c = c * (1 - 0.25 * flw) * (0.88 + 0.24 * noise(set(x * 2.2, y * 2.2, 4.4)))\n"
+        "# bare soil on the steep ground, grey scree where slopes slumped, pale silt and gravel where water dropped it\n"
+        "c = lerp(c, set(0.40, 0.31, 0.22), steep)\n"
+        "c = lerp(c, set(0.47, 0.45, 0.41) * (0.85 + 0.3 * noise(set(x * 3, y * 3, 5.5))), deb * 0.85)\n"
+        "c = lerp(c, set(0.46, 0.42, 0.34), sed * 0.5)\n"
+        "# the stream: a gravel bank, then water\n"
+        "c = lerp(set(0.50, 0.46, 0.40), c, smoothstep(1.2, 2.2, d))\n"
+        "@Cd = lerp(set(0.10, 0.22, 0.30), c, smoothstep(0.7, 1.0, d))\n"
+        "# big rocks: where slopes shed scree and on gentle ground in noise patches, away from the stream (clusters)\n"
+        "@boulder = clamp(max(deb * 1.4, (1 - steep) * smoothstep(0.5, 0.6, noise(set(x * 0.09, y * 0.09, 3.1)))), 0, 1)"
         " * smoothstep(3.0, 4.5, d)\n"
-        "# pebbles: stream banks\n"
-        "@bank = smoothstep(0.7, 1.2, d) * (1 - smoothstep(1.8, 3.2, d))"))
-    g.link(tn, "geo", tw, "geo")
+        "# pebbles: the stream banks, and the silt the water left\n"
+        "@bank = clamp(smoothstep(0.7, 1.2, d) * (1 - smoothstep(1.8, 3.2, d)) + 0.5 * sed * (1 - smoothstep(3.0, 3.8, d)), 0, 1)"))
+    g.link(tnm, "cop", tw, "cop")
+    tm = C("PCG_COPHeightfieldToMesh", title="Terrain mesh (colour + scatter weights as point attributes)",
+           strength=1.0, world_size=40.0, step=1, attribs="Cd boulder bank dstream")
+    g.link(tw, "cop", tm, "cop")
     tp = C("PCG_AttribPromote", title="Weights → primitives (scatter groups need primitives)",
            original_name="boulder bank", original_class="point",
            new_class="prim", method="average", delete_original=False)
-    g.link(tw, "geo", tp, "geo")
+    g.link(tm, "geo", tp, "geo")
 
     # ③ Scatter + copy
     sa = D("PCG_ScatterAlign", title="Big rocks", group="@boulder > 0.5",
@@ -633,10 +652,15 @@ def rock_garden():
     g.link(cp, "geo", rk, "geo1")
     g.link(cp2, "geo", rk, "geo2")
     moss = D("PCG_Wrangle", title="Rock colour + moss", code=(
-        "rock = set(0.44, 0.42, 0.39) * (0.7 + 0.35 * rand(@class + 7)) * (0.85 + 0.3 * noise(@P * 3.0))\n"
+        "# the stone of each kind (class % 4, as the SDF's seed % 4): grey-brown boulder, buff slab, dark shard,\n"
+        "# weathered grey block; mottled at the metre scale\n"
+        "k = @class - 4 * floor(@class / 4)\n"
+        "rock = where(k < 0.5, set(0.40, 0.37, 0.33), where(k < 1.5, set(0.52, 0.45, 0.35),"
+        " where(k < 2.5, set(0.28, 0.28, 0.27), set(0.43, 0.42, 0.40))))\n"
+        "rock = rock * (0.8 + 0.4 * noise(@P * 1.1)) * (0.9 + 0.2 * noise(@P * 6.0))\n"
         "# upward-facing faces × noise patches → moss\n"
-        "m = smoothstep(0.55, 0.85, @N.y) * smoothstep(0.42, 0.6, noise(@P * 1.5))\n"
-        "@Cd = lerp(rock, set(0.22, 0.31, 0.11), m)"))
+        "m = smoothstep(0.55, 0.85, @N.y) * smoothstep(0.45, 0.62, noise(@P * 1.5))\n"
+        "@Cd = lerp(rock, set(0.22, 0.27, 0.12), m)"))
     g.link(rk, "geo", moss, "geo")
 
     # ④ Output
@@ -1040,44 +1064,66 @@ def terrain_maps():
 
 
 # ═══════════════════════════════════════════════════ Production 1: rock asset pipeline
-ROCK_SDF = (
-        '# signed distance field of the rock (positive outside, negative inside). seed comes in via rand_seed = which rock\n'
-        's = seed * 17.31 + 3.7\n'
-        '# smooth max (intersection) with blend radius k: hard edges become small rounded bevels, like weathered stone\n'
-        'def smax(a, b, k):\n'
-        '    h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1)\n'
-        '    return lerp(a, b, h) + k * h * (1 - h)\n'
-        '# ① proportions per rock: a boulder, a slab, a block, a tall one... (the field is built in this stretched space)\n'
-        'sc = set(0.85 + 0.4 * rand(s + 1), 0.55 + 0.45 * rand(s + 2), 0.75 + 0.35 * rand(s + 3))\n'
-        'Q = @P / sc\n'
-        '# ② the big faces: 13 random half-spaces (more of them sideways and up than down), 1.5 cm bevels -- the\n'
-        '#    faces meet in crisp arrises, which is what makes it read as broken stone and not as a pebble\n'
-        'd = -1e9\n'
-        'for k in range(13):\n'
-        '    n = normalize(set(rand(s + 10 * k) - 0.5, (rand(s + 10 * k + 1) - 0.3) * 1.2, rand(s + 10 * k + 2) - 0.5))\n'
-        '    d = smax(d, dot(Q, n) - (0.62 + 0.3 * rand(s + 10 * k + 3)), 0.015)\n'
-        '#    one deep split face on most rocks: a whole side sheared off along a joint plane\n'
-        'n = normalize(set(rand(s + 300) - 0.5, rand(s + 301) * 0.6, rand(s + 302) - 0.5))\n'
-        'd = smax(d, dot(Q, n) - (0.42 + 0.2 * rand(s + 303)), 0.01)\n'
-        '# ③ fracture chips: 4 planes that only shave off an edge or a corner (offset just inside the faces), sharper bevel\n'
-        'for k in range(4):\n'
-        '    n = normalize(set(rand(s + 7 * k + 200) - 0.5, rand(s + 7 * k + 201) - 0.2, rand(s + 7 * k + 202) - 0.5))\n'
-        '    d = smax(d, dot(Q, n) - (0.66 + 0.14 * rand(s + 7 * k + 203)), 0.012)\n'
-        '# ④ keep it compact: a soft intersection with a sphere trims only the far corners (the faces stay flat)\n'
-        'd = smax(d, length(Q) - 1.25, 0.06)\n'
-        '# back to metres (the stretch makes distances up to 1/min scale too long; the min keeps it a lower bound)\n'
-        'd = d * min(min(sc.x, sc.y), sc.z)\n'
-        '# ⑤ broad undulation and shallow weathering hollows only -- grooves, cracks and grain are added per texel after the\n'
-        '#    bake (see "Texture-space detail"): at 2.2 cm voxels they would come out as stair-stepped dashes\n'
-        'd = d + 0.035 * (noise(@P * 1.7 + s) - 0.5) + 0.012 * (1 - abs(2 * noise(@P * 5.3 + s + 7) - 1))\n'
-        '#    (no bedding steps here: a stepped profile in the field is a jump the surface nets turn into a staircase on\n'
-        '#    the silhouette; the layers are texel detail, see "Texture-space detail")\n'
-        '# ⑥ flat bottom (sits on the ground without wobbling), and never touch the sampling volume\'s walls (an open\n'
-        '#    surface there frays the mesh)\n'
-        'd = max(d, -@P.y - 0.5)\n'
-        'b = abs(@P) - set(1.25, 1.0, 1.15)\n'
-        'd = max(d, max(max(b.x, b.y), b.z))\n'
-        '@value = d\n')
+ROCK_SDF = """# signed distance field of the rock (positive outside, negative inside). seed comes in via rand_seed = which rock
+s = seed * 17.31 + 3.7
+# smooth max (intersection) with blend radius k: hard edges become small rounded bevels, like weathered stone
+def smax(a, b, k):
+    h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1)
+    return lerp(a, b, h) + k * h * (1 - h)
+# ① four kinds, one per rock in turn: a chunky boulder, a bedded slab with stepped ledges, a tall split shard, a
+#    weathered block with rounded arrises. Each sets its proportions, how many big faces, and how soft their edges are
+kind = seed % 4
+if kind == 0:
+    sc = set(1.0 + 0.2 * rand(s + 1), 0.85 + 0.2 * rand(s + 2), 0.9 + 0.2 * rand(s + 3))
+    nf, bev, up = 13, 0.015, 0.3
+elif kind == 1:
+    sc = set(1.25 + 0.15 * rand(s + 1), 0.5 + 0.1 * rand(s + 2), 1.05 + 0.15 * rand(s + 3))
+    nf, bev, up = 9, 0.012, 0.15
+elif kind == 2:
+    sc = set(0.7 + 0.1 * rand(s + 1), 1.25 + 0.1 * rand(s + 2), 0.72 + 0.12 * rand(s + 3))
+    nf, bev, up = 11, 0.012, 0.5
+else:
+    sc = set(1.05 + 0.2 * rand(s + 1), 0.75 + 0.15 * rand(s + 2), 0.95 + 0.2 * rand(s + 3))
+    nf, bev, up = 8, 0.07, 0.3
+Q = @P / sc
+# ② the big faces: random half-spaces (a slab's mostly steep, so its top and bottom stay the bedding planes), meeting
+#    in crisp arrises -- what makes it read as broken stone and not as a pebble
+d = -1e9
+for k in range(nf):
+    n = normalize(set(rand(s + 10 * k) - 0.5, (rand(s + 10 * k + 1) - up) * (0.5 if kind == 1 else 1.2),
+                      rand(s + 10 * k + 2) - 0.5))
+    d = smax(d, dot(Q, n) - (0.62 + 0.3 * rand(s + 10 * k + 3)), bev)
+if kind == 1:
+    # bedding planes: a flat top, and two ledges where the upper beds broke back (steps of 12-18 cm)
+    d = smax(d, Q.y - 0.55, 0.01)
+    for k in range(2):
+        a = 6.2832 * rand(s + 400 + k)
+        cut = set(cos(a), 0 * Q.x, sin(a))
+        d = smax(d, min(Q.y - (0.3 - 0.28 * k), 0.12 + 0.2 * rand(s + 410 + k) - dot(Q, cut)), 0.01)
+else:
+    # one deep split face: a whole side sheared off along a joint plane (on the shard, a near-vertical one)
+    n = normalize(set(rand(s + 300) - 0.5, (rand(s + 301) * 0.6) * (0.3 if kind == 2 else 1.0), rand(s + 302) - 0.5))
+    d = smax(d, dot(Q, n) - (0.42 + 0.2 * rand(s + 303)), 0.01)
+# ③ fracture chips: planes that only shave off an edge or a corner (offset just inside the faces), sharper bevel
+for k in range(4 if kind != 3 else 2):
+    n = normalize(set(rand(s + 7 * k + 200) - 0.5, rand(s + 7 * k + 201) - 0.2, rand(s + 7 * k + 202) - 0.5))
+    d = smax(d, dot(Q, n) - (0.66 + 0.14 * rand(s + 7 * k + 203)), 0.012)
+# ④ keep it compact: a soft intersection with a sphere trims only the far corners (the faces stay flat)
+d = smax(d, length(Q) - 1.25, 0.06)
+# back to metres (the stretch makes distances up to 1/min scale too long; the min keeps it a lower bound)
+d = d * min(min(sc.x, sc.y), sc.z)
+# ⑤ broad undulation and shallow weathering hollows only (deeper on the weathered block) -- grooves, cracks and
+#    grain are added per texel after the bake (see "Texture-space detail"): at 2.2 cm voxels they would come out as
+#    stair-stepped dashes
+wa = 2.0 if kind == 3 else 1.0
+d = d + 0.035 * wa * (noise(@P * 1.7 + s) - 0.5) + 0.012 * wa * (1 - abs(2 * noise(@P * 5.3 + s + 7) - 1))
+# ⑥ flat bottom (sits on the ground without wobbling), and never touch the sampling volume's walls (an open
+#    surface there frays the mesh)
+d = max(d, -@P.y - 0.5)
+b = abs(@P) - set(1.25, 1.1, 1.15)
+d = max(d, max(max(b.x, b.y), b.z))
+@value = d
+"""
 
 
 # Per-texel detail of the rock atlas (pcg110). Runs on COP Bake Textures' layers: position (high-poly hit point),
@@ -1099,14 +1145,17 @@ TEXEL_DETAIL = (
     "def sharp(Q):\n"
     "    band = frac(dot(Q, tilt) * 5.5 + warp)\n"
     "    # only every so often a layer joint opens into a groove (not every band), so they don't read as ruled lines\n"
-    "    open_ = smoothstep(0.55, 0.75, noise(set(floor(dot(Q, tilt) * 5.5 + warp), s + 0 * band, 3.3 + 0 * band)))\n"
+    "    open_ = smoothstep(0.62, 0.8, noise(set(floor(dot(Q, tilt) * 5.5 + warp), s + 0 * band, 3.3 + 0 * band)))\n"
     "    groove = smoothstep(0.86, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade * open_\n"
-    "    crack = (1 - smoothstep(0.0, 0.012, abs(noise(Q * 1.4 + s + 40) - 0.5))) * cfade\n"
+    "    # cracks: thin where they start, wider in their middle, broken into runs (not one unbroken line)\n"
+    "    cw = 0.004 + 0.01 * noise(Q * 3.1 + s + 51)\n"
+    "    ct = clamp(abs(noise(Q * 1.4 + s + 40) - 0.5) / cw, 0, 1)\n"
+    "    crack = (1 - ct * ct * (3 - 2 * ct)) * cfade * smoothstep(0.35, 0.55, noise(Q * 4.2 + s + 57))\n"
     "    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n"
     "    # weathering: hand-sized lumps and hollows, and pits where softer grains fell out\n"
     "    lump = noise(Q * 4.5 + s + 7) - 0.5\n"
-    "    pit = smoothstep(0.64, 0.76, noise(Q * 10 + s + 29))\n"
-    "    return -0.007 * groove - 0.018 * crack + 0.006 * grain + 0.014 * lump - 0.007 * pit, groove, crack + 0.15 * pit\n"
+    "    pit = smoothstep(0.72, 0.8, noise(Q * 10 + s + 29)) * smoothstep(0.5, 0.7, noise(Q * 1.1 + s + 83))\n"
+    "    return -0.005 * groove - 0.014 * crack + 0.005 * grain + 0.012 * lump - 0.004 * pit, groove, crack + 0.15 * pit\n"
     "\n"
     "h, groove, crack = sharp(P)\n"
     "e = 0.003\n"
@@ -1124,17 +1173,27 @@ TEXEL_DETAIL = (
     "# worn edges, dark cavities and crevices, olive moss on the flatter tops\n"
     "cav = clamp(-@high_curv / 20, 0, 1)\n"
     "edge = clamp(@high_curv / 25, 0, 1)\n"
-    "strata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832)\n"
-    "base = lerp(set(0.36, 0.33, 0.29), set(0.49, 0.46, 0.40), strata)\n"
-    "base = base * (0.74 + 0.40 * noise(P * 4.0 + s + 1.7) + 0.22 * (noise(P * 22 + s + 5) - 0.5))\n"
-    "# iron staining: rusty washes in broad patches, stronger below (where water runs off)\n"
+    "# each rock its own stone (by its kind, the SDF's seed % 4): a grey-brown boulder, a buff sandstone slab, a dark\n"
+    "# speckled shard, a weathered grey block; strata faint and broken, colour patches at the metre scale\n"
+    "kind = idx - 4 * floor(idx / 4)\n"
+    "lo_ = where(kind < 0.5, set(0.30, 0.28, 0.25), where(kind < 1.5, set(0.42, 0.36, 0.28), where(kind < 2.5, set(0.20, 0.20, 0.20), set(0.33, 0.33, 0.31))))\n"
+    "hi_ = where(kind < 0.5, set(0.43, 0.40, 0.35), where(kind < 1.5, set(0.56, 0.49, 0.38), where(kind < 2.5, set(0.33, 0.32, 0.31), set(0.46, 0.45, 0.42))))\n"
+    "st_amp = where(kind < 0.5, 0.35, where(kind < 1.5, 0.8, where(kind < 2.5, 0.15, 0.25)))\n"
+    "strata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832) * st_amp * smoothstep(0.3, 0.7, noise(P * 0.9 + s + 71))\n"
+    "patch = noise(P * 0.9 + s + 1.7)\n"
+    "base = lerp(lo_, hi_, clamp(0.35 * strata + 0.65 * patch, 0, 1))\n"
+    "base = base * (0.82 + 0.3 * noise(P * 4.0 + s + 1.9) + 0.2 * (noise(P * 22 + s + 5) - 0.5))\n"
+    "# the shard: granite-like speckle (dark and pale grains)\n"
+    "spk = where(kind > 1.5, 1.0, 0.0) * where(kind < 2.5, 1.0, 0.0)\n"
+    "gr_ = noise(P * 90 + s + 61)\n"
+    "base = base * (1 + spk * (0.55 * smoothstep(0.68, 0.74, gr_) - 0.35 * (1 - smoothstep(0.26, 0.32, gr_))))\n"
     "stain = smoothstep(0.52, 0.72, noise(P * 1.6 + s + 44)) * (0.5 + 0.5 * noise(P * 7 + s + 13))\n"
     "base = lerp(base, set(0.46, 0.33, 0.21), 0.38 * stain)\n"
-    "base = lerp(base, set(0.66, 0.64, 0.60), edge * 0.55)\n"
-    "base = lerp(base, set(0.16, 0.14, 0.12), clamp(cav * 0.6 + @crevice * 0.45, 0, 1))\n"
+    "base = lerp(base, base * 1.35 + 0.04, edge * 0.5)\n"
+    "base = lerp(base, set(0.13, 0.12, 0.10), clamp(cav * 0.6 + @crevice * 0.3, 0, 1))\n"
     "Nw = normalize(@worldnormal)\n"
-    "moss = smoothstep(0.75, 0.95, Nw.y) * smoothstep(0.56, 0.7, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5))\n"
-    "mc = lerp(set(0.20, 0.23, 0.11), set(0.31, 0.33, 0.17), noise(P * 9 + s + 3))\n"
+    "moss = smoothstep(0.6, 0.9, Nw.y) * smoothstep(0.5, 0.66, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5) + 0.15 * cav)\n"
+    "mc = lerp(set(0.15, 0.18, 0.09), set(0.29, 0.31, 0.16), noise(P * 9 + s + 3))\n"
     "# lichen: small pale crusts in loose clusters, on any face that is not overhanging\n"
     "lichen = smoothstep(0.68, 0.72, noise(P * 14 + s + 31)) * smoothstep(0.45, 0.7, noise(P * 1.3 + s + 77))"
     " * smoothstep(-0.3, 0.2, Nw.y)\n"
@@ -1159,8 +1218,9 @@ def rock_assets():
         "  · convex-decomposition collision (UCX_ prefix, one convex hull per piece, ≤ 32 points / 60 triangles each)\n"
         "  · textures: BaseColor (sRGB) / Normal (tangent space, OpenGL +Y) / ORM (AO, roughness, "
         "metallic packed) / Height (16-bit, range in the .json next to it)\n\n"
-        "① For-Each runs 4 times, rand_seed wired to iteration: in the SDF an intersection of 13 random half-spaces (the rock's "
-        "big faces, crisp 1.5 cm arrises) + a deep split face + edge chips + a soft trim by a sphere + noise + flattened bottom, a different rock each pass.\n"
+        "① For-Each runs 4 times, rand_seed wired to iteration: seed % 4 picks the kind (boulder, bedded slab, split shard, "
+        "weathered block); in the SDF an intersection of random half-spaces (the rock's big faces, crisp 1.5 cm arrises) + a deep "
+        "split face (ledges on the slab) + edge chips + a soft trim by a sphere + noise + flattened bottom, a different rock each pass.\n"
         "② The high-poly is coloured by curvature / bedding / upward-facing amount (dirt build-up, moss, weathered edges); this colour is later baked into "
         "BaseColor.\n"
         "③ The 4 LOD0s each take one cell of a 4096×1024 atlas that is baked in one go (uv_atlas); when writing files "
@@ -1176,8 +1236,8 @@ def rock_assets():
         h=760, title="Rock asset pipeline (read me first)", w=W)
 
     # ① Variant loop: high-poly
-    vol = A("PCG_Volume", title="Sampling volume (2.8 × 2.3 × 2.6 m)", res_x=128,
-            res_y=104, res_z=120, size_x=2.8, size_y=2.3, size_z=2.6, value=1.0)
+    vol = A("PCG_Volume", title="Sampling volume (2.8 × 2.5 × 2.6 m)", res_x=128,
+            res_y=114, res_z=120, size_x=2.8, size_y=2.5, size_z=2.6, value=1.0)
     fb = A("PCG_ForEachBegin", title="Each rock (count × 4)", method="fetch_input",
            iterate_over="count", iterations=4)
     g.link(vol, "geo", fb, "geo")

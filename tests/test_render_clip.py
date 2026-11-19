@@ -206,5 +206,47 @@ img = R.render(scene, cams[0], passes=("depth", "normal", "mask"))
 check("  Render depth / normal are all finite", all(np.isfinite(getn(img, k)).all()
                                                 for k in ("depth", "N", "mask")))
 
+# ═══════════════════════════════════════════════════ Front to back, with occlusion culling
+print("═" * 28, "Front to back, with occlusion culling")
+# spheres one behind the other (most of the far ones hidden), a wall of two coplanar grids (equal depths: the tie
+# goes to the higher triangle number, as in the unsorted order), and a near sphere crossing the near plane
+parts = [build.sphere(1.0, 32, 20, center=(0.2 * k, 0.1 * k, -3.0 * k)) for k in range(6)]
+parts += [build.grid(8, 8, 9, 9, center=(0, 0, -20)), build.grid(8, 8, 6, 6, center=(0, 0, -20))]
+for p_ in parts[-2:]:
+    P_ = np.asarray(p_.get(POINT, "P"), np.float64)
+    p_.set(POINT, "P", P_[:, [0, 2, 1]] * np.array([1, 1, -1]) + np.array([0, 0, -20]))
+parts.append(build.sphere(0.5, 24, 16, center=(0.3, -0.2, 4.6)))
+scene = ops.merge(*parts)
+# (the last camera looks straight down -z at the wall: its depth is the same number on both grids, exact ties)
+for proj, eye in (("perspective", (0.5, 0.4, 5.0)), ("orthographic", (0.5, 0.4, 5.0)), ("orthographic", (0, 0, 5.0))):
+    camo = R.camera(projection=proj, eye=eye, target=(eye[0], eye[1], -10), xres=320, yres=200, near=0.5,
+                    ortho_size=6.0) if eye[0] == 0 else R.camera(projection=proj, eye=eye, target=(0, 0, -10),
+                                                                 xres=320, yres=200, near=0.5, ortho_size=6.0)
+    R._OCCLUSION = False
+    ref = R.rasterize(scene, camo, max_pairs=1 << 14)
+    R._OCCLUSION = True
+    _o, culled = R._occluded, [0]
+
+    def _count(*a, **k):
+        r_ = _o(*a, **k)
+        culled[0] += int(r_.sum())
+        return r_
+    R._occluded = _count
+    try:
+        occ_ = R.rasterize(scene, camo, max_pairs=1 << 14)
+    finally:
+        R._occluded = _o
+    same = all(np.array_equal(ref[k], occ_[k]) for k in ("hit", "z", "bary"))
+    check(f"{proj}: drawn front to back with culling = every triangle in order, bit for bit (hit, depth, "
+          f"barycentrics; {len(ref['tri'])} triangles, {culled[0]} of them culled)", same and culled[0] > 500,
+          culled[0])
+# the culling test itself: a triangle behind a drawn frame is culled, one in front of it, or over an empty pixel, not
+zf = np.full(64 * 64, 5.0)
+zf[:64 * 8] = np.inf                                   # the first 8 rows empty
+oc = R._occluded(zf, 64, 64, np.array([10, 10, 10]), np.array([20, 20, 2]), np.array([6, 6, 6]),
+                 np.array([6, 6, 4]), np.array([7.0, 3.0, 7.0]))
+check("the occlusion test: behind a drawn tile -> culled; in front of it, or over empty pixels -> drawn",
+      oc.tolist() == [True, False, False], oc.tolist())
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

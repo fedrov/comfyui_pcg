@@ -204,6 +204,11 @@ def project(cam, P):
 
 
 # ════════════════════════════════════════════════════════════════ rasterization
+# front-to-back drawing with occlusion culling on the numpy path (exact: the same buffers as drawing every triangle;
+# a switch for the tests that prove it)
+_OCCLUSION = True
+
+
 def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None, device=None):
     """
     z-buffer rasterization. Returns a dict:
@@ -288,6 +293,14 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     if not len(idx):
         return out
 
+    occl = _OCCLUSION and device is None and len(idx) > 2048
+    if occl:
+        # front to back (by each triangle's nearest corner), so that what is drawn first hides the rest: a batch then
+        # skips the triangles that lie wholly behind what is already there (_occluded). Equal depths are resolved by
+        # triangle number, as the unsorted order did
+        zn = np.minimum(np.minimum(z[A[idx]], z[B[idx]]), z[C[idx]])
+        o = np.argsort(zn, kind="stable")
+        idx, x0, y0, bw, bh, area, zn = idx[o], x0[o], y0[o], bw[o], bh[o], area[o], zn[o]
     # Batch by candidate pair count -- one triangle covering the screen has W x H candidate pairs by itself
     cum = np.cumsum(area)
     total = int(cum[-1])
@@ -296,6 +309,10 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     start = 0
     from .progress import check as _cancel
     tst = _TorchRaster(device, cam, rast, sx, sy, z, W, H) if device is not None else None
+    # the nearest depth so far per pixel (inf where nothing): kept across the batches, so a batch touches only its own
+    # pixels (it was rebuilt from the whole frame for every batch, about a sixth of a big frame's raster time)
+    zmin = np.full(W * H, np.inf) if tst is None else None
+    owner = np.full(W * H, -1, np.int64) if occl else None
     for stop in bounds:
         _cancel()
         stop = int(min(max(stop + 1, start + 1), len(idx)))
@@ -303,7 +320,12 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
         if tst is not None:
             tst.batch(*args)
         else:
-            _raster_batch(out, cam, rast, sx, sy, z, *args, W, H)
+            if occl and start > 0:
+                vis = ~_occluded(zmin, W, H, args[1], args[2], args[3], args[4], zn[start:stop])
+                if not vis.all():
+                    args = tuple(a_[vis] for a_ in args)
+            if len(args[0]):
+                _raster_batch(out, cam, rast, sx, sy, z, *args, W, H, zmin=zmin, owner=owner)
         start = stop
         if start >= len(idx):
             break
@@ -450,7 +472,41 @@ def _clip_near(P, tri, zt, ins, cnt, cut, near):
     return NP, np.concatenate(tris), np.concatenate(src), np.concatenate(lams)
 
 
-def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H):
+def _occluded(zmin, W, H, x0, y0, bw, bh, znear, tile=8, levels=6):
+    """
+    bool per triangle: its bounding box lies on pixels that are all drawn, and nearer than its nearest corner. A
+    max-depth pyramid of the frame (tiles of 8, 16, ... 256 pixels; an empty pixel is inf) is read at the level where
+    the box spans at most 2 x 2 tiles; bigger boxes are not tested.
+    """
+    Hp, Wp = -(-H // tile) * tile, -(-W // tile) * tile
+    zf = np.full((Hp, Wp), np.inf)
+    zf[:H, :W] = zmin.reshape(H, W)
+    lev = [zf.reshape(Hp // tile, tile, Wp // tile, tile).max((1, 3))]
+    for _ in range(levels - 1):
+        a = lev[-1]
+        h2, w2 = -(-a.shape[0] // 2), -(-a.shape[1] // 2)
+        b = np.full((h2 * 2, w2 * 2), np.inf)
+        b[:a.shape[0], :a.shape[1]] = a
+        lev.append(b.reshape(h2, 2, w2, 2).max((1, 3)))
+    span = np.maximum(bw, bh)
+    lv = np.ceil(np.log2(np.maximum(span, 1) / tile)).astype(np.int64).clip(0, None)
+    occ = np.zeros(len(x0), bool)
+    for L in range(levels):
+        sel = np.nonzero(lv == L)[0]
+        if not len(sel):
+            continue
+        t = tile << L
+        g = lev[L]
+        tx0, ty0 = x0[sel] // t, y0[sel] // t
+        tx1 = np.minimum((x0[sel] + bw[sel] - 1) // t, g.shape[1] - 1)
+        ty1 = np.minimum((y0[sel] + bh[sel] - 1) // t, g.shape[0] - 1)
+        m = np.maximum(np.maximum(g[ty0, tx0], g[ty0, tx1]), np.maximum(g[ty1, tx0], g[ty1, tx1]))
+        # a margin for the rounding of the interpolated depth
+        occ[sel] = znear[sel] > m + 1e-7 * np.abs(m) + 1e-12
+    return occ
+
+
+def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H, zmin=None, owner=None):
     tri, rsrc, lam, nplain, alpha, outd = rast
     # Each block gets 0..area-1 -- local indices within the bounding box
     flat = _gather_blocks(np.zeros(len(area), np.int64), area)
@@ -519,12 +575,23 @@ def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H):
     bar = out["bary"].reshape(-1, 3)
     # First pass: minimum z per pixel. **Existing hits must take part in the comparison too** -- when batching,
     # a later batch must not unconditionally overwrite an earlier one
-    best = np.full(W * H, np.inf)
+    if zmin is not None:
+        best = zmin                            # already holds the earlier batches' depths
+    else:
+        best = np.where(hitf >= 0, zbuf, np.inf)
+    if owner is not None:
+        zold = best[pix]
     np.minimum.at(best, pix, zz)
-    best = np.minimum(best, np.where(hitf >= 0, zbuf, np.inf))
     # Second pass: pick the candidates exactly equal to the minimum z and scatter their triangle numbers in.
     # Float exact equality is safe -- it compares the same number from the same computation
     win = zz <= best[pix]
+    if owner is not None:
+        # triangles come front to back here, not in their order: among fragments of equal depth the highest triangle
+        # number wins, as the last one written did in that order (the pixel's owner from an earlier batch included)
+        beaten = zold > best[pix]
+        owner[pix[beaten]] = -1
+        np.maximum.at(owner, pix[win], tid[win])
+        win &= tid == owner[pix]
     wpix = pix[win]
     zbuf[wpix] = zz[win]
     tw = tid[win]
