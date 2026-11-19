@@ -1038,6 +1038,7 @@ Example: `@mask = smoothstep(0.3, 0.6, @C.x)`.
 | Seed `rand_seed` | int [0..] | 0 | Seed for random functions used in the code. |
 | Ch Params `ch_params` | string | `{}` | Internal JSON text with the values of the node's custom parameters, read in the code with `ch()`, `chv()`, `chi()` and `chs()`. It is maintained by the frontend; do not edit by hand. |
 | Rows Per Pass `rows_per_pass` | int [0..65536] | 0 | Run the code on bands of this many rows instead of the whole image at once, to bound memory on large images with many noise() calls. Only for code that is purely per pixel: anything that looks at all pixels at once (counts, sums, the image maximum) would see one band. 0 runs on the whole image. |
+| Compute `compute` | menu | CPU | Where it runs. cpu (default): numpy, as before. auto: on a CUDA GPU when there is one, else numpy. cuda: the GPU if available. On the GPU the code runs on float32 tensors in bands of about half a million pixels; the result matches numpy to float32 rounding, except that a random pick from a non-integer value (rand(x + 0.37)) can come out differently. Code the GPU path does not cover (sprintf, astype, numpy calls on a layer, an `if` on a per-pixel value) quietly runs on numpy. The example workflows set it to auto. Options: Auto (`auto`), CPU (`cpu`), CUDA (`cuda`). |
 
 **Compared with Houdini**
 

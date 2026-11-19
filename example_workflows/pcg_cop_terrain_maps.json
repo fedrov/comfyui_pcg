@@ -101,7 +101,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 2,
@@ -130,7 +130,8 @@
     "r = length(set(@u - 0.5, @v - 0.5))\n@C = @C + 0.05 * (1 - smoothstep(0.1, 0.55, r)) - 0.02",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Raise the middle into a mountain"
   },
@@ -424,7 +425,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 8,
@@ -453,7 +454,8 @@
     "n = noise(set(@u * 140, @v * 140, 3.3)) - 0.5 + 0.5 * (noise(set(@u * 300, @v * 300, 8.1)) - 0.5)\n@C = @C + 0.0012 * n",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Fine relief"
   },
@@ -462,7 +464,7 @@
    "type": "PCG_COPFlowAccumulation",
    "pos": [
     840,
-    2178
+    2203
    ],
    "size": [
     360,
@@ -523,7 +525,7 @@
    "type": "PCG_COPSplatMap",
    "pos": [
     840,
-    3157
+    3182
    ],
    "size": [
     360,
@@ -681,7 +683,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 13,
@@ -710,7 +712,8 @@
     "d = @C.x\ngrass = set(0.28, 0.38, 0.14) * (1 - 0.35 * clamp(@wetness, 0, 1))\nsed = set(0.55, 0.48, 0.36)\n# rock gets bands by height (sedimentary bedding)\nband = 0.5 + 0.5 * sin(d * 520)\nrock = lerp(set(0.42, 0.36, 0.31), set(0.58, 0.52, 0.45), band)\nsnow = set(0.92, 0.93, 0.96)\nwater = set(0.10, 0.22, 0.30)\nc = grass * @splat_grass + sed * @splat_sediment + rock * @splat_rock + snow * @splat_snow + water * @splat_water\n@albedo = c * lerp(0.6, 1.0, @ao)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Mix colours from five layers"
   },
@@ -719,7 +722,7 @@
    "type": "PCG_COPLight",
    "pos": [
     1260,
-    2076
+    2101
    ],
    "size": [
     360,
@@ -774,7 +777,7 @@
    "type": "PCG_COPVisualize",
    "pos": [
     1260,
-    3019
+    3044
    ],
    "size": [
     360,

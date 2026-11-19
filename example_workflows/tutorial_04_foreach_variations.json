@@ -1,6 +1,6 @@
 {
- "last_node_id": 12,
- "last_link_id": 14,
+ "last_node_id": 13,
+ "last_link_id": 15,
  "nodes": [
   {
    "id": 1,
@@ -11,7 +11,7 @@
    ],
    "size": [
     360,
-    440
+    500
    ],
    "flags": {},
    "order": 0,
@@ -21,7 +21,7 @@
     "text": ""
    },
    "widgets_values": [
-    "One chain, six different results: a For-Each loop in Count mode.\n\nFor-Each Begin (Iterate over: Count, 6 iterations, Fetch Input) hands the same sphere to the loop body six times. Its 'iteration' output (0 to 5) is wired into the Seed of Point Jitter and Attribute Noise, so every pass gets different random numbers and a different stone.\n\nThe Wrangle also gets the iteration on its Seed input; inside the code it is the variable 'seed'. It moves each stone along X and picks a colour. For-Each End (Gather: Merge) collects all six.\n\nTweak: Iterations on For-Each Begin, the jitter Scale, the noise Amplitude, or what the Wrangle does with 'seed'."
+    "One chain, six different results: a For-Each loop in Count mode.\n\nFor-Each Begin (Iterate over: Count, 6 iterations, Fetch Input) hands the same squashed sphere to the loop body six times. Its 'iteration' output (0 to 5) is wired into the Seed of Point Jitter and Attribute Noise, so every pass gets different random numbers and a different stone.\n\nThe sphere is the icosphere kind (evenly spread points, no poles: a UV sphere's poles pinch into spikes when jittered). Match Size sets each stone on the ground, sunk a little.\n\nThe Wrangle also gets the iteration on its Seed input; inside the code it is the variable 'seed'. It moves each stone along X and picks a colour. For-Each End (Gather: Merge) collects all six.\n\nTweak: Iterations on For-Each Begin, the jitter Scale, the noise Amplitude, or what the Wrangle does with 'seed'."
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -31,11 +31,11 @@
    "type": "PCG_Sphere",
    "pos": [
     0,
-    484
+    544
    ],
    "size": [
     360,
-    270
+    245
    ],
    "flags": {},
    "order": 1,
@@ -56,13 +56,13 @@
    },
    "widgets_values": [
     1.0,
-    10,
-    7,
-    "polygon_mesh",
+    24,
+    16,
+    "polygon",
     2,
     1.0,
-    1.0,
-    1.0,
+    0.72,
+    0.9,
     0.0,
     0.0,
     0.0,
@@ -70,14 +70,15 @@
     0,
     0,
     "y"
-   ]
+   ],
+   "title": "Icosphere, squashed"
   },
   {
    "id": 3,
    "type": "PCG_ForEachBegin",
    "pos": [
     0,
-    798
+    833
    ],
    "size": [
     360,
@@ -103,7 +104,7 @@
      "name": "loop",
      "type": "PCG_LOOP",
      "links": [
-      11
+      12
      ],
      "slot_index": 0
     },
@@ -127,7 +128,7 @@
      "links": [
       3,
       7,
-      9
+      10
      ],
      "slot_index": 3
     },
@@ -214,7 +215,7 @@
     "no_scaling",
     "",
     "",
-    0.5,
+    0.28,
     1.0,
     1.0,
     1.0,
@@ -369,7 +370,7 @@
     1.0,
     "add",
     "zero_centered",
-    0.12,
+    0.035,
     false,
     0.5,
     0.5,
@@ -382,9 +383,9 @@
     1.0,
     "worley_f2f1",
     "P",
-    0.4,
-    0.4,
-    0.4,
+    0.6,
+    0.6,
+    0.6,
     0.0,
     0.0,
     0.0,
@@ -422,14 +423,14 @@
   },
   {
    "id": 8,
-   "type": "PCG_Wrangle",
+   "type": "PCG_MatchSize",
    "pos": [
     840,
     0
    ],
    "size": [
     360,
-    247
+    496
    ],
    "flags": {},
    "order": 7,
@@ -441,9 +442,78 @@
      "link": 8
     },
     {
+     "name": "target",
+     "type": "GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PCG_MatchSize"
+   },
+   "widgets_values": [
+    "input_if_wired",
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    true,
+    "center",
+    "min",
+    "center",
+    true,
+    "same",
+    "same",
+    "same",
+    0.0,
+    -0.1,
+    0.0,
+    false,
+    true,
+    false,
+    "",
+    "prim",
+    false,
+    "xform",
+    ""
+   ],
+   "title": "On the ground (sunk 0.1)"
+  },
+  {
+   "id": 9,
+   "type": "PCG_Wrangle",
+   "pos": [
+    840,
+    540
+   ],
+   "size": [
+    360,
+    247
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "geo",
+     "type": "GEOMETRY",
+     "link": 9
+    },
+    {
      "name": "rand_seed",
      "type": "INT",
-     "link": 9,
+     "link": 10,
      "widget": {
       "name": "rand_seed"
      }
@@ -469,7 +539,7 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      10
+      11
      ],
      "slot_index": 0
     }
@@ -479,7 +549,7 @@
    },
    "widgets_values": [
     "point",
-    "# 'seed' is the value wired into the Seed input: the loop iteration\n@P.x += (seed - 2.5) * 2.3\n@Cd = lerp(set(0.42, 0.40, 0.37), set(0.66, 0.60, 0.52), rand(seed + 0.5))",
+    "# 'seed' is the value wired into the Seed input: the loop iteration\n@P.x += (seed - 2.5) * 2.3\n# a stone colour per pass (grey-brown to buff), mottled, darker low down where soil splashes up\nbase = lerp(set(0.30, 0.29, 0.28), set(0.48, 0.44, 0.37), rand(seed + 0.5))\n@Cd = base * (0.85 + 0.3 * noise(@P * 2.5 + seed)) * (0.8 + 0.2 * smoothstep(0.0, 0.5, @P.y))",
     "",
     0,
     "{}"
@@ -487,29 +557,29 @@
    "title": "Place and colour (seed = iteration)"
   },
   {
-   "id": 9,
+   "id": 10,
    "type": "PCG_ForEachEnd",
    "pos": [
     840,
-    291
+    831
    ],
    "size": [
     360,
     126
    ],
    "flags": {},
-   "order": 8,
+   "order": 9,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 10
+     "link": 11
     },
     {
      "name": "loop",
      "type": "PCG_LOOP",
-     "link": 11
+     "link": 12
     },
     {
      "name": "_accum",
@@ -522,8 +592,8 @@
      "name": "geo",
      "type": "GEOMETRY",
      "links": [
-      12,
-      14
+      13,
+      15
      ],
      "slot_index": 0
     }
@@ -536,7 +606,7 @@
    ]
   },
   {
-   "id": 10,
+   "id": 11,
    "type": "PCG_PreviewImage",
    "pos": [
     1260,
@@ -547,13 +617,13 @@
     493
    ],
    "flags": {},
-   "order": 9,
+   "order": 10,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 12
+     "link": 13
     },
     {
      "name": "textures_cop",
@@ -596,7 +666,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      13
+      14
      ],
      "slot_index": 0
     },
@@ -647,7 +717,7 @@
    ]
   },
   {
-   "id": 11,
+   "id": 12,
    "type": "PreviewImage",
    "pos": [
     1260,
@@ -658,13 +728,13 @@
     320
    ],
    "flags": {},
-   "order": 11,
+   "order": 12,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 13
+     "link": 14
     }
    ],
    "outputs": [],
@@ -675,7 +745,7 @@
    "title": "Six stones"
   },
   {
-   "id": 12,
+   "id": 13,
    "type": "PCG_Viewport",
    "pos": [
     1260,
@@ -686,13 +756,13 @@
     520
    ],
    "flags": {},
-   "order": 10,
+   "order": 11,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
      "type": "GEOMETRY",
-     "link": 14
+     "link": 15
     },
     {
      "name": "template",
@@ -781,35 +851,35 @@
   ],
   [
    9,
-   3,
-   3,
    8,
+   0,
+   9,
+   0,
+   "GEOMETRY"
+  ],
+  [
+   10,
+   3,
+   3,
+   9,
    1,
    "INT"
   ],
   [
-   10,
-   8,
-   0,
+   11,
    9,
+   0,
+   10,
    0,
    "GEOMETRY"
-  ],
-  [
-   11,
-   3,
-   0,
-   9,
-   1,
-   "PCG_LOOP"
   ],
   [
    12,
-   9,
+   3,
    0,
    10,
-   0,
-   "GEOMETRY"
+   1,
+   "PCG_LOOP"
   ],
   [
    13,
@@ -817,13 +887,21 @@
    0,
    11,
    0,
-   "IMAGE"
+   "GEOMETRY"
   ],
   [
    14,
-   9,
+   11,
    0,
    12,
+   0,
+   "IMAGE"
+  ],
+  [
+   15,
+   10,
+   0,
+   13,
    0,
    "GEOMETRY"
   ]

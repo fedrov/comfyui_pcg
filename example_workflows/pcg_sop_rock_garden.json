@@ -661,7 +661,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 4,
@@ -690,7 +690,8 @@
     "# world x, z of the pixel (the mesh: x right, v toward -z); the distance to a sine curve, a trench along it\nx = (@u - 0.5) * 40\nz = (0.5 - @v) * 40\n@dstream = abs(z - 5 * sin(x * 0.16) - 2)\n@C = @C - 1.4 * (1 - smoothstep(0.0, 3.0, @dstream))",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Dig a stream"
   },
@@ -699,7 +700,7 @@
    "type": "PCG_COPHeightfieldErode",
    "pos": [
     840,
-    1952
+    1977
    ],
    "size": [
     360,
@@ -770,7 +771,7 @@
    "type": "PCG_COPErosion",
    "pos": [
     840,
-    2886
+    2911
    ],
    "size": [
     360,
@@ -828,7 +829,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    3929
+    3954
    ],
    "size": [
     360,
@@ -873,11 +874,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    4627
+    4652
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 12,
@@ -906,7 +907,8 @@
     "d = @dstream\nsteep = smoothstep(0.25, 0.5, 1 - @N.z)\nsed = smoothstep(0.08, 0.4, @sediment)\ndeb = smoothstep(0.02, 0.12, @debris)\nflw = smoothstep(0.55, 0.9, @flow)\n# grass: lush where water runs, dry on the spurs, in broad patches with a fine mottle\nx = @u * 40\ny = @v * 40\ndry = clamp(smoothstep(0.35, 0.65, noise(set(x * 0.12, y * 0.12, 7.7))) * 0.7 + 0.3 * noise(set(x * 1.3, y * 1.3, 2.1)) - 0.6 * flw, 0, 1)\nc = lerp(set(0.21, 0.27, 0.12), set(0.38, 0.36, 0.21), dry)\n# darker, damper along the rills\nc = c * (1 - 0.25 * flw) * (0.88 + 0.24 * noise(set(x * 2.2, y * 2.2, 4.4)))\n# bare soil on the steep ground, grey scree where slopes slumped, pale silt and gravel where water dropped it\nc = lerp(c, set(0.40, 0.31, 0.22), steep)\nc = lerp(c, set(0.47, 0.45, 0.41) * (0.85 + 0.3 * noise(set(x * 3, y * 3, 5.5))), deb * 0.85)\nc = lerp(c, set(0.46, 0.42, 0.34), sed * 0.5)\n# the stream: a gravel bank, then water\nc = lerp(set(0.50, 0.46, 0.40), c, smoothstep(1.2, 2.2, d))\n@Cd = lerp(set(0.10, 0.22, 0.30), c, smoothstep(0.7, 1.0, d))\n# big rocks: where slopes shed scree and on gentle ground in noise patches, away from the stream (clusters)\n@boulder = clamp(max(deb * 1.4, (1 - steep) * smoothstep(0.5, 0.6, noise(set(x * 0.09, y * 0.09, 3.1)))), 0, 1) * smoothstep(3.0, 4.5, d)\n# pebbles: the stream banks, and the silt the water left\n@bank = clamp(smoothstep(0.7, 1.2, d) * (1 - smoothstep(1.8, 3.2, d)) + 0.5 * sed * (1 - smoothstep(3.0, 3.8, d)), 0, 1)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Colour + scatter weights (from the masks)"
   },
@@ -915,7 +917,7 @@
    "type": "PCG_COPHeightfieldToMesh",
    "pos": [
     840,
-    5197
+    5247
    ],
    "size": [
     360,
@@ -960,7 +962,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     840,
-    5495
+    5545
    ],
    "size": [
     360,

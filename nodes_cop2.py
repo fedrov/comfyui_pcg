@@ -509,6 +509,10 @@ class PCG_COPWrangle:
     Wrangle): @C, @mask, @N.x read/write layers, @u @v are 0~1 coordinates
     (v up), @x @y pixel coordinates, @res the resolution. **It does not run once per pixel**: for if use
     where(cond, a, b). Example: `@mask = smoothstep(0.3, 0.6, @C.x)`.
+
+    Compute auto / cuda runs it on a CUDA GPU (pixel.wrangle -> wrangle_torch): the same code on float32 tensors, in
+    bands of half a million pixels. Code the GPU path does not cover (sprintf, astype, numpy calls on a layer, `if` on
+    a per-pixel value) runs on numpy, as with cpu (the default, so saved workflows keep their numbers).
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -519,15 +523,21 @@ class PCG_COPWrangle:
                              # pcg104 addition: ch("amp") reads custom parameters on the node (the frontend writes this JSON)
                              "ch_params": ("STRING", {"default": "{}", "ch_store": True}),
                              # pcg110 addition: bound memory by running on bands of rows (0 = whole image, as before)
-                             "rows_per_pass": _i(0, 0, 65536)}}
+                             "rows_per_pass": _i(0, 0, 65536),
+                             # appended: where it runs. auto = on CUDA when there is one (float32; code the GPU path
+                             # does not cover runs on numpy as before), else numpy
+                             "compute": (_compute()[0], {"default": "cpu", "tooltip":
+                                         "auto = on the GPU when CUDA is there (float32: per-cell random picks "
+                                         "can differ from numpy's; code the GPU path does not cover runs on numpy); "
+                                         "cpu = numpy, as before; cuda = the GPU if available"})}}
 
-    def run(self, cop, code, rand_seed, ch_params="{}", rows_per_pass=0):
+    def run(self, cop, code, rand_seed, ch_params="{}", rows_per_pass=0, compute="cpu"):
         import json
         try:
             chd = json.loads(ch_params) if str(ch_params).strip() else {}
         except ValueError:
             chd = {}
-        return (_px.wrangle(cop, code, rand_seed, chd, rows_per_pass),)
+        return (_px.wrangle(cop, code, rand_seed, chd, rows_per_pass, compute=compute),)
 
 
 @_node

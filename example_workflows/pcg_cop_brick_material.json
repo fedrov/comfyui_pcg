@@ -306,7 +306,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 5,
@@ -335,7 +335,8 @@
     "d = @detail - 0.5\n# pixel distance to the brick edge plus noise perturbation; below the threshold counts as chipped off\nchip = smoothstep(3.0, 12.0, @pattern_edge + d * 36)\n@brick = chip\n# Crystal Noise cell borders = cracks (pits is close to 0 on the borders), only on about a third of the bricks\n# and fading out across each of those, so cracked bricks read as weathered rather than tiled\ncracked = smoothstep(0.5, 0.7, frac(@pattern_rand * 7.31)) * smoothstep(0.3, 0.5, @detail)\nface = @pattern_height * (0.85 + 0.15 * @pattern_rand) + d * 0.12 - (1 - @pits) * 0.03 * cracked\nmortar = 0.08 + d * 0.05\n@height = lerp(mortar, face, chip)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Height + chipped edges"
   },
@@ -344,7 +345,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    570
+    595
    ],
    "size": [
     360,
@@ -388,7 +389,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     840,
-    1268
+    1293
    ],
    "size": [
     360,
@@ -484,7 +485,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 9,
@@ -513,7 +514,8 @@
     "r = @pattern_rand\nd = @detail - 0.5\nbrick = lerp(set(0.50, 0.20, 0.13), set(0.70, 0.36, 0.22), r)\nbrick = where(r > 0.88, set(0.28, 0.14, 0.10), brick)   # 10% over-fired bricks\nbrick = brick * (0.9 + d * 0.5)\nbrick = brick + set(0.12, 0.10, 0.08) * clamp(@curvature, 0, 1)   # brighten worn convex edges\nmortar = set(0.60, 0.58, 0.54) * (0.9 + d * 0.4)\n@albedo = lerp(mortar, brick, @brick) * lerp(0.55, 1.0, @ao)\n@roughness = lerp(0.95, 0.72 + d * 0.3, @brick)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Albedo + roughness"
   },
@@ -522,7 +524,7 @@
    "type": "PCG_COPLight",
    "pos": [
     1260,
-    1267
+    1292
    ],
    "size": [
     360,
@@ -582,7 +584,7 @@
    "type": "PCG_COPTile",
    "pos": [
     1260,
-    2210
+    2235
    ],
    "size": [
     360,
@@ -624,7 +626,7 @@
    "type": "PCG_COPResize",
    "pos": [
     1260,
-    2764
+    2789
    ],
    "size": [
     360,

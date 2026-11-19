@@ -360,7 +360,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 18,
@@ -389,7 +389,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# Height in metres (1024 px = 1 m; Height to Normal / AO use Strength 1, World Size 1, so the relief is real size)\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.37)\n# chipped, irregular arrises: the brick outline is eaten back 0.5-3 mm by coarse noise, more on some bricks\nee = e - clamp(0.0006 + 0.0010 * r2 + 0.0008 * fbm(48, 48, 3.1, 3), 0, 0.004)\n@brick = smoothstep(-0.0004, 0.0006, ee)\n# brick face: 3 mm rounded arris (quarter circle), a slight random tilt per brick, undulation, sand-struck pits\nt = clamp(ee / 0.003, 0, 1)\narris = -0.003 * (1 - sqrt(1 - (1 - t) ** 2))\ntilt = 0.0015 * ((@pattern_uv.x - 0.5) * (rand(@pattern_id + 0.11) - 0.5) + (@pattern_uv.y - 0.5) * (rand(@pattern_id + 0.23) - 0.5))\npits = -0.0012 * smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\nface = arris + tilt + 0.0005 * fbm(8, 8, 1.7, 4) + 0.00012 * fbm(256, 256, 2.9, 2) + pits\n@pits = smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\n# joint: struck 7 mm back from the face, sandy\nmortar = -0.007 + 0.0003 * fbm(160, 160, 9.1, 3)\n@height = lerp(mortar, face, @brick)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Wall: height (metres) + masks"
   },
@@ -398,7 +399,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     460,
-    1278
+    1303
    ],
    "size": [
     340,
@@ -442,7 +443,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     460,
-    1956
+    1981
    ],
    "size": [
     340,
@@ -493,7 +494,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 61,
@@ -527,7 +528,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.37)\nr3 = rand(@pattern_id + 0.71)\n# brick bodies: a spread of reds and oranges, ~12 % dark over-fired (clinker), a few pale buff ones\nbody = lerp(set(0.50, 0.22, 0.14), set(0.68, 0.36, 0.22), r)\nbody = where(r2 > 0.88, lerp(set(0.30, 0.15, 0.11), set(0.40, 0.21, 0.15), r3), body)\nbody = where(r2 < 0.05, set(0.70, 0.52, 0.36), body)\n# inside each brick: mottling, a darker fire flash towards one end, dark iron specks\nm = fbm(16, 16, 2.3, 4)\nbody = body * (1 + 0.07 * m)\nend = where(r3 > 0.5, @pattern_uv.x, 1 - @pattern_uv.x)\nbody = body * (1 - 0.30 * smoothstep(0.55, 1.0, end) * smoothstep(0.4, 0.9, r))\nbody = lerp(body, set(0.16, 0.09, 0.07), 0.7 * smoothstep(2.1, 2.6, fbm(320, 320, 7.7, 2)))\nbody = lerp(body, body * 0.75, @pits)\n# mortar: lime-grey, sand grains\nmortar = set(0.60, 0.58, 0.54) * (1 + 0.06 * fbm(96, 96, 8.8, 3))\nc = lerp(mortar, body, @brick)\n# efflorescence (pale salt bloom) in large soft patches, and grime that collects in the cavities\nc = lerp(c, set(0.80, 0.78, 0.74), 0.35 * smoothstep(0.9, 2.0, fbm(3, 3, 4.4, 3)) * smoothstep(0.0, 1.2, fbm(64, 64, 2.2, 3)))\nc = c * lerp(0.72, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.84 + 0.04 * m, @brick) + 0.08 * @pits, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Wall: brick wall -- colour / ORM"
   },
@@ -536,7 +538,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    550
+    575
    ],
    "size": [
     340,
@@ -593,7 +595,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    1028
+    1053
    ],
    "size": [
     340,
@@ -650,7 +652,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    1506
+    1531
    ],
    "size": [
     340,
@@ -707,7 +709,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    1984
+    2009
    ],
    "size": [
     340,
@@ -764,7 +766,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    2462
+    2487
    ],
    "size": [
     340,
@@ -1051,7 +1053,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 19,
@@ -1080,7 +1082,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.5)\n# joint: 8 mm either side of the cell edge, wobbly; stone foot sits 2 cm down in the bedding sand\njw = 0.008 + 0.0018 * fbm(24, 24, 1.3, 3)\n@stone = smoothstep(0.0, 0.0015, e - jw)\nt = clamp((e - jw) / 0.008, 0, 1)\n@shoulder = t\n# the stone's form is a dome from the distance to the cell centre (round, smooth everywhere); the distance to the\n# joint only gives a narrow 8 mm rounded lip -- a wide ramp on it would show the Voronoi corners as pyramid facets\nshoulder = sqrt(1 - (1 - t) ** 2)\ndome = 1 - clamp(@pattern_dist / 0.75, 0, 1.2) ** 2\ntop = 0.008 + 0.026 * clamp(dome, -0.3, 1) + 0.006 * (r2 - 0.5)\nstone = -0.02 + shoulder * (top + 0.0012 * fbm(24, 24, 4.2, 3)) + 0.00015 * fbm(256, 256, 6.1, 2) - 0.0008 * smoothstep(1.7, 2.4, fbm(96, 96, 7.3, 2))\njoint = -0.02 + 0.0018 * fbm(64, 64, 2.6, 3)\n@height = lerp(joint, stone, @stone)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Ground_Cobble: height (metres) + masks"
   },
@@ -1089,7 +1092,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     1640,
-    1328
+    1353
    ],
    "size": [
     340,
@@ -1133,7 +1136,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     1640,
-    2006
+    2031
    ],
    "size": [
     340,
@@ -1184,7 +1187,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 62,
@@ -1218,7 +1221,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.5)\nr3 = rand(@pattern_id + 0.9)\n# one stone type per cobble: grey granite, warm sandstone, blue-grey basalt, pink granite\nc = where(r < 0.4, set(0.55, 0.54, 0.52), where(r < 0.65, set(0.58, 0.52, 0.44), where(r < 0.88, set(0.40, 0.41, 0.42), set(0.58, 0.50, 0.47))))\nc = c * (0.82 + 0.3 * r2)\n# granite-like grain (light and dark crystals) and mottling\ng = fbm(256, 256, 3.7 + r3 * 40, 2)\nc = c * (1 + 0.10 * g + 0.06 * fbm(24, 24, 5.9 + r3 * 40, 3))\nc = lerp(c, set(0.12, 0.12, 0.12), 0.6 * smoothstep(1.6, 2.2, g))\nc = lerp(c, set(0.85, 0.84, 0.80), 0.5 * smoothstep(1.7, 2.3, -g))\n# dirt collects round each stone's foot\nsoil = lerp(set(0.27, 0.23, 0.18), set(0.44, 0.39, 0.32), smoothstep(-1.2, 1.2, fbm(16, 16, 8.2, 3)))\nc = lerp(c, soil * 0.9, 0.5 * (1 - smoothstep(0.0, 0.9, @shoulder)) + 0.25 * smoothstep(0.3, 1.0, @pattern_dist / 0.75))\nc = lerp(soil, c, @stone)\n# moss in the joints (and creeping onto the stone feet) in large patches\nmz = smoothstep(0.2, 1.2, fbm(4, 4, 1.9, 3)) * smoothstep(-0.6, 0.8, fbm(80, 80, 2.4, 2))\nmz = mz * (1 - smoothstep(0.1, 0.4, @shoulder) * @stone)\nc = lerp(c, lerp(set(0.24, 0.30, 0.11), set(0.36, 0.42, 0.17), smoothstep(-1, 1, fbm(60, 60, 4.8, 2))), mz)\nc = c * lerp(0.7, 1.0, @ao_h)\n@ao = @ao_h\n# worn stone tops are smoother than the sides; joints and moss are fully rough\n@roughness = clamp(lerp(1.0, 0.72 - 0.18 * @shoulder, @stone) + 0.3 * mz, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Ground_Cobble: cobblestones -- colour / ORM"
   },
@@ -1227,7 +1231,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    550
+    575
    ],
    "size": [
     340,
@@ -1284,7 +1288,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    1028
+    1053
    ],
    "size": [
     340,
@@ -1341,7 +1345,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    1506
+    1531
    ],
    "size": [
     340,
@@ -1398,7 +1402,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    1984
+    2009
    ],
    "size": [
     340,
@@ -1455,7 +1459,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    2462
+    2487
    ],
    "size": [
     340,
@@ -1697,7 +1701,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 20,
@@ -1726,7 +1730,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nN = 8\nx = @u * N\ncol = floor(x)\npu = x - col\ncr = rand(col + 0.13)\npv = frac(@v + rand(col + 0.57))\ne = min(min(pu, 1 - pu) / N, min(pv, 1 - pv))\n@plank = smoothstep(0.0015, 0.0027, e)\n@pu = pu\n@cr = cr\n# grain: flat-sawn growth rings running along the plank, warped by noise stretched along it; knots deflect it\nhas = where(rand(col + 0.9) > 0.45, 1.0, 0.0)\ndu = (pu - 0.25 - 0.5 * rand(col + 0.21)) / N\ndv = frac(@v - rand(col + 0.33) + 0.5) - 0.5\ndk = sqrt(du * du + (dv * 0.35) ** 2)\n@knot = has * (1 - smoothstep(0.007, 0.012, dk))\nphase = pu * 3.0 + 0.5 * fbm(32, 2, 3.3 + cr * 50, 4) + cr * 7 + has * 2.5 * exp(-dk / 0.015)\nring = frac(phase * 2.2)\nlate = smoothstep(0.62, 0.86, ring) * (1 - smoothstep(0.90, 1.0, ring))\n@late = late\n@pores = smoothstep(0.8, 2.0, fbm(256, 8, 6.6 + cr * 50, 2))\n# nails: two battens per metre, one nail per plank on each, 9 mm heads\nnv = min(abs(frac(@v) - 0.15), abs(frac(@v) - 0.65))\nnu = (pu - 0.5) / N\ndn = sqrt(nu * nu + nv * nv)\n@dn = dn\n@nail = 1 - smoothstep(0.0040, 0.0050, dn)\n# relief: weathered grain (soft earlywood worn back), slight cupping, 1.2 mm rounded plank edges, V joints 4 mm deep\nt = clamp((e - 0.0015) / 0.0012, 0, 1)\nface = -0.0006 * (2 * pu - 1) ** 2 + 0.00035 * late - 0.00015 * @pores + 0.0004 * @knot - 0.0012 * (1 - sqrt(1 - (1 - t) ** 2))\n@height = lerp(-0.004, face, @plank) + @nail * 0.0012 * sqrt(clamp(1 - (dn / 0.005) ** 2, 0, 1))\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Door: height (metres) + masks"
   },
@@ -1735,7 +1740,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     2820,
-    1143
+    1168
    ],
    "size": [
     340,
@@ -1779,7 +1784,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     2820,
-    1821
+    1846
    ],
    "size": [
     340,
@@ -1830,7 +1835,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 63,
@@ -1864,7 +1869,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ncr = @cr\n# stained softwood, one tone per plank; darker latewood lines, pores, knots\nwood = lerp(set(0.44, 0.29, 0.17), set(0.58, 0.40, 0.25), cr)\nwood = wood * (1 - 0.30 * @late) * (1 - 0.12 * @pores) * (1 + 0.05 * fbm(8, 2, 1.1 + cr * 50, 3))\nwood = lerp(wood, set(0.24, 0.14, 0.08), @knot * 0.85)\n# weathering: sun-greyed patches, darker grime in the joints\nwood = lerp(wood, set(0.52, 0.49, 0.44), 0.35 * smoothstep(0.3, 1.8, fbm(3, 2, 7.4, 3)))\nwood = lerp(set(0.10, 0.07, 0.05), wood, @plank)\n# nails: dark steel heads, a rust halo, and a rust run below each nail\nnu = (@pu - 0.5) / 8\nnvb = where(abs(frac(@v) - 0.15) < abs(frac(@v) - 0.65), frac(@v) - 0.15, frac(@v) - 0.65)\nrun = (1 - smoothstep(0.002, 0.005, abs(nu))) * smoothstep(-0.07, -0.004, nvb) * where(nvb < 0, 1.0, 0.0)\nhalo = 1 - smoothstep(0.005, 0.011, @dn)\nrust = clamp(halo * 0.7 + run * 0.45 * (0.6 + 0.4 * fbm(16, 64, 9.3, 2)), 0, 1)\nc = lerp(wood, set(0.38, 0.19, 0.08), rust)\nc = lerp(c, set(0.22, 0.22, 0.23), @nail)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.72 - 0.06 * @late, @plank) + 0.15 * rust, 0, 1) * (1 - @nail) + 0.45 * @nail\n@metallic = @nail * 0.9\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Door: wooden planks -- colour / ORM"
   },
@@ -1873,7 +1879,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    550
+    575
    ],
    "size": [
     340,
@@ -1930,7 +1936,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    1028
+    1053
    ],
    "size": [
     340,
@@ -1987,7 +1993,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    1506
+    1531
    ],
    "size": [
     340,
@@ -2044,7 +2050,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    1984
+    2009
    ],
    "size": [
     340,
@@ -2101,7 +2107,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    2462
+    2487
    ],
    "size": [
     340,
@@ -2343,7 +2349,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 21,
@@ -2372,7 +2378,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nS = 2\n# seams at u = 0.25 / 0.75, so the tile border falls mid-pan (x = 0 / 1 is the seam centre)\nx = frac(@u * S + 0.5)\ndx = min(x, 1 - x) / S\n# standing seam: 25 mm tall, 20 mm wide, rounded cap; two shallow stiffening ribs in each pan; oil-canning waviness\n@seam = 1 - smoothstep(0.008, 0.011, dx)\ncap = sqrt(clamp(1 - (dx / 0.011) ** 2, 0, 1))\ndr = min(abs(x - 1 / 3), abs(x - 2 / 3)) / S\nrib = 0.0015 * (1 - smoothstep(0.002, 0.007, dr))\noil = 0.0008 * fbm(2, 3, 1.1, 3) * smoothstep(0.02, 0.08, dx)\n@height = 0.025 * cap ** 0.35 * @seam + rib + oil + 0.00003 * fbm(256, 256, 4.4, 2)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Roof: height (metres) + masks"
   },
@@ -2381,7 +2388,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4000,
-    1143
+    1168
    ],
    "size": [
     340,
@@ -2425,7 +2432,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4000,
-    1821
+    1846
    ],
    "size": [
     340,
@@ -2476,7 +2483,7 @@
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 64,
@@ -2510,7 +2517,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# chips: sharp-edged flakes, far more likely on the seam caps; a pale primer rim round each\nchn = fbm(24, 24, 7.7, 4) + 1.4 * @seam + 0.5 * fbm(4, 4, 3.0, 2)\nchip = smoothstep(1.85, 1.95, chn)\nrim = smoothstep(1.6, 1.85, chn) * (1 - chip)\n# paint: dark slate green, chalky sun-fading in big patches, dirt streaks running down the fall line\npaint = set(0.24, 0.33, 0.31) * (1 + 0.04 * fbm(32, 32, 2.2, 3))\npaint = lerp(paint, set(0.44, 0.49, 0.47), 0.45 * smoothstep(-0.5, 1.8, fbm(2, 3, 5.1, 3)))\nst = smoothstep(0.2, 1.8, fbm(64, 2, 5.5, 3))\npaint = paint * (1 - 0.16 * st)\nmetal = set(0.62, 0.63, 0.64) * (1 + 0.05 * fbm(48, 48, 6.3, 2))\nc = lerp(lerp(paint, set(0.58, 0.58, 0.55), rim), metal, chip)\n# rust: on part of the bare metal, plus thin rust runs in the streak lines of rustier regions\nrr = smoothstep(0.0, 1.2, fbm(40, 40, 3.3, 3))\nruns = smoothstep(1.1, 2.0, fbm(48, 3, 9.9, 3)) * smoothstep(0.3, 1.5, fbm(3, 3, 2.2, 2))\nrust = clamp(chip * rr + 0.6 * runs * (1 - chip), 0, 1)\nc = lerp(c, lerp(set(0.36, 0.17, 0.07), set(0.52, 0.28, 0.12), smoothstep(-1, 1, fbm(96, 96, 1.4, 2))), rust)\nc = c * lerp(0.8, 1.0, @ao_h)\n@ao = @ao_h\n@metallic = chip * (1 - rust)\n@roughness = clamp(lerp(0.52 + 0.15 * st, 0.32, chip) + 0.5 * rust, 0, 1)\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Roof: standing-seam roof -- colour / ORM"
   },
@@ -2519,7 +2527,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    550
+    575
    ],
    "size": [
     340,
@@ -2576,7 +2584,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    1028
+    1053
    ],
    "size": [
     340,
@@ -2633,7 +2641,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    1506
+    1531
    ],
    "size": [
     340,
@@ -2690,7 +2698,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    1984
+    2009
    ],
    "size": [
     340,
@@ -2747,7 +2755,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    2462
+    2487
    ],
    "size": [
     340,
@@ -2944,7 +2952,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     460,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -2985,11 +2993,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     460,
-    3653
+    3678
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 22,
@@ -3018,7 +3026,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n@pores = smoothstep(1.7, 2.3, fbm(180, 180, 5.2, 2))\n@height = 0.0003 * fbm(16, 16, 1.2, 4) + 0.0001 * fbm(256, 256, 3.4, 2) - 0.0007 * @pores\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Trim: height (metres) + masks"
   },
@@ -3027,7 +3036,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     460,
-    4203
+    4253
    ],
    "size": [
     340,
@@ -3071,7 +3080,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     460,
-    4881
+    4931
    ],
    "size": [
     340,
@@ -3118,11 +3127,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    3060
+    3085
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 65,
@@ -3156,7 +3165,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.80, 0.78, 0.72) * (1 + 0.035 * fbm(6, 6, 2.5, 4) + 0.02 * fbm(128, 128, 7.1, 2))\nc = lerp(c, c * 0.55, @pores)\n# rain-washed grime in vertical runs, heavier in a few places\ngrime = smoothstep(0.3, 2.2, fbm(12, 2, 8.6, 4)) * smoothstep(-0.8, 1.2, fbm(2, 2, 3.9, 2))\nc = lerp(c, set(0.50, 0.48, 0.44), 0.3 * grime)\nc = c * lerp(0.8, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.82 + 0.06 * fbm(32, 32, 1.8, 2) + 0.1 * @pores, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Trim: painted concrete trim -- colour / ORM"
   },
@@ -3165,7 +3175,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    3610
+    3660
    ],
    "size": [
     340,
@@ -3222,7 +3232,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    4088
+    4138
    ],
    "size": [
     340,
@@ -3279,7 +3289,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    4566
+    4616
    ],
    "size": [
     340,
@@ -3336,7 +3346,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    5044
+    5094
    ],
    "size": [
     340,
@@ -3393,7 +3403,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    5522
+    5572
    ],
    "size": [
     340,
@@ -3450,7 +3460,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     1220,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -3562,7 +3572,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    3612
+    3637
    ],
    "size": [
     340,
@@ -3590,7 +3600,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     1640,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -3631,11 +3641,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     1640,
-    3653
+    3678
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 23,
@@ -3664,7 +3674,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# float glass is almost flat: 0.1 mm long waves just break up reflections\n@height = 0.0001 * fbm(2, 3, 1.5, 3)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Glass: height (metres) + masks"
   },
@@ -3673,7 +3684,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     1640,
-    4203
+    4253
    ],
    "size": [
     340,
@@ -3717,7 +3728,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     1640,
-    4881
+    4931
    ],
    "size": [
     340,
@@ -3764,11 +3775,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2020,
-    3060
+    3085
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 66,
@@ -3802,7 +3813,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nfilm = smoothstep(0.2, 1.8, fbm(4, 4, 6.2, 4))\ndrip = smoothstep(1.2, 2.1, fbm(80, 3, 2.8, 3))\nsmudge = smoothstep(0.8, 2.0, fbm(20, 20, 9.4, 3))\ndirt = clamp(0.5 * film + 0.6 * drip, 0, 1)\nc = lerp(set(0.10, 0.13, 0.14), set(0.32, 0.30, 0.27), 0.4 * dirt)\n@ao = 1\n@roughness = clamp(0.04 + 0.35 * dirt + 0.12 * smudge, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Glass: window glass -- colour / ORM"
   },
@@ -3811,7 +3823,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    3610
+    3660
    ],
    "size": [
     340,
@@ -3868,7 +3880,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    4088
+    4138
    ],
    "size": [
     340,
@@ -3925,7 +3937,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    4566
+    4616
    ],
    "size": [
     340,
@@ -3982,7 +3994,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    5044
+    5094
    ],
    "size": [
     340,
@@ -4039,7 +4051,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    5522
+    5572
    ],
    "size": [
     340,
@@ -4096,7 +4108,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2400,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -4208,7 +4220,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    3612
+    3637
    ],
    "size": [
     340,
@@ -4236,7 +4248,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     2820,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -4277,11 +4289,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2820,
-    3653
+    3678
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 24,
@@ -4310,7 +4322,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# scratches: thin lines along a few directions. Directions use integer (a, b), so the rotated coordinates stay\n# periodic over the 1 m tile; each line is cut into short pieces by noise along it\nsc = 0\nfor k, (a, b, K) in enumerate(((1, 0, 23), (0, 1, 17), (1, 1, 19), (1, -1, 29), (2, 1, 13), (1, -2, 11))):\n    along = a * @u + b * @v\n    across = -b * @u + a * @v\n    q = across * K + 0.2 * (pnoise(set(along * 8, across * K, k * 3.1), set(8, K, 0)) - 0.5)\n    line = 1 - smoothstep(0.0, 0.0004 * K * sqrt(a * a + b * b), abs(frac(q) - 0.5))\n    seg = smoothstep(0.62, 0.70, pnoise(set(along * 24, across * K, k * 5.7 + 2), set(24, K, 0)))\n    sc = max(sc, line * seg)\n@scratch = sc\n@height = 0.00004 * fbm(220, 220, 3.3, 2) - 0.00008 * sc\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Metal: height (metres) + masks"
   },
@@ -4319,7 +4332,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     2820,
-    4203
+    4253
    ],
    "size": [
     340,
@@ -4363,7 +4376,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     2820,
-    4881
+    4931
    ],
    "size": [
     340,
@@ -4410,11 +4423,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3200,
-    3060
+    3085
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 67,
@@ -4448,7 +4461,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ncoat = set(0.18, 0.19, 0.20) * (1 + 0.05 * fbm(12, 12, 1.6, 3))\nscuff = smoothstep(0.6, 2.0, fbm(8, 8, 4.1, 4))\ncoat = lerp(coat, set(0.27, 0.28, 0.29), 0.6 * scuff)\nrust = smoothstep(2.0, 2.4, fbm(40, 40, 6.6, 3))\nc = lerp(coat, set(0.56, 0.57, 0.58), @scratch)\nc = lerp(c, set(0.38, 0.19, 0.09), rust)\n@ao = @ao_h\n@metallic = @scratch * (1 - rust)\n@roughness = clamp(lerp(lerp(0.45, 0.33, scuff), 0.3, @scratch) + 0.5 * rust, 0, 1)\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Metal: powder-coated steel -- colour / ORM"
   },
@@ -4457,7 +4471,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    3610
+    3660
    ],
    "size": [
     340,
@@ -4514,7 +4528,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    4088
+    4138
    ],
    "size": [
     340,
@@ -4571,7 +4585,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    4566
+    4616
    ],
    "size": [
     340,
@@ -4628,7 +4642,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    5044
+    5094
    ],
    "size": [
     340,
@@ -4685,7 +4699,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    5522
+    5572
    ],
    "size": [
     340,
@@ -4742,7 +4756,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3580,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -4854,7 +4868,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    3612
+    3637
    ],
    "size": [
     340,
@@ -4882,7 +4896,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     4000,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -4968,11 +4982,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4000,
-    3838
+    3863
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 25,
@@ -5001,7 +5015,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ngate = smoothstep(-0.2, 1.0, fbm(4, 4, 2.7, 3))\n@crack = (1 - smoothstep(0.3, 1.4, @pattern_edge)) * gate * smoothstep(-0.5, 0.8, fbm(32, 32, 4.4, 2))\n@flake = smoothstep(1.55, 1.65, fbm(12, 12, 8.1, 4) + 0.7 * gate)\n# brush marks run along the panel (u); paint is 0.25 mm thick where it flaked off\n@height = 0.00006 * fbm(4, 96, 5.3, 3) - 0.0002 * @crack - 0.00025 * @flake\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Sign: height (metres) + masks"
   },
@@ -5010,7 +5025,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4000,
-    4388
+    4438
    ],
    "size": [
     340,
@@ -5054,7 +5069,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4000,
-    5066
+    5116
    ],
    "size": [
     340,
@@ -5101,11 +5116,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4380,
-    3060
+    3085
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 68,
@@ -5139,7 +5154,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\npaint = set(0.74, 0.55, 0.24) * (1 + 0.04 * fbm(4, 96, 5.3, 3))\npaint = lerp(paint, set(0.80, 0.72, 0.56), 0.5 * smoothstep(-0.4, 1.8, fbm(2, 2, 6.8, 3)))\nc = lerp(paint, set(0.22, 0.18, 0.13), 0.75 * @crack)\nprimer = set(0.52, 0.52, 0.50) * (1 + 0.06 * fbm(64, 64, 1.9, 2))\nc = lerp(c, primer, @flake)\nc = c * lerp(0.8, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.5 + 0.2 * smoothstep(-0.4, 1.8, fbm(2, 2, 6.8, 3)) + 0.3 * @flake + 0.2 * @crack, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Sign: painted sign panel -- colour / ORM"
   },
@@ -5148,7 +5164,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    3610
+    3660
    ],
    "size": [
     340,
@@ -5205,7 +5221,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    4088
+    4138
    ],
    "size": [
     340,
@@ -5262,7 +5278,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    4566
+    4616
    ],
    "size": [
     340,
@@ -5319,7 +5335,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    5044
+    5094
    ],
    "size": [
     340,
@@ -5376,7 +5392,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    5522
+    5572
    ],
    "size": [
     340,
@@ -5433,7 +5449,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     4760,
-    3060
+    3085
    ],
    "size": [
     340,
@@ -5545,7 +5561,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    3612
+    3637
    ],
    "size": [
     340,
@@ -5573,7 +5589,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     460,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -5659,11 +5675,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     460,
-    6848
+    6898
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 26,
@@ -5692,7 +5708,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# Height in metres (1024 px = 1 m; Height to Normal / AO use Strength 1, World Size 1, so the relief is real size)\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.37)\n# chipped, irregular arrises: the brick outline is eaten back 0.5-3 mm by coarse noise, more on some bricks\nee = e - clamp(0.0006 + 0.0010 * r2 + 0.0008 * fbm(48, 48, 3.1, 3), 0, 0.004)\n@brick = smoothstep(-0.0004, 0.0006, ee)\n# brick face: 3 mm rounded arris (quarter circle), a slight random tilt per brick, undulation, sand-struck pits\nt = clamp(ee / 0.003, 0, 1)\narris = -0.003 * (1 - sqrt(1 - (1 - t) ** 2))\ntilt = 0.0015 * ((@pattern_uv.x - 0.5) * (rand(@pattern_id + 0.11) - 0.5) + (@pattern_uv.y - 0.5) * (rand(@pattern_id + 0.23) - 0.5))\npits = -0.0012 * smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\nface = arris + tilt + 0.0005 * fbm(8, 8, 1.7, 4) + 0.00012 * fbm(256, 256, 2.9, 2) + pits\n@pits = smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\n# joint: struck 7 mm back from the face, sandy\nmortar = -0.007 + 0.0003 * fbm(160, 160, 9.1, 3)\n@height = lerp(mortar, face, @brick)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_BrickBuff: height (metres) + masks"
   },
@@ -5701,7 +5718,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     460,
-    7398
+    7473
    ],
    "size": [
     340,
@@ -5745,7 +5762,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     460,
-    8076
+    8151
    ],
    "size": [
     340,
@@ -5792,11 +5809,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    6120
+    6170
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 69,
@@ -5830,7 +5847,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.37)\nr3 = rand(@pattern_id + 0.71)\n# yellow-grey stock bricks, a few purple-brown and orange ones mixed in\nbody = lerp(set(0.62, 0.53, 0.38), set(0.76, 0.67, 0.50), r)\nbody = where(r2 > 0.965, lerp(set(0.46, 0.36, 0.30), set(0.55, 0.42, 0.33), r3), body)\nbody = where(r2 < 0.03, set(0.72, 0.50, 0.33), body)\nm = fbm(16, 16, 2.3, 4)\nbody = body * (1 + 0.08 * m)\nbody = lerp(body, set(0.20, 0.17, 0.14), 0.6 * smoothstep(2.0, 2.6, fbm(320, 320, 7.7, 2)))\nbody = lerp(body, body * 0.75, @pits)\nmortar = set(0.66, 0.64, 0.60) * (1 + 0.06 * fbm(96, 96, 8.8, 3))\nc = lerp(mortar, body, @brick)\n# city soot: broad dark patches, heavier on some bricks\nsoot = smoothstep(0.4, 2.0, fbm(3, 3, 6.1, 3)) * (0.6 + 0.4 * r3)\nc = lerp(c, c * 0.45, 0.55 * soot)\nc = c * lerp(0.72, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.86 + 0.04 * m, @brick) + 0.08 * @pits, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_BrickBuff: buff brick wall -- colour / ORM"
   },
@@ -5839,7 +5857,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    6670
+    6745
    ],
    "size": [
     340,
@@ -5896,7 +5914,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    7148
+    7223
    ],
    "size": [
     340,
@@ -5953,7 +5971,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    7626
+    7701
    ],
    "size": [
     340,
@@ -6010,7 +6028,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    8104
+    8179
    ],
    "size": [
     340,
@@ -6067,7 +6085,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    8582
+    8657
    ],
    "size": [
     340,
@@ -6124,7 +6142,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     1220,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -6236,7 +6254,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    6672
+    6722
    ],
    "size": [
     340,
@@ -6264,7 +6282,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     1640,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -6350,11 +6368,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     1640,
-    6898
+    6948
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 27,
@@ -6383,7 +6401,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ngate = smoothstep(0.9, 1.8, fbm(3, 3, 5.5, 3))\n@crack = (1 - smoothstep(0.2, 1.2, @pattern_edge)) * gate * smoothstep(-0.4, 0.9, fbm(24, 24, 1.1, 2))\n@spall = smoothstep(2.05, 2.2, fbm(3, 3, 3.3, 5) + 0.35 * fbm(24, 24, 6.2, 2))\ntrowel = 0.0008 * fbm(4, 4, 2.2, 3) + 0.00025 * fbm(32, 32, 7.4, 3) + 0.00006 * fbm(256, 256, 9.9, 2)\n@height = trowel - 0.0004 * @crack - 0.006 * @spall\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Stucco: height (metres) + masks"
   },
@@ -6392,7 +6411,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     1640,
-    7448
+    7523
    ],
    "size": [
     340,
@@ -6436,7 +6455,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     1640,
-    8126
+    8201
    ],
    "size": [
     340,
@@ -6483,11 +6502,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2020,
-    6120
+    6170
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 70,
@@ -6521,7 +6540,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\npaint = set(0.84, 0.77, 0.63) * (1 + 0.04 * fbm(3, 3, 4.6, 3) + 0.015 * fbm(64, 64, 2.7, 2))\n# old coats of paint showing through where the top coat weathered thin\npaint = lerp(paint, set(0.80, 0.70, 0.62), 0.45 * smoothstep(0.6, 2.0, fbm(6, 6, 8.3, 4)))\nbase = set(0.58, 0.54, 0.47) * (1 + 0.12 * fbm(48, 48, 1.5, 3))   # the grey lime render under the paint\nc = lerp(paint, set(0.60, 0.56, 0.50), 0.12 * @crack)\nc = lerp(c, base, @spall)\nstreak = smoothstep(0.2, 2.0, fbm(16, 1, 6.9, 4)) * smoothstep(-0.6, 1.0, fbm(2, 2, 1.7, 2))\nc = lerp(c, set(0.42, 0.40, 0.36), 0.35 * streak)\nc = c * lerp(0.78, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.88 + 0.06 * fbm(16, 16, 3.1, 2) + 0.06 * @spall, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Stucco: painted render -- colour / ORM"
   },
@@ -6530,7 +6550,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    6670
+    6745
    ],
    "size": [
     340,
@@ -6587,7 +6607,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    7148
+    7223
    ],
    "size": [
     340,
@@ -6644,7 +6664,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    7626
+    7701
    ],
    "size": [
     340,
@@ -6701,7 +6721,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    8104
+    8179
    ],
    "size": [
     340,
@@ -6758,7 +6778,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    8582
+    8657
    ],
    "size": [
     340,
@@ -6815,7 +6835,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2400,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -6927,7 +6947,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    6672
+    6722
    ],
    "size": [
     340,
@@ -6955,7 +6975,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     2820,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -7041,11 +7061,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2820,
-    6898
+    6948
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 28,
@@ -7074,7 +7094,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nagg = fbm(160, 160, 2.1, 2)\n@stone = smoothstep(0.9, 1.8, agg)\n@seal = (1 - smoothstep(0.5, 3.0, @pattern_edge)) * smoothstep(0.3, 1.2, fbm(3, 3, 4.2, 3))\n@height = 0.0015 * @stone + 0.0004 * fbm(48, 48, 6.6, 2) - 0.001 * smoothstep(1.6, 2.2, -agg) + 0.0004 * @seal\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Ground_Asphalt: height (metres) + masks"
   },
@@ -7083,7 +7104,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     2820,
-    7448
+    7523
    ],
    "size": [
     340,
@@ -7127,7 +7148,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     2820,
-    8126
+    8201
    ],
    "size": [
     340,
@@ -7174,11 +7195,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3200,
-    6120
+    6170
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 71,
@@ -7212,7 +7233,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.25, 0.25, 0.245) * (1 + 0.08 * fbm(8, 8, 1.4, 3))\n# aggregate: light and dark stones, some worn to their colour on top\nc = lerp(c, set(0.37, 0.36, 0.35), 0.5 * @stone * smoothstep(-0.5, 1.5, fbm(320, 320, 8.8, 2)))\nc = lerp(c, set(0.08, 0.08, 0.08), 0.6 * smoothstep(1.7, 2.3, fbm(220, 220, 3.9, 2)))\n# sun-bleached surface in big soft patches, oil drips, black tar on the sealed cracks\nc = lerp(c, set(0.36, 0.36, 0.35), 0.4 * smoothstep(-0.5, 1.8, fbm(2, 2, 7.2, 3)))\noil = smoothstep(1.6, 2.3, fbm(6, 6, 9.4, 3))\nc = lerp(c, set(0.10, 0.10, 0.11), 0.5 * oil)\nc = lerp(c, set(0.04, 0.04, 0.04), 0.9 * @seal)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.9 - 0.25 * @stone * 0.5 - 0.35 * oil - 0.3 * @seal, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Ground_Asphalt: asphalt -- colour / ORM"
   },
@@ -7221,7 +7243,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    6670
+    6745
    ],
    "size": [
     340,
@@ -7278,7 +7300,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    7148
+    7223
    ],
    "size": [
     340,
@@ -7335,7 +7357,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    7626
+    7701
    ],
    "size": [
     340,
@@ -7392,7 +7414,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    8104
+    8179
    ],
    "size": [
     340,
@@ -7449,7 +7471,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3200,
-    8582
+    8657
    ],
    "size": [
     340,
@@ -7506,7 +7528,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3580,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -7618,7 +7640,7 @@
    "type": "PreviewImage",
    "pos": [
     3580,
-    6672
+    6722
    ],
    "size": [
     340,
@@ -7646,7 +7668,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     4000,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -7732,11 +7754,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4000,
-    6898
+    6948
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 29,
@@ -7765,7 +7787,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nagg = fbm(160, 160, 2.1, 2)\n@stone = smoothstep(0.9, 1.8, agg)\n@seal = (1 - smoothstep(0.5, 3.0, @pattern_edge)) * smoothstep(0.3, 1.2, fbm(3, 3, 4.2, 3))\n@height = 0.0015 * @stone + 0.0004 * fbm(48, 48, 6.6, 2) - 0.001 * smoothstep(1.6, 2.2, -agg) + 0.0004 * @seal\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_RoofFlat: height (metres) + masks"
   },
@@ -7774,7 +7797,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4000,
-    7448
+    7523
    ],
    "size": [
     340,
@@ -7818,7 +7841,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4000,
-    8126
+    8201
    ],
    "size": [
     340,
@@ -7865,11 +7888,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4380,
-    6120
+    6170
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 72,
@@ -7903,7 +7926,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.36, 0.36, 0.35) * (1 + 0.07 * fbm(8, 8, 2.4, 3))\nc = lerp(c, set(0.52, 0.51, 0.49), 0.5 * @stone)\npond = smoothstep(0.6, 2.0, fbm(2, 2, 5.1, 3))\nc = lerp(c, set(0.24, 0.24, 0.23), 0.45 * pond)\nc = lerp(c, set(0.16, 0.16, 0.16), 0.9 * @seal)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.92 - 0.2 * pond, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_RoofFlat: bitumen roofing -- colour / ORM"
   },
@@ -7912,7 +7936,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    6670
+    6745
    ],
    "size": [
     340,
@@ -7969,7 +7993,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    7148
+    7223
    ],
    "size": [
     340,
@@ -8026,7 +8050,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    7626
+    7701
    ],
    "size": [
     340,
@@ -8083,7 +8107,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    8104
+    8179
    ],
    "size": [
     340,
@@ -8140,7 +8164,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4380,
-    8582
+    8657
    ],
    "size": [
     340,
@@ -8197,7 +8221,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     4760,
-    6120
+    6170
    ],
    "size": [
     340,
@@ -8309,7 +8333,7 @@
    "type": "PreviewImage",
    "pos": [
     4760,
-    6672
+    6722
    ],
    "size": [
     340,
@@ -8337,7 +8361,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     460,
-    9180
+    9255
    ],
    "size": [
     340,
@@ -8378,11 +8402,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     460,
-    9773
+    9848
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 30,
@@ -8411,7 +8435,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nx = @u\ny = @v\nwin = smoothstep(0.0, 0.004, min(min(x - 0.31, 0.69 - x), min(y - 0.26, 0.84 - y)))\nframe = smoothstep(0.0, 0.004, min(min(x - 0.29, 0.71 - x), min(y - 0.24, 0.86 - y))) * (1 - win)\nmull = (1 - smoothstep(0.004, 0.008, abs(x - 0.5))) * win\nband = smoothstep(0.0, 0.004, y - 0.955)\nsill = smoothstep(0.0, 0.003, min(min(x - 0.28, 0.72 - x), min(y - 0.215, 0.24 - y)))\n@win = win * (1 - mull)\n@frame = clamp(frame + mull, 0, 1)\n@band = band\n# metres: window glass 15 cm back, frame 10 cm back, sill and band 4 cm proud\n@height = -0.15 * @win - 0.1 * @frame + 0.04 * clamp(band + sill, 0, 1) + 0.0006 * fbm(8, 7, 2.2, 3)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_FacadeFar: height (metres) + masks"
   },
@@ -8420,7 +8445,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     460,
-    10323
+    10423
    ],
    "size": [
     340,
@@ -8464,7 +8489,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     460,
-    11001
+    11101
    ],
    "size": [
     340,
@@ -8511,11 +8536,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    9180
+    9255
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 73,
@@ -8549,7 +8574,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nwall = set(0.66, 0.60, 0.51)\nc = wall * (1 + 0.05 * fbm(8, 7, 4.4, 3))\nc = lerp(c, set(0.82, 0.80, 0.75), @band)\n# glass: dark with a lighter sky reflection toward the top, some windows lit warm or with curtains\nglass = lerp(set(0.07, 0.09, 0.11), set(0.20, 0.24, 0.28), smoothstep(0.3, 0.85, @v))\nc = lerp(c, set(0.86, 0.85, 0.82), @frame)\nc = lerp(c, glass, @win)\nc = c * lerp(0.7, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.85 - 0.75 * @win - 0.2 * @frame, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_FacadeFar: facade bay, render -- colour / ORM"
   },
@@ -8558,7 +8584,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    9730
+    9830
    ],
    "size": [
     340,
@@ -8615,7 +8641,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    10208
+    10308
    ],
    "size": [
     340,
@@ -8672,7 +8698,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    10686
+    10786
    ],
    "size": [
     340,
@@ -8729,7 +8755,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    11164
+    11264
    ],
    "size": [
     340,
@@ -8786,7 +8812,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     840,
-    11642
+    11742
    ],
    "size": [
     340,
@@ -8843,7 +8869,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     1220,
-    9180
+    9255
    ],
    "size": [
     340,
@@ -8955,7 +8981,7 @@
    "type": "PreviewImage",
    "pos": [
     1220,
-    9732
+    9807
    ],
    "size": [
     340,
@@ -8983,7 +9009,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     1640,
-    9180
+    9255
    ],
    "size": [
     340,
@@ -9024,11 +9050,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     1640,
-    9773
+    9848
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 31,
@@ -9057,7 +9083,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nx = @u\ny = @v\nwin = smoothstep(0.0, 0.004, min(min(x - 0.31, 0.69 - x), min(y - 0.26, 0.84 - y)))\nframe = smoothstep(0.0, 0.004, min(min(x - 0.29, 0.71 - x), min(y - 0.24, 0.86 - y))) * (1 - win)\nmull = (1 - smoothstep(0.004, 0.008, abs(x - 0.5))) * win\nband = smoothstep(0.0, 0.004, y - 0.955)\nsill = smoothstep(0.0, 0.003, min(min(x - 0.28, 0.72 - x), min(y - 0.215, 0.24 - y)))\n@win = win * (1 - mull)\n@frame = clamp(frame + mull, 0, 1)\n@band = band\n# metres: window glass 15 cm back, frame 10 cm back, sill and band 4 cm proud\n@height = -0.15 * @win - 0.1 * @frame + 0.04 * clamp(band + sill, 0, 1) + 0.0006 * fbm(8, 7, 2.2, 3)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_FacadeFarBrick: height (metres) + masks"
   },
@@ -9066,7 +9093,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     1640,
-    10323
+    10423
    ],
    "size": [
     340,
@@ -9110,7 +9137,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     1640,
-    11001
+    11101
    ],
    "size": [
     340,
@@ -9157,11 +9184,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2020,
-    9180
+    9255
    ],
    "size": [
     340,
-    506
+    531
    ],
    "flags": {},
    "order": 74,
@@ -9195,7 +9222,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nwall = set(0.52, 0.30, 0.22)\nc = wall * (1 + 0.05 * fbm(8, 7, 4.4, 3))\nc = lerp(c, set(0.82, 0.80, 0.75), @band)\n# glass: dark with a lighter sky reflection toward the top, some windows lit warm or with curtains\nglass = lerp(set(0.07, 0.09, 0.11), set(0.20, 0.24, 0.28), smoothstep(0.3, 0.85, @v))\nc = lerp(c, set(0.86, 0.85, 0.82), @frame)\nc = lerp(c, glass, @win)\nc = c * lerp(0.7, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.85 - 0.75 * @win - 0.2 * @frame, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_FacadeFarBrick: facade bay, brick -- colour / ORM"
   },
@@ -9204,7 +9232,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    9730
+    9830
    ],
    "size": [
     340,
@@ -9261,7 +9289,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    10208
+    10308
    ],
    "size": [
     340,
@@ -9318,7 +9346,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    10686
+    10786
    ],
    "size": [
     340,
@@ -9375,7 +9403,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    11164
+    11264
    ],
    "size": [
     340,
@@ -9432,7 +9460,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2020,
-    11642
+    11742
    ],
    "size": [
     340,
@@ -9489,7 +9517,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2400,
-    9180
+    9255
    ],
    "size": [
     340,
@@ -9601,7 +9629,7 @@
    "type": "PreviewImage",
    "pos": [
     2400,
-    9732
+    9807
    ],
    "size": [
     340,

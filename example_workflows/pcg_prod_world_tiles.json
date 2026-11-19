@@ -101,7 +101,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 66,
@@ -130,7 +130,8 @@
     "# island outline: distance from the centre, pushed in and out by two scales of noise (bays, headlands)\ndx = @u - 0.5\ndy = @v - 0.5\nr = sqrt(dx * dx + dy * dy) * 2\ncoast = 0.78 + 0.45 * (noise(set(@u * 2.3, @v * 2.3, 1.7)) - 0.5) + 0.16 * (noise(set(@u * 7, @v * 7, 5.2)) - 0.5)\nland = smoothstep(0.0, 0.10, coast - r)\n# the sea is the rivers' base level (Stream Power's Outlet Layer)\n@sea = 1 - smoothstep(0.0, 0.004, coast - r)\n# uplift: a ridged spine (the main range) with spurs, massifs on it, low toward the coast\nw1 = 0.6 * (noise(set(@u * 2.0, @v * 2.0, 7.7)) - 0.5)\nrn = 1 - abs(2 * noise(set(@u * 2.2 + w1, @v * 2.2 - w1, 3.1)) - 1)\nrn2 = 1 - abs(2 * noise(set(@u * 5.5 + w1, @v * 5.5, 8.8)) - 1)\npk = noise(set(@u * 3.1, @v * 3.1, 9.4))\n@up = land * (0.15 + 0.9 * rn ** 3 + 0.25 * rn2 ** 2 + 0.6 * smoothstep(0.45, 0.8, pk)) * smoothstep(0.0, 0.5, coast - r + 0.15)\n# rock (Stream Power's Erodibility Layer): hard cores and dykes stand as crags and cliffs (K x 0.6), soft basins\n# wear into broad low valleys (K x 1.5)\nhard = smoothstep(0.58, 0.68, noise(set(@u * 5, @v * 5, 2.2)))\ndyke = smoothstep(0.93, 0.97, 1 - abs(2 * noise(set(@u * 4 + 0.5 * w1, @v * 9, 6.6)) - 1))\nsoft = smoothstep(0.55, 0.68, noise(set(@u * 3.3, @v * 3.3, 4.4)))\n@kk = lerp(lerp(1.0, 1.5, soft), 0.6, max(hard, dyke))\n@land = land\n@C = lerp(-0.012, 0.004 + 0.01 * @C, land)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Island outline + uplift map"
   },
@@ -139,7 +140,7 @@
    "type": "PCG_COPStreamPower",
    "pos": [
     0,
-    3096
+    3121
    ],
    "size": [
     360,
@@ -402,7 +403,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 234,
@@ -431,7 +432,8 @@
     "# buttresses and couloirs down the steep faces: sharp ridged noise across the slope (120 m and 45 m apart),\n# stretched down it, up to ~25 m deep -- a steady-state slope is otherwise one smooth plane\nx = @u * 4100\ny = @v * 4100\nhm = @C * 2048\ngl = sqrt(@Nd.x * @Nd.x + @Nd.y * @Nd.y) + 1e-4\ns = (x * (0 - @Nd.y) + y * @Nd.x) / gl\nrib = 1 - abs(2 * noise(set(s / 120, hm / 260, 3.7)) - 1)\nrib2 = 1 - abs(2 * noise(set(s / 45, hm / 110, 8.1)) - 1)\nface = smoothstep(0.12, 0.35, 1 - @Nd.z) * @land\n@C = @C + (25 * (rib * rib - 0.4) + 10 * (rib2 * rib2 - 0.4)) / 2048 * face\n# hollows (60-150 m), rock roughness (10-50 m), on the land only; and a copy of the height for the mask blend\nn1 = noise(set(@u * 34, @v * 34, 1.1)) - 0.5\nn2 = noise(set(@u * 90, @v * 90, 2.3)) - 0.5\nn3 = noise(set(@u * 220, @v * 220, 4.7)) - 0.5\n@C = @C + (0.006 * n1 + 0.0025 * n2 + 0.001 * n3) * @land\n# the same rock for the water as for the rivers: HeightField Erode's hardness (0-1) from Stream Power's K\n@hard = clamp((1.5 - @kk) * 0.65, 0, 0.6)\n@pre = @C",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Buttresses and rock roughness"
   },
@@ -440,7 +442,7 @@
    "type": "PCG_COPErosion",
    "pos": [
     420,
-    3310
+    3335
    ],
    "size": [
     360,
@@ -498,11 +500,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     420,
-    4353
+    4378
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 241,
@@ -531,7 +533,8 @@
     "@C = lerp(@pre, @C, @land)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Gullies on the land only"
   },
@@ -540,7 +543,7 @@
    "type": "PCG_COPHeightfieldErode",
    "pos": [
     420,
-    4923
+    4973
    ],
    "size": [
     360,
@@ -611,7 +614,7 @@
    "type": "PCG_COPNoise",
    "pos": [
     420,
-    5857
+    5907
    ],
    "size": [
     360,
@@ -677,7 +680,7 @@
    "type": "PCG_COPDistort",
    "pos": [
     420,
-    7239
+    7289
    ],
    "size": [
     360,
@@ -726,7 +729,7 @@
    "type": "PCG_COPHeightfieldErode",
    "pos": [
     420,
-    7888
+    7938
    ],
    "size": [
     360,
@@ -797,11 +800,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     420,
-    8822
+    8872
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 249,
@@ -830,7 +833,8 @@
     "@flow = max(@flow, @flow2)\n@sediment = @sediment + @sediment2\n@debris = @debris + @debris2",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Masks of both passes"
   },
@@ -839,7 +843,7 @@
    "type": "PCG_COPFlowAccumulation",
    "pos": [
     420,
-    9392
+    9467
    ],
    "size": [
     360,
@@ -945,7 +949,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 255,
@@ -974,7 +978,8 @@
     "# river beds: cut 1.5-5 m into the valley floor, deeper and wider for larger catchments, with soft banks\nbig = smoothstep(0.003, 0.05, @catchment)\nbed = smoothstep(0.05, 0.3, @river + 0.12 * big * @river / (@river + 0.02))\n@bed = bed * @land\n@C = @C - (1.5 + 3.5 * big) / 2048 * @bed",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Cut the river beds"
   },
@@ -983,7 +988,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    1124
+    1149
    ],
    "size": [
     360,
@@ -1028,11 +1033,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    1822
+    1847
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 257,
@@ -1062,7 +1067,8 @@
     "hm = @C * 2048\nbig = smoothstep(0.003, 0.05, @catchment)\n@d_lake = smoothstep(0.5, 0.8, @bed) * smoothstep(0.03, 0.3, big) * smoothstep(12, 30, hm) * (1 - smoothstep(150, 220, hm)) * @land\n# the lakes' layers start empty (with no site there is nothing to draw)\n@lk = 0 * @C\n@lkl = 0 * @C\n@lkl_lk_h = 0 * @C",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Lake sites: trunk rivers on valley floors"
   },
@@ -1071,7 +1077,7 @@
    "type": "PCG_COPLayerToPoints",
    "pos": [
     840,
-    2392
+    2442
    ],
    "size": [
     360,
@@ -1126,7 +1132,7 @@
    "type": "PCG_AdaptivePrune",
    "pos": [
     840,
-    2815
+    2865
    ],
    "size": [
     360,
@@ -1178,7 +1184,7 @@
    "type": "PCG_Sort",
    "pos": [
     840,
-    3108
+    3158
    ],
    "size": [
     360,
@@ -1255,7 +1261,7 @@
    "type": "PCG_Blast",
    "pos": [
     840,
-    3406
+    3456
    ],
    "size": [
     360,
@@ -1296,7 +1302,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    3586
+    3636
    ],
    "size": [
     360,
@@ -1355,7 +1361,7 @@
    "type": "PCG_Circle",
    "pos": [
     840,
-    3877
+    3927
    ],
    "size": [
     360,
@@ -1407,7 +1413,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    4224
+    4274
    ],
    "size": [
     360,
@@ -1465,7 +1471,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    4515
+    4565
    ],
    "size": [
     360,
@@ -1520,7 +1526,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    4934
+    4984
    ],
    "size": [
     360,
@@ -1573,7 +1579,7 @@
    "type": "PCG_Line",
    "pos": [
     840,
-    5702
+    5752
    ],
    "size": [
     360,
@@ -1613,7 +1619,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    5907
+    5957
    ],
    "size": [
     360,
@@ -1668,7 +1674,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    6326
+    6376
    ],
    "size": [
     360,
@@ -1721,7 +1727,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     840,
-    7094
+    7144
    ],
    "size": [
     360,
@@ -1761,7 +1767,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    7623
+    7673
    ],
    "size": [
     360,
@@ -1802,11 +1808,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    8177
+    8227
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 340,
@@ -1835,7 +1841,8 @@
     "L = @lkl_lk_h / 2048\nm = smoothstep(0.3, 0.7, @lk)\n# the dam: round the outline, where the ground is below the level\nring = smoothstep(0.02, 0.15, @lakeo) * (1 - m)\n@C = lerp(@C, max(@C, L + 0.8 / 2048), ring * where(@lkl > 0.5, 1.0, 0.0))\n# the lake bed: what lies below the level inside the outline, up to 5 m deeper away from the shore\nunder = where(@C < L, 1.0, 0.0) * m\n@C = @C - 5.0 / 2048 * smoothstep(0.0, 3.0 / 2048, L - @C) * under\n@lakew = smoothstep(0.0, 0.3 / 2048, L - @C) * m\n@bed = max(@bed, @lakew)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Lakes: flood, deepen, dam"
   },
@@ -1844,11 +1851,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    8747
+    8822
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 344,
@@ -1880,7 +1887,8 @@
     "hm = @C * 2048\nflat = 1 - smoothstep(0.015, 0.06, 1 - @Nr.z)\nlow = smoothstep(4, 12, hm) * (1 - smoothstep(60, 150, hm))\n@d_town = flat * low * @land * (1 - smoothstep(0.05, 0.3, @bed))\n# no road below 2 m: the beach and the sea\n@noroad = max(@sea, 1 - smoothstep(1.0, 2.5, hm))",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Town sites: flat, low, dry"
   },
@@ -1889,7 +1897,7 @@
    "type": "PCG_COPLayerToPoints",
    "pos": [
     840,
-    9317
+    9417
    ],
    "size": [
     360,
@@ -1944,7 +1952,7 @@
    "type": "PCG_AdaptivePrune",
    "pos": [
     840,
-    9740
+    9840
    ],
    "size": [
     360,
@@ -1999,7 +2007,7 @@
    "type": "PCG_COPRoadNetwork",
    "pos": [
     840,
-    10033
+    10133
    ],
    "size": [
     360,
@@ -2071,7 +2079,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    10553
+    10653
    ],
    "size": [
     360,
@@ -2124,7 +2132,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    11321
+    11421
    ],
    "size": [
     360,
@@ -2177,7 +2185,7 @@
    "type": "PCG_Circle",
    "pos": [
     840,
-    12089
+    12189
    ],
    "size": [
     360,
@@ -2229,7 +2237,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    12436
+    12536
    ],
    "size": [
     360,
@@ -2289,7 +2297,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    12727
+    12827
    ],
    "size": [
     360,
@@ -2344,7 +2352,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    13146
+    13246
    ],
    "size": [
     360,
@@ -2398,7 +2406,7 @@
    "type": "PCG_Resample",
    "pos": [
     840,
-    13914
+    14014
    ],
    "size": [
     360,
@@ -2460,7 +2468,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    14567
+    14667
    ],
    "size": [
     360,
@@ -2518,7 +2526,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     840,
-    14858
+    14958
    ],
    "size": [
     360,
@@ -2585,7 +2593,7 @@
    "type": "PCG_PolyCut",
    "pos": [
     840,
-    15463
+    15563
    ],
    "size": [
     360,
@@ -2644,7 +2652,7 @@
    "type": "PCG_PolyCut",
    "pos": [
     840,
-    15713
+    15813
    ],
    "size": [
     360,
@@ -2702,7 +2710,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     840,
-    15963
+    16063
    ],
    "size": [
     360,
@@ -2742,7 +2750,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    16492
+    16592
    ],
    "size": [
     360,
@@ -2783,7 +2791,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     840,
-    17046
+    17146
    ],
    "size": [
     360,
@@ -2823,7 +2831,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    17575
+    17675
    ],
    "size": [
     360,
@@ -2865,7 +2873,7 @@
    "type": "PCG_Resample",
    "pos": [
     840,
-    18129
+    18229
    ],
    "size": [
     360,
@@ -2927,7 +2935,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    18782
+    18882
    ],
    "size": [
     360,
@@ -2985,7 +2993,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     840,
-    19073
+    19173
    ],
    "size": [
     360,
@@ -3051,7 +3059,7 @@
    "type": "PCG_Blast",
    "pos": [
     840,
-    19678
+    19778
    ],
    "size": [
     360,
@@ -3092,7 +3100,7 @@
    "type": "PCG_AdaptivePrune",
    "pos": [
     840,
-    19858
+    19958
    ],
    "size": [
     360,
@@ -3146,7 +3154,7 @@
    "type": "PCG_Line",
    "pos": [
     840,
-    20151
+    20251
    ],
    "size": [
     360,
@@ -3187,7 +3195,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    20356
+    20456
    ],
    "size": [
     360,
@@ -3245,7 +3253,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    20647
+    20747
    ],
    "size": [
     360,
@@ -3300,7 +3308,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    21066
+    21166
    ],
    "size": [
     360,
@@ -3358,7 +3366,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    21357
+    21457
    ],
    "size": [
     360,
@@ -3413,7 +3421,7 @@
    "type": "PCG_Merge",
    "pos": [
     840,
-    21776
+    21876
    ],
    "size": [
     360,
@@ -3475,7 +3483,7 @@
    "type": "PCG_Resample",
    "pos": [
     840,
-    21986
+    22086
    ],
    "size": [
     360,
@@ -3537,7 +3545,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    22533
+    22633
    ],
    "size": [
     360,
@@ -3595,7 +3603,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     840,
-    22824
+    22924
    ],
    "size": [
     360,
@@ -3661,7 +3669,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     840,
-    23429
+    23529
    ],
    "size": [
     360,
@@ -3708,7 +3716,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     840,
-    23709
+    23809
    ],
    "size": [
     360,
@@ -3755,7 +3763,7 @@
    "type": "PCG_Blast",
    "pos": [
     840,
-    23989
+    24089
    ],
    "size": [
     360,
@@ -3802,7 +3810,7 @@
    "type": "PCG_Circle",
    "pos": [
     840,
-    24169
+    24269
    ],
    "size": [
     360,
@@ -3854,7 +3862,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     840,
-    24516
+    24616
    ],
    "size": [
     360,
@@ -3910,7 +3918,7 @@
    "type": "PCG_Merge",
    "pos": [
     840,
-    24935
+    25035
    ],
    "size": [
     360,
@@ -3972,7 +3980,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    25145
+    25245
    ],
    "size": [
     360,
@@ -4025,7 +4033,7 @@
    "type": "PCG_AttribBlur",
    "pos": [
     840,
-    25913
+    26013
    ],
    "size": [
     360,
@@ -4071,7 +4079,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     840,
-    26227
+    26327
    ],
    "size": [
     360,
@@ -4130,7 +4138,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     840,
-    26518
+    26618
    ],
    "size": [
     360,
@@ -4183,7 +4191,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     840,
-    27286
+    27386
    ],
    "size": [
     360,
@@ -4223,7 +4231,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    27815
+    27915
    ],
    "size": [
     360,
@@ -4264,7 +4272,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    28369
+    28469
    ],
    "size": [
     360,
@@ -4305,11 +4313,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    28923
+    29023
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 430,
@@ -4357,7 +4365,8 @@
     "# the road bed (the ground smoothed along the road) replaces the ground in the corridor, blending out over\n# the cut and fill slopes; the sea is left alone\nm = smoothstep(0.2, 0.85, @rdw) * @land\nml = smoothstep(0.1, 0.45, @lnw) * (1 - m) * @land\n@C = lerp(@C, @rdw_road_h / 2048, m)\n@C = lerp(@C, @lnw_lane_h / 2048, ml)\n@st = max(@rdw, @lnb)\n# the lanes and squares are paved too (the Road weight), on the ground as it is\n@road = max(@road, 0.9 * @lane) * @land",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Cut the roads into the ground"
   },
@@ -7671,7 +7680,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 534,
@@ -7700,7 +7709,8 @@
     "m = smoothstep(0.2, 0.85, @rdw) * @land\nml = smoothstep(0.1, 0.45, @lnw) * (1 - m) * @land * (1 - smoothstep(0.15, 0.5, @pad))\n@C = lerp(@C, @lnw_lane_h / 2048, ml)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Lanes over the pads' edges"
   },
@@ -7709,7 +7719,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3520,
-    22528
+    22553
    ],
    "size": [
     360,
@@ -7768,7 +7778,7 @@
    "type": "PCG_BuildingGenerator",
    "pos": [
     3520,
-    22819
+    22844
    ],
    "size": [
     360,
@@ -7857,7 +7867,7 @@
    "type": "PCG_BuildingGenerator",
    "pos": [
     3520,
-    24493
+    24518
    ],
    "size": [
     360,
@@ -7946,7 +7956,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3520,
-    26167
+    26192
    ],
    "size": [
     360,
@@ -8004,7 +8014,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3520,
-    26458
+    26483
    ],
    "size": [
     360,
@@ -8062,7 +8072,7 @@
    "type": "PCG_Fuse",
    "pos": [
     3520,
-    26749
+    26774
    ],
    "size": [
     360,
@@ -8139,7 +8149,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3520,
-    27190
+    27215
    ],
    "size": [
     360,
@@ -8197,7 +8207,7 @@
    "type": "PCG_Merge",
    "pos": [
     3520,
-    27481
+    27506
    ],
    "size": [
     360,
@@ -8259,7 +8269,7 @@
    "type": "PCG_LODCreate",
    "pos": [
     3520,
-    27691
+    27716
    ],
    "size": [
     360,
@@ -8325,7 +8335,7 @@
    "type": "PCG_Transform",
    "pos": [
     3520,
-    28233
+    28258
    ],
    "size": [
     360,
@@ -8386,7 +8396,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     3520,
-    28640
+    28665
    ],
    "size": [
     360,
@@ -8435,7 +8445,7 @@
    "type": "PCG_Circle",
    "pos": [
     3520,
-    29181
+    29206
    ],
    "size": [
     360,
@@ -8487,7 +8497,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3520,
-    29528
+    29553
    ],
    "size": [
     360,
@@ -8542,7 +8552,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3520,
-    29947
+    29972
    ],
    "size": [
     360,
@@ -8595,7 +8605,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     3520,
-    30715
+    30740
    ],
    "size": [
     360,
@@ -8636,7 +8646,7 @@
    "type": "PCG_COPNoise",
    "pos": [
     3520,
-    31269
+    31294
    ],
    "size": [
     360,
@@ -8702,11 +8712,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3520,
-    32576
+    32601
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 68,
@@ -8735,7 +8745,8 @@
     "T = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 4, 4, 4, 4, 4, 4, 4, 0, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3], [0, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2], [0, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2], [0, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2], [0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2], [0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 2, 2, 2, 2, 2], [0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0], [0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1], [0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1], [0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 1, 1, 1, 1, 1], [0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1], [0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1], [0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1], [0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1]])\nPAL = np.array([[0.3, 0.38, 0.17], [0.62, 0.55, 0.3], [0.32, 0.44, 0.15], [0.38, 0.45, 0.21], [0.42, 0.33, 0.23]])\nk = T[23 - floor(@v * 24).astype(int), floor(@u * 24).astype(int)]\n@C = PAL[k]\n",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Field sample: parcels and margins (one pixel = 32 m)"
   },
@@ -8744,7 +8755,7 @@
    "type": "PCG_COPWFC",
    "pos": [
     3520,
-    33146
+    33196
    ],
    "size": [
     360,
@@ -8810,7 +8821,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     3520,
-    34168
+    34218
    ],
    "size": [
     360,
@@ -8856,11 +8867,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    29493
+    29618
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 543,
@@ -8889,7 +8900,8 @@
     "@Cb = @C",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Height copy for the broad slope"
   },
@@ -8898,7 +8910,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     840,
-    30063
+    30213
    ],
    "size": [
     360,
@@ -8939,7 +8951,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    30617
+    30767
    ],
    "size": [
     360,
@@ -8984,7 +8996,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    31315
+    31465
    ],
    "size": [
     360,
@@ -9029,7 +9041,7 @@
    "type": "PCG_COPCurvature",
    "pos": [
     840,
-    32013
+    32163
    ],
    "size": [
     360,
@@ -9075,11 +9087,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    32710
+    32860
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 574,
@@ -9127,7 +9139,8 @@
     "hm = @C * 2048\ntn = normalize(set(@N.x, @N.z, -@N.y))\n@tn = tn\n# the up-ness the materials read: mostly the broad slope (Nb), a little of the 4 m one\n@upb = lerp(@N.z, @Nb.z, 0.7)\n# (the broad slope is gentler than the 4 m one: the thresholds below match the old shares of rock and soil)\nsteep = 1 - @upb\nwet = clamp(@flow, 0, 1) * @land\nhn = clamp(hm / (@C.max() * 2048), 0, 1)\n@hn = hn\n# water: the sea (below 0 m), and the trunk rivers (largest catchments) inside their beds\nsea = 1 - smoothstep(-0.6, 0.3, hm)\nbig = smoothstep(0.003, 0.05, @catchment)\nriv = max(@bed * smoothstep(0.25, 0.7, big), @lakew)\nwater = clamp(max(sea, riv), 0, 1)\n# the fields: crops round the towns where the ground is gentle (the margins, field_id 0, stay grass)\nfieldw = @farm * (1 - @town) * (1 - smoothstep(0.02, 0.06, steep)) * (1 - water) * clamp(@field_id, 0, 1)\npad = smoothstep(0.35, 0.9, @pad)\n# cliffs: above ~55 degrees everywhere; from ~45 degrees on in patches (bare outcrops in the grass)\ncliff = max(smoothstep(0.23, 0.34, steep), smoothstep(0.13, 0.2, steep) * smoothstep(0.5, 0.65, noise(set(@u * 40, @v * 40, 2.2)) + 0.2 * (noise(set(@u * 140, @v * 140, 5.5)) - 0.5)))\n# sand: the beach (0-4 m above the sea, gentle), dry river beds and gravel bars\nbeach = (1 - smoothstep(2.5, 6.0, hm + 2.0 * (noise(set(@u * 25, @v * 25, 7.1)) - 0.5))) * (1 - smoothstep(0.065, 0.1, steep))\nsand = clamp(max(beach, @bed * (1 - smoothstep(0.25, 0.7, big))), 0, 1)\n# scree: what slumped (debris), below the cliffs\nscree = smoothstep(0.0006, 0.003, @debris) * (1 - cliff)\n# woodland: valleys and lower slopes where water collects, in clumps; not on cliffs, sand or scree\nsoil = (1 - cliff) * (1 - sand) * (1 - scree) * (1 - smoothstep(0.16, 0.27, steep))\ncl_ = 0.55 * noise(set(@u * 6, @v * 6, 1.7)) + 0.25 * noise(set(@u * 26, @v * 26, 4.2)) + 0.45 * wet - 0.35 * hn + 0.06\nclump = smoothstep(0.5, 0.62, cl_)\n# the same clumps with a wide, soft edge: the band where the forest thins out into the open\nwoodsoft = smoothstep(0.36, 0.72, cl_)\n# the fields are cleared of woodland (their margins keep it: hedgerows and copses)\nwood = clamp(soil * clump, 0, 1) * (1 - fieldw)\n# layer the seven weights: each takes its share of what the ones above left; the road first (fords and\n# bridges cross the rivers), then water\nroad = clamp(@road, 0, 1)\n@Road = road\nrem = 1 - road\n@Water = rem * water\nrem = rem * (1 - water)\n@Sand = rem * sand\nrem = rem * (1 - sand)\n@Rock = rem * cliff\nrem = rem * (1 - cliff)\n@Sediment = rem * scree\nrem = rem * (1 - scree)\n@ForestFloor = rem * wood\n@Grass = rem * (1 - wood)\n# the verges are kept clear (the cut and fill corridor)\n# ... and so are the fields and the building lots\nclear = (1 - smoothstep(0.05, 0.4, @rdw)) * (1 - 0.85 * @town) * (1 - fieldw) * (1 - pad) * (1 - @lane)\n# orchards in the ring round each town (gentle, dry ground that is not a field or a lot), planted in rows\norch = smoothstep(0.12, 0.3, @tring) * (1 - smoothstep(0.3, 0.6, @town)) * (1 - smoothstep(0.03, 0.08, steep)) * (1 - water) * (1 - fieldw) * clear\n@d_orchard = orch\n# hedgerows along the field margins\n@d_hedge = @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1)) * (1 - smoothstep(0.02, 0.06, steep)) * (1 - water) * (1 - orch) * clear\n# the forest edge is feathered, not a cut: trees thin out over the soft band, broken up by noise; and the\n# tree line: fewer trees up high (they are also smaller there, see the trees Wrangle)\nfeather = soil * woodsoft * (1 - fieldw) * (1 - water) * smoothstep(0.25, 0.75, noise(set(@u * 90, @v * 90, 8.8)) + 0.5 * woodsoft - 0.25)\ntreeline = 1 - 0.85 * smoothstep(0.3, 0.65, hn)\n@treeline = treeline\n@d_tree = (max(@ForestFloor, 0.55 * feather) + 0.03 * @Grass * (1 - smoothstep(0.5, 0.7, hn))) * clear * (1 - orch) * treeline\nedge_ = wood * (1 - wood) * 4\n# shrubs in a belt round the woodland (the soft band's middle): the edge from forest to meadow\nbelt = woodsoft * (1 - woodsoft) * 4 * soil * (1 - water) * (1 - fieldw)\n@belt = belt\n# understory: ferns and low shrubs under the trees, in patches\n@d_under = @ForestFloor * clear * (1 - orch) * smoothstep(0.3, 0.6, noise(set(@u * 60, @v * 60, 9.4))) * treeline\n@d_bush = @Grass * (0.3 * edge_ + 0.3 * wet + 0.35 * smoothstep(0.55, 0.8, hn) + 0.6 * @farm * (1 - @town) * (1 - clamp(@field_id, 0, 1))) * smoothstep(0.35, 0.65, noise(set(@u * 23, @v * 23, 5.3))) * clear\n@d_bush = @d_bush + 0.8 * belt * clear * (1 - orch)\n@d_rock = (0.5 * @Sediment + 0.25 * @Rock * (1 - 0.6 * @Rock) + 0.1 * @Sand * @bed) * clear\n@wet = wet\n# colour (display values, made linear at the end)\nrv = noise(set(@u * 9, @v * 9, 2.6))\n# bedding on a tilted plane (as on the 1 m surface), faint: level bands would ring every peak\nbedd = 0.5 + 0.5 * sin((hm + 820 * @u - 450 * @v) / 7 + 9 * noise(set(@u * 3, @v * 3, 6.1)))\nrock = lerp(set(0.30, 0.29, 0.26), set(0.52, 0.51, 0.48), rv) * (0.88 + 0.14 * bedd)\nrock = lerp(rock, rock * set(1.06, 0.98, 0.88), smoothstep(0.55, 0.8, noise(set(@u * 4, hm / 40, 3.3))))\nrock = rock * (1 - 0.45 * smoothstep(0.3, 0.9, wet))\n# a colour map out of the erosion masks (as in Project Pegasus): ridges and edges lighter, hollows darker\nconv = smoothstep(-0.06, 0.06, @curv)\nrock = rock * (0.78 + 0.4 * conv)\nscreec = set(0.58, 0.55, 0.50) * (0.88 + 0.24 * noise(set(@u * 80, @v * 80, 3.9)))\nsandc = lerp(set(0.66, 0.60, 0.47), set(0.50, 0.46, 0.38), @bed) * (0.92 + 0.16 * noise(set(@u * 50, @v * 50, 8.1)))\nsandc = lerp(sandc, sandc * 0.72, 1 - smoothstep(0.0, 1.2, hm))\n# grass: lush in the valleys, dry yellow-green on sunny ridges, olive heath on the high ground\ndry = clamp(0.6 * smoothstep(0.4, 0.8, noise(set(@u * 7, @v * 7, 4.4))) + 0.4 * steep * 4 - 0.9 * wet, 0, 1)\ngrass = lerp(set(0.17, 0.29, 0.09), set(0.36, 0.40, 0.17), dry)\ngrass = lerp(grass, set(0.33, 0.36, 0.20), smoothstep(0.55, 0.85, hn + 0.15 * (noise(set(@u * 12, @v * 12, 9.9)) - 0.5)))\ngrass = grass * (0.86 + 0.28 * noise(set(@u * 45, @v * 45, 7.7)))\n# darker in the gullies (damp soil, shade-loving plants): the drainage pattern reads in the colour too\ngrass = grass * (1 - 0.28 * smoothstep(0.35, 0.9, wet))\n# spurs dry and pale, hollows damp and dark; fresh sediment (the fans the water laid down) a pale silt-green\ngrass = lerp(grass * set(0.86, 0.92, 0.86), grass * set(1.12, 1.08, 0.9), conv)\ngrass = lerp(grass, set(0.46, 0.45, 0.30), 0.55 * smoothstep(0.003, 0.012, @sediment))\n# the crops (a little mottled), and trodden ground on the building lots\ngrass = lerp(grass, @field * (0.9 + 0.2 * noise(set(@u * 200, @v * 200, 3.7))), 0.85 * fieldw)\ngrass = lerp(grass, set(0.46, 0.41, 0.33), 0.7 * pad)\nwoodc = set(0.15, 0.21, 0.09) * (0.85 + 0.3 * noise(set(@u * 60, @v * 60, 1.3)))\ndeep = smoothstep(0.0, -14.0, hm)\nwaterc = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nwaterc = lerp(waterc, set(0.10, 0.19, 0.21), riv)\nroadc = set(0.60, 0.53, 0.41) * (0.9 + 0.2 * noise(set(@u * 300, @v * 300, 6.4)))\nc = grass * @Grass + woodc * @ForestFloor + screec * @Sediment + rock * @Rock + sandc * @Sand + waterc * @Water + roadc * @Road\n@albedo = (c * (0.95 + 0.1 * noise(set(@u * 150, @v * 150, 2.2)))) ** 2.2\n# the grass and rock colours on their own, for the 1 m surface textures\n@grass_c = grass\n@fieldw = fieldw\n@rock_c = rock\n",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Ecology: seven weight layers + scatter densities"
   },
@@ -9140,7 +9153,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 580,
@@ -9169,7 +9182,8 @@
     "p = max(max(clamp(@road * 2, 0, 1), @lane), max(max(@pad, @bed), max(@lakew, 1 - @land)))\n@prot = clamp(p, 0, 1)\n@hardf = clamp(max(@hard, @prot), 0, 1)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Fine pass: what it must not touch (roads, lots, beds, lakes, sea)"
   },
@@ -9178,7 +9192,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     2100,
-    4970
+    4995
    ],
    "size": [
     360,
@@ -9218,7 +9232,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     2100,
-    5499
+    5524
    ],
    "size": [
     360,
@@ -9259,7 +9273,7 @@
    "type": "PCG_COPResize",
    "pos": [
     2100,
-    6053
+    6078
    ],
    "size": [
     360,
@@ -9301,11 +9315,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2100,
-    6607
+    6632
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 653,
@@ -9334,7 +9348,8 @@
     "@C0 = @C\n@prot = clamp(2 * @prot, 0, 1)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Fine pass: the start kept; the kept ground whole to its edge"
   },
@@ -9343,7 +9358,7 @@
    "type": "PCG_COPHeightfieldErode",
    "pos": [
     2100,
-    7177
+    7227
    ],
    "size": [
     360,
@@ -9414,11 +9429,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2100,
-    8111
+    8161
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 681,
@@ -9452,7 +9467,8 @@
     "@C = lerp(@C, @C0, @prot)\n@dlt = @C - @C0\n@wear = clamp(0 - @dlt, 0, 1) * 2048\n@sedf = @sedf * (1 - @prot)\n@debf = @debf * (1 - @prot)\n@flowf = @flowf * (1 - @prot)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Fine pass: the kept ground back; the change and the wear (m)"
   },
@@ -9461,7 +9477,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     2100,
-    8681
+    8756
    ],
    "size": [
     360,
@@ -9501,7 +9517,7 @@
    "type": "PCG_COPResize",
    "pos": [
     2100,
-    9210
+    9285
    ],
    "size": [
     360,
@@ -9543,7 +9559,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     2100,
-    9764
+    9839
    ],
    "size": [
     360,
@@ -9589,11 +9605,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2100,
-    10338
+    10413
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 738,
@@ -9625,7 +9641,8 @@
     "@C = @C + @dlt",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "The 4 m height with the fine pass's change"
   },
@@ -10198,7 +10215,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 761,
@@ -10227,7 +10244,8 @@
     "@rd = max(max(@rd, 0.85 * @rdl), @rds)\n# streets positive, lanes negative\n@rdk = @rds - @rdl * (1 - @rds)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Lanes, streets and squares join the road surface; the class in one layer"
   },
@@ -10236,7 +10254,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    8319
+    8344
    ],
    "size": [
     360,
@@ -10276,7 +10294,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
-    8848
+    8873
    ],
    "size": [
     360,
@@ -10329,7 +10347,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3100,
-    9616
+    9641
    ],
    "size": [
     360,
@@ -10387,7 +10405,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3100,
-    9907
+    9932
    ],
    "size": [
     360,
@@ -10445,7 +10463,7 @@
    "type": "PCG_Merge",
    "pos": [
     3100,
-    10198
+    10223
    ],
    "size": [
     360,
@@ -10507,7 +10525,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
-    10408
+    10433
    ],
    "size": [
     360,
@@ -10560,7 +10578,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
-    11176
+    11201
    ],
    "size": [
     360,
@@ -10614,11 +10632,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    11944
+    11969
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 770,
@@ -10647,7 +10665,8 @@
     "# the 1 m surface: crisp material edges, rock strata and joints, rills, mottled grass; a detail height for the normal map\nx = @u * 4100\ny = @v * 4100\nhm = @Ce * 2048\n# the erosion filter's rills and spurs (metres): what it cut or left above the 4 m surface\nero = (@Ce - @C) * 2048\nn4 = noise(set(x / 4, y / 4, 1.3))\nn15 = noise(set(x / 15, y / 15, 2.9))\nn50 = noise(set(x / 50, y / 50, 4.1))\n# joint cracks (cell edges of a Worley pattern), only in patches\ncrk = (1 - smoothstep(0.0, 0.12, (@cr + 1) * 0.5)) * smoothstep(0.45, 0.6, n15)\n# streaks and ribs down the faces: noise stretched along six fixed directions, each pixel taking the ones nearest\n# its downhill direction (a per-pixel frame degenerates round a cone-shaped peak: the streaks became rings)\nth = atan2(@N.y, @N.x)\nst = 0 * x\nrib = 0 * x\nws = 0 * x + 1e-6\nfor k, a in enumerate((0.0, 0.5236, 1.0472, 1.5708, 2.0944, 2.618)):\n    w = pow(clamp(1 - abs(sin(th - a)) / 0.5, 0, 1), 2)\n    sg = x * cos(a) + y * sin(a)\n    sc = y * cos(a) - x * sin(a)\n    st = st + w * noise(set(sc / 4, sg / 14, 5.5 + k))\n    rib = rib + w * (1 - abs(2 * noise(set(sc / 9, sg / 28, 7.3 + k)) - 1))\n    ws = ws + w\nst = st / ws\nrib = rib / ws\n# crisp outcrops: the rock weight pushed past a ragged threshold; spurs (ero > 0) shed their soil first\nland = 1 - @Water\nrk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n# the fine pass (2 m), as Gaea colours by its erosion masks: rock bared where the water wore the slope down,\n# scree where slopes slumped, gravel and silt where the water dropped material, damper grass along its flow\nwearm = smoothstep(0.3, 1.5, @wear) * smoothstep(0.12, 0.3, 1 - @upb)\ndepm = smoothstep(0.15, 1.2, @sedf * 2048) * (1 - smoothstep(0.25, 0.45, 1 - @upb))\ndebm = smoothstep(0.1, 0.8, @debf * 2048)\nrk = max(rk, 0.85 * wearm * land * (1 - @Water))\nk = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\nsd = @Sand * k\nsc = @Sediment * k\nff = @ForestFloor * k\ngr = @Grass * k\ndm_ = clamp(0.6 * depm + 0.8 * debm, 0, 1) * (1 - rk)\nsc = sc + (gr + ff) * dm_\ngr = gr * (1 - dm_)\nff = ff * (1 - dm_)\n# rock: beds of two thicknesses (5 m and 13 m, warped, terraced where the faces are hard), joint cracks, rough;\n# colour banded by bed, lichen on the tops, dark streaks down the faces\n# the beds lie on a tilted plane (dipping about 13 degrees), not on the contours: level beds drew rings round every\n# peak like the grain of a sawn log\nbedz = hm + 0.2 * x - 0.11 * y\nsp = (bedz + 18 * (n50 - 0.5) + 5 * (n15 - 0.5)) / 5\nband = sp - floor(sp)\nsp2 = (bedz + 30 * (n50 - 0.5)) / 13 + 0.37\nband2 = sp2 - floor(sp2)\nhard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\nterr = (5 * (smoothstep(0.1, 0.9, band) - band) * (0.3 + 0.7 * hard) + 9 * (smoothstep(0.2, 0.8, band2) - band2) * (1 - 0.6 * hard)) * 0.6\n# (the terraces stay in the colour only: in the relief they crossed the rills in zigzags on every face)\n# rock in four layers, as a terrain material is built: cliff faces (the steepest: cool and dark, with couloirs),\n# slabs (less steep: warm and lighter), moss on the flatter rock and the ledge tops, and stains hanging under the\n# ledges. One layer with streaks everywhere read as brushed metal\nslope = 1 - @upb\ncliffw = smoothstep(0.21, 0.43, slope + 0.12 * (n15 - 0.5))\n# couloirs in patches, not on every face\npatch = smoothstep(0.38, 0.62, n50 + 0.4 * (noise(set(x / 30, y / 30, 2.2)) - 0.5))\n# ledges: each 9 m bed crops out as a ledge over stretches of some 40-120 m (a noise of its own per bed), so the\n# beds break the faces up without ringing the peak\nbz = (bedz + 6 * (n50 - 0.5) + 2 * (n15 - 0.5)) / 9\nlb = bz - floor(bz)\nlat = smoothstep(0.5, 0.62, noise(set(x / 70, y / 70, floor(bz) * 2.3))) * (0.3 + 0.7 * hard)\nshelf = lb - smoothstep(0.84, 0.98, lb)\nlip = lat * smoothstep(0.86, 0.97, lb)\nunder = lat * smoothstep(0.35, 0.75, lb) * (1 - smoothstep(0.8, 0.88, lb))\n# crags: angular blocks, each a Worley cell with a facet plane of its own, dark joints between them, at 8 m and\n# 2.7 m -- the sharp-edged relief that keeps a face crisp from afar (smooth noise there reads as clay)\ncq = set(x / 8 + 0.6 * (n15 - 0.5), y / 8 + 0.6 * (n4 - 0.5))\ncw = worley(cq)\ncdv = worley_dir(cq)\nca = rand(cw.z * 13.1) * 2 * PI\nfacet = (cdv.x * cos(ca) + cdv.y * sin(ca)) * (0.25 + 0.3 * rand(cw.z * 7.7))\njoint = 1 - smoothstep(0.0, 0.07, cw.y - cw.x)\ncq2 = set(x / 2.7 + 0.4 * (n4 - 0.5), y / 2.7)\ncw2 = worley(cq2)\ncdv2 = worley_dir(cq2)\nca2 = rand(cw2.z * 5.3) * 2 * PI\nfacet2 = (cdv2.x * cos(ca2) + cdv2.y * sin(ca2)) * 0.3\njoint2 = 1 - smoothstep(0.0, 0.08, cw2.y - cw2.x)\ncragw = (0.45 + 0.55 * hard) * (0.5 + 0.5 * cliffw)\ncrag = (4.5 * facet + 2.0 * facet2 - 0.5 * joint - 0.2 * joint2) * cragw\ndr = (0 * terr - 0.8 * crk + 0.3 * (n4 - 0.5) + 0.6 * (n15 - 0.5) + crag\n      + (2.2 * rib * rib * patch + 0.5 * (st - 0.5)) * (0.35 + 0.65 * cliffw) + 3.5 * lat * shelf)\nbedc = 0.94 + 0.12 * noise(set(floor(sp) * 1.7, x / 300, 6.6))\nbase = @rock_c * bedc * (0.9 + 0.2 * n4) * (1 - 0.3 * crk)\n# large zones of warmer and cooler rock (100-300 m)\nzone = noise(set(x / 260, y / 260, 3.9))\nbase = lerp(base * set(0.93, 0.95, 1.02), base * set(1.08, 1.02, 0.9), smoothstep(0.35, 0.65, zone))\nbase = base * (0.84 + 0.32 * rand(cw.z * 3.3)) * (0.93 + 0.14 * rand(cw2.z * 2.1)) * (1 - 0.35 * joint * cragw)\ncliffc = base * set(0.8, 0.82, 0.86) * (0.78 + 0.44 * rib * patch)\nslabc = base * set(1.12, 1.06, 0.96) * (0.9 + 0.2 * n15)\nrock = lerp(slabc, cliffc, cliffw)\n# stains under the ledges, streaked down the face; the lips light\nrock = lerp(rock, rock * set(0.62, 0.6, 0.58), 0.4 * under * smoothstep(0.4, 0.65, st))\nrock = rock * (1 + 0.18 * lip)\n# moss and lichen on the flatter rock and the ledge tops, in patches\nmoss = clamp(smoothstep(0.86, 0.92, @upb + 0.1 * (n15 - 0.5)) + 0.8 * lip, 0, 1) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\nrock = lerp(rock, lerp(base, set(0.30, 0.36, 0.20), 0.7), 0.75 * moss)\nlich = smoothstep(0.62, 0.72, n4 + 0.4 * (n15 - 0.5)) * (1 - cliffw)\nrock = lerp(rock, set(0.62, 0.62, 0.52), 0.35 * lich)\nvarn = under\n# grass: mottled at 4 / 15 / 50 m, greener and darker in the rills, dry on the spurs, bare soil where the rill walls are steep\ng = @grass_c * (0.72 + 0.4 * n15 + 0.2 * n4)\ng = lerp(g, g * set(0.78, 0.9, 0.78), 0.5 * smoothstep(0.55, 0.95, @flowf))\n# patches of a cooler, darker green (fern, scrub) and of a warmer one, at 50 m\ng = lerp(g, g * set(0.75, 0.92, 0.85), smoothstep(0.55, 0.7, n50))\ng = lerp(g, g * set(1.1, 1.0, 0.8), smoothstep(0.55, 0.7, 1 - n50) * 0.6)\ng = lerp(g, g * set(1.06, 1.04, 0.9), smoothstep(0.5, 2.0, ero) * 0.3)\ng = lerp(g, g * set(0.82, 0.92, 0.8), smoothstep(-0.5, -2.0, ero) * 0.4)\nsoilc = set(0.42, 0.35, 0.26) * (0.85 + 0.3 * n4)\nbare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.07, 0.16, 1 - @upb) + 0.12 * ero) * (1 - @wet)\ng = lerp(g, soilc, 0.85 * bare)\ndg = 0.25 * (n4 - 0.5) + 0.15 * (n15 - 0.5)\n# forest floor, scree (stones and gaps), sand (wet at the waterline), water\nwood = set(0.14, 0.17, 0.08) * (0.75 + 0.5 * n4)\nstn = (@cr + 1) * 0.5\nscr = set(0.56, 0.53, 0.48) * (0.7 + 0.45 * smoothstep(0.0, 0.25, stn)) * (0.85 + 0.3 * n15)\ndsc = 0.35 * smoothstep(0.0, 0.3, stn)\nsand = lerp(set(0.68, 0.62, 0.49), set(0.40, 0.37, 0.31), @bed) * (0.92 + 0.12 * n4 + 0.08 * n15)\nsand = lerp(sand, sand * 0.68, 1 - smoothstep(0.0, 1.5, hm))\ndeep = smoothstep(0.0, -14.0, hm)\nwat = lerp(set(0.16, 0.36, 0.38), set(0.03, 0.10, 0.17), deep)\nc = rock * rk + g * gr + wood * ff + scr * sc + sand * sd + wat * @Water\n# the detail height (metres) for the normal map: rills strongest on soil, ledges and joints on rock\nem = 0.2 + 0.4 * smoothstep(0.3, 0.7, n50)\ndh = (em * ero * (1 - rk) * land + dr * rk + dg * gr + dsc * sc)\n# the relief of the fine pass between the 4 m mesh vertices (the meshes carry the rest)\ndh = dh + (@C - @C4) * 2048\n# rills a little darker than the spurs between them\nc = c * (1 + 0.04 * clamp(ero, -2, 2) * land)\n# the roads, drawn at 1 m (the Road weight at 4 m is only a blur here): the other layers fill the rest,\n# a worn verge, then packed dirt with gravel; flat in the normal map\nwsum = rk + gr + ff + sc + sd + @Water\nc = c / max(wsum, 0.05)\nverge = clamp(@rdv - @rd, 0, 1) * land\nc = lerp(c, c * set(0.9, 0.86, 0.78) + set(0.05, 0.04, 0.03), 0.6 * verge)\nroadc = set(0.60, 0.53, 0.41) * (0.82 + 0.22 * n4 + 0.12 * (crk - 0.3)) * (1 - 0.15 * @wet)\nc = lerp(c, roadc, @rd * land)\n# the town streets are paved with setts (no ruts, no crown); the lanes are a darker dirt track\npave = clamp(@rdk, 0, 1) * land\ntrk = clamp(0 - @rdk, 0, 1) * land\nc = lerp(c, set(0.40, 0.37, 0.30) * (0.85 + 0.2 * n4) * (1 - 0.15 * @wet), 0.8 * trk)\nc = lerp(c, set(0.50, 0.49, 0.46) * (0.88 + 0.16 * n4 + 0.1 * (crk - 0.3)), pave)\nruts = @ruts * @rd * land * (1 - pave)\nc = lerp(c, c * set(0.6, 0.56, 0.5), 0.9 * ruts)\ncrown = @crown * @rd * land * (1 - ruts) * (1 - pave)\nc = lerp(c, set(0.36, 0.40, 0.20) * (0.8 + 0.3 * n4), 0.75 * crown)\ndh = dh * (1 - @rdv * land) - 0.08 * ruts + 0.03 * crown\n# the shore: a wet, darker band where the land meets the water, and surf streaks along the sea line\nwetb = smoothstep(0.02, 0.3, @Water) * (1 - smoothstep(0.55, 0.85, @Water))\nc = c * (1 - 0.35 * wetb)\nfoam = (1 - smoothstep(0.0, 0.55, abs(hm - 0.1))) * smoothstep(0.45, 0.75, noise(set(x / 3, y / 1.2, 8.8)) + 0.35 * (noise(set(x / 11, y / 11, 9.9)) - 0.5))\nc = lerp(c, set(0.86, 0.89, 0.89), 0.75 * foam)\n@terrain_albedo = clamp(c, 0, 1) ** 2.2\n@dh = dh\n@terrain_rough = lerp(lerp(lerp(0.92 - 0.15 * @wet * rk, 0.35, 0.7 * wetb), 0.05, @Water), 0.85, @rd * land)\n",
     0,
     "{}",
-    32
+    32,
+    "auto"
    ],
    "title": "Surface: albedo, roughness, detail height"
   },
@@ -10656,7 +10675,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    12514
+    12564
    ],
    "size": [
     360,
@@ -10697,7 +10716,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
-    13043
+    13093
    ],
    "size": [
     360,
@@ -10743,11 +10762,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    13617
+    13667
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 744,
@@ -10776,7 +10795,8 @@
     "@C4 = @C",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "The meshes' 4 m height (C4)"
   },
@@ -10785,7 +10805,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    14187
+    14262
    ],
    "size": [
     360,
@@ -10825,7 +10845,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
-    14716
+    14791
    ],
    "size": [
     360,
@@ -10871,7 +10891,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    15290
+    15365
    ],
    "size": [
     360,
@@ -10920,7 +10940,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    15988
+    16063
    ],
    "size": [
     360,
@@ -10968,7 +10988,7 @@
    "type": "PCG_Grid",
    "pos": [
     3100,
-    16517
+    16592
    ],
    "size": [
     360,
@@ -11012,7 +11032,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3100,
-    16806
+    16881
    ],
    "size": [
     360,
@@ -11070,7 +11090,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     3100,
-    17097
+    17172
    ],
    "size": [
     360,
@@ -11136,7 +11156,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     3100,
-    17702
+    17777
    ],
    "size": [
     360,
@@ -11202,7 +11222,7 @@
    "type": "PCG_AttribFromMap",
    "pos": [
     3100,
-    18307
+    18382
    ],
    "size": [
     360,
@@ -11268,7 +11288,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3100,
-    18912
+    18987
    ],
    "size": [
     360,
@@ -11326,7 +11346,7 @@
    "type": "PCG_Normal",
    "pos": [
     3100,
-    19203
+    19278
    ],
    "size": [
     360,
@@ -11374,7 +11394,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3100,
-    19551
+    19626
    ],
    "size": [
     360,
@@ -11432,7 +11452,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    19842
+    19917
    ],
    "size": [
     360,
@@ -11472,7 +11492,7 @@
    "type": "PCG_COPResize",
    "pos": [
     3100,
-    20371
+    20446
    ],
    "size": [
     360,
@@ -11514,7 +11534,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    20925
+    21000
    ],
    "size": [
     360,
@@ -11554,7 +11574,7 @@
    "type": "PCG_COPResize",
    "pos": [
     3100,
-    21454
+    21529
    ],
    "size": [
     360,
@@ -11596,7 +11616,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
-    22008
+    22083
    ],
    "size": [
     360,
@@ -11649,7 +11669,7 @@
    "type": "PCG_COPRasterizeCurves",
    "pos": [
     3100,
-    22776
+    22851
    ],
    "size": [
     360,
@@ -11702,7 +11722,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
-    23544
+    23619
    ],
    "size": [
     360,
@@ -11748,11 +11768,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    24118
+    24193
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 781,
@@ -11781,7 +11801,8 @@
     "x = @u * 4100\ny = @v * 4100\nhm = @Ce * 2048\nero = (@Ce - @C) * 2048\nn4 = noise(set(x / 4, y / 4, 1.3))\nn15 = noise(set(x / 15, y / 15, 2.9))\nn50 = noise(set(x / 50, y / 50, 4.1))\nland = 1 - @Water\nrk = smoothstep(0.42, 0.58, @Rock + 0.55 * (n15 - 0.5) + 0.3 * (n4 - 0.5) + 0.06 * ero) * land\n# the fine pass's masks, as the surface uses them: rock where the water wore the slope, scree and gravel where\n# it dropped material\nwearm = smoothstep(0.3, 1.5, @wear) * smoothstep(0.12, 0.3, 1 - @upb)\ndepm = smoothstep(0.15, 1.2, @sedf * 2048) * (1 - smoothstep(0.25, 0.45, 1 - @upb))\ndebm = smoothstep(0.1, 0.8, @debf * 2048)\nrk = max(rk, 0.85 * wearm * land * (1 - @Water))\nk = where(land - @Rock > 1e-4, (land - rk) / max(land - @Rock, 1e-4), 0 * rk)\nsd = @Sand * k\nsc = @Sediment * k\nff = @ForestFloor * k\ngr = @Grass * k\ndm_ = clamp(0.6 * depm + 0.8 * debm, 0, 1) * (1 - rk)\nsc = sc + (gr + ff) * dm_\ngr = gr * (1 - dm_)\nff = ff * (1 - dm_)\nslope = 1 - @N.z\ncliffw = smoothstep(0.36, 0.56, slope + 0.12 * (n15 - 0.5))\nhard = smoothstep(0.35, 0.65, noise(set(x / 140, y / 140, hm / 60)))\n# moss on the flatter rock, in patches; in the grass where water collects\nmoss = smoothstep(0.72, 0.86, @N.z + 0.2 * (n15 - 0.5)) * smoothstep(0.4, 0.6, n4 + 0.3 * (n50 - 0.5))\nbare = smoothstep(0.62, 0.75, n15 + 0.35 * smoothstep(0.1, 0.3, 1 - @N.z) + 0.12 * ero) * (1 - @wet)\nverge = clamp(@rdv - @rd, 0, 1) * land\n# the roads by class: the town streets (setts), the lanes (a dirt track), the main roads (the rest)\nrdw_ = clamp(@rd, 0, 1) * land\nst_ = min(clamp(@rds, 0, 1) * land, rdw_)\nln_ = min(clamp(@rdl, 0, 1) * land, rdw_ - st_)\nmn_ = clamp(rdw_ - st_ - ln_, 0, 1)\nkeep = 1 - rdw_\n# grass: dry on sunny spurs and steep ground, lush where water collects, moss in the wettest hollows\ndryg = smoothstep(0.42, 0.68, 0.55 * n50 + 0.25 * n15 + 0.35 * smoothstep(0.3, 2.0, ero) + 0.6 * slope - 0.7 * @wet)\nmossg = 0.7 * smoothstep(0.35, 0.75, @wet)\ngrs = gr * (1 - bare)\nvg = 0.6 * verge\nw_lush = grs * (1 - dryg) * (1 - mossg) * (1 - vg)\nw_dry = grs * dryg * (1 - mossg) * (1 - vg)\nmossr = rk * moss * 0.8\nw_moss = grs * mossg + mossr\nw_soil = gr * bare + grs * (1 - mossg) * vg\n# crops where the fields are (the ecology's field weight): they take that share of the soft ground (grass,\n# moss, forest floor, soil, sediment), so the weights still sum as before\ncrop = clamp(@fieldw, 0, 1)\nw_crop = crop * (w_lush + w_dry + grs * mossg + ff + w_soil + sc)\nw_lush = w_lush * (1 - crop)\nw_dry = w_dry * (1 - crop)\nw_moss = grs * mossg * (1 - crop) + mossr\nff = ff * (1 - crop)\nw_soil = w_soil * (1 - crop)\nsc = sc * (1 - crop)\n# mud at the waterline and in the river beds; the rest of the sand stays sand\nw_mud = min(sd * (1 - smoothstep(0.0, 1.2, hm)) + 0.5 * sd * @bed, sd)\n# rock: cliff on the steepest, strata in patches of hard rock, slab on the rest\nrk2 = rk - mossr\nstrat = smoothstep(0.52, 0.66, noise(set(x / 180, y / 180, 12.7))) * (0.4 + 0.6 * hard)\n@terrain_w0 = set(w_lush, w_dry, w_moss, ff) * keep\n@terrain_w1 = set(w_soil, w_mud, sc, sd - w_mud) * keep\n@terrain_w2 = set(rk2 * cliffw * (1 - strat), rk2 * cliffw * strat, rk2 * (1 - cliffw), mn_ + 0 * x)\n@terrain_w3 = set(w_crop * keep, st_ + 0 * x, ln_ + 0 * x, 0 * x)\n",
     0,
     "{}",
-    128
+    128,
+    "auto"
    ],
    "title": "Splat weights: fifteen layers"
   },
@@ -11790,7 +11811,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     3100,
-    24688
+    24788
    ],
    "size": [
     360,
@@ -11836,11 +11857,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    25262
+    25362
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 789,
@@ -11869,7 +11890,8 @@
     "ref = @terrain_w0.x * set(0.0412, 0.0732, 0.0075) + @terrain_w0.y * set(0.0802, 0.1011, 0.0166) + @terrain_w0.z * set(0.0278, 0.0418, 0.0057) + @terrain_w0.w * set(0.0227, 0.0288, 0.0062)\nref = ref + @terrain_w1.x * set(0.1136, 0.101, 0.0333) + @terrain_w1.y * set(0.1344, 0.1075, 0.0646) + @terrain_w1.z * set(0.2002, 0.1807, 0.1374) + @terrain_w1.w * set(0.3702, 0.3113, 0.1822)\nref = ref + @terrain_w2.x * set(0.0554, 0.051, 0.042) + @terrain_w2.y * set(0.0561, 0.0494, 0.0371) + @terrain_w2.z * set(0.1423, 0.1174, 0.0742) + @terrain_w2.w * set(0.1433, 0.1123, 0.0554)\nref = ref + @terrain_w3.x * set(0.1602, 0.1668, 0.0368) + @terrain_w3.y * set(0.09, 0.0862, 0.079) + @terrain_w3.z * set(0.092, 0.088, 0.042)\nlw = @terrain_w0.x + @terrain_w0.y + @terrain_w0.z + @terrain_w0.w + @terrain_w1.x + @terrain_w1.y + @terrain_w1.z + @terrain_w1.w + @terrain_w2.x + @terrain_w2.y + @terrain_w2.z + @terrain_w2.w + @terrain_w3.x + @terrain_w3.y + @terrain_w3.z\nmac = clamp(@terrain_albedo * max(lw, 1e-4) / max(ref, 1e-4), 0.25, 4.0)\n@terrain_macro = lerp(set(1.0, 1.0, 1.0) + 0 * mac, mac, smoothstep(0.02, 0.2, lw))\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Macro map"
   },
@@ -11878,7 +11900,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    25832
+    25957
    ],
    "size": [
     360,
@@ -11929,7 +11951,7 @@
    "type": "PCG_COPCrop",
    "pos": [
     3100,
-    26361
+    26486
    ],
    "size": [
     360,
@@ -11981,11 +12003,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    27134
+    27259
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 782,
@@ -12014,7 +12036,8 @@
     "r = length(set(@u - 0.5, @v - 0.5)) * 280.3\ng = clamp((@Grass + 0.35 * @ForestFloor) * (1 - clamp(@rd, 0, 1)) * (1 - @Water), 0, 1)\n@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))\n# on the close-range ground: the meshes' 4 m height with the detail relief\n@Cdh = @C4 + @dh / 2048",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Grass density (tufts / 40 per m²)"
   },
@@ -12023,7 +12046,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    27704
+    27854
    ],
    "size": [
     360,
@@ -12080,7 +12103,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    28182
+    28332
    ],
    "size": [
     360,
@@ -12137,7 +12160,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    28660
+    28810
    ],
    "size": [
     360,
@@ -12194,7 +12217,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    29138
+    29288
    ],
    "size": [
     360,
@@ -12251,7 +12274,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    29616
+    29766
    ],
    "size": [
     360,
@@ -12308,7 +12331,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    30094
+    30244
    ],
    "size": [
     360,
@@ -12365,7 +12388,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    30572
+    30722
    ],
    "size": [
     360,
@@ -12422,7 +12445,7 @@
    "type": "PCG_COPNoise",
    "pos": [
     3100,
-    31110
+    31260
    ],
    "size": [
     360,
@@ -12488,7 +12511,7 @@
    "type": "PCG_COPGrungeLeakingStreaks",
    "pos": [
     3100,
-    32417
+    32567
    ],
    "size": [
     360,
@@ -12552,7 +12575,7 @@
    "type": "PCG_COPGrungeRust",
    "pos": [
     3100,
-    33647
+    33797
    ],
    "size": [
     360,
@@ -12614,7 +12637,7 @@
    "type": "PCG_COPGrungeMoisture",
    "pos": [
     3100,
-    34827
+    34977
    ],
    "size": [
     360,
@@ -12676,7 +12699,7 @@
    "type": "PCG_COPGrungeMoldSpots",
    "pos": [
     3100,
-    36007
+    36157
    ],
    "size": [
     360,
@@ -12738,7 +12761,7 @@
    "type": "PCG_COPGrungeLayeredNoise",
    "pos": [
     3100,
-    37187
+    37337
    ],
    "size": [
     360,
@@ -12801,7 +12824,7 @@
    "type": "PCG_COPGrungeSheets",
    "pos": [
     3100,
-    38392
+    38542
    ],
    "size": [
     360,
@@ -12863,11 +12886,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     3100,
-    39572
+    39722
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 235,
@@ -12896,7 +12919,8 @@
     "x = @u\ny = @v\n# GrassLush: clumps of blades, each turned its own way, over soil\nGrassLush_acc = set(0.0, 0.0, 0.0) + 0 * x\nGrassLush_h = 0 * x\nGrassLush_cov = 0 * x\nwc = pworley(set(x * 11, y * 11, 0.00), 11)\ndv = pworley_dir(set(x * 11, y * 11, 0.00), 11)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.08, set(0.5, 0.46, 0.27), lerp(set(0.24, 0.36, 0.11), set(0.33, 0.44, 0.15), rand(wc.z * 1.7))) * tip\nGrassLush_acc = lerp(GrassLush_acc, bc, b)\nGrassLush_h = max(GrassLush_h, 0.04 * b)\nGrassLush_cov = max(GrassLush_cov, b)\nwc = pworley(set(x * 17, y * 17, 1.30), 17)\ndv = pworley_dir(set(x * 17, y * 17, 1.30), 17)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.08, set(0.5, 0.46, 0.27), lerp(set(0.24, 0.36, 0.11), set(0.33, 0.44, 0.15), rand(wc.z * 1.7))) * tip\nGrassLush_acc = lerp(GrassLush_acc, bc, b)\nGrassLush_h = max(GrassLush_h, 0.04 * b)\nGrassLush_cov = max(GrassLush_cov, b)\nwc = pworley(set(x * 27, y * 27, 2.60), 27)\ndv = pworley_dir(set(x * 27, y * 27, 2.60), 27)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.08, set(0.5, 0.46, 0.27), lerp(set(0.24, 0.36, 0.11), set(0.33, 0.44, 0.15), rand(wc.z * 1.7))) * tip\nGrassLush_acc = lerp(GrassLush_acc, bc, b)\nGrassLush_h = max(GrassLush_h, 0.04 * b)\nGrassLush_cov = max(GrassLush_cov, b)\nwc = pworley(set(x * 41, y * 41, 3.90), 41)\ndv = pworley_dir(set(x * 41, y * 41, 3.90), 41)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.08, set(0.5, 0.46, 0.27), lerp(set(0.24, 0.36, 0.11), set(0.33, 0.44, 0.15), rand(wc.z * 1.7))) * tip\nGrassLush_acc = lerp(GrassLush_acc, bc, b)\nGrassLush_h = max(GrassLush_h, 0.04 * b)\nGrassLush_cov = max(GrassLush_cov, b)\nsn = pnoise(set(x * 40, y * 40, 8.80), 40)\nc = lerp(set(0.3, 0.24, 0.16) * (0.8 + 0.4 * sn), GrassLush_acc / max(GrassLush_cov, 1e-3), GrassLush_cov)\nc = c * (0.88 + 0.24 * pnoise(set(x * 3, y * 3, 9.40), 3))\n@lay_GrassLush = c\n@layh_GrassLush = GrassLush_h + 0.003 * sn\n@layr_GrassLush = 0.95 - 0.05 * GrassLush_cov\n# GrassDry: clumps of blades, each turned its own way, over soil\nGrassDry_acc = set(0.0, 0.0, 0.0) + 0 * x\nGrassDry_h = 0 * x\nGrassDry_cov = 0 * x\nwc = pworley(set(x * 11, y * 11, 20.00), 11)\ndv = pworley_dir(set(x * 11, y * 11, 20.00), 11)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.25, set(0.36, 0.42, 0.18), lerp(set(0.52, 0.48, 0.26), set(0.6, 0.54, 0.32), rand(wc.z * 1.7))) * tip\nGrassDry_acc = lerp(GrassDry_acc, bc, b)\nGrassDry_h = max(GrassDry_h, 0.04 * b)\nGrassDry_cov = max(GrassDry_cov, b)\nwc = pworley(set(x * 17, y * 17, 21.30), 17)\ndv = pworley_dir(set(x * 17, y * 17, 21.30), 17)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.25, set(0.36, 0.42, 0.18), lerp(set(0.52, 0.48, 0.26), set(0.6, 0.54, 0.32), rand(wc.z * 1.7))) * tip\nGrassDry_acc = lerp(GrassDry_acc, bc, b)\nGrassDry_h = max(GrassDry_h, 0.04 * b)\nGrassDry_cov = max(GrassDry_cov, b)\nwc = pworley(set(x * 27, y * 27, 22.60), 27)\ndv = pworley_dir(set(x * 27, y * 27, 22.60), 27)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.25, set(0.36, 0.42, 0.18), lerp(set(0.52, 0.48, 0.26), set(0.6, 0.54, 0.32), rand(wc.z * 1.7))) * tip\nGrassDry_acc = lerp(GrassDry_acc, bc, b)\nGrassDry_h = max(GrassDry_h, 0.04 * b)\nGrassDry_cov = max(GrassDry_cov, b)\nwc = pworley(set(x * 41, y * 41, 23.90), 41)\ndv = pworley_dir(set(x * 41, y * 41, 23.90), 41)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 28.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.25, set(0.36, 0.42, 0.18), lerp(set(0.52, 0.48, 0.26), set(0.6, 0.54, 0.32), rand(wc.z * 1.7))) * tip\nGrassDry_acc = lerp(GrassDry_acc, bc, b)\nGrassDry_h = max(GrassDry_h, 0.04 * b)\nGrassDry_cov = max(GrassDry_cov, b)\nsn = pnoise(set(x * 40, y * 40, 28.80), 40)\nc = lerp(set(0.4, 0.33, 0.22) * (0.8 + 0.4 * sn), GrassDry_acc / max(GrassDry_cov, 1e-3), GrassDry_cov)\nc = c * (0.88 + 0.24 * pnoise(set(x * 3, y * 3, 29.40), 3))\n@lay_GrassDry = c\n@layh_GrassDry = GrassDry_h + 0.003 * sn\n@layr_GrassDry = 0.95 - 0.05 * GrassDry_cov\n# Moss: clumps of blades, each turned its own way, over soil\nMoss_acc = set(0.0, 0.0, 0.0) + 0 * x\nMoss_h = 0 * x\nMoss_cov = 0 * x\nwc = pworley(set(x * 23, y * 23, 40.00), 23)\ndv = pworley_dir(set(x * 23, y * 23, 40.00), 23)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 12.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.1, set(0.4, 0.34, 0.2), lerp(set(0.17, 0.25, 0.09), set(0.28, 0.35, 0.13), rand(wc.z * 1.7))) * tip\nMoss_acc = lerp(Moss_acc, bc, b)\nMoss_h = max(Moss_h, 0.04 * b)\nMoss_cov = max(Moss_cov, b)\nwc = pworley(set(x * 37, y * 37, 41.30), 37)\ndv = pworley_dir(set(x * 37, y * 37, 41.30), 37)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 12.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.1, set(0.4, 0.34, 0.2), lerp(set(0.17, 0.25, 0.09), set(0.28, 0.35, 0.13), rand(wc.z * 1.7))) * tip\nMoss_acc = lerp(Moss_acc, bc, b)\nMoss_h = max(Moss_h, 0.04 * b)\nMoss_cov = max(Moss_cov, b)\nwc = pworley(set(x * 53, y * 53, 42.60), 53)\ndv = pworley_dir(set(x * 53, y * 53, 42.60), 53)\na = rand(wc.z * 7.3) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\nbl = smoothstep(0.48, 0.8, noise(set(lx * 12.0, ly * 2.2, wc.z * 97)))\nb = bl * (1 - smoothstep(0.25, 0.85, wc.x))\ntip = 0.75 + 0.5 * smoothstep(0.0, 0.8, 0 - ly)\nbc = where(rand(wc.z * 3.1) < 0.1, set(0.4, 0.34, 0.2), lerp(set(0.17, 0.25, 0.09), set(0.28, 0.35, 0.13), rand(wc.z * 1.7))) * tip\nMoss_acc = lerp(Moss_acc, bc, b)\nMoss_h = max(Moss_h, 0.04 * b)\nMoss_cov = max(Moss_cov, b)\nsn = pnoise(set(x * 40, y * 40, 48.80), 40)\nc = lerp(set(0.2, 0.17, 0.12) * (0.8 + 0.4 * sn), Moss_acc / max(Moss_cov, 1e-3), Moss_cov)\nc = c * (0.88 + 0.24 * pnoise(set(x * 3, y * 3, 49.40), 3))\n@lay_Moss = c\n@layh_Moss = Moss_h + 0.003 * sn\n@layr_Moss = 0.95 - 0.05 * Moss_cov\n# ForestFloor: three layers of overlapping leaves, twigs, dark soil\nc = set(0.24, 0.19, 0.14) * (0.8 + 0.4 * pnoise(set(x * 30, y * 30, 1.1), 30))\nhl = 0 * x\nwc = pworley(set(x * 30, y * 30, 0.4), 30)\ndv = pworley_dir(set(x * 30, y * 30, 0.4), 30)\na = rand(wc.z * 5.1) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\ns = 0.75 + 0.4 * rand(wc.z * 2.3)\nr = sqrt(pow(lx / (0.62 * s), 2) + pow(ly / (0.32 * s), 2))\nleaf = where(rand(wc.z * 3.7) > 0.15, 1 - smoothstep(0.85, 1.0, r), 0 * r)\nk = rand(wc.z * 9.9)\nlc = where(k < 0.35, set(0.45, 0.30, 0.18), where(k < 0.6, set(0.56, 0.36, 0.17), where(k < 0.8, set(0.28, 0.21, 0.14), set(0.58, 0.48, 0.25))))\nlc = lc * (1 - 0.25 * (1 - smoothstep(0.0, 0.03, abs(ly)))) * (0.9 + 0.1 * (1 - r))\nc = lerp(c, lc, leaf)\nhl = max(hl, leaf * (0.003 + 0.003 * (1 - r)))\nwc = pworley(set(x * 42, y * 42, 1.8), 42)\ndv = pworley_dir(set(x * 42, y * 42, 1.8), 42)\na = rand(wc.z * 5.1) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\ns = 0.75 + 0.4 * rand(wc.z * 2.3)\nr = sqrt(pow(lx / (0.62 * s), 2) + pow(ly / (0.32 * s), 2))\nleaf = where(rand(wc.z * 3.7) > 0.15, 1 - smoothstep(0.85, 1.0, r), 0 * r)\nk = rand(wc.z * 9.9)\nlc = where(k < 0.35, set(0.45, 0.30, 0.18), where(k < 0.6, set(0.56, 0.36, 0.17), where(k < 0.8, set(0.28, 0.21, 0.14), set(0.58, 0.48, 0.25))))\nlc = lc * (1 - 0.25 * (1 - smoothstep(0.0, 0.03, abs(ly)))) * (0.9 + 0.1 * (1 - r))\nc = lerp(c, lc, leaf)\nhl = max(hl, leaf * (0.006 + 0.003 * (1 - r)))\nwc = pworley(set(x * 55, y * 55, 3.2), 55)\ndv = pworley_dir(set(x * 55, y * 55, 3.2), 55)\na = rand(wc.z * 5.1) * 2 * PI\nlx = dv.x * cos(a) + dv.y * sin(a)\nly = 0 - dv.x * sin(a) + dv.y * cos(a)\ns = 0.75 + 0.4 * rand(wc.z * 2.3)\nr = sqrt(pow(lx / (0.62 * s), 2) + pow(ly / (0.32 * s), 2))\nleaf = where(rand(wc.z * 3.7) > 0.15, 1 - smoothstep(0.85, 1.0, r), 0 * r)\nk = rand(wc.z * 9.9)\nlc = where(k < 0.35, set(0.45, 0.30, 0.18), where(k < 0.6, set(0.56, 0.36, 0.17), where(k < 0.8, set(0.28, 0.21, 0.14), set(0.58, 0.48, 0.25))))\nlc = lc * (1 - 0.25 * (1 - smoothstep(0.0, 0.03, abs(ly)))) * (0.9 + 0.1 * (1 - r))\nc = lerp(c, lc, leaf)\nhl = max(hl, leaf * (0.009 + 0.003 * (1 - r)))\ntw = pworley(set(x * 6, y * 6, 4.4), 6)\ntwig = (1 - smoothstep(0.0, 0.012, tw.y - tw.x)) * smoothstep(0.62, 0.7, pnoise(set(x * 8, y * 8, 4.9), 8))\n@lay_ForestFloor = lerp(c, set(0.26, 0.19, 0.12), twig)\n@layh_ForestFloor = max(hl, 0.01 * twig) + 0.002 * pnoise(set(x * 150, y * 150, 5.5), 150)\n@layr_ForestFloor = 0.88 + 0 * x\n# ForestFloor wear: pale fungus in colonies\n@lay_ForestFloor = lerp(@lay_ForestFloor, set(0.62, 0.58, 0.46), 0.35 * @gr_mold)\n# Soil: round stones in packed ground\nwx = 0.35 * (pnoise(set(x * 20, y * 20, 60.10), 20) - 0.5)\nwy = 0.35 * (pnoise(set(x * 20, y * 20, 60.90), 20) - 0.5)\nw1 = pworley(set(x * 30 + wx, y * 30 + wy, 60.30), 30)\nrr1 = 0.32 + 0.2 * rand(w1.z * 313.0)\nd1 = w1.x / rr1\non1 = rand(w1.z * 991.0) < 0.25\nst1 = where(on1, sqrt(clamp(1 - d1 * d1, 0, 1)), 0 * d1)\nw2 = pworley(set(x * 80 + 2 * wy, y * 80 + 2 * wx, 61.70), 80)\nd2 = w2.x / (0.3 + 0.15 * rand(w2.z * 41.0))\nst2 = where(rand(w2.z * 77.0) < 0.25, sqrt(clamp(1 - d2 * d2, 0, 1)), 0 * d2)\nfine = pnoise(set(x * 320, y * 320, 62.10), 320)\ndn = pnoise(set(x * 12, y * 12, 63.30), 12)\nk = rand(w1.z * 17.0)\nstc = where(k < 0.45, set(0.45, 0.4, 0.34), where(k < 0.8, set(0.52, 0.47, 0.4), set(0.33, 0.29, 0.25))) * (0.85 + 0.3 * rand(w1.z * 5.0)) * (0.85 + 0.2 * st1)\npbc = lerp(set(0.45, 0.4, 0.34), set(0.52, 0.47, 0.4), rand(w2.z * 19.0)) * (0.85 + 0.3 * rand(w2.z * 3.0))\nc = set(0.38, 0.3, 0.21) * (0.85 + 0.3 * dn) * (0.9 + 0.2 * fine)\nc = lerp(c, pbc, smoothstep(0.0, 0.25, st2))\nc = lerp(c, stc, smoothstep(0.0, 0.2, st1))\nc = c * (1 - 0.3 * smoothstep(0.95, 1.25, d1) * (1 - smoothstep(1.25, 1.6, d1)) * on1)\n@lay_Soil = c\n@layh_Soil = max(0.022 * st1 * (rr1 / 0.4), 0.01 * st2) + 0.001 * fine\n@layr_Soil = 0.92 - 0.1 * st1\n# Soil: dry cracks\nwk = pworley(set(x * 9 + wx, y * 9 + wy, 66.0), 9)\nck = (1 - smoothstep(0.0, 0.03, wk.y - wk.x)) * smoothstep(0.4, 0.6, pnoise(set(x * 4, y * 4, 66.6), 4))\n@lay_Soil = @lay_Soil * (1 - 0.35 * ck)\n@layh_Soil = @layh_Soil - 0.008 * ck\n# Soil wear: damp patches (darker, smoother), tonal breakup\n@lay_Soil = @lay_Soil * (1 - 0.2 * @gr_moist) * (0.92 + 0.16 * @gr_layers)\n@layr_Soil = @layr_Soil - 0.25 * @gr_moist\n# Mud: wet, smooth, dark, with slick puddles (low roughness)\nm1 = pnoise(set(x * 6, y * 6, 70.1), 6)\nm2 = pnoise(set(x * 24, y * 24, 70.7), 24)\nm3 = pnoise(set(x * 90, y * 90, 71.3), 90)\npud = smoothstep(0.58, 0.66, m1 + 0.2 * (m2 - 0.5))\n@lay_Mud = set(0.24, 0.19, 0.14) * (0.8 + 0.3 * m2 + 0.15 * m3) * (1 - 0.25 * pud)\n@layh_Mud = 0.012 * m2 + 0.003 * m3 - 0.01 * pud\n@layr_Mud = 0.55 - 0.4 * pud + 0.1 * m3 - 0.12 * @gr_moist\n# Mud wear: drying crusts (paler, where the moisture map is low)\n@lay_Mud = @lay_Mud * (1.12 - 0.24 * @gr_layers)\n# Gravel: round stones in packed ground\nwx = 0.35 * (pnoise(set(x * 20, y * 20, 80.10), 20) - 0.5)\nwy = 0.35 * (pnoise(set(x * 20, y * 20, 80.90), 20) - 0.5)\nw1 = pworley(set(x * 24 + wx, y * 24 + wy, 80.30), 24)\nrr1 = 0.32 + 0.2 * rand(w1.z * 313.0)\nd1 = w1.x / rr1\non1 = rand(w1.z * 991.0) < 0.78\nst1 = where(on1, sqrt(clamp(1 - d1 * d1, 0, 1)), 0 * d1)\nw2 = pworley(set(x * 64 + 2 * wy, y * 64 + 2 * wx, 81.70), 64)\nd2 = w2.x / (0.3 + 0.15 * rand(w2.z * 41.0))\nst2 = where(rand(w2.z * 77.0) < 0.78, sqrt(clamp(1 - d2 * d2, 0, 1)), 0 * d2)\nfine = pnoise(set(x * 320, y * 320, 82.10), 320)\ndn = pnoise(set(x * 12, y * 12, 83.30), 12)\nk = rand(w1.z * 17.0)\nstc = where(k < 0.45, set(0.56, 0.55, 0.53), where(k < 0.8, set(0.62, 0.57, 0.49), set(0.44, 0.43, 0.42))) * (0.85 + 0.3 * rand(w1.z * 5.0)) * (0.85 + 0.2 * st1)\npbc = lerp(set(0.56, 0.55, 0.53), set(0.62, 0.57, 0.49), rand(w2.z * 19.0)) * (0.85 + 0.3 * rand(w2.z * 3.0))\nc = set(0.42, 0.38, 0.33) * (0.85 + 0.3 * dn) * (0.9 + 0.2 * fine)\nc = lerp(c, pbc, smoothstep(0.0, 0.25, st2))\nc = lerp(c, stc, smoothstep(0.0, 0.2, st1))\nc = c * (1 - 0.3 * smoothstep(0.95, 1.25, d1) * (1 - smoothstep(1.25, 1.6, d1)) * on1)\n@lay_Gravel = c\n@layh_Gravel = max(0.022 * st1 * (rr1 / 0.4), 0.01 * st2) + 0.001 * fine\n@layr_Gravel = 0.8 - 0.1 * st1\n# Gravel wear: moss between the stones, in colonies\n@lay_Gravel = lerp(@lay_Gravel, set(0.22, 0.28, 0.12), 0.6 * @gr_mold * (1 - smoothstep(0.0, 0.3, st1)))\n# Sand: wind ripples (warped), fine grain, a few shells and pebbles\nwv = 0.08 * (pnoise(set(x * 5, y * 5, 90.2), 5) - 0.5) + 0.03 * (pnoise(set(x * 13, y * 13, 90.6), 13) - 0.5)\nrip = 0.5 + 0.5 * sin(2 * PI * (y * 22 + x * 3 + wv * 22))\ngr_ = pnoise(set(x * 400, y * 400, 91.1), 400)\npb = pworley(set(x * 50, y * 50, 92.0), 50)\npeb = where(rand(pb.z * 3.0) < 0.06, sqrt(clamp(1 - pow(pb.x / 0.3, 2), 0, 1)), 0 * pb.x)\n@lay_Sand = set(0.66, 0.60, 0.47) * (0.9 + 0.1 * rip + 0.12 * (gr_ - 0.5)) * (1 - 0.25 * peb)\n@layh_Sand = 0.006 * rip + 0.001 * gr_ + 0.008 * peb\n@layr_Sand = 0.95 + 0 * x\n# Sand wear: damp, darker drifts\n@lay_Sand = @lay_Sand * (0.86 + 0.26 * @gr_layers)\n# RockCliff: angular blocks (a facet plane per Worley cell), dark joints, cracks that fade in and out\nwx = 0.5 * (pnoise(set(x * 4, y * 4, 100.2), 4) - 0.5)\nwy = 0.5 * (pnoise(set(x * 4, y * 4, 100.8), 4) - 0.5)\ncb = pworley(set(x * 3 + wx, y * 3 + wy, 101.0), 3)\ncd = pworley_dir(set(x * 3 + wx, y * 3 + wy, 101.0), 3)\nca = rand(cb.z * 13.1) * 2 * PI\nfac = (cd.x * cos(ca) + cd.y * sin(ca)) * (0.25 + 0.3 * rand(cb.z * 7.7))\njn = 1 - smoothstep(0.0, 0.05, cb.y - cb.x)\ncb2 = pworley(set(x * 9 + 2 * wy, y * 9 + 2 * wx, 102.0), 9)\ncd2 = pworley_dir(set(x * 9 + 2 * wy, y * 9 + 2 * wx, 102.0), 9)\nca2 = rand(cb2.z * 5.3) * 2 * PI\nfac2 = (cd2.x * cos(ca2) + cd2.y * sin(ca2)) * 0.3\njn2 = (1 - smoothstep(0.0, 0.06, cb2.y - cb2.x)) * smoothstep(0.4, 0.6, pnoise(set(x * 6, y * 6, 102.5), 6))\nrg = 0 * x\namp = 0.5\nrg = rg + amp * (1 - abs(2 * pnoise(set(x * 16 + wx, y * 16 + wy, 103.1), 16) - 1))\namp = amp * 0.5\nrg = rg + amp * (1 - abs(2 * pnoise(set(x * 32 + wx, y * 32 + wy, 103.7), 32) - 1))\namp = amp * 0.5\nrg = rg + amp * (1 - abs(2 * pnoise(set(x * 64 + wx, y * 64 + wy, 104.3), 64) - 1))\namp = amp * 0.5\nrg = rg + amp * (1 - abs(2 * pnoise(set(x * 128 + wx, y * 128 + wy, 104.9), 128) - 1))\namp = amp * 0.5\ngn = pnoise(set(x * 300, y * 300, 105.5), 300)\nc = set(0.38, 0.37, 0.35) * (0.8 + 0.4 * rand(cb.z * 3.3)) * (0.9 + 0.2 * rand(cb2.z * 2.1)) * (0.8 + 0.35 * rg) * (0.94 + 0.12 * gn)\nc = c * (1 - 0.3 * jn) * (1 - 0.25 * jn2)\nlch = smoothstep(0.62, 0.7, pnoise(set(x * 20, y * 20, 106.1), 20)) * smoothstep(0.5, 0.6, pnoise(set(x * 80, y * 80, 106.7), 80))\n@lay_RockCliff = lerp(c, set(0.60, 0.60, 0.50), 0.5 * lch)\n@layh_RockCliff = 0.9 * fac + 0.25 * fac2 - 0.06 * jn - 0.025 * jn2 + 0.03 * rg + 0.002 * gn\n@layr_RockCliff = 0.8 + 0.1 * jn + 0 * x\n# RockCliff wear: water streaks down the face (dark, smoother), iron stains, lichen colonies\n@lay_RockCliff = @lay_RockCliff * (1 - 0.3 * @gr_streaks)\n@lay_RockCliff = lerp(@lay_RockCliff, set(0.46, 0.33, 0.22), 0.3 * @gr_rust)\n@lay_RockCliff = lerp(@lay_RockCliff, set(0.64, 0.64, 0.52), 0.45 * @gr_mold * (1 - @gr_streaks))\n@layr_RockCliff = @layr_RockCliff - 0.2 * @gr_streaks\n# RockStrata: beds of varying thickness (along v: on a cliff, the world's up), each its own shade, soft beds\n# weathered back, hard ones standing out, vertical joints\nwv = 0.04 * (pnoise(set(x * 3, y * 3, 110.1), 3) - 0.5) + 0.01 * (pnoise(set(x * 12, y * 12, 110.5), 12) - 0.5)\nyy = y + wv\nbq = yy * 9 + 0.6 * pnoise(set(x * 2, yy * 9, 110.9), set(2, 9, 0))\nbi = floor(bq)\nbf = bq - bi\nbi = bi - 9 * floor(bi / 9)                    # nine beds per tile: the bed below the top edge is bed 0\nhard = rand(bi * 7.7 + 1.0)\nprof = where(hard > 0.5, smoothstep(0.0, 0.12, bf) * (1 - smoothstep(0.88, 1.0, bf)), 0.6 * sin(PI * bf))\n# vertical joints: only in the hard beds, each bed with its own spacing offset\nvj = abs(x * 6 + 3 * rand(bi * 2.9) + 0.25 * pnoise(set(x * 6, yy * 9, 111.0), set(6, 9, 0)))\nvjn = smoothstep(0.46, 0.49, abs(vj - floor(vj) - 0.5)) * (hard > 0.7)\ngn = pnoise(set(x * 200, y * 200, 112.2), 200)\nbc = lerp(set(0.48, 0.44, 0.38), set(0.60, 0.55, 0.47), rand(bi * 3.1 + 2.0)) * (0.9 + 0.2 * prof)\nbc = lerp(bc, set(0.42, 0.33, 0.25), 0.4 * smoothstep(0.7, 0.9, rand(bi * 5.3)))\n@lay_RockStrata = bc * (1 - 0.4 * vjn) * (0.93 + 0.14 * gn)\n@layh_RockStrata = 0.35 * prof * (0.5 + 0.5 * hard) - 0.05 * vjn + 0.004 * gn\n@layr_RockStrata = 0.85 - 0.15 * @gr_streaks\n# RockStrata wear: iron stains bleeding out of the beds, water streaks\n@lay_RockStrata = lerp(@lay_RockStrata, set(0.50, 0.35, 0.22), 0.35 * @gr_rust)\n@lay_RockStrata = @lay_RockStrata * (1 - 0.3 * @gr_streaks)\n# RockSlab: smoother weathered rock, rounded knobs, crusts of lichen (pale and dark)\nr1 = pnoise(set(x * 4, y * 4, 120.3), 4)\nr2 = 1 - abs(2 * pnoise(set(x * 10, y * 10, 120.9), 10) - 1)\nr3 = pnoise(set(x * 60, y * 60, 121.5), 60)\ngn = pnoise(set(x * 260, y * 260, 122.1), 260)\nc = set(0.50, 0.48, 0.44) * (0.85 + 0.3 * r1) * (0.9 + 0.15 * r2) * (0.95 + 0.1 * gn)\nl1 = smoothstep(0.58, 0.66, pnoise(set(x * 14, y * 14, 123.1), 14)) * smoothstep(0.45, 0.6, r3)\nl2 = smoothstep(0.62, 0.7, pnoise(set(x * 22, y * 22, 123.7), 22)) * smoothstep(0.5, 0.6, pnoise(set(x * 90, y * 90, 124.3), 90))\nc = lerp(c, set(0.70, 0.68, 0.52), 0.7 * l1)\n@lay_RockSlab = lerp(c, set(0.26, 0.28, 0.24), 0.6 * l2)\n@layh_RockSlab = 0.12 * r1 + 0.04 * r2 * r2 + 0.003 * r3 + 0.001 * gn + 0.002 * l1\n@layr_RockSlab = 0.75 + 0.15 * l1 - 0.2 * @gr_moist\n# RockSlab wear: exfoliation sheets (steps in the height, each its own tone), damp patches, lichen colonies\n@lay_RockSlab = @lay_RockSlab * (0.88 + 0.24 * @gr_sheets) * (1 - 0.18 * @gr_moist)\n@lay_RockSlab = lerp(@lay_RockSlab, set(0.70, 0.68, 0.52), 0.4 * @gr_mold)\n@layh_RockSlab = @layh_RockSlab + 0.03 * @gr_sheets\n# Road: round stones in packed ground\nwx = 0.35 * (pnoise(set(x * 20, y * 20, 130.10), 20) - 0.5)\nwy = 0.35 * (pnoise(set(x * 20, y * 20, 130.90), 20) - 0.5)\nw1 = pworley(set(x * 34 + wx, y * 34 + wy, 130.30), 34)\nrr1 = 0.32 + 0.2 * rand(w1.z * 313.0)\nd1 = w1.x / rr1\non1 = rand(w1.z * 991.0) < 0.45\nst1 = where(on1, sqrt(clamp(1 - d1 * d1, 0, 1)), 0 * d1)\nw2 = pworley(set(x * 90 + 2 * wy, y * 90 + 2 * wx, 131.70), 90)\nd2 = w2.x / (0.3 + 0.15 * rand(w2.z * 41.0))\nst2 = where(rand(w2.z * 77.0) < 0.45, sqrt(clamp(1 - d2 * d2, 0, 1)), 0 * d2)\nfine = pnoise(set(x * 320, y * 320, 132.10), 320)\ndn = pnoise(set(x * 12, y * 12, 133.30), 12)\nk = rand(w1.z * 17.0)\nstc = where(k < 0.45, set(0.56, 0.54, 0.5), where(k < 0.8, set(0.6, 0.55, 0.46), set(0.46, 0.44, 0.41))) * (0.85 + 0.3 * rand(w1.z * 5.0)) * (0.85 + 0.2 * st1)\npbc = lerp(set(0.56, 0.54, 0.5), set(0.6, 0.55, 0.46), rand(w2.z * 19.0)) * (0.85 + 0.3 * rand(w2.z * 3.0))\nc = set(0.5, 0.43, 0.33) * (0.85 + 0.3 * dn) * (0.9 + 0.2 * fine)\nc = lerp(c, pbc, smoothstep(0.0, 0.25, st2))\nc = lerp(c, stc, smoothstep(0.0, 0.2, st1))\nc = c * (1 - 0.3 * smoothstep(0.95, 1.25, d1) * (1 - smoothstep(1.25, 1.6, d1)) * on1)\n@lay_Road = c\n@layh_Road = max(0.022 * st1 * (rr1 / 0.4), 0.01 * st2) + 0.001 * fine\n@layr_Road = 0.8 - 0.1 * st1\n# Road: packed by wheels (stones flattened, dust in between)\n@layh_Road = @layh_Road * 0.5\n# Road wear: damp patches in the ruts, dust\n@lay_Road = @lay_Road * (1 - 0.15 * @gr_moist) * (0.92 + 0.16 * @gr_layers)\n@layr_Road = @layr_Road - 0.15 * @gr_moist\n# Crops: rows of plants along x (0.67 m apart) over furrowed soil; neutral in colour -- the macro map\n# brings each field's crop (wheat, green crop, pasture, soil) from the WFC patchwork\nrq = y * 6 + 0.03 * (pnoise(set(x * 12, y * 12, 140.1), 12) - 0.5)\nrow = 0.5 + 0.5 * cos(2 * PI * rq)\npl = pnoise(set(x * 48, y * 24, 140.7), set(48, 24, 0))\nplant = smoothstep(0.35, 0.8, row * (0.6 + 0.6 * pl))\nsn = pnoise(set(x * 90, y * 90, 141.3), 90)\nsoilc = set(0.45, 0.37, 0.27) * (0.85 + 0.3 * sn)\nleafc = lerp(set(0.42, 0.50, 0.22), set(0.58, 0.56, 0.30), pnoise(set(x * 6, y * 6, 141.9), 6))\n@lay_Crops = lerp(soilc, leafc * (0.8 + 0.4 * pl), plant)\n@layh_Crops = 0.05 * row + 0.03 * plant * pl + 0.002 * sn\n@layr_Crops = 0.9 - 0.15 * plant + 0 * x\n# Setts: granite setts in courses (running bond, 14 x 24 a tile), sand in the joints, worn tops\nry = y * 24\nri = floor(ry)\nrf = ry - ri\nrx = x * 14 + 0.5 * (ri - 2 * floor(ri / 2))\nci = floor(rx)\ncf = rx - ci\nci = ci - 14 * floor(ci / 14)\ne = min(min(cf, 1 - cf) * 0.58, min(rf, 1 - rf))\nst = smoothstep(0.03, 0.12, e)\nk = rand(ri * 37.0 + ci * 3.1 + 0.7)\nsn = pnoise(set(x * 120, y * 120, 150.3), 120)\nc = lerp(set(0.42, 0.41, 0.40), set(0.56, 0.54, 0.51), k) * (0.9 + 0.2 * sn)\nc = lerp(c, c * set(1.08, 1.0, 0.9), smoothstep(0.7, 0.9, rand(ri * 5.3 + ci * 11.7)))\n@lay_Setts = lerp(set(0.36, 0.33, 0.28), c, st)\n@layh_Setts = 0.015 * st * (0.8 + 0.4 * k) + 0.001 * sn\n@layr_Setts = 0.7 - 0.15 * st * k + 0 * x\n# Setts wear: damp joints, tonal breakup\n@lay_Setts = @lay_Setts * (1 - 0.15 * @gr_moist * (1 - st)) * (0.94 + 0.12 * @gr_layers)\n# Track: round stones in packed ground\nwx = 0.35 * (pnoise(set(x * 20, y * 20, 160.10), 20) - 0.5)\nwy = 0.35 * (pnoise(set(x * 20, y * 20, 160.90), 20) - 0.5)\nw1 = pworley(set(x * 26 + wx, y * 26 + wy, 160.30), 26)\nrr1 = 0.32 + 0.2 * rand(w1.z * 313.0)\nd1 = w1.x / rr1\non1 = rand(w1.z * 991.0) < 0.18\nst1 = where(on1, sqrt(clamp(1 - d1 * d1, 0, 1)), 0 * d1)\nw2 = pworley(set(x * 72 + 2 * wy, y * 72 + 2 * wx, 161.70), 72)\nd2 = w2.x / (0.3 + 0.15 * rand(w2.z * 41.0))\nst2 = where(rand(w2.z * 77.0) < 0.18, sqrt(clamp(1 - d2 * d2, 0, 1)), 0 * d2)\nfine = pnoise(set(x * 320, y * 320, 162.10), 320)\ndn = pnoise(set(x * 12, y * 12, 163.30), 12)\nk = rand(w1.z * 17.0)\nstc = where(k < 0.45, set(0.5, 0.47, 0.42), where(k < 0.8, set(0.55, 0.5, 0.42), set(0.4, 0.38, 0.35))) * (0.85 + 0.3 * rand(w1.z * 5.0)) * (0.85 + 0.2 * st1)\npbc = lerp(set(0.5, 0.47, 0.42), set(0.55, 0.5, 0.42), rand(w2.z * 19.0)) * (0.85 + 0.3 * rand(w2.z * 3.0))\nc = set(0.4, 0.33, 0.24) * (0.85 + 0.3 * dn) * (0.9 + 0.2 * fine)\nc = lerp(c, pbc, smoothstep(0.0, 0.25, st2))\nc = lerp(c, stc, smoothstep(0.0, 0.2, st1))\nc = c * (1 - 0.3 * smoothstep(0.95, 1.25, d1) * (1 - smoothstep(1.25, 1.6, d1)) * on1)\n@lay_Track = c\n@layh_Track = max(0.022 * st1 * (rr1 / 0.4), 0.01 * st2) + 0.001 * fine\n@layr_Track = 0.9 - 0.1 * st1\n# Track: a dirt lane, grass tufts in patches where the wheels do not go\ntg = smoothstep(0.55, 0.7, pnoise(set(x * 5, y * 5, 161.3), 5) + 0.25 * (pnoise(set(x * 30, y * 30, 161.9), 30) - 0.5))\ngc_ = lerp(set(0.30, 0.38, 0.14), set(0.42, 0.46, 0.20), pnoise(set(x * 60, y * 60, 162.5), 60))\n@lay_Track = lerp(@lay_Track, gc_, 0.85 * tg) * (1 - 0.12 * @gr_moist)\n@layh_Track = @layh_Track * 0.6 + 0.012 * tg\n@layr_Track = @layr_Track - 0.2 * @gr_moist\n# heights 0..1 per layer, for blending by height (the higher material wins at a seam)\n@layb_GrassLush = (@layh_GrassLush - @layh_GrassLush.min()) / max(@layh_GrassLush.max() - @layh_GrassLush.min(), 1e-6)\n@layb_GrassDry = (@layh_GrassDry - @layh_GrassDry.min()) / max(@layh_GrassDry.max() - @layh_GrassDry.min(), 1e-6)\n@layb_Moss = (@layh_Moss - @layh_Moss.min()) / max(@layh_Moss.max() - @layh_Moss.min(), 1e-6)\n@layb_ForestFloor = (@layh_ForestFloor - @layh_ForestFloor.min()) / max(@layh_ForestFloor.max() - @layh_ForestFloor.min(), 1e-6)\n@layb_Soil = (@layh_Soil - @layh_Soil.min()) / max(@layh_Soil.max() - @layh_Soil.min(), 1e-6)\n@layb_Mud = (@layh_Mud - @layh_Mud.min()) / max(@layh_Mud.max() - @layh_Mud.min(), 1e-6)\n@layb_Gravel = (@layh_Gravel - @layh_Gravel.min()) / max(@layh_Gravel.max() - @layh_Gravel.min(), 1e-6)\n@layb_Sand = (@layh_Sand - @layh_Sand.min()) / max(@layh_Sand.max() - @layh_Sand.min(), 1e-6)\n@layb_RockCliff = (@layh_RockCliff - @layh_RockCliff.min()) / max(@layh_RockCliff.max() - @layh_RockCliff.min(), 1e-6)\n@layb_RockStrata = (@layh_RockStrata - @layh_RockStrata.min()) / max(@layh_RockStrata.max() - @layh_RockStrata.min(), 1e-6)\n@layb_RockSlab = (@layh_RockSlab - @layh_RockSlab.min()) / max(@layh_RockSlab.max() - @layh_RockSlab.min(), 1e-6)\n@layb_Road = (@layh_Road - @layh_Road.min()) / max(@layh_Road.max() - @layh_Road.min(), 1e-6)\n@layb_Crops = (@layh_Crops - @layh_Crops.min()) / max(@layh_Crops.max() - @layh_Crops.min(), 1e-6)\n@layb_Setts = (@layh_Setts - @layh_Setts.min()) / max(@layh_Setts.max() - @layh_Setts.min(), 1e-6)\n@layb_Track = (@layh_Track - @layh_Track.min()) / max(@layh_Track.max() - @layh_Track.min(), 1e-6)\n# the colours above are display values: the maps are linear\n@lay_GrassLush = pow(clamp(@lay_GrassLush, 0, 1), 2.2) * set(0.594, 1.164, 0.463)\n@lay_GrassDry = pow(clamp(@lay_GrassDry, 0, 1), 2.2) * set(0.507, 0.871, 0.41)\n@lay_Moss = pow(clamp(@lay_Moss, 0, 1), 2.2) * set(0.916, 1.493, 0.647)\n@lay_ForestFloor = pow(clamp(@lay_ForestFloor, 0, 1), 2.2) * set(0.153, 0.378, 0.264)\n@lay_Soil = pow(clamp(@lay_Soil, 0, 1), 2.2) * set(1.247, 1.766, 1.141)\n@lay_Mud = pow(clamp(@lay_Mud, 0, 1), 2.2) * set(3.113, 4.163, 4.897)\n@lay_Gravel = pow(clamp(@lay_Gravel, 0, 1), 2.2) * set(1.208, 1.251, 1.247)\n@lay_Sand = pow(clamp(@lay_Sand, 0, 1), 2.2) * set(1.093, 1.133, 1.135)\n@lay_RockCliff = pow(clamp(@lay_RockCliff, 0, 1), 2.2) * set(0.452, 0.461, 0.462)\n@lay_RockStrata = pow(clamp(@lay_RockStrata, 0, 1), 2.2) * set(0.239, 0.266, 0.289)\n@lay_RockSlab = pow(clamp(@lay_RockSlab, 0, 1), 2.2) * set(0.712, 0.638, 0.52)\n@lay_Road = pow(clamp(@lay_Road, 0, 1), 2.2) * set(0.826, 0.851, 0.672)\n@lay_Crops = pow(clamp(@lay_Crops, 0, 1), 2.2) * set(0.83, 0.994, 0.671)\n@lay_Setts = pow(clamp(@lay_Setts, 0, 1), 2.2) * set(0.62, 0.62, 0.62)\n@lay_Track = pow(clamp(@lay_Track, 0, 1), 2.2) * set(0.8, 0.83, 0.68)\n",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Terrain layers: fifteen materials"
   },
@@ -12905,7 +12929,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    40142
+    40317
    ],
    "size": [
     360,
@@ -12950,7 +12974,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    40840
+    41015
    ],
    "size": [
     360,
@@ -12995,7 +13019,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    41538
+    41713
    ],
    "size": [
     360,
@@ -13040,7 +13064,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    42236
+    42411
    ],
    "size": [
     360,
@@ -13085,7 +13109,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    42934
+    43109
    ],
    "size": [
     360,
@@ -13130,7 +13154,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    43632
+    43807
    ],
    "size": [
     360,
@@ -13175,7 +13199,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    44330
+    44505
    ],
    "size": [
     360,
@@ -13220,7 +13244,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    45028
+    45203
    ],
    "size": [
     360,
@@ -13265,7 +13289,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    45726
+    45901
    ],
    "size": [
     360,
@@ -13310,7 +13334,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    46424
+    46599
    ],
    "size": [
     360,
@@ -13355,7 +13379,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    47122
+    47297
    ],
    "size": [
     360,
@@ -13400,7 +13424,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    47820
+    47995
    ],
    "size": [
     360,
@@ -13445,7 +13469,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    48518
+    48693
    ],
    "size": [
     360,
@@ -13490,7 +13514,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    49216
+    49391
    ],
    "size": [
     360,
@@ -13535,7 +13559,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     3100,
-    49914
+    50089
    ],
    "size": [
     360,
@@ -13580,7 +13604,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     3100,
-    50612
+    50787
    ],
    "size": [
     360,
@@ -13680,7 +13704,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    51141
+    51316
    ],
    "size": [
     360,
@@ -13737,7 +13761,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    51619
+    51794
    ],
    "size": [
     360,
@@ -13794,7 +13818,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    52097
+    52272
    ],
    "size": [
     360,
@@ -13851,7 +13875,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    52575
+    52750
    ],
    "size": [
     360,
@@ -13908,7 +13932,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    53053
+    53228
    ],
    "size": [
     360,
@@ -13965,7 +13989,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    53531
+    53706
    ],
    "size": [
     360,
@@ -14022,7 +14046,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    54009
+    54184
    ],
    "size": [
     360,
@@ -14079,7 +14103,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    54487
+    54662
    ],
    "size": [
     360,
@@ -14136,7 +14160,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    54965
+    55140
    ],
    "size": [
     360,
@@ -14193,7 +14217,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    55443
+    55618
    ],
    "size": [
     360,
@@ -14250,7 +14274,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    55921
+    56096
    ],
    "size": [
     360,
@@ -14307,7 +14331,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    56399
+    56574
    ],
    "size": [
     360,
@@ -14364,7 +14388,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    56877
+    57052
    ],
    "size": [
     360,
@@ -14421,7 +14445,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    57355
+    57530
    ],
    "size": [
     360,
@@ -14478,7 +14502,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    57833
+    58008
    ],
    "size": [
     360,
@@ -14535,7 +14559,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    58311
+    58486
    ],
    "size": [
     360,
@@ -14592,7 +14616,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    58789
+    58964
    ],
    "size": [
     360,
@@ -14649,7 +14673,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    59267
+    59442
    ],
    "size": [
     360,
@@ -14706,7 +14730,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    59745
+    59920
    ],
    "size": [
     360,
@@ -14763,7 +14787,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    60223
+    60398
    ],
    "size": [
     360,
@@ -14820,7 +14844,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    60701
+    60876
    ],
    "size": [
     360,
@@ -14877,7 +14901,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    61179
+    61354
    ],
    "size": [
     360,
@@ -14934,7 +14958,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    61657
+    61832
    ],
    "size": [
     360,
@@ -14991,7 +15015,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    62135
+    62310
    ],
    "size": [
     360,
@@ -15048,7 +15072,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    62613
+    62788
    ],
    "size": [
     360,
@@ -15105,7 +15129,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    63091
+    63266
    ],
    "size": [
     360,
@@ -15162,7 +15186,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    63569
+    63744
    ],
    "size": [
     360,
@@ -15219,7 +15243,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    64047
+    64222
    ],
    "size": [
     360,
@@ -15276,7 +15300,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    64525
+    64700
    ],
    "size": [
     360,
@@ -15333,7 +15357,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    65003
+    65178
    ],
    "size": [
     360,
@@ -15390,7 +15414,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    65481
+    65656
    ],
    "size": [
     360,
@@ -15447,7 +15471,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    65959
+    66134
    ],
    "size": [
     360,
@@ -15504,7 +15528,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    66437
+    66612
    ],
    "size": [
     360,
@@ -15561,7 +15585,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    66915
+    67090
    ],
    "size": [
     360,
@@ -15618,7 +15642,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    67393
+    67568
    ],
    "size": [
     360,
@@ -15675,7 +15699,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    67871
+    68046
    ],
    "size": [
     360,
@@ -15732,7 +15756,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    68349
+    68524
    ],
    "size": [
     360,
@@ -15789,7 +15813,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    68827
+    69002
    ],
    "size": [
     360,
@@ -15846,7 +15870,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    69305
+    69480
    ],
    "size": [
     360,
@@ -15903,7 +15927,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    69783
+    69958
    ],
    "size": [
     360,
@@ -15960,7 +15984,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    70261
+    70436
    ],
    "size": [
     360,
@@ -16017,7 +16041,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    70739
+    70914
    ],
    "size": [
     360,
@@ -16074,7 +16098,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    71217
+    71392
    ],
    "size": [
     360,
@@ -16131,7 +16155,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    71695
+    71870
    ],
    "size": [
     360,
@@ -16188,7 +16212,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    72173
+    72348
    ],
    "size": [
     360,
@@ -16245,7 +16269,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    72651
+    72826
    ],
    "size": [
     360,
@@ -16302,7 +16326,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    73129
+    73304
    ],
    "size": [
     360,
@@ -16359,7 +16383,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    73607
+    73782
    ],
    "size": [
     360,
@@ -16416,7 +16440,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    74085
+    74260
    ],
    "size": [
     360,
@@ -16473,7 +16497,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    74563
+    74738
    ],
    "size": [
     360,
@@ -16530,7 +16554,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    75041
+    75216
    ],
    "size": [
     360,
@@ -16587,7 +16611,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    75519
+    75694
    ],
    "size": [
     360,
@@ -16644,7 +16668,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    75997
+    76172
    ],
    "size": [
     360,
@@ -16701,7 +16725,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    76475
+    76650
    ],
    "size": [
     360,
@@ -16758,7 +16782,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    76953
+    77128
    ],
    "size": [
     360,
@@ -16815,7 +16839,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    77431
+    77606
    ],
    "size": [
     360,
@@ -16872,7 +16896,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    77909
+    78084
    ],
    "size": [
     360,
@@ -16929,7 +16953,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    78387
+    78562
    ],
    "size": [
     360,
@@ -16986,7 +17010,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    78865
+    79040
    ],
    "size": [
     360,
@@ -17043,7 +17067,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     3100,
-    79343
+    79518
    ],
    "size": [
     360,
@@ -23417,7 +23441,7 @@
    ],
    "size": [
     520,
-    686
+    711
    ],
    "flags": {},
    "order": 613,
@@ -23446,7 +23470,8 @@
     "e = min(min(abs(frac(@u * 4 + 0.5) - 0.5), abs(frac(@v * 4 + 0.5) - 0.5)) * 1025, 1.5) / 1.5\n@lit = lerp(set(1, 0.85, 0.2), @lit, e)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Draw tile lines"
   },
@@ -23455,7 +23480,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     2520,
-    1833
+    1858
    ],
    "size": [
     520,
@@ -23514,7 +23539,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    2311
+    2336
    ],
    "size": [
     520,
@@ -23787,7 +23812,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 668,
@@ -23816,7 +23841,8 @@
     "hm = @C * 2048\nnw = normalize(set(@N.x, @N.z, 0 - @N.y))\nsh = clamp(dot(nw, normalize(set(-1, 1.4, -1))), 0, 1)\n# land by height: lowland green-grey, upland tan, rock grey; forest green over it\nt = clamp(hm / 300, 0, 1)\nc = lerp(set(0.84, 0.86, 0.72), set(0.88, 0.80, 0.64), t)\nc = lerp(c, set(0.80, 0.78, 0.74), 0.7 * clamp(@Rock, 0, 1))\nc = lerp(c, set(0.60, 0.72, 0.50), 0.8 * clamp(@ForestFloor, 0, 1))\nc = c * (0.72 + 0.4 * sh)\n# contours every 25 m, bolder every 100 m (in pixels from the line, by the height's slope)\ng_ = max(1e-3, (1 - nw.y) * 4.0 + 0.05)\nd25 = abs(frac(hm / 25 + 0.5) - 0.5) * 25 / g_\nd100 = abs(frac(hm / 100 + 0.5) - 0.5) * 100 / g_\nland = where(hm > 0.3, 1.0, 0.0)\nc = lerp(c, set(0.55, 0.42, 0.30), 0.35 * (1 - smoothstep(0.3, 0.9, d25)) * land)\nc = lerp(c, set(0.45, 0.33, 0.22), 0.55 * (1 - smoothstep(0.5, 1.3, d100)) * land)\n# water: the sea, the lake and the trunk rivers, the streams as lines; a coast line\nriv = @bed * smoothstep(0.003, 0.05, @catchment)\nwat = max(1 - land, max(clamp(@Water, 0, 1), smoothstep(0.15, 0.4, riv)))\nc = lerp(c, set(0.62, 0.76, 0.86), wat)\ncoast = 1 - smoothstep(0.0, 1.2, abs(hm - 0.3))\nc = lerp(c, set(0.25, 0.40, 0.55), 0.8 * coast)\n# the towns, the roads (lanes thin, streets dark, main roads red with a dark edge)\nc = lerp(c, set(0.86, 0.72, 0.62), 0.6 * clamp(@town, 0, 1))\nc = lerp(c, set(0.50, 0.42, 0.36), clamp(@mlane, 0, 1))\nc = lerp(c, set(0.30, 0.26, 0.24), clamp(@mstr, 0, 1))\nc = lerp(c, set(0.30, 0.10, 0.06), clamp(@mmain * 1.6, 0, 1))\nc = lerp(c, set(0.80, 0.30, 0.18), clamp(@mmain * 1.6 - 0.6, 0, 1))\n# the tile grid (1024 m)\ne = min(abs(frac(@u * 4 + 0.5) - 0.5), abs(frac(@v * 4 + 0.5) - 0.5)) * 2048\nc = lerp(c, set(0.45, 0.45, 0.50), 0.45 * (1 - smoothstep(0.5, 1.5, e)))\n# the legend box (bottom left) with its swatches, and the scale bar (bottom right, 1 km)\ninb = where((@u > 0.025) & (@u < 0.29) & (@v > 0.025) & (@v < 0.235), 1.0, 0.0)\nc = lerp(c, set(0.96, 0.94, 0.88), 0.92 * inb)\nedge = where((abs(@u - 0.025) < 0.0012) | (abs(@u - 0.29) < 0.0012) | (abs(@v - 0.025) < 0.0012) | (abs(@v - 0.235) < 0.0012), 1.0, 0.0) * where((@u > 0.024) & (@u < 0.291) & (@v > 0.024) & (@v < 0.236), 1.0, 0.0)\nc = lerp(c, set(0.30, 0.26, 0.22), edge)\nsw = where((@u > 0.04) & (@u < 0.075), 1.0, 0.0)\nfor k, col in enumerate(((0.80, 0.30, 0.18), (0.30, 0.26, 0.24), (0.50, 0.42, 0.36), (0.60, 0.72, 0.50), (0.62, 0.76, 0.86), (0.86, 0.72, 0.62))):\n    vv = 0.205 - 0.03 * k\n    m = sw * where(abs(@v - vv) < 0.007, 1.0, 0.0)\n    c = lerp(c, set(col[0], col[1], col[2]), m)\nbar = where((@u > 0.70) & (@u < 0.70 + 1000 / 4100) & (abs(@v - 0.05) < 0.004), 1.0, 0.0)\nq = floor((@u - 0.70) / (250 / 4100))\nc = lerp(c, where(q - 2 * floor(q / 2) < 0.5, set(0.15, 0.13, 0.12), set(0.97, 0.96, 0.92)), bar)\n@map = clamp(c, 0, 1)",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "Map: colours, hillshade, contours, roads, grid, legend boxes"
   },
@@ -23825,7 +23851,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     5620,
-    3957
+    3982
    ],
    "size": [
     360,
@@ -23883,7 +23909,7 @@
    "type": "PCG_COPText",
    "pos": [
     5620,
-    4248
+    4273
    ],
    "size": [
     360,
@@ -23940,7 +23966,7 @@
    "type": "PCG_Add",
    "pos": [
     5620,
-    5183
+    5208
    ],
    "size": [
     360,
@@ -23994,7 +24020,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     5620,
-    5632
+    5657
    ],
    "size": [
     360,
@@ -24052,7 +24078,7 @@
    "type": "PCG_COPText",
    "pos": [
     5620,
-    5923
+    5948
    ],
    "size": [
     360,
@@ -24109,7 +24135,7 @@
    "type": "PCG_Add",
    "pos": [
     5620,
-    6858
+    6883
    ],
    "size": [
     360,
@@ -24163,7 +24189,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     5620,
-    7187
+    7212
    ],
    "size": [
     360,
@@ -24221,7 +24247,7 @@
    "type": "PCG_COPText",
    "pos": [
     5620,
-    7478
+    7503
    ],
    "size": [
     360,
@@ -24278,7 +24304,7 @@
    "type": "PCG_COPText",
    "pos": [
     5620,
-    8413
+    8438
    ],
    "size": [
     360,
@@ -24335,7 +24361,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     5620,
-    9348
+    9373
    ],
    "size": [
     360,
@@ -24394,7 +24420,7 @@
    "type": "PreviewImage",
    "pos": [
     5620,
-    9826
+    9851
    ],
    "size": [
     520,
@@ -24422,7 +24448,7 @@
    "type": "PCG_COPHeightfieldToMesh",
    "pos": [
     2520,
-    2935
+    2960
    ],
    "size": [
     520,
@@ -24467,7 +24493,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    3233
+    3258
    ],
    "size": [
     520,
@@ -24525,7 +24551,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    3524
+    3549
    ],
    "size": [
     520,
@@ -24583,7 +24609,7 @@
    "type": "PCG_Blast",
    "pos": [
     2520,
-    3815
+    3840
    ],
    "size": [
     520,
@@ -24624,7 +24650,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    3995
+    4020
    ],
    "size": [
     520,
@@ -24686,7 +24712,7 @@
    "type": "PCG_TreeGenerator",
    "pos": [
     2520,
-    4205
+    4230
    ],
    "size": [
     520,
@@ -24745,7 +24771,7 @@
    "type": "PCG_TreeGenerator",
    "pos": [
     2520,
-    5007
+    5032
    ],
    "size": [
     520,
@@ -24803,7 +24829,7 @@
    "type": "PCG_TreeGenerator",
    "pos": [
     2520,
-    5809
+    5834
    ],
    "size": [
     520,
@@ -24862,7 +24888,7 @@
    "type": "PCG_TreeGenerator",
    "pos": [
     2520,
-    6611
+    6636
    ],
    "size": [
     520,
@@ -24920,7 +24946,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    7413
+    7438
    ],
    "size": [
     520,
@@ -24963,7 +24989,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    7652
+    7677
    ],
    "size": [
     520,
@@ -25021,7 +25047,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    7943
+    7968
    ],
    "size": [
     520,
@@ -25064,7 +25090,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    8182
+    8207
    ],
    "size": [
     520,
@@ -25122,7 +25148,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    8473
+    8498
    ],
    "size": [
     520,
@@ -25165,7 +25191,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    8712
+    8737
    ],
    "size": [
     520,
@@ -25223,7 +25249,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    9003
+    9028
    ],
    "size": [
     520,
@@ -25266,7 +25292,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    9242
+    9267
    ],
    "size": [
     520,
@@ -25324,7 +25350,7 @@
    "type": "PCG_Sphere",
    "pos": [
     2520,
-    9533
+    9558
    ],
    "size": [
     520,
@@ -25371,7 +25397,7 @@
    "type": "PCG_PointJitter",
    "pos": [
     2520,
-    9847
+    9872
    ],
    "size": [
     520,
@@ -25421,7 +25447,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    10186
+    10211
    ],
    "size": [
     520,
@@ -25482,7 +25508,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    10593
+    10618
    ],
    "size": [
     520,
@@ -25540,7 +25566,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    10832
+    10857
    ],
    "size": [
     520,
@@ -25598,7 +25624,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    11123
+    11148
    ],
    "size": [
     520,
@@ -25656,7 +25682,7 @@
    "type": "PCG_Sphere",
    "pos": [
     2520,
-    11414
+    11439
    ],
    "size": [
     520,
@@ -25703,7 +25729,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    11728
+    11753
    ],
    "size": [
     520,
@@ -25764,7 +25790,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    12135
+    12160
    ],
    "size": [
     520,
@@ -25822,7 +25848,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    12374
+    12399
    ],
    "size": [
     520,
@@ -25880,7 +25906,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    12665
+    12690
    ],
    "size": [
     520,
@@ -25938,7 +25964,7 @@
    "type": "PCG_Sphere",
    "pos": [
     2520,
-    12956
+    12981
    ],
    "size": [
     520,
@@ -25985,7 +26011,7 @@
    "type": "PCG_PointJitter",
    "pos": [
     2520,
-    13270
+    13295
    ],
    "size": [
     520,
@@ -26035,7 +26061,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    13609
+    13634
    ],
    "size": [
     520,
@@ -26096,7 +26122,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    14016
+    14041
    ],
    "size": [
     520,
@@ -26154,7 +26180,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    14255
+    14280
    ],
    "size": [
     520,
@@ -26212,7 +26238,7 @@
    "type": "PCG_Sphere",
    "pos": [
     2520,
-    14546
+    14571
    ],
    "size": [
     520,
@@ -26259,7 +26285,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    14860
+    14885
    ],
    "size": [
     520,
@@ -26320,7 +26346,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    15267
+    15292
    ],
    "size": [
     520,
@@ -26378,7 +26404,7 @@
    "type": "PCG_Tube",
    "pos": [
     2520,
-    15506
+    15531
    ],
    "size": [
     520,
@@ -26424,7 +26450,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    15854
+    15879
    ],
    "size": [
     520,
@@ -26482,7 +26508,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    16093
+    16118
    ],
    "size": [
     520,
@@ -26544,7 +26570,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    16303
+    16328
    ],
    "size": [
     520,
@@ -26602,7 +26628,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    16594
+    16619
    ],
    "size": [
     520,
@@ -26661,7 +26687,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    16885
+    16910
    ],
    "size": [
     520,
@@ -26707,7 +26733,7 @@
    "type": "PCG_PointJitter",
    "pos": [
     2520,
-    17149
+    17174
    ],
    "size": [
     520,
@@ -26757,7 +26783,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    17488
+    17513
    ],
    "size": [
     520,
@@ -26815,7 +26841,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    17727
+    17752
    ],
    "size": [
     520,
@@ -26873,7 +26899,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    18018
+    18043
    ],
    "size": [
     520,
@@ -26932,7 +26958,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    18309
+    18334
    ],
    "size": [
     520,
@@ -26978,7 +27004,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    18573
+    18598
    ],
    "size": [
     520,
@@ -27024,7 +27050,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    18837
+    18862
    ],
    "size": [
     520,
@@ -27070,7 +27096,7 @@
    "type": "PCG_Grid",
    "pos": [
     2520,
-    19101
+    19126
    ],
    "size": [
     520,
@@ -27114,7 +27140,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    19390
+    19415
    ],
    "size": [
     520,
@@ -27172,7 +27198,7 @@
    "type": "PCG_Grid",
    "pos": [
     2520,
-    19681
+    19706
    ],
    "size": [
     520,
@@ -27216,7 +27242,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    19970
+    19995
    ],
    "size": [
     520,
@@ -27274,7 +27300,7 @@
    "type": "PCG_Grid",
    "pos": [
     2520,
-    20261
+    20286
    ],
    "size": [
     520,
@@ -27318,7 +27344,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    20550
+    20575
    ],
    "size": [
     520,
@@ -27376,7 +27402,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    20841
+    20866
    ],
    "size": [
     520,
@@ -27438,7 +27464,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    21051
+    21076
    ],
    "size": [
     520,
@@ -27496,7 +27522,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    21290
+    21315
    ],
    "size": [
     520,
@@ -27555,7 +27581,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    21581
+    21606
    ],
    "size": [
     520,
@@ -27601,7 +27627,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    21845
+    21870
    ],
    "size": [
     520,
@@ -27659,7 +27685,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    22084
+    22109
    ],
    "size": [
     520,
@@ -27718,7 +27744,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    22375
+    22400
    ],
    "size": [
     520,
@@ -27764,7 +27790,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    22639
+    22664
    ],
    "size": [
     520,
@@ -27810,7 +27836,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    22903
+    22928
    ],
    "size": [
     520,
@@ -27856,7 +27882,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    23167
+    23192
    ],
    "size": [
     520,
@@ -27914,7 +27940,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    23458
+    23483
    ],
    "size": [
     520,
@@ -27976,7 +28002,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    23668
+    23693
    ],
    "size": [
     520,
@@ -28034,7 +28060,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    23907
+    23932
    ],
    "size": [
     520,
@@ -28093,7 +28119,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    24198
+    24223
    ],
    "size": [
     520,
@@ -28139,7 +28165,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    24462
+    24487
    ],
    "size": [
     520,
@@ -28185,7 +28211,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    24726
+    24751
    ],
    "size": [
     520,
@@ -28231,7 +28257,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    24990
+    25015
    ],
    "size": [
     520,
@@ -28289,7 +28315,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    25281
+    25306
    ],
    "size": [
     520,
@@ -28351,7 +28377,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    25491
+    25516
    ],
    "size": [
     520,
@@ -28409,7 +28435,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    25730
+    25755
    ],
    "size": [
     520,
@@ -28468,7 +28494,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    26021
+    26046
    ],
    "size": [
     520,
@@ -28514,7 +28540,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    26285
+    26310
    ],
    "size": [
     520,
@@ -28560,7 +28586,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    26549
+    26574
    ],
    "size": [
     520,
@@ -28618,7 +28644,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    26840
+    26865
    ],
    "size": [
     520,
@@ -28680,7 +28706,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    27050
+    27075
    ],
    "size": [
     520,
@@ -28738,7 +28764,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    27289
+    27314
    ],
    "size": [
     520,
@@ -28797,7 +28823,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    27580
+    27605
    ],
    "size": [
     520,
@@ -28843,7 +28869,7 @@
    "type": "PCG_Box",
    "pos": [
     2520,
-    27844
+    27869
    ],
    "size": [
     520,
@@ -28889,7 +28915,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    28108
+    28133
    ],
    "size": [
     520,
@@ -28951,7 +28977,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    28318
+    28343
    ],
    "size": [
     520,
@@ -29009,7 +29035,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    28557
+    28582
    ],
    "size": [
     520,
@@ -29068,7 +29094,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    28848
+    28873
    ],
    "size": [
     520,
@@ -29130,7 +29156,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    29058
+    29083
    ],
    "size": [
     520,
@@ -29192,7 +29218,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    29268
+    29293
    ],
    "size": [
     520,
@@ -31298,7 +31324,7 @@
    "type": "PCG_Add",
    "pos": [
     2520,
-    29478
+    29503
    ],
    "size": [
     520,
@@ -31352,7 +31378,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    29957
+    29982
    ],
    "size": [
     520,
@@ -31410,7 +31436,7 @@
    "type": "PCG_COPLayerToPoints",
    "pos": [
     2520,
-    30248
+    30273
    ],
    "size": [
     520,
@@ -31465,7 +31491,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    30671
+    30696
    ],
    "size": [
     520,
@@ -31526,7 +31552,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    31078
+    31103
    ],
    "size": [
     520,
@@ -31584,7 +31610,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     2520,
-    31369
+    31394
    ],
    "size": [
     520,
@@ -31639,7 +31665,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    31788
+    31813
    ],
    "size": [
     520,
@@ -31697,7 +31723,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    32079
+    32104
    ],
    "size": [
     520,
@@ -31755,7 +31781,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    32370
+    32395
    ],
    "size": [
     520,
@@ -31813,7 +31839,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    32661
+    32686
    ],
    "size": [
     520,
@@ -31871,7 +31897,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    32952
+    32977
    ],
    "size": [
     520,
@@ -31929,7 +31955,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    33243
+    33268
    ],
    "size": [
     520,
@@ -31991,7 +32017,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    33453
+    33478
    ],
    "size": [
     520,
@@ -32053,7 +32079,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    33663
+    33688
    ],
    "size": [
     520,
@@ -32111,7 +32137,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    33954
+    33979
    ],
    "size": [
     520,
@@ -32169,7 +32195,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    34245
+    34270
    ],
    "size": [
     520,
@@ -32231,7 +32257,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     2520,
-    34536
+    34561
    ],
    "size": [
     520,
@@ -32286,7 +32312,7 @@
    "type": "PCG_Grid",
    "pos": [
     2520,
-    34955
+    34980
    ],
    "size": [
     520,
@@ -32330,7 +32356,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    35244
+    35269
    ],
    "size": [
     520,
@@ -32391,7 +32417,7 @@
    "type": "PCG_Color",
    "pos": [
     2520,
-    35651
+    35676
    ],
    "size": [
     520,
@@ -32449,7 +32475,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2520,
-    35890
+    35915
    ],
    "size": [
     520,
@@ -32511,7 +32537,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 598,
@@ -32540,7 +32566,8 @@
     "big = smoothstep(0.003, 0.05, @catchment)\n# the river beds of all but the smallest streams (not the lake)\n@rivm = smoothstep(0.4, 0.6, @bed * smoothstep(0.01, 0.12, big) * (1 - @lakew))\n@rivl = (@C + 0.7 / 2048) * @rivm",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Water: the river channels and their level"
   },
@@ -32549,7 +32576,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     4780,
-    570
+    595
    ],
    "size": [
     360,
@@ -32590,11 +32617,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4780,
-    1124
+    1149
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 632,
@@ -32623,7 +32650,8 @@
     "lk = @lakew > 0.5\nrv = @rivm > 0.12\n@wl = where(lk, @lkl_lk_h / 2048, where(rv, @rivl / max(@rivm, 1e-6), @C + 0.7 / 2048))\n@wmask = where(lk | rv, 1.0, 0.0) * where(@C * 2048 > -0.5, 1.0, 0.0)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Water: the level and where it lies"
   },
@@ -32632,7 +32660,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     4780,
-    1694
+    1744
    ],
    "size": [
     360,
@@ -32672,7 +32700,7 @@
    "type": "PCG_COPBlur",
    "pos": [
     4780,
-    2223
+    2273
    ],
    "size": [
     360,
@@ -32713,7 +32741,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4780,
-    2777
+    2827
    ],
    "size": [
     360,
@@ -32758,11 +32786,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4780,
-    3475
+    3525
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 685,
@@ -32791,7 +32819,8 @@
     "fx = @wn.x\nfz = 0 - @wn.y\nl = sqrt(fx * fx + fz * fz)\nsp = clamp(l * 60, 0, 1) * (1 - smoothstep(0.3, 0.7, @lakew))\n@flowc = set(0.5 + 0.5 * fx / max(l, 1e-6) * sp, 0.5 + 0.5 * fz / max(l, 1e-6) * sp, sp)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Water: the flow (downhill along the level, still on the lakes)"
   },
@@ -32800,7 +32829,7 @@
    "type": "PCG_COPHeightfieldToMesh",
    "pos": [
     4780,
-    4045
+    4120
    ],
    "size": [
     360,
@@ -32845,7 +32874,7 @@
    "type": "PCG_Blast",
    "pos": [
     4780,
-    4343
+    4418
    ],
    "size": [
     360,
@@ -32886,7 +32915,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4780,
-    4523
+    4598
    ],
    "size": [
     360,
@@ -32944,7 +32973,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4780,
-    4814
+    4889
    ],
    "size": [
     360,
@@ -32991,7 +33020,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4780,
-    5094
+    5169
    ],
    "size": [
     360,
@@ -33050,7 +33079,7 @@
    "type": "PCG_Transform",
    "pos": [
     4780,
-    5385
+    5460
    ],
    "size": [
     360,
@@ -33111,7 +33140,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     4780,
-    5792
+    5867
    ],
    "size": [
     360,
@@ -33160,7 +33189,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4780,
-    6318
+    6393
    ],
    "size": [
     360,
@@ -33201,11 +33230,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4780,
-    6931
+    7006
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 102,
@@ -33234,7 +33263,8 @@
     "x = @u\ny = @v\n@height = 0.012 * pnoise(set(x * 6, y * 6, 3.1), 6) + 0.006 * pnoise(set(x * 15, y * 13, 5.7), set(15, 13, 0)) + 0.002 * pnoise(set(x * 40, y * 40, 9.2), 40)\n@basecolor = set(0.010, 0.024, 0.028) + 0 * x\n@ao = 1 + 0 * x\n@roughness = 0.03 + 0.04 * pnoise(set(x * 8, y * 8, 1.4), 8)\n@metallic = 0 * x\n# the sea's roughness (the preview's sea quad reads '@sea_rough'; a constant needs no 4096² layer)\n@rough = 0.05 + 0 * x",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Water material: ripples, colour, roughness"
   },
@@ -33243,7 +33273,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4780,
-    7501
+    7601
    ],
    "size": [
     360,
@@ -33290,7 +33320,7 @@
    "type": "PCG_COPWriteFile",
    "pos": [
     4780,
-    8199
+    8299
    ],
    "size": [
     360,
@@ -33349,7 +33379,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    36181
+    36206
    ],
    "size": [
     520,
@@ -33417,7 +33447,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    36391
+    36416
    ],
    "size": [
     520,
@@ -33460,7 +33490,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     2520,
-    36630
+    36655
    ],
    "size": [
     520,
@@ -34383,7 +34413,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 105,
@@ -34412,7 +34442,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ngate = smoothstep(0.9, 1.8, fbm(3, 3, 5.5, 3))\n@crack = (1 - smoothstep(0.2, 1.2, @pattern_edge)) * gate * smoothstep(-0.4, 0.9, fbm(24, 24, 1.1, 2))\n@spall = smoothstep(2.05, 2.2, fbm(3, 3, 3.3, 5) + 0.35 * fbm(24, 24, 6.2, 2))\ntrowel = 0.0008 * fbm(4, 4, 2.2, 3) + 0.00025 * fbm(32, 32, 7.4, 3) + 0.00006 * fbm(256, 256, 9.9, 2)\n@height = trowel - 0.0004 * @crack - 0.006 * @spall\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Stucco: height (metres) + masks"
   },
@@ -34421,7 +34452,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    5536
+    5561
    ],
    "size": [
     360,
@@ -34465,7 +34496,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    6234
+    6259
    ],
    "size": [
     360,
@@ -34512,11 +34543,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    7042
+    7067
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 207,
@@ -34545,7 +34576,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\npaint = set(0.84, 0.77, 0.63) * (1 + 0.04 * fbm(3, 3, 4.6, 3) + 0.015 * fbm(64, 64, 2.7, 2))\n# old coats of paint showing through where the top coat weathered thin\npaint = lerp(paint, set(0.80, 0.70, 0.62), 0.45 * smoothstep(0.6, 2.0, fbm(6, 6, 8.3, 4)))\nbase = set(0.58, 0.54, 0.47) * (1 + 0.12 * fbm(48, 48, 1.5, 3))   # the grey lime render under the paint\nc = lerp(paint, set(0.60, 0.56, 0.50), 0.12 * @crack)\nc = lerp(c, base, @spall)\nstreak = smoothstep(0.2, 2.0, fbm(16, 1, 6.9, 4)) * smoothstep(-0.6, 1.0, fbm(2, 2, 1.7, 2))\nc = lerp(c, set(0.42, 0.40, 0.36), 0.35 * streak)\nc = c * lerp(0.78, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.88 + 0.06 * fbm(16, 16, 3.1, 2) + 0.06 * @spall, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Stucco: painted render -- colour / ORM"
   },
@@ -34554,7 +34586,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    7612
+    7662
    ],
    "size": [
     360,
@@ -34600,7 +34632,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     4360,
-    8186
+    8236
    ],
    "size": [
     360,
@@ -34686,11 +34718,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    8934
+    8984
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 106,
@@ -34719,7 +34751,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# Height in metres (1024 px = 1 m; Height to Normal / AO use Strength 1, World Size 1, so the relief is real size)\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.37)\n# chipped, irregular arrises: the brick outline is eaten back 0.5-3 mm by coarse noise, more on some bricks\nee = e - clamp(0.0006 + 0.0010 * r2 + 0.0008 * fbm(48, 48, 3.1, 3), 0, 0.004)\n@brick = smoothstep(-0.0004, 0.0006, ee)\n# brick face: 3 mm rounded arris (quarter circle), a slight random tilt per brick, undulation, sand-struck pits\nt = clamp(ee / 0.003, 0, 1)\narris = -0.003 * (1 - sqrt(1 - (1 - t) ** 2))\ntilt = 0.0015 * ((@pattern_uv.x - 0.5) * (rand(@pattern_id + 0.11) - 0.5) + (@pattern_uv.y - 0.5) * (rand(@pattern_id + 0.23) - 0.5))\npits = -0.0012 * smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\nface = arris + tilt + 0.0005 * fbm(8, 8, 1.7, 4) + 0.00012 * fbm(256, 256, 2.9, 2) + pits\n@pits = smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\n# joint: struck 7 mm back from the face, sandy\nmortar = -0.007 + 0.0003 * fbm(160, 160, 9.1, 3)\n@height = lerp(mortar, face, @brick)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_BrickBuff: height (metres) + masks"
   },
@@ -34728,7 +34761,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    9504
+    9579
    ],
    "size": [
     360,
@@ -34772,7 +34805,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    10202
+    10277
    ],
    "size": [
     360,
@@ -34819,11 +34852,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    11010
+    11085
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 208,
@@ -34852,7 +34885,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.37)\nr3 = rand(@pattern_id + 0.71)\n# yellow-grey stock bricks, a few purple-brown and orange ones mixed in\nbody = lerp(set(0.62, 0.53, 0.38), set(0.76, 0.67, 0.50), r)\nbody = where(r2 > 0.965, lerp(set(0.46, 0.36, 0.30), set(0.55, 0.42, 0.33), r3), body)\nbody = where(r2 < 0.03, set(0.72, 0.50, 0.33), body)\nm = fbm(16, 16, 2.3, 4)\nbody = body * (1 + 0.08 * m)\nbody = lerp(body, set(0.20, 0.17, 0.14), 0.6 * smoothstep(2.0, 2.6, fbm(320, 320, 7.7, 2)))\nbody = lerp(body, body * 0.75, @pits)\nmortar = set(0.66, 0.64, 0.60) * (1 + 0.06 * fbm(96, 96, 8.8, 3))\nc = lerp(mortar, body, @brick)\n# city soot: broad dark patches, heavier on some bricks\nsoot = smoothstep(0.4, 2.0, fbm(3, 3, 6.1, 3)) * (0.6 + 0.4 * r3)\nc = lerp(c, c * 0.45, 0.55 * soot)\nc = c * lerp(0.72, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.86 + 0.04 * m, @brick) + 0.08 * @pits, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_BrickBuff: buff brick wall -- colour / ORM"
   },
@@ -34861,7 +34895,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    11580
+    11680
    ],
    "size": [
     360,
@@ -34907,7 +34941,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     4360,
-    12154
+    12254
    ],
    "size": [
     360,
@@ -34993,11 +35027,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    12902
+    13002
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 107,
@@ -35026,7 +35060,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# Height in metres (1024 px = 1 m; Height to Normal / AO use Strength 1, World Size 1, so the relief is real size)\ne = @pattern_edge / 1024\nr2 = rand(@pattern_id + 0.37)\n# chipped, irregular arrises: the brick outline is eaten back 0.5-3 mm by coarse noise, more on some bricks\nee = e - clamp(0.0006 + 0.0010 * r2 + 0.0008 * fbm(48, 48, 3.1, 3), 0, 0.004)\n@brick = smoothstep(-0.0004, 0.0006, ee)\n# brick face: 3 mm rounded arris (quarter circle), a slight random tilt per brick, undulation, sand-struck pits\nt = clamp(ee / 0.003, 0, 1)\narris = -0.003 * (1 - sqrt(1 - (1 - t) ** 2))\ntilt = 0.0015 * ((@pattern_uv.x - 0.5) * (rand(@pattern_id + 0.11) - 0.5) + (@pattern_uv.y - 0.5) * (rand(@pattern_id + 0.23) - 0.5))\npits = -0.0012 * smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\nface = arris + tilt + 0.0005 * fbm(8, 8, 1.7, 4) + 0.00012 * fbm(256, 256, 2.9, 2) + pits\n@pits = smoothstep(2.0, 2.6, fbm(192, 192, 5.5, 2))\n# joint: struck 7 mm back from the face, sandy\nmortar = -0.007 + 0.0003 * fbm(160, 160, 9.1, 3)\n@height = lerp(mortar, face, @brick)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Wall: height (metres) + masks"
   },
@@ -35035,7 +35070,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    13472
+    13597
    ],
    "size": [
     360,
@@ -35079,7 +35114,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    14170
+    14295
    ],
    "size": [
     360,
@@ -35126,11 +35161,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    14978
+    15103
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 209,
@@ -35159,7 +35194,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nr = @pattern_rand\nr2 = rand(@pattern_id + 0.37)\nr3 = rand(@pattern_id + 0.71)\n# brick bodies: a spread of reds and oranges, ~12 % dark over-fired (clinker), a few pale buff ones\nbody = lerp(set(0.50, 0.22, 0.14), set(0.68, 0.36, 0.22), r)\nbody = where(r2 > 0.88, lerp(set(0.30, 0.15, 0.11), set(0.40, 0.21, 0.15), r3), body)\nbody = where(r2 < 0.05, set(0.70, 0.52, 0.36), body)\n# inside each brick: mottling, a darker fire flash towards one end, dark iron specks\nm = fbm(16, 16, 2.3, 4)\nbody = body * (1 + 0.07 * m)\nend = where(r3 > 0.5, @pattern_uv.x, 1 - @pattern_uv.x)\nbody = body * (1 - 0.30 * smoothstep(0.55, 1.0, end) * smoothstep(0.4, 0.9, r))\nbody = lerp(body, set(0.16, 0.09, 0.07), 0.7 * smoothstep(2.1, 2.6, fbm(320, 320, 7.7, 2)))\nbody = lerp(body, body * 0.75, @pits)\n# mortar: lime-grey, sand grains\nmortar = set(0.60, 0.58, 0.54) * (1 + 0.06 * fbm(96, 96, 8.8, 3))\nc = lerp(mortar, body, @brick)\n# efflorescence (pale salt bloom) in large soft patches, and grime that collects in the cavities\nc = lerp(c, set(0.80, 0.78, 0.74), 0.35 * smoothstep(0.9, 2.0, fbm(3, 3, 4.4, 3)) * smoothstep(0.0, 1.2, fbm(64, 64, 2.2, 3)))\nc = c * lerp(0.72, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.84 + 0.04 * m, @brick) + 0.08 * @pits, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Wall: brick wall -- colour / ORM"
   },
@@ -35168,7 +35204,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    15548
+    15698
    ],
    "size": [
     360,
@@ -35214,7 +35250,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4360,
-    16122
+    16272
    ],
    "size": [
     360,
@@ -35255,11 +35291,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    16735
+    16885
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 108,
@@ -35288,7 +35324,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n@pores = smoothstep(1.7, 2.3, fbm(180, 180, 5.2, 2))\n@height = 0.0003 * fbm(16, 16, 1.2, 4) + 0.0001 * fbm(256, 256, 3.4, 2) - 0.0007 * @pores\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Trim: height (metres) + masks"
   },
@@ -35297,7 +35334,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    17305
+    17480
    ],
    "size": [
     360,
@@ -35341,7 +35378,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    18003
+    18178
    ],
    "size": [
     360,
@@ -35388,11 +35425,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    18811
+    18986
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 210,
@@ -35421,7 +35458,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.80, 0.78, 0.72) * (1 + 0.035 * fbm(6, 6, 2.5, 4) + 0.02 * fbm(128, 128, 7.1, 2))\nc = lerp(c, c * 0.55, @pores)\n# rain-washed grime in vertical runs, heavier in a few places\ngrime = smoothstep(0.3, 2.2, fbm(12, 2, 8.6, 4)) * smoothstep(-0.8, 1.2, fbm(2, 2, 3.9, 2))\nc = lerp(c, set(0.50, 0.48, 0.44), 0.3 * grime)\nc = c * lerp(0.8, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.82 + 0.06 * fbm(32, 32, 1.8, 2) + 0.1 * @pores, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Trim: painted concrete trim -- colour / ORM"
   },
@@ -35430,7 +35468,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    19381
+    19581
    ],
    "size": [
     360,
@@ -35476,7 +35514,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4360,
-    19955
+    20155
    ],
    "size": [
     360,
@@ -35517,11 +35555,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    20568
+    20768
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 109,
@@ -35550,7 +35588,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# float glass is almost flat: 0.1 mm long waves just break up reflections\n@height = 0.0001 * fbm(2, 3, 1.5, 3)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Glass: height (metres) + masks"
   },
@@ -35559,7 +35598,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    21138
+    21363
    ],
    "size": [
     360,
@@ -35603,7 +35642,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    21836
+    22061
    ],
    "size": [
     360,
@@ -35650,11 +35689,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    22644
+    22869
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 211,
@@ -35683,7 +35722,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nfilm = smoothstep(0.2, 1.8, fbm(4, 4, 6.2, 4))\ndrip = smoothstep(1.2, 2.1, fbm(80, 3, 2.8, 3))\nsmudge = smoothstep(0.8, 2.0, fbm(20, 20, 9.4, 3))\ndirt = clamp(0.5 * film + 0.6 * drip, 0, 1)\nc = lerp(set(0.10, 0.13, 0.14), set(0.32, 0.30, 0.27), 0.4 * dirt)\n@ao = 1\n@roughness = clamp(0.04 + 0.35 * dirt + 0.12 * smudge, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Glass: window glass -- colour / ORM"
   },
@@ -35692,7 +35732,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    23214
+    23464
    ],
    "size": [
     360,
@@ -35738,7 +35778,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4360,
-    23788
+    24038
    ],
    "size": [
     360,
@@ -35779,11 +35819,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    24401
+    24651
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 110,
@@ -35812,7 +35852,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nN = 8\nx = @u * N\ncol = floor(x)\npu = x - col\ncr = rand(col + 0.13)\npv = frac(@v + rand(col + 0.57))\ne = min(min(pu, 1 - pu) / N, min(pv, 1 - pv))\n@plank = smoothstep(0.0015, 0.0027, e)\n@pu = pu\n@cr = cr\n# grain: flat-sawn growth rings running along the plank, warped by noise stretched along it; knots deflect it\nhas = where(rand(col + 0.9) > 0.45, 1.0, 0.0)\ndu = (pu - 0.25 - 0.5 * rand(col + 0.21)) / N\ndv = frac(@v - rand(col + 0.33) + 0.5) - 0.5\ndk = sqrt(du * du + (dv * 0.35) ** 2)\n@knot = has * (1 - smoothstep(0.007, 0.012, dk))\nphase = pu * 3.0 + 0.5 * fbm(32, 2, 3.3 + cr * 50, 4) + cr * 7 + has * 2.5 * exp(-dk / 0.015)\nring = frac(phase * 2.2)\nlate = smoothstep(0.62, 0.86, ring) * (1 - smoothstep(0.90, 1.0, ring))\n@late = late\n@pores = smoothstep(0.8, 2.0, fbm(256, 8, 6.6 + cr * 50, 2))\n# nails: two battens per metre, one nail per plank on each, 9 mm heads\nnv = min(abs(frac(@v) - 0.15), abs(frac(@v) - 0.65))\nnu = (pu - 0.5) / N\ndn = sqrt(nu * nu + nv * nv)\n@dn = dn\n@nail = 1 - smoothstep(0.0040, 0.0050, dn)\n# relief: weathered grain (soft earlywood worn back), slight cupping, 1.2 mm rounded plank edges, V joints 4 mm deep\nt = clamp((e - 0.0015) / 0.0012, 0, 1)\nface = -0.0006 * (2 * pu - 1) ** 2 + 0.00035 * late - 0.00015 * @pores + 0.0004 * @knot - 0.0012 * (1 - sqrt(1 - (1 - t) ** 2))\n@height = lerp(-0.004, face, @plank) + @nail * 0.0012 * sqrt(clamp(1 - (dn / 0.005) ** 2, 0, 1))\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Door: height (metres) + masks"
   },
@@ -35821,7 +35862,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    24971
+    25246
    ],
    "size": [
     360,
@@ -35865,7 +35906,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    25669
+    25944
    ],
    "size": [
     360,
@@ -35912,11 +35953,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    26477
+    26752
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 212,
@@ -35945,7 +35986,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ncr = @cr\n# stained softwood, one tone per plank; darker latewood lines, pores, knots\nwood = lerp(set(0.44, 0.29, 0.17), set(0.58, 0.40, 0.25), cr)\nwood = wood * (1 - 0.30 * @late) * (1 - 0.12 * @pores) * (1 + 0.05 * fbm(8, 2, 1.1 + cr * 50, 3))\nwood = lerp(wood, set(0.24, 0.14, 0.08), @knot * 0.85)\n# weathering: sun-greyed patches, darker grime in the joints\nwood = lerp(wood, set(0.52, 0.49, 0.44), 0.35 * smoothstep(0.3, 1.8, fbm(3, 2, 7.4, 3)))\nwood = lerp(set(0.10, 0.07, 0.05), wood, @plank)\n# nails: dark steel heads, a rust halo, and a rust run below each nail\nnu = (@pu - 0.5) / 8\nnvb = where(abs(frac(@v) - 0.15) < abs(frac(@v) - 0.65), frac(@v) - 0.15, frac(@v) - 0.65)\nrun = (1 - smoothstep(0.002, 0.005, abs(nu))) * smoothstep(-0.07, -0.004, nvb) * where(nvb < 0, 1.0, 0.0)\nhalo = 1 - smoothstep(0.005, 0.011, @dn)\nrust = clamp(halo * 0.7 + run * 0.45 * (0.6 + 0.4 * fbm(16, 64, 9.3, 2)), 0, 1)\nc = lerp(wood, set(0.38, 0.19, 0.08), rust)\nc = lerp(c, set(0.22, 0.22, 0.23), @nail)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(lerp(0.95, 0.72 - 0.06 * @late, @plank) + 0.15 * rust, 0, 1) * (1 - @nail) + 0.45 * @nail\n@metallic = @nail * 0.9\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Door: wooden planks -- colour / ORM"
   },
@@ -35954,7 +35996,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    27047
+    27347
    ],
    "size": [
     360,
@@ -36000,7 +36042,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4360,
-    27621
+    27921
    ],
    "size": [
     360,
@@ -36041,11 +36083,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    28234
+    28534
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 111,
@@ -36074,7 +36116,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nS = 2\n# seams at u = 0.25 / 0.75, so the tile border falls mid-pan (x = 0 / 1 is the seam centre)\nx = frac(@u * S + 0.5)\ndx = min(x, 1 - x) / S\n# standing seam: 25 mm tall, 20 mm wide, rounded cap; two shallow stiffening ribs in each pan; oil-canning waviness\n@seam = 1 - smoothstep(0.008, 0.011, dx)\ncap = sqrt(clamp(1 - (dx / 0.011) ** 2, 0, 1))\ndr = min(abs(x - 1 / 3), abs(x - 2 / 3)) / S\nrib = 0.0015 * (1 - smoothstep(0.002, 0.007, dr))\noil = 0.0008 * fbm(2, 3, 1.1, 3) * smoothstep(0.02, 0.08, dx)\n@height = 0.025 * cap ** 0.35 * @seam + rib + oil + 0.00003 * fbm(256, 256, 4.4, 2)\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Roof: height (metres) + masks"
   },
@@ -36083,7 +36126,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    28804
+    29129
    ],
    "size": [
     360,
@@ -36127,7 +36170,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    29502
+    29827
    ],
    "size": [
     360,
@@ -36174,11 +36217,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    30310
+    30635
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 213,
@@ -36207,7 +36250,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# chips: sharp-edged flakes, far more likely on the seam caps; a pale primer rim round each\nchn = fbm(24, 24, 7.7, 4) + 1.4 * @seam + 0.5 * fbm(4, 4, 3.0, 2)\nchip = smoothstep(1.85, 1.95, chn)\nrim = smoothstep(1.6, 1.85, chn) * (1 - chip)\n# paint: dark slate green, chalky sun-fading in big patches, dirt streaks running down the fall line\npaint = set(0.24, 0.33, 0.31) * (1 + 0.04 * fbm(32, 32, 2.2, 3))\npaint = lerp(paint, set(0.44, 0.49, 0.47), 0.45 * smoothstep(-0.5, 1.8, fbm(2, 3, 5.1, 3)))\nst = smoothstep(0.2, 1.8, fbm(64, 2, 5.5, 3))\npaint = paint * (1 - 0.16 * st)\nmetal = set(0.62, 0.63, 0.64) * (1 + 0.05 * fbm(48, 48, 6.3, 2))\nc = lerp(lerp(paint, set(0.58, 0.58, 0.55), rim), metal, chip)\n# rust: on part of the bare metal, plus thin rust runs in the streak lines of rustier regions\nrr = smoothstep(0.0, 1.2, fbm(40, 40, 3.3, 3))\nruns = smoothstep(1.1, 2.0, fbm(48, 3, 9.9, 3)) * smoothstep(0.3, 1.5, fbm(3, 3, 2.2, 2))\nrust = clamp(chip * rr + 0.6 * runs * (1 - chip), 0, 1)\nc = lerp(c, lerp(set(0.36, 0.17, 0.07), set(0.52, 0.28, 0.12), smoothstep(-1, 1, fbm(96, 96, 1.4, 2))), rust)\nc = c * lerp(0.8, 1.0, @ao_h)\n@ao = @ao_h\n@metallic = chip * (1 - rust)\n@roughness = clamp(lerp(0.52 + 0.15 * st, 0.32, chip) + 0.5 * rust, 0, 1)\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Roof: standing-seam roof -- colour / ORM"
   },
@@ -36216,7 +36260,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    30880
+    31230
    ],
    "size": [
     360,
@@ -36262,7 +36306,7 @@
    "type": "PCG_COPPattern",
    "pos": [
     4360,
-    31454
+    31804
    ],
    "size": [
     360,
@@ -36348,11 +36392,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    32252
+    32602
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 112,
@@ -36381,7 +36425,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nagg = fbm(160, 160, 2.1, 2)\n@stone = smoothstep(0.9, 1.8, agg)\n@seal = (1 - smoothstep(0.5, 3.0, @pattern_edge)) * smoothstep(0.3, 1.2, fbm(3, 3, 4.2, 3))\n@height = 0.0015 * @stone + 0.0004 * fbm(48, 48, 6.6, 2) - 0.001 * smoothstep(1.6, 2.2, -agg) + 0.0004 * @seal\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_RoofFlat: height (metres) + masks"
   },
@@ -36390,7 +36435,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    32822
+    33197
    ],
    "size": [
     360,
@@ -36434,7 +36479,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    33520
+    33895
    ],
    "size": [
     360,
@@ -36481,11 +36526,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    34328
+    34703
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 214,
@@ -36514,7 +36559,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\nc = set(0.36, 0.36, 0.35) * (1 + 0.07 * fbm(8, 8, 2.4, 3))\nc = lerp(c, set(0.52, 0.51, 0.49), 0.5 * @stone)\npond = smoothstep(0.6, 2.0, fbm(2, 2, 5.1, 3))\nc = lerp(c, set(0.24, 0.24, 0.23), 0.45 * pond)\nc = lerp(c, set(0.16, 0.16, 0.16), 0.9 * @seal)\nc = c * lerp(0.75, 1.0, @ao_h)\n@ao = @ao_h\n@roughness = clamp(0.92 - 0.2 * pond, 0, 1)\n@metallic = 0\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_RoofFlat: bitumen roofing -- colour / ORM"
   },
@@ -36523,7 +36569,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    34898
+    35298
    ],
    "size": [
     360,
@@ -36569,7 +36615,7 @@
    "type": "PCG_COPConstant",
    "pos": [
     4360,
-    35472
+    35872
    ],
    "size": [
     360,
@@ -36610,11 +36656,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    36085
+    36485
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 113,
@@ -36643,7 +36689,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\n# scratches: thin lines along a few directions. Directions use integer (a, b), so the rotated coordinates stay\n# periodic over the 1 m tile; each line is cut into short pieces by noise along it\nsc = 0\nfor k, (a, b, K) in enumerate(((1, 0, 23), (0, 1, 17), (1, 1, 19), (1, -1, 29), (2, 1, 13), (1, -2, 11))):\n    along = a * @u + b * @v\n    across = -b * @u + a * @v\n    q = across * K + 0.2 * (pnoise(set(along * 8, across * K, k * 3.1), set(8, K, 0)) - 0.5)\n    line = 1 - smoothstep(0.0, 0.0004 * K * sqrt(a * a + b * b), abs(frac(q) - 0.5))\n    seg = smoothstep(0.62, 0.70, pnoise(set(along * 24, across * K, k * 5.7 + 2), set(24, K, 0)))\n    sc = max(sc, line * seg)\n@scratch = sc\n@height = 0.00004 * fbm(220, 220, 3.3, 2) - 0.00008 * sc\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Metal: height (metres) + masks"
   },
@@ -36652,7 +36699,7 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     4360,
-    36655
+    37080
    ],
    "size": [
     360,
@@ -36696,7 +36743,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     4360,
-    37353
+    37778
    ],
    "size": [
     360,
@@ -36743,11 +36790,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     4360,
-    38161
+    38586
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 215,
@@ -36776,7 +36823,8 @@
     "# fbm(fx, fy, s, o): seamless fractal noise with fx × fy cells per metre (integers; unequal = stretched), seed s,\n# o octaves; normalized to roughly unit variance (about -2.5..2.5), so thresholds read the same at any octave count\ndef fbm(fx, fy, s, o=4):\n    t = 0\n    a = 1.0\n    n = 0\n    for i in range(o):\n        t = t + a * (pnoise(set(@u * fx, @v * fy, s + i * 7.13), set(fx, fy, 0)) - 0.5)\n        n = n + a * a\n        fx = fx * 2\n        fy = fy * 2\n        a = a * 0.5\n    return t / (0.135 * sqrt(n))\n\ncoat = set(0.18, 0.19, 0.20) * (1 + 0.05 * fbm(12, 12, 1.6, 3))\nscuff = smoothstep(0.6, 2.0, fbm(8, 8, 4.1, 4))\ncoat = lerp(coat, set(0.27, 0.28, 0.29), 0.6 * scuff)\nrust = smoothstep(2.0, 2.4, fbm(40, 40, 6.6, 3))\nc = lerp(coat, set(0.56, 0.57, 0.58), @scratch)\nc = lerp(c, set(0.38, 0.19, 0.09), rust)\n@ao = @ao_h\n@metallic = @scratch * (1 - rust)\n@roughness = clamp(lerp(lerp(0.45, 0.33, scuff), 0.3, @scratch) + 0.5 * rust, 0, 1)\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(c, 0, 1) ** 2.2\n",
     0,
     "{}",
-    256
+    256,
+    "auto"
    ],
    "title": "M_Metal: powder-coated steel -- colour / ORM"
   },
@@ -36785,7 +36833,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    38731
+    39181
    ],
    "size": [
     360,
@@ -36831,7 +36879,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    39305
+    39755
    ],
    "size": [
     360,
@@ -36877,7 +36925,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    39879
+    40329
    ],
    "size": [
     360,
@@ -36923,7 +36971,7 @@
    "type": "PCG_COPLayerEdit",
    "pos": [
     4360,
-    40453
+    40903
    ],
    "size": [
     360,
@@ -36963,7 +37011,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    40982
+    41432
    ],
    "size": [
     360,
@@ -37009,7 +37057,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    41556
+    42006
    ],
    "size": [
     360,
@@ -37055,7 +37103,7 @@
    "type": "PCG_COPLayerMerge",
    "pos": [
     4360,
-    42130
+    42580
    ],
    "size": [
     360,
@@ -37107,7 +37155,7 @@
    "type": "PCG_Camera",
    "pos": [
     2520,
-    36869
+    36894
    ],
    "size": [
     520,
@@ -37172,7 +37220,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    37163
+    37188
    ],
    "size": [
     520,
@@ -37283,7 +37331,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    42704
+    43154
    ],
    "size": [
     360,
@@ -37342,7 +37390,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    42995
+    43445
    ],
    "size": [
     360,
@@ -37383,7 +37431,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    43175
+    43625
    ],
    "size": [
     360,
@@ -37438,7 +37486,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    43594
+    44044
    ],
    "size": [
     360,
@@ -37480,7 +37528,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    43774
+    44224
    ],
    "size": [
     360,
@@ -37538,7 +37586,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    44065
+    44515
    ],
    "size": [
     360,
@@ -37593,7 +37641,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    44484
+    44934
    ],
    "size": [
     360,
@@ -37651,7 +37699,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    44775
+    45225
    ],
    "size": [
     360,
@@ -37706,7 +37754,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    45194
+    45644
    ],
    "size": [
     360,
@@ -37764,7 +37812,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    45485
+    45935
    ],
    "size": [
     360,
@@ -37805,7 +37853,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    45665
+    46115
    ],
    "size": [
     360,
@@ -37863,7 +37911,7 @@
    "type": "PCG_Facet",
    "pos": [
     4360,
-    45956
+    46406
    ],
    "size": [
     360,
@@ -37915,7 +37963,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    46429
+    46879
    ],
    "size": [
     360,
@@ -37962,7 +38010,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    46709
+    47159
    ],
    "size": [
     360,
@@ -38009,7 +38057,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    46989
+    47439
    ],
    "size": [
     360,
@@ -38056,7 +38104,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    47269
+    47719
    ],
    "size": [
     360,
@@ -38103,7 +38151,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     4360,
-    47549
+    47999
    ],
    "size": [
     360,
@@ -38146,7 +38194,7 @@
    "type": "PCG_GroupDelete",
    "pos": [
     4360,
-    47788
+    48238
    ],
    "size": [
     360,
@@ -38189,7 +38237,7 @@
    "type": "PCG_Merge",
    "pos": [
     4360,
-    48027
+    48477
    ],
    "size": [
     360,
@@ -38251,7 +38299,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    38530
+    38555
    ],
    "size": [
     520,
@@ -38279,7 +38327,7 @@
    "type": "PCG_Camera",
    "pos": [
     2520,
-    38974
+    38999
    ],
    "size": [
     520,
@@ -38345,7 +38393,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    39268
+    39293
    ],
    "size": [
     520,
@@ -38457,7 +38505,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    48237
+    48687
    ],
    "size": [
     360,
@@ -38516,7 +38564,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    48528
+    48978
    ],
    "size": [
     360,
@@ -38557,7 +38605,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    48708
+    49158
    ],
    "size": [
     360,
@@ -38612,7 +38660,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    49127
+    49577
    ],
    "size": [
     360,
@@ -38654,7 +38702,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    49307
+    49757
    ],
    "size": [
     360,
@@ -38712,7 +38760,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    49598
+    50048
    ],
    "size": [
     360,
@@ -38767,7 +38815,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    50017
+    50467
    ],
    "size": [
     360,
@@ -38825,7 +38873,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    50308
+    50758
    ],
    "size": [
     360,
@@ -38880,7 +38928,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    50727
+    51177
    ],
    "size": [
     360,
@@ -38938,7 +38986,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    51018
+    51468
    ],
    "size": [
     360,
@@ -38979,7 +39027,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    51198
+    51648
    ],
    "size": [
     360,
@@ -39037,7 +39085,7 @@
    "type": "PCG_Facet",
    "pos": [
     4360,
-    51489
+    51939
    ],
    "size": [
     360,
@@ -39089,7 +39137,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    51962
+    52412
    ],
    "size": [
     360,
@@ -39136,7 +39184,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    52242
+    52692
    ],
    "size": [
     360,
@@ -39183,7 +39231,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    52522
+    52972
    ],
    "size": [
     360,
@@ -39230,7 +39278,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    52802
+    53252
    ],
    "size": [
     360,
@@ -39277,7 +39325,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     4360,
-    53082
+    53532
    ],
    "size": [
     360,
@@ -39320,7 +39368,7 @@
    "type": "PCG_GroupDelete",
    "pos": [
     4360,
-    53321
+    53771
    ],
    "size": [
     360,
@@ -39363,7 +39411,7 @@
    "type": "PCG_Merge",
    "pos": [
     4360,
-    53560
+    54010
    ],
    "size": [
     360,
@@ -39425,7 +39473,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    40635
+    40660
    ],
    "size": [
     520,
@@ -39453,7 +39501,7 @@
    "type": "PCG_Camera",
    "pos": [
     2520,
-    41079
+    41104
    ],
    "size": [
     520,
@@ -39520,7 +39568,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    41373
+    41398
    ],
    "size": [
     520,
@@ -39641,7 +39689,7 @@
    "type": "PCG_Merge",
    "pos": [
     2520,
-    42740
+    42765
    ],
    "size": [
     520,
@@ -39705,7 +39753,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    53770
+    54220
    ],
    "size": [
     360,
@@ -39764,7 +39812,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    54061
+    54511
    ],
    "size": [
     360,
@@ -39805,7 +39853,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    54241
+    54691
    ],
    "size": [
     360,
@@ -39860,7 +39908,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    54660
+    55110
    ],
    "size": [
     360,
@@ -39902,7 +39950,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    54840
+    55290
    ],
    "size": [
     360,
@@ -39960,7 +40008,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    55131
+    55581
    ],
    "size": [
     360,
@@ -40015,7 +40063,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    55550
+    56000
    ],
    "size": [
     360,
@@ -40073,7 +40121,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    55841
+    56291
    ],
    "size": [
     360,
@@ -40128,7 +40176,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    56260
+    56710
    ],
    "size": [
     360,
@@ -40186,7 +40234,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    56551
+    57001
    ],
    "size": [
     360,
@@ -40227,7 +40275,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    56731
+    57181
    ],
    "size": [
     360,
@@ -40285,7 +40333,7 @@
    "type": "PCG_Facet",
    "pos": [
     4360,
-    57022
+    57472
    ],
    "size": [
     360,
@@ -40337,7 +40385,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    57495
+    57945
    ],
    "size": [
     360,
@@ -40384,7 +40432,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    57775
+    58225
    ],
    "size": [
     360,
@@ -40431,7 +40479,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    58055
+    58505
    ],
    "size": [
     360,
@@ -40478,7 +40526,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    58335
+    58785
    ],
    "size": [
     360,
@@ -40525,7 +40573,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     4360,
-    58615
+    59065
    ],
    "size": [
     360,
@@ -40568,7 +40616,7 @@
    "type": "PCG_GroupDelete",
    "pos": [
     4360,
-    58854
+    59304
    ],
    "size": [
     360,
@@ -40611,7 +40659,7 @@
    "type": "PCG_Merge",
    "pos": [
     4360,
-    59093
+    59543
    ],
    "size": [
     360,
@@ -40673,7 +40721,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    42950
+    42975
    ],
    "size": [
     520,
@@ -40800,7 +40848,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    59303
+    59753
    ],
    "size": [
     360,
@@ -40859,7 +40907,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    59594
+    60044
    ],
    "size": [
     360,
@@ -40900,7 +40948,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    59774
+    60224
    ],
    "size": [
     360,
@@ -40955,7 +41003,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    60193
+    60643
    ],
    "size": [
     360,
@@ -40997,7 +41045,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    60373
+    60823
    ],
    "size": [
     360,
@@ -41055,7 +41103,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    60664
+    61114
    ],
    "size": [
     360,
@@ -41110,7 +41158,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    61083
+    61533
    ],
    "size": [
     360,
@@ -41168,7 +41216,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    61374
+    61824
    ],
    "size": [
     360,
@@ -41223,7 +41271,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    61793
+    62243
    ],
    "size": [
     360,
@@ -41281,7 +41329,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    62084
+    62534
    ],
    "size": [
     360,
@@ -41322,7 +41370,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    62264
+    62714
    ],
    "size": [
     360,
@@ -41380,7 +41428,7 @@
    "type": "PCG_Facet",
    "pos": [
     4360,
-    62555
+    63005
    ],
    "size": [
     360,
@@ -41432,7 +41480,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    63028
+    63478
    ],
    "size": [
     360,
@@ -41479,7 +41527,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    63308
+    63758
    ],
    "size": [
     360,
@@ -41526,7 +41574,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    63588
+    64038
    ],
    "size": [
     360,
@@ -41573,7 +41621,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    63868
+    64318
    ],
    "size": [
     360,
@@ -41620,7 +41668,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     4360,
-    64148
+    64598
    ],
    "size": [
     360,
@@ -41663,7 +41711,7 @@
    "type": "PCG_GroupDelete",
    "pos": [
     4360,
-    64387
+    64837
    ],
    "size": [
     360,
@@ -41706,7 +41754,7 @@
    "type": "PCG_Merge",
    "pos": [
     4360,
-    64626
+    65076
    ],
    "size": [
     360,
@@ -42067,7 +42115,7 @@
    ],
    "size": [
     520,
-    686
+    711
    ],
    "flags": {},
    "order": 824,
@@ -42096,7 +42144,8 @@
     "x = @u * 160 + @v * 18\ny = @v * 9\ns = smoothstep(0.78, 0.95, noise(set(x, y, 3.3))) * smoothstep(0.3, 0.7, noise(set(@u * 7, @v * 3, 1.1)))\n@C = lerp(@C, set(0.80, 0.82, 0.85), 0.22 * s)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Rain: streaks"
   },
@@ -42105,7 +42154,7 @@
    "type": "PCG_COPExport",
    "pos": [
     4780,
-    14042
+    14067
    ],
    "size": [
     520,
@@ -42152,7 +42201,7 @@
    "type": "SaveImage",
    "pos": [
     4780,
-    14251
+    14276
    ],
    "size": [
     520,
@@ -42182,7 +42231,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     4780,
-    14635
+    14660
    ],
    "size": [
     520,
@@ -42294,7 +42343,7 @@
    "type": "SaveImage",
    "pos": [
     4780,
-    16002
+    16027
    ],
    "size": [
     520,
@@ -42324,7 +42373,7 @@
    "type": "PCG_Add",
    "pos": [
     4780,
-    16386
+    16411
    ],
    "size": [
     520,
@@ -42378,7 +42427,7 @@
    "type": "PCG_Resample",
    "pos": [
     4780,
-    16715
+    16740
    ],
    "size": [
     520,
@@ -42440,7 +42489,7 @@
    "type": "PCG_Smooth",
    "pos": [
     4780,
-    17262
+    17287
    ],
    "size": [
     520,
@@ -42489,7 +42538,7 @@
    "type": "PCG_CameraFromPoints",
    "pos": [
     4780,
-    17635
+    17660
    ],
    "size": [
     520,
@@ -42559,7 +42608,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     4780,
-    18157
+    18182
    ],
    "size": [
     520,
@@ -42671,7 +42720,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    64836
+    65286
    ],
    "size": [
     360,
@@ -42730,7 +42779,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    65127
+    65577
    ],
    "size": [
     360,
@@ -42771,7 +42820,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    65307
+    65757
    ],
    "size": [
     360,
@@ -42826,7 +42875,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    65726
+    66176
    ],
    "size": [
     360,
@@ -42868,7 +42917,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    65906
+    66356
    ],
    "size": [
     360,
@@ -42926,7 +42975,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    66197
+    66647
    ],
    "size": [
     360,
@@ -42981,7 +43030,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    66616
+    67066
    ],
    "size": [
     360,
@@ -43039,7 +43088,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     4360,
-    66907
+    67357
    ],
    "size": [
     360,
@@ -43094,7 +43143,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    67326
+    67776
    ],
    "size": [
     360,
@@ -43152,7 +43201,7 @@
    "type": "PCG_Blast",
    "pos": [
     4360,
-    67617
+    68067
    ],
    "size": [
     360,
@@ -43193,7 +43242,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     4360,
-    67797
+    68247
    ],
    "size": [
     360,
@@ -43251,7 +43300,7 @@
    "type": "PCG_Facet",
    "pos": [
     4360,
-    68088
+    68538
    ],
    "size": [
     360,
@@ -43303,7 +43352,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    68561
+    69011
    ],
    "size": [
     360,
@@ -43350,7 +43399,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    68841
+    69291
    ],
    "size": [
     360,
@@ -43397,7 +43446,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    69121
+    69571
    ],
    "size": [
     360,
@@ -43444,7 +43493,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     4360,
-    69401
+    69851
    ],
    "size": [
     360,
@@ -43491,7 +43540,7 @@
    "type": "PCG_AttribDelete",
    "pos": [
     4360,
-    69681
+    70131
    ],
    "size": [
     360,
@@ -43534,7 +43583,7 @@
    "type": "PCG_GroupDelete",
    "pos": [
     4360,
-    69920
+    70370
    ],
    "size": [
     360,
@@ -43577,7 +43626,7 @@
    "type": "PCG_Merge",
    "pos": [
     4360,
-    70159
+    70609
    ],
    "size": [
     360,
@@ -43639,7 +43688,7 @@
    "type": "SaveAnimatedWEBP",
    "pos": [
     4780,
-    19524
+    19549
    ],
    "size": [
     520,

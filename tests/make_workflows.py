@@ -146,6 +146,10 @@ class Graph:
             values["size"] = values.pop("size_")
         ins, outs = spec_of(ntype)
         names = [n for n, _, _ in ins]
+        if ntype == "PCG_COPWrangle":
+            # the example workflows run their COP Wrangles on CUDA when there is one (the node's own default stays
+            # numpy, so workflows saved before that option keep their numbers)
+            values.setdefault("compute", "auto")
         for k in values:
             if k not in names:
                 raise KeyError(f"{ntype} has no input {k} (has {names})")
@@ -5813,20 +5817,24 @@ def tut_foreach_variations():
     A.note((
         "One chain, six different results: a For-Each loop in Count mode.\n\n"
         "For-Each Begin (Iterate over: Count, 6 iterations, Fetch Input) hands the "
-        "same sphere to the loop body six times. Its 'iteration' output (0 to 5) "
+        "same squashed sphere to the loop body six times. Its 'iteration' output (0 to 5) "
         "is wired into the Seed of Point Jitter and Attribute Noise, so every pass "
         "gets different random numbers and a different stone.\n\n"
+        "The sphere is the icosphere kind (evenly spread points, no poles: a UV "
+        "sphere's poles pinch into spikes when jittered). Match Size sets each stone "
+        "on the ground, sunk a little.\n\n"
         "The Wrangle also gets the iteration on its Seed input; inside the code it "
         "is the variable 'seed'. It moves each stone along X and picks a colour. "
         "For-Each End (Gather: Merge) collects all six.\n\n"
         "Tweak: Iterations on For-Each Begin, the jitter Scale, the noise Amplitude, "
         "or what the Wrangle does with 'seed'."),
-        h=440, title="For-Each variations (read me)", w=W)
-    sph = A("PCG_Sphere", radius=1.0, cols=10, rows=7)
+        h=500, title="For-Each variations (read me)", w=W)
+    sph = A("PCG_Sphere", title="Icosphere, squashed", radius=1.0, prim_type="polygon", frequency=2,
+            radius_x=1.0, radius_y=0.72, radius_z=0.9)
     fb = A("PCG_ForEachBegin", title="Each stone (count x 6)", method="fetch_input",
            iterate_over="count", iterations=6)
     g.link(sph, "geo", fb, "geo")
-    jit = B("PCG_PointJitter", scale=0.5)
+    jit = B("PCG_PointJitter", scale=0.28)
     g.link(fb, "geo", jit, "geo")
     g.link(fb, "iteration", jit, "rand_seed")
     sd = B("PCG_Subdivide", depth=3)
@@ -5834,16 +5842,21 @@ def tut_foreach_variations():
     nm = B("PCG_Normal", cusp_angle=180.0)
     g.link(sd, "geo", nm, "geo")
     ns = B("PCG_AttribNoise", title="Pits along the normal",
-           noise_along_vector=True, amplitude=0.12, noise_type="worley_f2f1",
-           fractal="standard", octaves=2, element_size_x=0.4,
-           element_size_y=0.4, element_size_z=0.4)
+           noise_along_vector=True, amplitude=0.035, noise_type="worley_f2f1",
+           fractal="standard", octaves=2, element_size_x=0.6,
+           element_size_y=0.6, element_size_z=0.6)
     g.link(nm, "geo", ns, "geo")
     g.link(fb, "iteration", ns, "rand_seed")
+    ms = C("PCG_MatchSize", title="On the ground (sunk 0.1)", justify_y="min", use_justify_to=True,
+           offset_y=-0.1)
+    g.link(ns, "geo", ms, "geo")
     wr = C("PCG_Wrangle", title="Place and colour (seed = iteration)", code=(
         "# 'seed' is the value wired into the Seed input: the loop iteration\n"
         "@P.x += (seed - 2.5) * 2.3\n"
-        "@Cd = lerp(set(0.42, 0.40, 0.37), set(0.66, 0.60, 0.52), rand(seed + 0.5))"))
-    g.link(ns, "geo", wr, "geo")
+        "# a stone colour per pass (grey-brown to buff), mottled, darker low down where soil splashes up\n"
+        "base = lerp(set(0.30, 0.29, 0.28), set(0.48, 0.44, 0.37), rand(seed + 0.5))\n"
+        "@Cd = base * (0.85 + 0.3 * noise(@P * 2.5 + seed)) * (0.8 + 0.2 * smoothstep(0.0, 0.5, @P.y))"))
+    g.link(ms, "geo", wr, "geo")
     g.link(fb, "iteration", wr, "rand_seed")
     fe = C("PCG_ForEachEnd", gather="merge")
     g.link(wr, "geo", fe, "geo")

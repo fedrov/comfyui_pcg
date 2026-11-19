@@ -1731,7 +1731,7 @@
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 35,
@@ -1760,7 +1760,8 @@
     "# which rock: the atlas cell; the bake had rock N moved by N * 3.5 m in x -- undo it so the detail is the rock's own\nidx = floor(@u * 4)\ns = idx * 17.31 + 3.7\nP = @position - set(3.5, 0, 0) * idx\nT = normalize(@tangent)\nB = normalize(@bitangent)\ntilt = normalize(set(rand(s + 91) - 0.5, 2.0, rand(s + 92) - 0.5))\n\n# Detail height in metres (negative = into the rock). The low-frequency parts (layer warp, where grooves and cracks\n# fade) are evaluated once; only the sharp parts are re-evaluated 3 mm along T and B for the slope.\nwarp = 0.8 * noise(P * 1.1 + s) + 0.25 * noise(P * 3.7 + s + 5)\ngfade = smoothstep(0.45, 0.7, noise(P * 2.2 + s + 17))\ncfade = smoothstep(0.45, 0.7, noise(P * 0.8 + s + 60))\ndef sharp(Q):\n    band = frac(dot(Q, tilt) * 5.5 + warp)\n    # only every so often a layer joint opens into a groove (not every band), so they don't read as ruled lines\n    open_ = smoothstep(0.62, 0.8, noise(set(floor(dot(Q, tilt) * 5.5 + warp), s + 0 * band, 3.3 + 0 * band)))\n    groove = smoothstep(0.86, 0.95, band) * (1 - smoothstep(0.95, 1.0, band)) * gfade * open_\n    # cracks: thin where they start, wider in their middle, broken into runs (not one unbroken line)\n    cw = 0.004 + 0.01 * noise(Q * 3.1 + s + 51)\n    ct = clamp(abs(noise(Q * 1.4 + s + 40) - 0.5) / cw, 0, 1)\n    crack = (1 - ct * ct * (3 - 2 * ct)) * cfade * smoothstep(0.35, 0.55, noise(Q * 4.2 + s + 57))\n    grain = 0.6 * (noise(Q * 14 + s + 11) - 0.5) + 0.4 * (noise(Q * 45 + s + 23) - 0.5)\n    # weathering: hand-sized lumps and hollows, and pits where softer grains fell out\n    lump = noise(Q * 4.5 + s + 7) - 0.5\n    pit = smoothstep(0.72, 0.8, noise(Q * 10 + s + 29)) * smoothstep(0.5, 0.7, noise(Q * 1.1 + s + 83))\n    return -0.005 * groove - 0.014 * crack + 0.005 * grain + 0.012 * lump - 0.004 * pit, groove, crack + 0.15 * pit\n\nh, groove, crack = sharp(P)\ne = 0.003\ndT = (sharp(P + T * e)[0] - h) / e\ndB = (sharp(P + B * e)[0] - h) / e\ndel T, B\nb = @normal_ts\n# tilt the baked high-poly normal by the detail slope (TS x along tangent, y along bitangent)\n@normal_ts = normalize(set(b.x - dT, b.y - dB, b.z)) * @mask + set(0, 0, 1) * (1 - @mask)\ndel b, dT, dB\n@displacement = @displacement + h * @mask\n@crevice = clamp(groove * 0.6 + crack, 0, 1)\n\n# colour per texel: strata on the same warped layers as the grooves (low contrast), mottling, fine speckle, pale\n# worn edges, dark cavities and crevices, olive moss on the flatter tops\ncav = clamp(-@high_curv / 20, 0, 1)\nedge = clamp(@high_curv / 25, 0, 1)\n# each rock its own stone (by its kind, the SDF's seed % 4): a grey-brown boulder, a buff sandstone slab, a dark\n# speckled shard, a weathered grey block; strata faint and broken, colour patches at the metre scale\nkind = idx - 4 * floor(idx / 4)\nlo_ = where(kind < 0.5, set(0.30, 0.28, 0.25), where(kind < 1.5, set(0.42, 0.36, 0.28), where(kind < 2.5, set(0.20, 0.20, 0.20), set(0.33, 0.33, 0.31))))\nhi_ = where(kind < 0.5, set(0.43, 0.40, 0.35), where(kind < 1.5, set(0.56, 0.49, 0.38), where(kind < 2.5, set(0.33, 0.32, 0.31), set(0.46, 0.45, 0.42))))\nst_amp = where(kind < 0.5, 0.35, where(kind < 1.5, 0.8, where(kind < 2.5, 0.15, 0.25)))\nstrata = 0.5 + 0.5 * sin((dot(P, tilt) * 5.5 + warp) * 6.2832) * st_amp * smoothstep(0.3, 0.7, noise(P * 0.9 + s + 71))\npatch = noise(P * 0.9 + s + 1.7)\nbase = lerp(lo_, hi_, clamp(0.35 * strata + 0.65 * patch, 0, 1))\nbase = base * (0.82 + 0.3 * noise(P * 4.0 + s + 1.9) + 0.2 * (noise(P * 22 + s + 5) - 0.5))\n# the shard: granite-like speckle (dark and pale grains)\nspk = where(kind > 1.5, 1.0, 0.0) * where(kind < 2.5, 1.0, 0.0)\ngr_ = noise(P * 90 + s + 61)\nbase = base * (1 + spk * (0.55 * smoothstep(0.68, 0.74, gr_) - 0.35 * (1 - smoothstep(0.26, 0.32, gr_))))\nstain = smoothstep(0.52, 0.72, noise(P * 1.6 + s + 44)) * (0.5 + 0.5 * noise(P * 7 + s + 13))\nbase = lerp(base, set(0.46, 0.33, 0.21), 0.38 * stain)\nbase = lerp(base, base * 1.35 + 0.04, edge * 0.5)\nbase = lerp(base, set(0.13, 0.12, 0.10), clamp(cav * 0.6 + @crevice * 0.3, 0, 1))\nNw = normalize(@worldnormal)\nmoss = smoothstep(0.6, 0.9, Nw.y) * smoothstep(0.5, 0.66, noise(P * 1.8 + s + 9) + 0.35 * (noise(P * 12 + s) - 0.5) + 0.15 * cav)\nmc = lerp(set(0.15, 0.18, 0.09), set(0.29, 0.31, 0.16), noise(P * 9 + s + 3))\n# lichen: small pale crusts in loose clusters, on any face that is not overhanging\nlichen = smoothstep(0.68, 0.72, noise(P * 14 + s + 31)) * smoothstep(0.45, 0.7, noise(P * 1.3 + s + 77)) * smoothstep(-0.3, 0.2, Nw.y)\nbase = lerp(base, set(0.56, 0.56, 0.48), 0.45 * lichen)\n@moss = moss * @mask\n# the colours above are picked as display (sRGB) values; the layer is linear -- Write File encodes it to sRGB\n@basecolor = clamp(lerp(base, mc, moss), 0, 1) ** 2.2\n",
     0,
     "{}",
-    128
+    128,
+    "auto"
    ],
    "title": "Texture-space detail: grooves, cracks, grain, colour"
   },
@@ -1769,7 +1770,7 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     2100,
-    1392
+    1417
    ],
    "size": [
     360,
@@ -1817,11 +1818,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     2100,
-    2200
+    2225
    ],
    "size": [
     360,
-    526
+    551
    ],
    "flags": {},
    "order": 41,
@@ -1852,7 +1853,8 @@
     "# curvature cavities, grooves and cracks also count as occlusion; take the min with the height-difference AO\ncav = clamp(-@high_curv / 20, 0, 1)\n@ao = min(@ao_disp, 1 - 0.55 * cav) * (1 - 0.4 * @crevice) * @mask + (1 - @mask)\n@basecolor = @basecolor * lerp(0.7, 1.0, @ao)\nlum = dot(@basecolor, set(0.3, 0.59, 0.11))\n# worn convex edges are smoother, moss and crevices rougher\n@roughness = clamp(0.88 - 0.3 * clamp(@high_curv / 30, 0, 1) - 0.1 * lum + 0.08 * @moss + 0.06 * @crevice, 0.4, 1)\n@metallic = 0",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "BaseColor / ORM"
   },
@@ -1861,7 +1863,7 @@
    "type": "PCG_COPLight",
    "pos": [
     2100,
-    2770
+    2820
    ],
    "size": [
     360,
@@ -2152,7 +2154,7 @@
    ],
    "size": [
     520,
-    686
+    711
    ],
    "flags": {},
    "order": 49,
@@ -2181,7 +2183,8 @@
     "@lit = clamp(@lit, 0, 1) ** (1 / 2.2)",
     0,
     "{}",
-    0
+    0,
+    "auto"
    ],
    "title": "Lit preview to sRGB"
   },
@@ -2190,7 +2193,7 @@
    "type": "PCG_COPExport",
    "pos": [
     2520,
-    2642
+    2667
    ],
    "size": [
     520,
@@ -2237,7 +2240,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    2851
+    2876
    ],
    "size": [
     520,
@@ -2265,7 +2268,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    3095
+    3120
    ],
    "size": [
     520,
@@ -2377,7 +2380,7 @@
    "type": "SaveImage",
    "pos": [
     2520,
-    3647
+    3672
    ],
    "size": [
     520,
@@ -2407,7 +2410,7 @@
    "type": "PCG_Blast",
    "pos": [
     2100,
-    3632
+    3682
    ],
    "size": [
     360,
@@ -2448,7 +2451,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     2100,
-    3812
+    3862
    ],
    "size": [
     360,
@@ -2507,7 +2510,7 @@
    "type": "PCG_ExportMesh",
    "pos": [
     2100,
-    4103
+    4153
    ],
    "size": [
     360,
@@ -2554,7 +2557,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    3931
+    3956
    ],
    "size": [
     520,
@@ -2666,7 +2669,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    4468
+    4493
    ],
    "size": [
     520,
@@ -2694,7 +2697,7 @@
    "type": "PCG_Blast",
    "pos": [
     2520,
-    4772
+    4797
    ],
    "size": [
     520,
@@ -2735,7 +2738,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    4952
+    4977
    ],
    "size": [
     520,
@@ -2796,7 +2799,7 @@
    "type": "PCG_Transform",
    "pos": [
     2520,
-    5359
+    5384
    ],
    "size": [
     520,
@@ -2857,7 +2860,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     2520,
-    5766
+    5791
    ],
    "size": [
     520,
@@ -2969,7 +2972,7 @@
    "type": "PreviewImage",
    "pos": [
     2520,
-    6318
+    6343
    ],
    "size": [
     520,
@@ -2997,7 +3000,7 @@
    "type": "PCG_Viewport",
    "pos": [
     2520,
-    6782
+    6807
    ],
    "size": [
     520,

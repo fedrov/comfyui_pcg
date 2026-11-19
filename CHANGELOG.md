@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Tutorial 4 (for-each variations)**: the stones start from an icosphere (a jittered UV sphere pinched into
+  spikes at its poles), jitter less than the point spacing (no folded slits), sit on the ground (Match Size: they
+  floated at whatever height their shape reached) and get mottled grey-to-buff colours.
 - **Rock assets**: four kinds of rock in turn (`seed % 4`) -- a chunky boulder, a bedded slab with stepped ledges, a
   tall split shard, a weathered block with rounded arrises -- each with its own stone colour (grey-brown, buff
   sandstone, dark speckled, weathered grey); strata faint and broken, cracks that widen and break into runs, fewer
@@ -31,6 +34,12 @@ All notable changes to this project are documented here. The format follows
   18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
 
 ### Added
+- **COP Wrangle on the GPU**: `compute` (appended; default cpu = numpy as before; auto / cuda = on a CUDA GPU). The same
+  code runs on float32 tensors in bands of about half a million pixels: maths, set / components, clamp / fit / lerp /
+  smoothstep, vectors, where, noise / pnoise, worley / pworley and their _dir, rand (the same 64-bit mixing as numpy).
+  Code it does not cover (sprintf, astype, numpy calls on a layer, `if` on a per-pixel value) runs on numpy. All 66
+  COP Wrangles of the example workflows match numpy in float64 on torch's CPU (65 run on torch); the example workflows
+  set it to auto.
 - **Resize**: `align` -- centres (as before) or corners, for grids of samples such as heightfields (1025 at 4 m to
   2049 at 2 m keeps every old sample on an even new one, and back).
 - **Preview Image / Outdoor on the GPU**: with Compute auto (CUDA available) or cuda, the frame is also rasterized and

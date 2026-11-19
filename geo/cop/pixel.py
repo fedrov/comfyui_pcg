@@ -1054,7 +1054,40 @@ _AT = re.compile(r"(?<![\w.])@(\w+)(?:\.([xyzwrgba]))?")
 _CMAP = {"x": 0, "y": 1, "z": 2, "w": 3, "r": 0, "g": 1, "b": 2, "a": 3}
 
 
-def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
+# what the last wrangle() ran on, and why (the tests and the node's tooltip read it)
+LAST_WRANGLE = {"engine": "numpy", "reason": ""}
+# pixels per band on the GPU: big enough that the launches do not dominate, small enough that a surface Wrangle's
+# temporaries (a few hundred float32 columns) stay well within the VRAM budget
+GPU_BAND_PIXELS = 1 << 19
+
+
+def _wrangle_target(img, compute, pixels):
+    """-> (torch device, dtype, description) for the torch path, or (None, None, description) for numpy."""
+    c = str(compute or "auto").lower()
+    t = bk.torch_module()
+    if c == "cpu":
+        return None, None, "numpy (Compute = cpu)"
+    if t is None:
+        return None, None, "numpy (no torch)"
+    if c == "torch_cpu":
+        return "cpu", t.float64, "torch:cpu float64 (for tests)"
+    if c == "torch_cpu32":
+        return "cpu", t.float32, "torch:cpu float32 (for tests: the arithmetic of the CUDA path)"
+    if c == "cuda":
+        if not bk.cuda_available():
+            return None, None, "numpy (Compute = cuda, but no CUDA available)"
+        return "cuda", t.float32, "torch:cuda"
+    xp = img.backend if len(img) else None
+    if xp is not None and getattr(xp, "is_torch", False) and str(xp.device).startswith("cuda"):
+        return str(xp.device), t.float32, "torch:cuda (follows the input image)"
+    if not bk.cuda_available():
+        return None, None, "numpy (no CUDA)"
+    if int(pixels) < bk.AUTO_PIXELS:
+        return None, None, f"numpy (fewer than {bk.AUTO_PIXELS} pixels)"
+    return "cuda", t.float32, "torch:cuda (auto)"
+
+
+def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0, compute="cpu"):
     """
     Per-pixel VEX-flavored code, computed over the whole image at once (same function library as the geometry Wrangle).
 
@@ -1072,6 +1105,16 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
         return CopImage()
     W, H = img.xres, img.yres
     step = int(chunk_rows) if int(chunk_rows or 0) > 0 else H
+    dev, dt, why = _wrangle_target(img, compute, W * H)
+    if dev is not None:
+        from . import wrangle_torch as _WT
+        try:
+            return _wrangle_torch(img, code, seed, ch_params, step, dev, dt, why)
+        except _WT.Unsupported as e:
+            why = f"numpy (the GPU path does not cover this code: {e})"
+        except Exception as e:                  # anything else: numpy runs it, and raises a real error there
+            why = f"numpy (the GPU path failed: {type(e).__name__}: {str(e)[:160]})"
+    LAST_WRANGLE.update(engine="numpy", reason=why)
     bands = [(r, min(r + step, H)) for r in range(0, H, step)]
     py = None
     results = {}
@@ -1126,6 +1169,36 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
     out = img.copy()
     for k, a in results.items():
         put(out, k, a, img if len(img) else None)
+    return out
+
+
+def _wrangle_torch(img, code, seed, ch_params, step, dev, dt, why):
+    """The banded wrangle on torch (one band at a time; on CUDA at least GPU_BAND_PIXELS per band)."""
+    from . import wrangle_torch as _WT
+    W, H = img.xres, img.yres
+    if str(dev).startswith("cuda"):
+        step = max(step, -(-GPU_BAND_PIXELS // max(W, 1)))
+    results = {}
+    rdt = np.float32 if (img.backend if len(img) else bk.NUMPY) is bk.NUMPY else np.float64
+    for r0 in range(0, H, step):
+        r1 = min(r0 + step, H)
+        _, part = _WT.band(img, code, seed, ch_params, r0, r1, dev, dt)
+        for k, a in part.items():
+            if k not in results:
+                results[k] = np.zeros((H, W, a.shape[1]), rdt)
+            elif results[k].shape[2] != a.shape[1]:
+                raise RuntimeError(f"@{k} has {a.shape[1]} channels in one band and {results[k].shape[2]} in another")
+            results[k][r0:r1] = a.reshape(r1 - r0, W, -1)
+        del part
+    out = img.copy()
+    for k, a in results.items():
+        put(out, k, a, img if len(img) else None)
+    LAST_WRANGLE.update(engine=f"torch:{dev}", reason=why)
+    if str(dev).startswith("cuda"):
+        try:                                      # hand the temporaries' VRAM back (a diffusion model may want it)
+            bk.torch_module().cuda.empty_cache()
+        except Exception:
+            pass
     return out
 
 
