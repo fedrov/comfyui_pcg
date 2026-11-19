@@ -34,6 +34,7 @@ EXPOSURE = 1.0
 # Rasterizer batch size: the default (16 M candidate pairs) is tuned for speed on big meshes; at supersampled
 # resolutions a few screen-filling triangles already reach it and the batch arrays take over a gigabyte
 _PAIRS = 1 << 21
+_PAIRS_T = 1 << 23                # on torch: bigger batches (a GPU wants them; a few hundred MB each)
 
 # ─────────────────────────────────────────────────────────────── colour
 def srgb_to_linear(c):
@@ -64,7 +65,9 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              # basecolor_tint = 1: the base colour texture is multiplied by the colour attribute (one atlas, a tint
              # per instance); uv_blend = 'uv uv2 ...' with uv_blend_weights = an attribute of as many weights: the
              # base colour and the alpha are the weighted sum of the texture at each uv (impostor frame blending)
-             "basecolor_tint", "uv_blend", "uv_blend_weights")
+             "basecolor_tint", "uv_blend", "uv_blend_weights",
+             # alpha_shadow = material names (wildcards) whose cut-out faces still cast shadows, whole (leaf cards)
+             "alpha_shadow")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
 # terrain layers (an engine's landscape material): layerN = a tiled colour, layerN_normal / _rough / _height its other
@@ -90,7 +93,9 @@ def parse_textures(text):
     Cutout: alpha = a texture (file or '@layer', {material} allowed) whose first channel below alpha_cutoff (a
     number, default 0.5) removes the surface at that point: what lies behind shows through (leaves, fences, impostor
     cards). Cut-out faces cast no sun or sky shadow; a face with the prim attribute shadow_only = 1 casts shadows
-    but is not seen (a stand-in shadow caster for cut-out cards).
+    but is not seen (a stand-in shadow caster for cut-out cards). alpha_shadow = material names (wildcards: 'M_Leaf*')
+    lets those cut-out faces cast shadows after all, as whole faces (a tree's leaf cards shade the ground and each
+    other; the shadow is not cut out).
 
     basecolor_tint = 1 multiplies the base colour texture by the colour attribute (Cd): one impostor atlas, a tint
     per instance; instead of 1, material names (wildcards: 'imp_*') limit it to those materials. uv_blend =
@@ -166,27 +171,104 @@ def mip_chain(tex):
     return out
 
 
+# The torch device the texture lookups run on while a render on one is in progress (render_outdoor sets it for the
+# duration of the render: Compute = auto with CUDA, or torch_cpu), and the mip chains moved there (a chain is uploaded
+# once per render; kept by its first level's identity)
+_TDEV = None
+_TCACHE = {}
+
+
+def set_texture_device(dev):
+    """Texture lookups (sample_mip) on this torch device from now on (None: numpy); the uploaded chains are dropped."""
+    global _TDEV
+    _TDEV = dev
+    _TCACHE.clear()
+
+
+def _tchain(chain):
+    import torch
+    e = _TCACHE.get(id(chain[0]))
+    if e is None or e[0] is not chain[0]:
+        e = (chain[0], [torch.from_numpy(np.require(t, requirements=("C", "W"))).to(_TDEV) for t in chain])
+        _TCACHE[id(chain[0])] = e
+    return e[1]
+
+
+def _wrap_t(tex, uv):
+    """sample_wrap on torch: bilinear, repeating; an 8-bit chain is read as its values (as numpy does)."""
+    import torch
+    H, W = tex.shape[:2]
+    x = torch.remainder(uv[:, 0], 1.0) * W - 0.5
+    y = torch.remainder(uv[:, 1], 1.0) * H - 0.5
+    x0f, y0f = torch.floor(x), torch.floor(y)
+    fx, fy = (x - x0f)[:, None], (y - y0f)[:, None]
+    x0, y0 = x0f.long(), y0f.long()
+    x0m, x1m = torch.remainder(x0, W), torch.remainder(x0 + 1, W)
+    y0m, y1m = torch.remainder(y0, H), torch.remainder(y0 + 1, H)
+
+    def g(yy, xx):
+        return tex[yy, xx].to(torch.float32)
+    return (g(y0m, x0m) * (1 - fx) + g(y0m, x1m) * fx) * (1 - fy) + (g(y1m, x0m) * (1 - fx) + g(y1m, x1m) * fx) * fy
+
+
+def _sample_mip_t(chain, uv, footprint):
+    import torch
+    ch = _tchain(chain)
+    out = np.empty((len(uv), chain[0].shape[2]), np.float32)
+    blk = 1 << 22
+    for b0 in range(0, len(uv), blk):
+        u = torch.from_numpy(np.ascontiguousarray(uv[b0:b0 + blk, :2], np.float32)).to(_TDEV)
+        fp = torch.from_numpy(np.ascontiguousarray(footprint[b0:b0 + blk], np.float32)).to(_TDEV)
+        lod = torch.clamp(torch.log2(torch.clamp(fp, min=1e-9)), 0, len(ch) - 1)
+        l0 = torch.floor(lod).long()
+        f = (lod - l0)[:, None]
+        res = torch.empty((len(u), chain[0].shape[2]), dtype=torch.float32, device=_TDEV)
+        for lv in torch.unique(l0).tolist():
+            sel = l0 == lv
+            us, fs = u[sel], f[sel]
+            res[sel] = _wrap_t(ch[lv], us) * (1 - fs) + _wrap_t(ch[min(lv + 1, len(ch) - 1)], us) * fs
+        out[b0:b0 + len(u)] = res.cpu().numpy()
+    return out
+
+
 def sample_mip(chain, uv, footprint):
     """
     Bilinear from the mip level whose texel matches the pixel's footprint (in level-0 texels), blended linearly with
-    the next level (trilinear). Without it a 1 m brick texture seen from afar sparkles into noise.
+    the next level (trilinear). Without it a 1 m brick texture seen from afar sparkles into noise. On the texture
+    device (set_texture_device: a render on CUDA) for more than a few thousand lookups.
     """
+    if _TDEV is not None and len(uv) > 4096:
+        return _sample_mip_t(chain, uv, np.asarray(footprint))
     out = np.zeros((len(uv), chain[0].shape[2]), np.float32)
     # in blocks of pixels: each level's bilinear reads make several (n, C) temporaries, which over a supersampled
-    # frame of millions of pixels were a gigabyte or more
-    blk = 1 << 20
-    for b0 in range(0, len(uv), blk):
-        uvb = uv[b0:b0 + blk]
-        lod = np.clip(np.log2(np.maximum(footprint[b0:b0 + blk], 1e-9)), 0, len(chain) - 1)
-        l0 = np.floor(lod).astype(np.int64)
-        f = (lod - l0)[:, None]
-        ob = out[b0:b0 + blk]
-        for lv in np.unique(l0):
-            sel = l0 == lv
-            a = sample_wrap(chain[lv], uvb[sel])
-            b = sample_wrap(chain[min(lv + 1, len(chain) - 1)], uvb[sel])
-            ob[sel] = a * (1 - f[sel]) + b * f[sel]
+    # frame of millions of pixels were a gigabyte or more. Blocks run on threads (numpy's gathers and arithmetic
+    # release the GIL): PCG_THREADS workers, else up to 4
+    blk = 1 << 18
+    starts = list(range(0, len(uv), blk))
+    from .cop.pixel import _wrangle_workers
+    nw = _wrangle_workers(len(starts)) if len(uv) > 4 * blk else 1
+    if nw > 1:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=nw) as ex:
+            list(ex.map(lambda b0: _sample_mip_block(chain, uv, footprint, out, b0, blk), starts))
+        return out
+    for b0 in starts:
+        _sample_mip_block(chain, uv, footprint, out, b0, blk)
     return out
+
+
+def _sample_mip_block(chain, uv, footprint, out, b0, blk):
+    """sample_mip on the pixels b0 .. b0 + blk, into out."""
+    uvb = uv[b0:b0 + blk]
+    lod = np.clip(np.log2(np.maximum(footprint[b0:b0 + blk], 1e-9)), 0, len(chain) - 1)
+    l0 = np.floor(lod).astype(np.int64)
+    f = (lod - l0)[:, None]
+    ob = out[b0:b0 + blk]
+    for lv in np.unique(l0):
+        sel = l0 == lv
+        a = sample_wrap(chain[lv], uvb[sel])
+        b = sample_wrap(chain[min(lv + 1, len(chain) - 1)], uvb[sel])
+        ob[sel] = a * (1 - f[sel]) + b * f[sel]
 
 
 def sample_wrap(tex, uv):
@@ -358,7 +440,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
            "metallic": np.zeros((H, W), np.float32)}
     if tex:
         _apply_textures(geo, rast, alb, N, m, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                        cop_detail=detail_cop, P=P, cop_splat=splat_cop)
+                        cop_detail=detail_cop, P=P, cop_splat=splat_cop, rate=k)
     use_pbr = any(sl in tex for sl in _PBR_SLOTS)
     rast = None                                   # bary / z / hit are not needed past this point
     if report is not None:
@@ -376,6 +458,7 @@ def render_studio(geo, width=512, height=512, elev=25.0, azim=35.0, color_attrib
     # (skylight.sun_shadow), from one 2048² depth map
     from . import skylight as K
     T = T0 if (shadows or ao) else None
+    acut = alpha_shadow_cut(geo, tex, acut, material_attrib)
     if T is not None and acut is not None:                    # cut-out faces cast no shadow
         T = (T[0], T[1][~acut[T[2]]], T[2])
     T = T[:2] if T is not None else None
@@ -637,6 +720,21 @@ def with_hidden(test, hidden):
     return t
 
 
+def alpha_shadow_cut(geo, tex, acut, mattr="material"):
+    """acut (cut-out faces) without the ones whose material alpha_shadow names: those cast shadows whole."""
+    if acut is None or not tex or not tex.get("alpha_shadow"):
+        return acut
+    import fnmatch
+    a = geo.get(PRIM, mattr)
+    if a is None or not is_string(a):
+        return acut
+    names = np.asarray(a)[:, 0].astype(str)
+    pats = str(tex["alpha_shadow"]).split()
+    uniq, inv = np.unique(names, return_inverse=True)
+    keep = np.array([any(fnmatch.fnmatchcase(u, p_) for p_ in pats) for u in uniq], bool)
+    return acut & ~keep[inv]
+
+
 def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), report=None):
     """
     The cutout of the 'alpha' texture slot for rasterize(alpha=...): -> (test function, bool per prim: faces that
@@ -766,8 +864,12 @@ def _uv_blend_sets(geo, tex, uvattr):
 
 
 def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=None, pbr=None, cop_detail=None,
-                    P=None, cop_splat=None):
+                    P=None, cop_splat=None, rate=1):
     """
+    rate: the supersampling factor. A rate x rate block of the supersampled frame that one material covers entirely is
+    one output pixel: its textures are read once, at the block's corner with the block's footprint (the mip a single
+    output pixel would read), and copied to the block -- as MSAA shades once per pixel and keeps the coverage per
+    sample. Blocks on an edge (two materials, or the background) are read per sample. 1 = every sample.
     BaseColor into alb and tangent-space normal maps into N, per face material. The tangent frames are the
     per-corner set Export Mesh writes and COP Bake Textures bakes against (meshexport.corner_frames), so a baked
     normal map shows here exactly as in an engine that reads the file's tangents. A missing file leaves those faces
@@ -818,6 +920,35 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     lo_, hi_ = np.minimum(dax[0], dax[1]), np.maximum(dax[0], dax[1])
     du = np.where(lo_ > 0, np.maximum(lo_, hi_ / _ANISO), hi_)
     del dax, lo_, hi_
+    # shading rate: one read per block a single material covers (see the docstring)
+    rate = int(rate or 1)
+    sc_ = None
+    copy_ = None
+    if rate > 1 and len(idx[0]) > 64:
+        Hh_, Ww_ = hit.shape
+        nbx = (Ww_ + rate - 1) // rate
+        nbl = ((Hh_ + rate - 1) // rate) * nbx
+        bid = (idx[0] // rate).astype(np.int64) * nbx + idx[1] // rate
+        nm_ = max(len(mats), 1)
+        uk, kc = np.unique(bid * nm_ + pm, return_counts=True)
+        good = np.zeros(nbl, bool)
+        good[uk[kc == rate * rate] // nm_] = True
+        g_ = good[bid]
+        # ... and one surface: the samples' normals within a few degrees of the corner's (two leaf cards, a crease,
+        # an object in front of another of the same material are read per sample)
+        cy_, cx_ = idx[0] - idx[0] % rate, idx[1] - idx[1] % rate
+        dn_ = (N[idx] * N[(cy_, cx_)]).sum(-1)
+        good[np.unique(bid[g_ & (dn_ < 0.985)])] = False
+        g_ = good[bid]
+        del uk, kc, good, dn_, cy_, cx_
+        rep_ = g_ & (idx[0] % rate == 0) & (idx[1] % rate == 0)
+        keep_ = ~g_ | rep_
+        oth = g_ & ~rep_
+        copy_ = ((idx[0][oth], idx[1][oth]), (idx[0][oth] - idx[0][oth] % rate, idx[1][oth] - idx[1][oth] % rate))
+        sc_ = np.where(rep_[keep_], float(rate), 1.0).astype(np.float32)
+        idx = (idx[0][keep_], idx[1][keep_])
+        pm, uv, du = pm[keep_], uv[keep_], du[keep_] * sc_
+        del bid, g_, rep_, keep_, oth
     tv = str(tex.get("basecolor_tint", "")).strip()
     try:
         tall, tpat = float(tv or 0) > 0, []
@@ -835,13 +966,13 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
     cache = {}
     tri = None
     if float(tex.get("detail_triplanar", "0") or 0) > 0 and "detail_weights" in tex and P is not None:
-        tri = _triplanar_coords(P, N, hit, idx, float(tex["detail_triplanar"]))
+        tri = _triplanar_coords(P, N, hit, idx, float(tex["detail_triplanar"]), sc_)
     layers = sorted(int(k_[5:]) for k_ in tex if re.fullmatch(r"layer\d+", k_))
     tri1 = None
     if layers and "layer_weights" in tex:
         if P is None:
             raise ValueError("Textures: terrain layers need the surface positions (Studio / Outdoor look)")
-        tri1 = _triplanar_coords(P, N, hit, idx, 1.0)       # world projection at 1 unit per tile; scaled per layer
+        tri1 = _triplanar_coords(P, N, hit, idx, 1.0, sc_)   # world projection at 1 unit per tile; scaled per layer
 
     def fetch_weights(pattern, mat):
         """The mask layers stacked channel by channel (layer_weights = '@a @b ...'), as one mip chain."""
@@ -933,7 +1064,7 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         for slot, pattern in tex.items():
             if slot in _DETAIL_SLOTS or slot.startswith("layer") or slot in ("alpha", "alpha_cutoff"):
                 continue
-            if slot in ("basecolor_tint", "uv_blend", "uv_blend_weights"):
+            if slot in ("basecolor_tint", "uv_blend", "uv_blend_weights", "alpha_shadow"):
                 continue
             ch = fetch(pattern, slot, mat)
             if ch is None:
@@ -993,6 +1124,13 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
                     sb[on_[b0:b0 + _DETAIL_BLOCK]] = True
                     _apply_layers(tex, layers, wch, fetch, mat, sb, (idx[0][sb], idx[1][sb]), uv, du, alb, N, pbr,
                                   tri1)
+    if copy_ is not None and len(copy_[0][0]):              # the block's read to the rest of the block
+        dst, src = copy_
+        alb[dst] = alb[src]
+        N[dst] = N[src]
+        if pbr is not None:
+            for k_ in pbr:
+                pbr[k_][dst] = pbr[k_][src]
 
 
 # triplanar planes: (u axis, v axis) in world space; the top plane matches a terrain's uv (u east, v north = -z)
@@ -1001,13 +1139,14 @@ _TRI_AXES = (((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)),       # seen along x
              ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0)))       # seen along z
 
 
-def _triplanar_coords(P, N, hit, idx, size):
+def _triplanar_coords(P, N, hit, idx, size, scale=None):
     """
     Per plane, for the covered pixels (positions in idx) that it weighs on: (positions, uv = P / size on the plane's
     axes, mip footprint = the uv change to the next pixel, as for the mesh uv -- across a face edge too, since P is
     continuous --, blend weight, u axis, v axis). The weights are |n|^4 of the shading normal, normalised: that
     sharpens the seams to a narrow band around 45 degrees. A side plane covers a few % of a terrain, so it keeps
-    only those pixels (float32: a supersampled frame has millions).
+    only those pixels (float32: a supersampled frame has millions). scale: per pixel in idx, a factor on the footprint
+    (a shading-rate block's corner reads for the whole block).
     """
     n_ = np.abs(N[idx]).astype(np.float32) ** 4
     n_ /= np.maximum(n_.sum(-1, keepdims=True), 1e-12)
@@ -1025,7 +1164,8 @@ def _triplanar_coords(P, N, hit, idx, size):
             pad = [(0, 1) if k_ == ax else (0, 0) for k_ in range(2)]
             d_ = np.maximum(d_, np.pad(d, pad, mode="edge"))
         at = (idx[0][pos], idx[1][pos])
-        out.append((pos, img[at], d_[at], n_[pos, a_], U.astype(np.float64), V.astype(np.float64)))
+        fp_ = d_[at] if scale is None else d_[at] * scale[pos]       # a shading-rate block: its whole footprint
+        out.append((pos, img[at], fp_, n_[pos, a_], U.astype(np.float64), V.astype(np.float64)))
         del img, d_
     return out
 

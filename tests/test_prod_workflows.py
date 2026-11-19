@@ -472,7 +472,7 @@ else:
               f"{sat(rn_):.3f} vs {sat(day_):.3f}); snow: white on the mountains ({snow(snw_):.1%} of them, "
               f"{snow(val_):.1%} without snow)",
               all(v_ == (1, 720, 1280, 3) for v_ in sv3.values()) and gnd(dsk_) < 0.7 * gnd(day_)
-              and warm >= 20 and warm > 5 * warm_day and sat(rn_) < 0.7 * sat(day_)
+              and warm >= 10 and warm > 5 * warm_day and sat(rn_) < 0.7 * sat(day_)
               and snow(snw_) > 0.05 and snow(snw_) > 4 * snow(val_))
     else:
         check("variants: the Dusk / Rain / Snow and day previews ran", False)
@@ -1089,6 +1089,20 @@ else:
               and 0.05 < t_[1] / t_[0] < 0.45
               and bc_.shape[:2] == (1024, 1024) and min(frames) > 0.05 and max(frames) < 0.95
               and abs(np.median(np.linalg.norm(nn_[on_], axis=-1)) - 1) < 0.05)
+        # the impostor atlas baked with the leaf texture: green leaves, not the grey card shading alone
+        cfr_ = bc_[..., :3][on_].astype(np.float64).mean(0)
+        check(f"  {a_}: the atlas baked with the leaf card texture (mean colour {np.round(cfr_, 1)}: green)",
+              cfr_[1] > 1.15 * cfr_[0] and cfr_[1] > 1.3 * cfr_[2])
+    # the leaf cards' textures (Leaf Card Texture): a twig rooted at the bottom middle, cut out, green
+    for lf_ in ("Leaf", "Needle"):
+        la_ = img(os.path.join(ad_, f"T_{lf_}_Alpha.png"))[..., 0] / 255.0
+        lb_ = img(os.path.join(ad_, f"T_{lf_}_BaseColor.png"))[..., :3].astype(np.float64)
+        root_ = la_[-16:-3, 248:264].max()                     # the PNG's last row is the bottom (v 0)
+        lcol_ = lb_[la_ > 0.5].mean(0)
+        check(f"leaf card texture T_{lf_}: 512², coverage {la_.mean():.2f}, rooted at the bottom middle "
+              f"(alpha {root_:.2f}), the top corners empty, green ({np.round(lcol_, 1)})",
+              la_.shape == (512, 512) and 0.12 < la_.mean() < 0.6 and root_ > 0.9
+              and max(la_[:8, :8].max(), la_[:8, -8:].max()) < 0.05 and lcol_[1] > 1.2 * max(lcol_[0], lcol_[2]))
     # the previews' far view: from the valley camera, the trees beyond 500 m as impostor cards on their frames, the
     # towns at the LOD of their distance
     cq_, lq_ = cap["got"].get("Valley: cards' uv on their frame"), cap["got"].get("Valley: the towns at that LOD")

@@ -239,7 +239,7 @@ tmpd2 = tempfile.mkdtemp(prefix="pcg_wf_")
 paths = MW.main(tmpd)
 paths2 = MW.main(tmpd2)
 check(f"all {len(paths)} workflows generated, regenerating is byte-identical",
-      len(paths) == len(MW.WORKFLOWS) == 16 and all(open(a, "rb").read() == open(b, "rb").read()
+      len(paths) == len(MW.WORKFLOWS) == 17 and all(open(a, "rb").read() == open(b, "rb").read()
                               for a, b in zip(paths, paths2)))
 import json                                              # noqa: E402
 wfs = {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8"))

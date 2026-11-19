@@ -335,6 +335,7 @@
 "PCG_IsoOffset": "PCG/generate",
 "PCG_IsoSurface": "PCG/generate",
 "PCG_Join": "PCG/modify",
+"PCG_LeafCardTexture": "PCG/cop",
 "PCG_LODCreate": "PCG/modify",
 "PCG_LSystem": "PCG/generate",
 "PCG_Lattice": "PCG/deform",

@@ -1096,7 +1096,7 @@ SPECS = {
                                     "hemisphere fill, fast"},
             "compute": {"label": "Compute", "section": "Outdoor", "hide": "{ look != outdoor }",
                         "menu": {"auto": "Auto (CUDA if available)", "cpu": "CPU (numpy)", "cuda": "CUDA"},
-                        "help": "Where the shadow maps and the sky light are computed"},
+                        "help": "Where the frame is rasterized and textured, and the shadow maps and the sky light computed"},
             "snow_line": {"label": "Snow Line", "section": "Weather", "hide": "{ look != outdoor }",
                           "help": "Height in metres above which the upward faces take snow (a ragged line)"},
             "snow_amount": {"label": "Snow", "section": "Weather", "hide": "{ look != outdoor }"},

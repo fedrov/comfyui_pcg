@@ -366,5 +366,129 @@ check("a camera sequence renders a batch of frames (images, depth, normal); fram
       and np.allclose(rs_[0][0].numpy(), r0_[0][0].numpy(), atol=1e-5)
       and not np.allclose(rs_[0][0].numpy(), rs_[0][2].numpy(), atol=1e-2))
 
+print("\n[9. The torch path (Compute auto with CUDA; torch_cpu runs the same code on the CPU)]")
+try:
+    import torch  # noqa: F401
+    _have_torch = True
+except Exception:
+    _have_torch = False
+if _have_torch:
+    from comfyui_pcg.geo import studio as S9
+    # rasterizing: a box over a plate with one cut-out face (alpha test on), the near plane clipping a face
+    bx9 = build.box(size=(2.0, 2.0, 2.0), center=(0.0, 1.0, 0.0))
+    pl9 = build.grid(size_x=8.0, size_z=8.0, cols=4, rows=4)
+    sc9 = _ops.merge(bx9, pl9)
+    cam9 = R.camera(None, "perspective", eye=[0.3, 1.2, 1.6], target=[0, 0.5, 0], fov=70, xres=96, yres=72)
+
+    class _Cut:
+        prims = np.zeros(sc9.nprims, bool)
+        prims[2] = True
+
+        def __call__(self, t, bb, rast):
+            return bb[:, 0] < 0.5
+    rn = R.rasterize(sc9, cam9, alpha=_Cut())
+    rt = R.rasterize(sc9, cam9, alpha=_Cut(), device=torch.device("cpu"))
+    same_hit = float((rn["hit"] == rt["hit"]).mean())
+    m9 = rn["hit"] >= 0
+    check("rasterize on torch = numpy: the same triangle per pixel, depth and barycentrics (alpha test and near-plane "
+          "clipping included)", same_hit > 0.999 and np.allclose(rn["z"][m9], rt["z"][m9], atol=1e-9)
+          and np.allclose(rn["bary"][m9], rt["bary"][m9], atol=1e-9), same_hit)
+    # texture lookups: trilinear from a mip chain, float and 8-bit chains
+    rng9 = np.random.default_rng(9)
+    tex9 = rng9.random((64, 48, 3)).astype(np.float32)
+    ch9 = S9.mip_chain(tex9)
+    uv9 = rng9.random((20000, 2)).astype(np.float32) * 3 - 1
+    fp9 = (2.0 ** (rng9.random(20000) * 7 - 1)).astype(np.float32)
+    a9 = S9.sample_mip(ch9, uv9, fp9)
+    S9.set_texture_device(torch.device("cpu"))
+    try:
+        b9 = S9.sample_mip(ch9, uv9, fp9)
+        u8 = (rng9.random((32, 32, 4)) * 255).astype(np.uint8)
+        c8 = [u8, u8[::2, ::2].copy()]
+        t8 = S9.sample_mip(c8, uv9, fp9)
+    finally:
+        S9.set_texture_device(None)
+    n8 = S9.sample_mip(c8, uv9, fp9)
+    check("texture lookups on torch = numpy (trilinear over the mip levels, wrapping; an 8-bit chain read as its "
+          "values)", np.allclose(a9, b9, atol=1e-5) and np.allclose(t8, n8, atol=1e-3),
+          (float(np.abs(a9 - b9).max()), float(np.abs(t8 - n8).max())))
+    # a whole textured, cut-out render: the leaf card over a plate, numpy and torch
+    from comfyui_pcg.geo.cop.core import CopImage as _CI
+    from comfyui_pcg.geo.cop.pixel import put as _put
+    from comfyui_pcg.geo.cop.leafcard import leaf_card as _lc
+    lc9, la9 = _lc("broadleaf", 64, 7, (0.1, 0.3, 0.05), seed=2)
+    cop9 = _CI(64, 64)
+    _put(cop9, "M_Leaf_C", lc9)
+    _put(cop9, "M_Leaf_alpha", la9)
+    cd9 = build.grid(size_x=2.0, size_z=2.0, cols=1, rows=1)
+    P9 = np.asarray(cd9.get(POINT, "P"), np.float32)
+    cd9.set(POINT, "P", np.c_[P9[:, 0], P9[:, 2] + 1.0, np.zeros(len(P9), np.float32)])
+    cd9.set(POINT, "uv", np.c_[(P9[:, 0] + 1) / 2, (P9[:, 2] + 1) / 2, np.zeros(len(P9))].astype(np.float32))
+    from comfyui_pcg.geo.core import PRIM as _PR
+    cd9.set_string(_PR, "material", np.full(cd9.nprims, "M_Leaf"))
+    cam9b = R.camera(None, "perspective", eye=[0.0, 1.0, 3.0], target=[0, 1.0, 0], fov=50)
+    k9 = dict(cam=cam9b, ssaa=1, haze=0.0, clouds=0.0, sky_samples=4, ground=True, tex_cop=cop9,
+              textures="basecolor = @{material}_C\nalpha = @{material}_alpha\nalpha_shadow = M_Leaf")
+    i_np = O.render_outdoor(cd9, 64, 64, compute="cpu", **k9)
+    i_t = O.render_outdoor(cd9, 64, 64, compute="torch_cpu", **k9)
+    check("a textured, cut-out render on torch = numpy (within 1/255 on 99% of the pixels)",
+          float((np.abs(i_np - i_t).max(-1) < 1 / 255).mean()) > 0.99, float(np.abs(i_np - i_t).max()))
+else:
+    print("  (torch not installed: skipped)")
+
+print("\n[10. Shading rate and threads]")
+from comfyui_pcg.geo import studio as S10
+from comfyui_pcg.geo.cop.core import CopImage as _CI10
+from comfyui_pcg.geo.cop.pixel import put as _put10
+from comfyui_pcg.geo.core import PRIM as _PR10
+# a ground plate textured with fine noise (material A) and a box (material B) on it, supersampled 2x
+pl10 = build.grid(size_x=20.0, size_z=20.0, cols=8, rows=8)
+P10 = np.asarray(pl10.get(POINT, "P"), np.float32)
+pl10.set(POINT, "uv", np.c_[P10[:, 0] / 4, P10[:, 2] / 4, np.zeros(len(P10))].astype(np.float32))
+pl10.set_string(_PR10, "material", np.full(pl10.nprims, "A"))
+bx10 = build.box(size=(3.0, 3.0, 3.0), center=(0.0, 1.5, 0.0))
+bx10.set(POINT, "uv", np.zeros((bx10.npoints, 3), np.float32))
+bx10.set_string(_PR10, "material", np.full(bx10.nprims, "B"))
+sc10 = _ops.merge(pl10, bx10)
+c10 = _CI10(256, 256)
+_put10(c10, "A_C", np.random.default_rng(10).random((256, 256, 3)).astype(np.float32))
+_put10(c10, "B_C", np.full((256, 256, 3), 0.8, np.float32))
+cam10 = R.camera(None, "perspective", eye=[6.0, 4.0, 9.0], target=[0, 0.5, 0], fov=45)
+k10 = dict(cam=cam10, ssaa=2, haze=0.0, clouds=0.0, sky_samples=0, ground=False, tex_cop=c10,
+           textures="basecolor = @{material}_C", compute="cpu")
+reads = []
+_orig_sm = S10.sample_mip
+S10.sample_mip = lambda ch, uv, fp: (reads.append(len(uv)), _orig_sm(ch, uv, fp))[1]
+_orig_at = S10._apply_textures
+try:
+    img_r = O.render_outdoor(sc10, 96, 72, **k10)
+    n_rate = sum(reads)
+    reads.clear()
+    S10._apply_textures = lambda *a, **kw: _orig_at(*a, **{**kw, "rate": 1})
+    img_1 = O.render_outdoor(sc10, 96, 72, **k10)
+    n_one = sum(reads)
+finally:
+    S10.sample_mip = _orig_sm
+    S10._apply_textures = _orig_at
+dmean = float(np.abs(img_r - img_1).mean())
+check("shading rate (supersampling 2): the textures read once per output pixel where one material covers it (under "
+      "40% of the per-sample reads), the image within 1% of the per-sample one on average; the edges (plate / box) "
+      "still read per sample", n_rate < 0.4 * n_one and n_rate > 0.25 * n_one and dmean < 0.01,
+      (n_rate, n_one, round(dmean, 5)))
+# texture lookups on threads: the same numbers as one thread
+_env = os.environ.get("PCG_THREADS")
+ch10 = S10.mip_chain(np.random.default_rng(11).random((128, 128, 3)).astype(np.float32))
+uv10 = np.random.default_rng(12).random((1 << 21, 2)).astype(np.float32) * 4
+fp10 = (2.0 ** (np.random.default_rng(13).random(1 << 21) * 6)).astype(np.float32)
+os.environ["PCG_THREADS"] = "1"
+s1 = S10.sample_mip(ch10, uv10, fp10)
+os.environ["PCG_THREADS"] = "3"
+s3 = S10.sample_mip(ch10, uv10, fp10)
+if _env is None:
+    del os.environ["PCG_THREADS"]
+else:
+    os.environ["PCG_THREADS"] = _env
+check("texture lookups on 3 threads = on 1, bit for bit", np.array_equal(s1, s3))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

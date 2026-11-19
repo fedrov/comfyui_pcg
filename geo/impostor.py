@@ -91,8 +91,10 @@ def _colour(geo, rast):
 
 
 def impostor_textures(geo, kind="octahedron", sprite_res=128, frames_x=8, frames_y=8, elevation=0.0, zoom=1.0,
-                      normal_space="world", sun="0.4 0.8 0.45"):
-    """Render the impostor atlas of geo; see the module docstring. -> CopImage, card Geometry, report dict."""
+                      normal_space="world", sun="0.4 0.8 0.45", textures="", textures_cop=None, tex_root=None):
+    """Render the impostor atlas of geo; see the module docstring. -> CopImage, card Geometry, report dict.
+    textures: Geometry Preview's Textures lines (base colour, alpha cutout, basecolor_tint by material, '@layer' from
+    textures_cop): leaf cards render as leaves, not as quads."""
     from .render import look_at, rasterize, _interp, _face_normals
     from .spatial import tri_soup
     from .cop.core import CopImage
@@ -115,6 +117,12 @@ def impostor_textures(geo, kind="octahedron", sprite_res=128, frames_x=8, frames
     pn = np.asarray(pn, np.float64)[:, :3] if pn is not None and np.asarray(pn).shape[1] >= 3 else None
     sv = _vec(sun, 3)
     sv = sv / max(float(np.linalg.norm(sv)), 1e-12)
+    from . import studio as S
+    tex = S.parse_textures(textures) if str(textures or "").strip() else {}
+    trep = {"used": [], "missing": []}
+    atest = None
+    if tex:
+        atest, _ = S.alpha_tester(geo, tex, tex_root, "material", "uv", (textures_cop,), trep)
     Hh, Ww = ny * s, nx * s
     C = np.zeros((Hh, Ww, 3))
     A = np.zeros((Hh, Ww))
@@ -130,10 +138,20 @@ def impostor_textures(geo, kind="octahedron", sprite_res=128, frames_x=8, frames
             cam = {"projection": "orthographic", "eye": ey, "right": r, "up": u, "forward": f, "fov": 45.0,
                    "ortho_size": size, "xres": s, "yres": s, "near": 0.01, "far": 0.0, "radius": radius,
                    "target": ctr, "distance": radius * 3.0}
-            rast = rasterize(geo, cam, "", "none", soup=soup)
+            rast = rasterize(geo, cam, "", "none", soup=soup, alpha=atest)
             m = rast["hit"] >= 0
             from .studio import srgb_to_linear
             col = np.where(m[:, :, None], srgb_to_linear(np.clip(_colour(geo, rast), 0, None)), 0.0)  # Cd: display
+            if tex and m.any():
+                alb_ = col.astype(np.float32)
+                nd_ = np.zeros(m.shape + (3,), np.float32)
+                pbr_ = {"ao": np.ones(m.shape, np.float32), "roughness": np.ones(m.shape, np.float32),
+                        "metallic": np.zeros(m.shape, np.float32)}
+                tx_ = {k_: v_ for k_, v_ in tex.items() if k_ in ("basecolor", "basecolor_tint")}
+                if tx_.get("basecolor"):
+                    S._apply_textures(geo, rast, alb_, nd_, m, tx_, tex_root, "material", "uv", trep,
+                                      textures_cop, pbr_)
+                col = np.where(m[:, :, None], alb_.astype(np.float64), 0.0)
             nw = _interp(rast, pn) if pn is not None else _face_normals(geo, rast)
             ln = np.linalg.norm(nw, axis=-1, keepdims=True)
             nw = nw / np.where(ln < 1e-12, 1.0, ln)
@@ -162,4 +180,6 @@ def impostor_textures(geo, kind="octahedron", sprite_res=128, frames_x=8, frames
     card.set(DETAIL, "radius", np.array([radius], np.float32))
     card.set(DETAIL, "center", ctr.astype(np.float32))
     return img, card, {"type": kind, "frames": [nx, ny], "atlas": [Ww, Hh], "radius": radius,
-                       "center": ctr.tolist(), "coverage": float(A.mean())}
+                       "center": ctr.tolist(), "coverage": float(A.mean()),
+                       **({"textures_used": sorted(set(trep["used"])), "textures_missing": sorted(set(trep["missing"]))}
+                          if tex else {})}

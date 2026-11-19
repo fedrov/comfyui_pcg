@@ -292,9 +292,10 @@
  },
  "PCG_ImpostorTextures": {
   "summary": "Renders an object from a grid of directions into an impostor atlas, and outputs the card to show it on.",
-  "description": "An impostor replaces a distant object by a single card that shows a picture of the object from roughly the right direction. This node renders those pictures: every frame is an orthographic view of the whole object, framed on its bounding sphere so all frames have the same scale, and the frames are packed into one atlas.\n\n`Impostor Type` chooses the directions:\n\n- **Octahedron**: `XY Frames` x `XY Frames` directions over the whole sphere, laid out by the octahedral map. Neighbouring frames are neighbouring directions, so an engine can blend between them.\n- **Hemi-Octahedron**: the same over the upper half only - for trees and buildings, which are never seen from below, this doubles the angular resolution.\n- **Fixed Axis**: all frames go round the up axis at one `Elevation` - for billboards that only turn about Y.\n- **3D**: `XY Frames` azimuths by `XY Frames (Y)` elevations, a latitude / longitude grid.\n\nThe atlas has the layers `C` (linear base colour from the geometry's `Cd`, which is a display colour and is decoded; unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).\n\nThe `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.",
+  "description": "An impostor replaces a distant object by a single card that shows a picture of the object from roughly the right direction. This node renders those pictures: every frame is an orthographic view of the whole object, framed on its bounding sphere so all frames have the same scale, and the frames are packed into one atlas.\n\n`Impostor Type` chooses the directions:\n\n- **Octahedron**: `XY Frames` x `XY Frames` directions over the whole sphere, laid out by the octahedral map. Neighbouring frames are neighbouring directions, so an engine can blend between them.\n- **Hemi-Octahedron**: the same over the upper half only - for trees and buildings, which are never seen from below, this doubles the angular resolution.\n- **Fixed Axis**: all frames go round the up axis at one `Elevation` - for billboards that only turn about Y.\n- **3D**: `XY Frames` azimuths by `XY Frames (Y)` elevations, a latitude / longitude grid.\n\nThe atlas has the layers `C` (linear base colour from the geometry's `Cd`, which is a display colour and is decoded; unlit), `alpha`, `N` (the normal, in world or view space, signed), `depth` (0-1 across the bounding sphere along the view direction; 0.5 is the plane through the centre) and `beauty` (the base colour lit by a fixed sun, for engines that use a pre-lit atlas). Frame (0, 0) is the lower-left sprite. Write the layers out with COP Write File (PCG).\n\nThe `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.\n\n**Textures.** With `Textures` (Geometry Preview's lines: `basecolor`, `alpha`, `basecolor_tint`) and the `textures_cop` input, the frames are rendered with them: leaf cards cut out by Leaf Card Texture render as leaves instead of quads, coloured by the texture (tinted by `Cd` where basecolor_tint names the material). The report lists the textures used and missing.",
   "inputs": {
-   "geo": "Object to make the impostor of."
+   "geo": "Object to make the impostor of.",
+   "textures_cop": "The '@layer' textures the Textures lines name (Leaf Card Texture's colour and alpha)."
   },
   "outputs": {
    "cop": "The atlas (layers C, alpha, N, depth, beauty).",
@@ -308,7 +309,8 @@
    "elevation": "Camera elevation in degrees for Fixed Axis.",
    "zoom": "Above 1 zooms in on the object (cropping the bounding sphere) to use more of each frame.",
    "normal_space": "World space, or view space (x right, y up, z toward the camera).",
-   "sun_direction": "Direction toward the sun for the beauty layer (X Y Z)."
+   "sun_direction": "Direction toward the sun for the beauty layer (X Y Z).",
+   "textures": "Geometry Preview's Textures lines for the render of the frames; empty renders `Cd` on the bare faces, as before."
   },
   "houdini_notes": "Corresponds to SideFX Labs Impostor Texture (and its successor Impostor Baker): Octahedron, 3D and Fixed Axis types, Sprite Resolution, XY Frames, Octahedron Zoom, and the base colour, normal and beauty atlases. The Animation type is not included. The colour comes from the `Cd` attribute; textured materials are not rendered. Octahedron frames sample the map at both ends of its range, the convention game engines use for blending."
  },
@@ -340,7 +342,7 @@
  },
  "PCG_TreeGenerator": {
   "summary": "Builds a procedural tree as a game asset: a trunk and branches as tapered tubes, leaves as cards.",
-  "description": "A tree to place thousands of times needs to be light, varied by a seed, and ready for an LOD chain. This node grows one in two forms:\n\n- **Broadleaf**: the trunk ends in the crown. From the crown base up, branches leave it in a spiral (golden-angle turns), each at about `Branch Angle` from its parent, curving up and wandering by `Gnarl`; each level is `Length Ratio` of its parent's length, and the last level carries the leaves on its outer part.\n- **Conifer**: the trunk runs to the top. Whorls of slightly drooping branches leave it, long at the bottom and short at the top (a cone), with needle sprays (cards) along them.\n\nBranches are tubes with `Sides` around the trunk (fewer on thinner branches), tapered, with a flare at the root; their uv runs in metres (u around, v along), so a tiling bark texture keeps its size. Each leaf is one quad card of about `Leaf Size`, `Leaves` of them in all.\n\nPoint attributes: `Cd` (bark colour; leaves darker inside and low in the crown, where less sky reaches), `N` (bark radial; each leaf card's normal bent toward \"out of the crown\" by `Normal Bend`, so the crown shades as one soft volume instead of a cloud of facets) and `uv`. Prim attributes: `part` (bark / leaf), `material` (M_Bark / M_Leaf) and `level` (0 the trunk, 1.. the branch levels, -1 the leaves).\n\nThe same seed gives the same tree. For an LOD chain, decimating cards does little (each is an island of four points), so use a coarser tree of the same seed (one branch level, fewer and larger leaves, three sides) as LOD Create's custom level, and Impostor Textures for the far cards.",
+  "description": "A tree to place thousands of times needs to be light, varied by a seed, and ready for an LOD chain. This node grows one in two forms:\n\n- **Broadleaf**: the trunk ends in the crown. From the crown base up, branches leave it in a spiral (golden-angle turns), each at about `Branch Angle` from its parent, curving up and wandering by `Gnarl`; each level is `Length Ratio` of its parent's length, and the last level carries the leaves on its outer part.\n- **Conifer**: the trunk runs to the top. Whorls of slightly drooping branches leave it, long at the bottom and short at the top (a cone), with needle sprays (cards) along them.\n\nBranches are tubes with `Sides` around the trunk (fewer on thinner branches), tapered, with a flare at the root; their uv runs in metres (u around, v along), so a tiling bark texture keeps its size. Each leaf is one quad card of about `Leaf Size`, `Leaves` of them in all.\n\nPoint attributes: `Cd` (bark colour; leaves darker inside and low in the crown, where less sky reaches), `N` (bark radial; each leaf card's normal bent toward \"out of the crown\" by `Normal Bend`, so the crown shades as one soft volume instead of a cloud of facets) and `uv`. Prim attributes: `part` (bark / leaf), `material` (M_Bark / M_Leaf) and `level` (0 the trunk, 1.. the branch levels, -1 the leaves).\n\nThe same seed gives the same tree. For an LOD chain, decimating cards does little (each is an island of four points), so use a coarser tree of the same seed (one branch level, fewer and larger leaves, three sides) as LOD Create's custom level, and Impostor Textures for the far cards.\n\nThe leaf cards' uv runs 0..1 with v along their branch, and `Leaf Material` names their material: Leaf Card Texture with that name as its Prefix draws a twig of leaves or a needle spray to cut them out with (Textures: `alpha = @{material}_alpha`). With Leaf Color white, the cards' `Cd` is the shading (darker inside the crown) and tints the texture (`basecolor_tint`).",
   "inputs": {},
   "outputs": {
    "geo": "The tree: bark tubes and leaf cards.",
@@ -364,8 +366,29 @@
    "sides": "Sides around the trunk; thinner branches get fewer.",
    "normal_bend": "How far each leaf card's normal is turned toward out of the crown (0 = the card's own normal).",
    "rand_seed": "Random seed: another seed, another tree of the same kind.",
-   "segments": "Rings along the trunk; the branches get proportionally fewer. Lower for a light, distant variant."
+   "segments": "Rings along the trunk; the branches get proportionally fewer. Lower for a light, distant variant.",
+   "leaf_material": "The leaf cards' material (M_Leaf by default; for example M_Needle on a conifer), so each kind finds its own leaf texture."
   },
   "houdini_notes": "Corresponds to SideFX Labs' tree tools (Tree Trunk / Branch / Leaf generators) or a SpeedTree asset, in one node."
+ },
+ "PCG_LeafCardTexture": {
+  "topic": "cop-generate",
+  "summary": "Draws the colour and cutout of a foliage card: a broadleaf twig or a conifer needle spray.",
+  "description": "A tree made of leaf cards reads as a cloud of green quads unless each card is cut out to a twig of leaves. This node draws that texture.\n\n- **Broadleaf Twig**: a stem rising from the bottom centre, ovate leaves on alternate sides on short petioles (a lighter midrib, faint veins, darker toward the edge), each leaf its own shade, and one at the tip.\n- **Conifer Spray**: a stem with side shoots, all covered in needles that point forward and out, shorter toward each tip.\n\nThe twig is rooted at uv (0.5, 0) with v up, the way Tree Generator's cards stand on their branch. The image has two layers: `<Prefix>_C`, the linear colour (Leaf Color times the pattern), and `<Prefix>_alpha`, antialiased. The colour is carried a few texels past the leaves, so mip levels and bilinear lookups at the cutout's edge stay green instead of fading to black.\n\nWith Prefix set to the card material's name, Geometry Preview's `basecolor = @{material}_C` and `alpha = @{material}_alpha` find the layers (connect it to `textures_cop` or merge it into the layer library on `detail_cop`); add `alpha_shadow = <material>` so the cards still cast shadows. With Leaf Color white the colour is only a shading pattern, and `basecolor_tint` colours it per card by `Cd`.",
+  "inputs": {},
+  "outputs": {
+   "cop": "The card texture: <Prefix>_C and <Prefix>_alpha."
+  },
+  "params": {
+   "kind": "Broadleaf Twig or Conifer Spray.",
+   "resolution": "Width and height in pixels (the card is square).",
+   "leaves": "Leaves on the twig, the last one at the tip (conifer: the number of side shoots).",
+   "leaf_color": "Multiplies the leaves' pattern; linear, like every COP colour (the default is the sRGB green 0.26 0.40 0.13 decoded). White gives a shading pattern for basecolor_tint to colour.",
+   "stem_color": "The twig's colour (linear: the default is a dark brown).",
+   "variation": "How much each leaf's shade and hue differs from the others.",
+   "rand_seed": "Seed of the leaves' sizes, angles and shades; the same seed draws the same card.",
+   "prefix": "The card material's name; the layers are <Prefix>_C and <Prefix>_alpha."
+  },
+  "houdini_notes": "Houdini has no node for this (SpeedTree and the Labs tree tools ship leaf atlases as images); it stands in for a painted leaf atlas."
  }
 }

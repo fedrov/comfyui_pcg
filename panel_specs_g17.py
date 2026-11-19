@@ -124,7 +124,7 @@ SPECS = {
     },
     "PCG_ImpostorTextures": {
         "order": ["impostor_type", "sprite_resolution", "frames_x", "frames_y", "elevation", "zoom", "normal_space",
-                  "sun_direction"],
+                  "sun_direction", "textures"],
         "inputs": {
             "impostor_type": {"label": "Impostor Type", "section": "Base Settings",
                               "menu": _m("octahedron", "Octahedron", "hemi_octahedron", "Hemi-Octahedron",
@@ -138,6 +138,9 @@ SPECS = {
             "normal_space": {"label": "Normal Space", "section": "Atlas", "sep": True,
                              "menu": _m("world", "World", "view", "View")},
             "sun_direction": {"label": "Sun Direction", "help": "For the beauty layer (toward the sun)"},
+            "textures": {"label": "Textures", "section": "Textures", "sep": True,
+                         "help": "Geometry Preview's Textures lines (basecolor, alpha, basecolor_tint): leaf cards "
+                                 "cut out by Leaf Card Texture render as leaves"},
         },
     },
     "PCG_COPWFC": {
@@ -181,7 +184,7 @@ SPECS = {
     "PCG_TreeGenerator": {
         "order": ["kind", "height", "trunk_radius", "crown_base", "crown_width", "branch_levels", "branches",
                   "branch_angle", "length_ratio", "gnarl", "leaves", "leaf_size", "leaf_color", "bark_color", "sides",
-                  "normal_bend", "rand_seed", "segments"],
+                  "normal_bend", "rand_seed", "segments", "leaf_material"],
         "inputs": {
             "kind": {"label": "Kind", "menu": _m("broadleaf", "Broadleaf", "conifer", "Conifer")},
             "height": {"label": "Height", "section": "Shape"},
@@ -202,6 +205,23 @@ SPECS = {
             "normal_bend": {"label": "Normal Bend", "help": "Leaf normals bent toward out of the crown"},
             "rand_seed": {"label": "Seed"},
             "segments": {"label": "Segments", "help": "Rings along the trunk; the branches get proportionally fewer"},
+            "leaf_material": {"label": "Leaf Material", "section": "Leaves",
+                              "help": "The leaf cards' material (Leaf Card Texture's Prefix)"},
+        },
+    },
+    "PCG_LeafCardTexture": {
+        "order": ["kind", "resolution", "leaves", "leaf_color", "stem_color", "variation", "rand_seed", "prefix"],
+        "inputs": {
+            "kind": {"label": "Kind", "menu": _m("broadleaf", "Broadleaf Twig", "conifer", "Conifer Spray")},
+            "resolution": {"label": "Resolution"},
+            "leaves": {"label": "Leaves", "help": "Leaves on the twig (conifer: side shoots)"},
+            "leaf_color": {"label": "Leaf Color", "section": "Colour", "sep": True,
+                           "help": "White: a shading pattern for basecolor_tint to colour per card"},
+            "stem_color": {"label": "Stem Color"},
+            "variation": {"label": "Variation", "help": "How much each leaf's shade differs"},
+            "rand_seed": {"label": "Seed"},
+            "prefix": {"label": "Prefix", "section": "Output", "sep": True,
+                       "help": "The card material's name: layers <Prefix>_C and <Prefix>_alpha"},
         },
     },
 }

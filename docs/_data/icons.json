@@ -338,6 +338,7 @@
 "PCG_LSystem":["lsystem","#7ec87e"],
 "PCG_Lattice":["lattice_ffd","#c49ae0"],
 "PCG_LatticeFromBound":["lattice_box","#c49ae0"],
+"PCG_LeafCardTexture":["lsystem","#e0975f"],
 "PCG_Line":["line","#7ec87e"],
 "PCG_LoopCut":["loopcut","#8fb8e0"],
 "PCG_LotSubdivision":["lot_subdiv","#7ec87e"],

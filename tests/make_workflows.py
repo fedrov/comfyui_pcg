@@ -1831,7 +1831,11 @@ WORLD_TEXTURES = (TERRAIN_TEXTURES
                   + "\norm = @{material}_ao {material}_roughness {material}_metallic | pcg/materials/T_{material}_ORM.png"
                   + "\nalpha = @{material}_alpha"
                   # the impostor cards: the atlas tinted per tree, the four frames round the view direction blended
-                  + "\nbasecolor_tint = imp_*\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw")
+                  + "\nbasecolor_tint = imp_* M_Leaf M_Needle\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw"
+                  # the trees' leaf cards shade the ground and each other, whole (the impostor cards have blobs)
+                  + "\nalpha_shadow = M_Leaf M_Needle")
+# a tree's leaf cards: Leaf Card Texture's colour (tinted by the card's Cd) and cutout
+LEAF_TEXTURES = "basecolor = @{material}_C\nalpha = @{material}_alpha\nbasecolor_tint = M_Leaf M_Needle"
 
 # the close-range terrain window (x0, x1, z0, z1, metres; on the full map's 4 m grid): the road view's valley,
 # town and main peak
@@ -1872,8 +1876,13 @@ WORLD_EXTRA = {
 }
 
 
-def world_tiles():
+def world_tiles(quick=False):
+    """quick: the same world for a first look in a few minutes -- 2 m surface textures instead of 1 m, the previews at
+    800 x 450 without supersampling and with fewer sky directions, the dusk / rain / snow variants muted."""
     g = Graph()
+    SR = 2048 if quick else 4096                 # the surface textures' resolution (1 m texels at 4096)
+    RW, RH = (800, 450) if quick else (1600, 900)
+    RQ = dict(supersampling=1, sky_samples=8) if quick else {}
     W = 360
     A, B, C, D, E = (Col(g, x, width=W) for x in (0, 420, 840, 1260, 1680))
     F = Col(g, 2100, width=W)
@@ -2673,12 +2682,12 @@ def world_tiles():
     # of them; the rest join after it (Layer Merge resamples them to the 4096² image, bilinear like Resize)
     sh_ = S("PCG_COPLayerEdit", title="Height only", op="keep", spec="C")
     g.link(sk, "cop", sh_, "cop")
-    su = S("PCG_COPResize", title="Upsample to 4096² (1 m texels)", resolution_x=4096, resolution_y=4096)
+    su = S("PCG_COPResize", title=f"Upsample to {SR}² ({4096 // SR} m texels)", resolution_x=SR, resolution_y=SR)
     g.link(sh_, "cop", su, "cop")
     se = S("PCG_COPErosion", title="Rills at 1 m (erosion filter, to Ce)", strength=2048.0, world_size=4100.0,
            amplitude=2.0, wavelength=10.0, octaves=3, steepness=3.0, out_layer="Ce", mask_layer="")
     g.link(su, "cop", se, "cop")
-    sw = S("PCG_COPNoise", title="Joints / stones (Worley cell edges, ~7 m)", resolution_x=4096, resolution_y=4096,
+    sw = S("PCG_COPNoise", title="Joints / stones (Worley cell edges, ~7 m)", resolution_x=SR, resolution_y=SR,
            noise_type="worley_f2f1", fractal="standard", frequency=600.0, octaves=1, layer="cr", rand_seed=5)
     sm = S("PCG_COPLayerMerge", title="+ joints", layers="cr")
     g.link(se, "cop", sm, "a")
@@ -2953,10 +2962,10 @@ def world_tiles():
     # 1 m surface around the camera, one tuft per sample of a density that is the grass weight (and a little on the
     # forest floor), 40 per m² at the camera falling as 1 / distance² to 2 per m² (far tufts are under a pixel; the
     # textures carry the grass there) and to none at 140 m
-    gt = 4100.0 / 4096
+    gt = 4100.0 / SR
     gcj = round((CAM3[0] + 2050.0) / gt - 0.5)
     gci = round((2050.0 - CAM3[2]) / gt - 0.5)
-    GN = 280
+    GN = 280 * SR // 4096
     gcr = S("PCG_COPCrop", title="Grass: the 280 m around the road camera", x=gcj - GN // 2, y=gci - GN // 2,
             resolution_x=GN, resolution_y=GN, border="clamp", mode="discard_reframe")
     g.link(sn, "cop", gcr, "cop")
@@ -3539,21 +3548,25 @@ def world_tiles():
     # the trees: Tree Generator -- a conifer and a broadleaf as game assets (bark tubes, leaf cards), and a coarse
     # variant of each (the same seed: one branch level, fewer and larger leaves, three sides) for the middle distance
     # and as LOD1; the cards beyond that come from Impostor Textures
+    # The leaf cards are cut out by Leaf Card Texture (a twig of leaves, a needle spray), so a crown reads as leaves;
+    # Leaf Color is white (the card's Cd is the shading -- darker inside the crown -- and tints the texture)
     tgen = {}
-    for kind_, nm_, kw_ in (("conifer", "pine", dict(height=12.0, crown_base=0.18, crown_width=4.5, branch_levels=1,
-                                                     leaves=600, leaf_size=0.5, rand_seed=4)),
-                            ("broadleaf", "broad", dict(height=9.5, crown_width=6.5, leaves=450, leaf_size=0.6,
-                                                        rand_seed=3))):
+    for kind_, nm_, kw_ in (("conifer", "pine", dict(height=12.0, crown_base=0.18, crown_width=5.5, branch_levels=1,
+                                                     branches=9, leaves=1400, leaf_size=1.0, rand_seed=4,
+                                                     leaf_color="1 1 1", leaf_material="M_Needle")),
+                            ("broadleaf", "broad", dict(height=9.5, crown_width=6.5, branch_levels=3, branches=4,
+                                                        leaves=1100, leaf_size=1.25, rand_seed=3,
+                                                        leaf_color="1 1 1", leaf_material="M_Leaf"))):
         full_ = G("PCG_TreeGenerator", title=f"Tree: {kind_} (Tree Generator)", kind=kind_, **kw_)
-        ckw_ = dict(kw_, leaves=60 if kind_ == "conifer" else 45, leaf_size=1.3 if kind_ == "conifer" else 1.7,
-                    sides=3, branch_levels=1, branches=1 if kind_ == "conifer" else 2, segments=3)
+        ckw_ = dict(kw_, leaves=130 if kind_ == "conifer" else 110, leaf_size=2.8 if kind_ == "conifer" else 3.4,
+                    sides=3, branch_levels=1, branches=4 if kind_ == "conifer" else 3, segments=3)
         coarse_ = G("PCG_TreeGenerator", title=f"Tree: {kind_}, coarse (the middle distance, LOD1)", kind=kind_,
                     **ckw_)
         tgen[nm_] = (full_, coarse_)
     def slim_tree(node, kind_):
         # the previews copy these thousands of times: only what the render reads (P, N, Cd; the kind for the copy)
-        d_ = G("PCG_AttribDelete", title=f"Tree {kind_} for the previews: P, N, Cd only", point="* ^P ^N ^Cd",
-               vertex="*", prim="*")
+        d_ = G("PCG_AttribDelete", title=f"Tree {kind_} for the previews: P, N, Cd, uv, material only",
+               point="* ^P ^N ^Cd ^uv", vertex="*", prim="* ^material")
         g.link(node, "geo", d_, "geo")
         return named(G, d_, kind_)
     pine, pine1 = slim_tree(tgen["pine"][0], "pine"), slim_tree(tgen["pine"][1], "pine1")
@@ -3663,6 +3676,21 @@ def world_tiles():
     # triangles, LOD2 two crossed cards) and an impostor atlas for the cards (Impostor Textures: the upper half of
     # the sphere of views, 8 x 8 frames of 128²: colour, alpha, normal, depth)
     V = Col(g, 3940, width=W)
+    # the leaf cards' textures: a broadleaf twig (M_Leaf) and a needle spray (M_Needle), written for the engine too
+    lft_ = []
+    # (linear colours: the sRGB greens 0.26 0.42 0.13 and 0.15 0.29 0.12 of the old leaf colours, decoded)
+    for kind_, mat_, col_, seed_ in (("broadleaf", "M_Leaf", "0.055 0.15 0.016", 3), ("conifer", "M_Needle",
+                                                                                      "0.02 0.07 0.013", 4)):
+        lf_ = V("PCG_LeafCardTexture", title=f"Leaf card: {kind_} ({mat_})", kind=kind_, resolution=512,
+                leaves=9, leaf_color=col_, rand_seed=seed_, prefix=mat_)
+        lft_.append(lf_)
+        for ch_, suf_, kw_ in ((f"{mat_}_C", "BaseColor", dict(encode="srgb")), (f"{mat_}_alpha", "Alpha", {})):
+            lw_ = V("PCG_COPWriteFile", title=f"{mat_}: {suf_}", filename=f"pcg/world/assets/T_{mat_[2:]}_{suf_}",
+                    channels=ch_, format="png", bit_depth="8", **kw_)
+            g.link(lf_, "cop", lw_, "cop")
+    leafcop = V("PCG_COPLayerMerge", title="Leaf cards: both", layers="M_Needle_C M_Needle_alpha", overwrite=True)
+    g.link(lft_[0], "cop", leafcop, "a")
+    g.link(lft_[1], "cop", leafcop, "b")
     ims_ = {}
     for src_, asset_, crs_ in ((pine_a, "Pine", pine1_a), (broad_a, "Broadleaf", broad1_a)):
         an_ = V("PCG_Wrangle", title=f"{asset_} proxy: asset name", run_over="prim",
@@ -3679,8 +3707,9 @@ def world_tiles():
                 filename=f"pcg/world/assets/SM_Proxy_{asset_}", format="glb", split_attribute="name")
         g.link(lc_, "geo", le_, "geo")
         im_ = V("PCG_ImpostorTextures", title=f"{asset_}: impostor atlas", impostor_type="hemi_octahedron",
-                sprite_resolution=128, frames_x=8, frames_y=8)
+                sprite_resolution=128, frames_x=8, frames_y=8, textures=LEAF_TEXTURES)
         g.link(src_, "geo", im_, "geo")
+        g.link(leafcop, "cop", im_, "textures_cop")
         ims_[asset_] = im_
         for ch_, suf_, kw_ in (("C", "BaseColor", dict(encode="srgb")), ("alpha", "Alpha", {}),
                                ("N", "Normal", dict(remap="signed")), ("depth", "Depth", {})):
@@ -3930,6 +3959,11 @@ def world_tiles():
         g.link(pdset, "cop", lm_, "a")
         g.link(ims_[asset_], "cop", lm_, "b")
         pdset = lm_
+    lfm = H("PCG_COPLayerMerge", title="Layer library + the leaf cards",
+            layers="M_Leaf_C M_Leaf_alpha M_Needle_C M_Needle_alpha", overwrite=True)
+    g.link(pdset, "cop", lfm, "a")
+    g.link(leafcop, "cop", lfm, "b")
+    pdset = lfm
 
     def far_view(cam_, near_r, tag, mute=False):
         """The trees and the towns as seen from cam_ (x, y, z): proxies within near_r, cards beyond (mute: its nodes
@@ -4014,11 +4048,11 @@ def world_tiles():
 
     eye1 = (-2300.0, 1250.0, 2600.0)
     cam = G("PCG_Camera", title="Camera: from the air, south-west of the island", projection="perspective",
-            mode="look_at", resolution_x=1600, resolution_y=900, fov=30.0, eye_x=eye1[0], eye_y=eye1[1],
+            mode="look_at", resolution_x=RW, resolution_y=RH, fov=30.0, eye_x=eye1[0], eye_y=eye1[1],
             eye_z=eye1[2], target_x=0.0, target_y=40.0, target_z=120.0)
-    pr = G("PCG_PreviewImage", width=1600, height=900, elevation=38.0, azimuth=25.0, shading="color",
+    pr = G("PCG_PreviewImage", width=RW, height=RH, elevation=38.0, azimuth=25.0, shading="color",
            look="outdoor", textures=WORLD_TEXTURES, sun_elevation=28.0, sun_azimuth=47.0, haze=0.5,
-           ground_plane=False, clouds=0.3, cloud_seed=3, emit_attrib="")
+           ground_plane=False, clouds=0.3, cloud_seed=3, emit_attrib="", **RQ)
     g.link(mg, "geo", pr, "geo")
     g.link(far_view(eye1, 0.0, "Air"), "geo", pr, "extra_geo")
     g.link(surf, "cop", pr, "textures_cop")
@@ -4028,11 +4062,11 @@ def world_tiles():
     pv = G("PreviewImage", title="Whole world", size=[520, 400])
     g.link(pr, "image", pv, "images")
     cam2 = G("PCG_Camera", title="Camera: low, up a valley toward the peaks", projection="perspective",
-             mode="look_at", resolution_x=1600, resolution_y=900, fov=45.0, eye_x=CAM2[0], eye_y=CAM2[1],
+             mode="look_at", resolution_x=RW, resolution_y=RH, fov=45.0, eye_x=CAM2[0], eye_y=CAM2[1],
              eye_z=CAM2[2], target_x=CAM2[3], target_y=CAM2[4], target_z=CAM2[5])
-    pr2 = G("PCG_PreviewImage", title="Valley: the preview", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
+    pr2 = G("PCG_PreviewImage", title="Valley: the preview", width=RW, height=RH, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=WORLD_TEXTURES, sun_elevation=20.0, sun_azimuth=26.0, haze=1.0,
-            ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="")
+            ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="", **RQ)
     g.link(mg, "geo", pr2, "geo")
     xg_valley = far_view(CAM2, 500.0, "Valley")
     g.link(xg_valley, "geo", pr2, "extra_geo")
@@ -4045,11 +4079,11 @@ def world_tiles():
     # on a road at eye height, toward the main peak: the close view that the 1 m textures, the detail maps, the ruts
     # and the houses are for
     cam3 = G("PCG_Camera", title="Camera: on the road, toward the peak", projection="perspective",
-             mode="look_at", resolution_x=1600, resolution_y=900, fov=55.0, eye_x=CAM3[0], eye_y=CAM3[1],
+             mode="look_at", resolution_x=RW, resolution_y=RH, fov=55.0, eye_x=CAM3[0], eye_y=CAM3[1],
              eye_z=CAM3[2], target_x=CAM3[3], target_y=CAM3[4], target_z=CAM3[5])
-    pr3 = G("PCG_PreviewImage", title="Road: the preview", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
+    pr3 = G("PCG_PreviewImage", title="Road: the preview", width=RW, height=RH, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=WORLD_TEXTURES, sun_elevation=15.0, sun_azimuth=124.0, haze=1.0,
-            ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="")
+            ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="", **RQ)
     mg3 = G("PCG_Merge", title="+ grass around the road camera")
     g.link(far_view(CAM3, 350.0, "Road"), "geo", mg3, "geo1")
     g.link(grass, "geo", mg3, "geo2")
@@ -4062,7 +4096,8 @@ def world_tiles():
     pv3 = G("PreviewImage", title="On the road", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
     # ④b The same world at dusk, in the rain and under snow (the renderer's weather, emitted light and point lights)
-    V5 = Col(g, 4780, 9000, width=520)
+    V5c = Col(g, 4780, 9000, width=520)
+    V5 = (lambda *a, **k: V5c(*a, **{"node_mode": 2, **k})) if quick else V5c      # quick: the variants muted
     lsel = V5("PCG_Wrangle", title="Lamps: their lights (the head's place, colour, intensity)", code=(
         "n = @name.astype(str)\n"
         '@isl = where((n == "SM_StreetLamp") | (n == "SM_RoadLamp") | (n == "SM_LaneLamp"), 1, 0)\n'
@@ -4079,7 +4114,7 @@ def world_tiles():
                                  emit_attrib="emit", light_range=35.0), True),
         ("Rain", cam3, mg3, dict(sun_elevation=22.0, sun_azimuth=124.0, haze=5.0, clouds=0.95, exposure=1.15,
                                  wetness=1.0, emit_attrib=""), False),
-        ("Snow", cam2, far_view(CAM2, 500.0, "Snow"), dict(sun_elevation=18.0, sun_azimuth=26.0, haze=1.4, clouds=0.5,
+        ("Snow", cam2, far_view(CAM2, 500.0, "Snow", mute=quick), dict(sun_elevation=18.0, sun_azimuth=26.0, haze=1.4, clouds=0.5,
                                                          snow_line=140.0, snow_amount=1.0, emit_attrib=""), False))
     for nm_, cam_, xg_, kw_, lit_ in variants:
         pw_ = V5("PCG_PreviewImage", title=f"{nm_}: the preview", width=1280, height=720, elevation=10.0, azimuth=0.0,
@@ -5871,6 +5906,7 @@ WORKFLOWS = {"pcg_terrain_to_ai_texture": terrain_to_ai,
              "pcg_cop_terrain_maps": terrain_maps,
              "pcg_prod_rock_assets": rock_assets,
              "pcg_prod_world_tiles": world_tiles,
+             "pcg_prod_world_tiles_quick": lambda: world_tiles(quick=True),
              "pcg_prod_modular_city": modular_city,
              "pcg_prod_material_library": material_library,
              **TUTORIALS}

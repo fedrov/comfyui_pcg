@@ -4,7 +4,9 @@ A 4 km x 4 km island for an open world, delivered as 4 x 4 tiles, engine-agnosti
 
 ## Load it
 
-Drag `example_workflows/pcg_prod_world_tiles.json` onto the ComfyUI canvas and press **Queue**. Only comfyui_pcg nodes plus ComfyUI's Preview Image are used. The terrain takes about two minutes on numpy (the two HeightField Erode passes are most of it), much less with CUDA; the 1 m surface textures about a minute and a half, and each preview render about a minute and a half. Allow 6-8 GB of memory.
+Drag `example_workflows/pcg_prod_world_tiles.json` onto the ComfyUI canvas and press **Queue**. Only comfyui_pcg nodes plus ComfyUI's Preview Image are used. On numpy (no CUDA) the whole run takes about 18 minutes on two CPU cores (less with more: texture lookups and the banded surface Wrangle use up to four threads): the terrain about two minutes (the two HeightField Erode passes are most of it), the 1 m surface textures about two and a half, and each preview render about two (most of it texture lookups). With CUDA the previews are rasterized and textured on the GPU. Allow 6-8 GB of memory.
+
+For a first look, load `pcg_prod_world_tiles_quick.json` instead: the same world with 2 m surface textures, the previews at 800 x 450 without supersampling and with fewer sky directions, and the dusk / rain / snow variants muted -- about six minutes on numpy and 4 GB of memory.
 
 ## Deliverables
 
@@ -33,6 +35,7 @@ All files go to `output/pcg/world/`.
 | `assets/SM_Proxy_Pine.glb`, `SM_Proxy_Broadleaf.glb` | The tree proxies as engine assets, each a LOD chain: `_LOD0`, `_LOD1` (40% of the triangles), `_LOD2` (two crossed cards for the impostor). |
 | `assets/SM_Props.glb` | The orchard tree, the hedge, the bridge (a 30 m deck with parapets, stretched along the road to its span by the instance's scale), the bridge pier (1 m high, stretched up to the deck), the three lamps (an 8 m road lamp, the 6 m street lamp, a 3 m lane lamp) and the 4 m guard rail, a node each, named as in the instance tables. |
 | `assets/T_Impostor_<Pine/Broadleaf>_<BaseColor/Alpha/Normal/Depth>.png` | Their impostor atlases: 8 x 8 views over the upper half of the sphere (hemi-octahedral), 128² each: colour (sRGB), alpha, world-space normal, depth. |
+| `assets/T_Leaf_<BaseColor/Alpha>.png`, `T_Needle_<BaseColor/Alpha>.png` | The leaf cards' textures (Leaf Card Texture, 512²): a broadleaf twig and a needle spray, colour (sRGB) and cutout, for the trees' `M_Leaf` / `M_Needle` materials. |
 | `Overview.png` | A lit minimap with the tile borders drawn in yellow. |
 
 **Coordinate convention** (written into every `.json`): the origin is the north-west corner, which is the top-left of the height map; x points east, z points south (same as the image row order), y points up; units are metres. Instance transforms read the same way as in Copy to Points, so what the preview places is exactly what the tables say.
@@ -99,7 +102,7 @@ All files go to `output/pcg/world/`.
 
 **4b. Trees, roads, map, weather, flyby**
 
-*Trees.* **[Tree Generator (PCG)](../reference/generate.md#pcg-treegenerator)** grows the conifer (12 m, whorls of drooping branches, needle sprays) and the broadleaf (9.5 m, two branch levels, leaf cards) that stand in for the engine's trees, and a coarse variant of each from the same seed (one branch level, fewer and larger leaves, three sides). **[LOD Create (PCG)](../reference/modify.md#pcg-lodcreate)** makes the chain the tree, the coarse tree (its `custom` level), impostor cards; the previews draw the full tree within 60 m of the camera, the coarse one to 350-500 m, the cards beyond.
+*Trees.* **[Tree Generator (PCG)](../reference/generate.md#pcg-treegenerator)** grows the conifer (12 m, twenty whorls of drooping branches, 1400 needle sprays, smaller toward the top) and the broadleaf (9.5 m, three branch levels, 1100 leaf cards) that stand in for the engine's trees, and a coarse variant of each from the same seed (one branch level, fewer and larger cards, three sides). The cards are cut out by **[Leaf Card Texture (PCG)](../reference/cop-generate.md#pcg-leafcardtexture)** -- a twig of leaves (`M_Leaf`) and a needle spray (`M_Needle`), merged into the layer library and written as `assets/T_Leaf_*` / `T_Needle_*` -- so a crown reads as leaves rather than as a cloud of green quads: the previews read `alpha = @{material}_alpha`, tint the texture by each card's shading (`basecolor_tint`), and let the cut-out cards cast shadows whole (`alpha_shadow`); Impostor Textures bakes the atlases with the same textures. **[LOD Create (PCG)](../reference/modify.md#pcg-lodcreate)** makes the chain the tree, the coarse tree (its `custom` level), impostor cards; the previews draw the full tree within 60 m of the camera, the coarse one to 350-500 m, the cards beyond.
 
 *Road surfaces.* **[Sweep (PCG)](../reference/generate.md#pcg-sweep)** (`ribbon`, Keep Square to Up Vector with up = +Y, so it stays level across where the road climbs and turns) lays a ribbon along each class's centre lines, raised a little over the bed, and a wider one under it -- the main roads' gravel shoulders, the streets' raised pavements. Their uv is world metres over the terrain layer's tile size, and the previews read the terrain layers under the road materials' names (a Layer Edit copies them), so the surfaces match the ground.
 

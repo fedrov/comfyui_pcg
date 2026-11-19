@@ -57,5 +57,23 @@ red = "@C = @C * len(@C)     # depends on how many pixels the code sees at once"
 check("negative control: a whole-image reduction does differ by band (why it is opt-in)",
       not np.allclose(PX.getn(PX.wrangle(img, red), "C"), PX.getn(PX.wrangle(img, red, chunk_rows=5), "C")))
 
+# the bands on threads (PCG_THREADS): the same numbers as one thread, in row order
+os.environ["PCG_THREADS"] = "1"
+one = PX.wrangle(img, code, 7, chunk_rows=5)
+os.environ["PCG_THREADS"] = "3"
+three = PX.wrangle(img, code, 7, chunk_rows=5)
+del os.environ["PCG_THREADS"]
+check("bands on 3 threads = on 1 thread, bit for bit (every layer)",
+      sorted(three.names) == sorted(one.names) and all(np.array_equal(PX.getn(three, n), PX.getn(one, n))
+                                                       for n in one.names))
+# noise(): Perlin's gradient as a lookup table gives the same numbers as his selects
+from comfyui_pcg.geo import wrangle as WG  # noqa: E402
+rng_ = np.random.default_rng(3)
+h_ = rng_.integers(0, 1 << 20, 200000)
+x_, y_, z_ = (rng_.normal(size=200000) * 5 for _ in range(3))
+check("noise's gradient table = Perlin's selects, bit for bit (all 16 gradients)",
+      np.array_equal(WG._grad3(h_, x_, y_, z_), WG._grad3_ref(h_, x_, y_, z_))
+      and set(np.unique(h_ & 15)) == set(range(16)))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

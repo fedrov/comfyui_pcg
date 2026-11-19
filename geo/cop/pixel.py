@@ -1084,10 +1084,25 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
             from ...memtrim import trim
         except ImportError:
             trim = None
-    for r0, r1 in bands:
-        py, part = _wrangle_band(img, code, seed, ch_params, r0, r1)
-        if trim is not None:
-            trim()
+    def _bands():
+        # bands on several threads: numpy's array operations release the GIL, so a banded wrangle (the 4096²
+        # surfaces) runs on as many cores as there are workers. Each band has its own namespace; the results go back
+        # in row order. Workers: PCG_THREADS, else up to 4 (each band in flight holds its temporaries)
+        nw = _wrangle_workers(len(bands))
+        if nw <= 1:
+            for r0, r1 in bands:
+                yield (r0, r1) + _wrangle_band(img, code, seed, ch_params, r0, r1)
+                if trim is not None:
+                    trim()
+            return
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=nw) as ex:
+            futs = [ex.submit(_wrangle_band, img, code, seed, ch_params, r0, r1) for r0, r1 in bands]
+            for (r0, r1), f in zip(bands, futs):
+                yield (r0, r1) + f.result()
+                if trim is not None:
+                    trim()
+    for r0, r1, py, part in _bands():
         for k, a in part.items():
             if k not in results:
                 results[k] = np.zeros((H, W, a.shape[1]), rdt)
@@ -1098,6 +1113,17 @@ def wrangle(img, code="@C = @C * 2", seed=0, ch_params=None, chunk_rows=0):
     for k, a in results.items():
         put(out, k, a, img if len(img) else None)
     return out
+
+
+def _wrangle_workers(nbands):
+    """Threads for a banded COP Wrangle: the environment variable PCG_THREADS (1 = none), else min(cores, 4)."""
+    import os
+    v = os.environ.get("PCG_THREADS", "").strip()
+    try:
+        n = int(v) if v else min(os.cpu_count() or 1, 4)
+    except ValueError:
+        n = 1
+    return max(1, min(n, nbands))
 
 
 def _wrangle_band(img, code, seed, ch_params, r0, r1):

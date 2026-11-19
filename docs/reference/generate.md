@@ -1335,6 +1335,8 @@ Point attributes: `Cd` (bark colour; leaves darker inside and low in the crown, 
 
 The same seed gives the same tree. For an LOD chain, decimating cards does little (each is an island of four points), so use a coarser tree of the same seed (one branch level, fewer and larger leaves, three sides) as LOD Create's custom level, and Impostor Textures for the far cards.
 
+The leaf cards' uv runs 0..1 with v along their branch, and `Leaf Material` names their material: Leaf Card Texture with that name as its Prefix draws a twig of leaves or a needle spray to cut them out with (Textures: `alpha = @{material}_alpha`). With Leaf Color white, the cards' `Cd` is the shading (darker inside the crown) and tints the texture (`basecolor_tint`).
+
 **Outputs**
 
 | Output | Type | Description |
@@ -1396,6 +1398,12 @@ The same seed gives the same tree. For an LOD chain, decimating cards does littl
 | Normal Bend `normal_bend` | float [0.0..1.0] | 0.8 | How far each leaf card's normal is turned toward out of the crown (0 = the card's own normal). |
 | Seed `rand_seed` | int [0..] | 1 | Random seed: another seed, another tree of the same kind. |
 | Segments `segments` | int [2..64] | 8 | Rings along the trunk; the branches get proportionally fewer. Lower for a light, distant variant. |
+
+*Leaves*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Leaf Material `leaf_material` | string | `M_Leaf` | The leaf cards' material (M_Leaf by default; for example M_Needle on a conifer), so each kind finds its own leaf texture. |
 
 **Compared with Houdini**
 

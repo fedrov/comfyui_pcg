@@ -18,6 +18,7 @@ from .geo import distgeo as _dg, pathdeform as _pd, polywire as _pw, thicken as 
 from .geo import packed as _pk
 from .geo import lotsubdiv as _ls, building as _bg, lodcreate as _lc, impostor as _imp
 from .geo import worldmanifest as _wm, tree as _tree
+from .geo.cop import leafcard as _leaf
 from .nodes_common import COP
 from .geo.ramp import MODES as _RAMP_MODES
 
@@ -458,12 +459,18 @@ class PCG_ImpostorTextures:
             "zoom": _f(1.0, 0.1, 10.0, 0.01),
             "normal_space": (list(_imp.NORMAL_SPACES),),
             "sun_direction": _s("0.4 0.8 0.45"),
+        }, "optional": {
+            # appended: textures as Geometry Preview reads them (leaf cards with a cutout render as leaves)
+            "textures": ("STRING", {"default": "", "multiline": True}),
+            "textures_cop": (COP, {"tooltip": "The '@layer' textures (Leaf Card Texture's colour and alpha)"}),
         }}
 
     def run(self, geo, impostor_type, sprite_resolution, frames_x, frames_y, elevation, zoom, normal_space,
-            sun_direction):
+            sun_direction, textures="", textures_cop=None):
+        from .nodes import output_dir as _od
         img, card, r = _imp.impostor_textures(geo, impostor_type, sprite_resolution, frames_x, frames_y,
-                                              elevation, zoom, normal_space, sun_direction)
+                                              elevation, zoom, normal_space, sun_direction, textures, textures_cop,
+                                              _od() if str(textures or "").strip() else None)
         return (img, card, _rep(r))
 
 
@@ -500,10 +507,13 @@ class PCG_TreeGenerator:
             "rand_seed": _i(1, 0, 1 << 30),
             # appended: rings along the trunk (the branches proportionally fewer)
             "segments": _i(8, 2, 64),
+            # appended: the leaf cards' material (a Leaf Card Texture per material: M_Leaf, M_Needle ...)
+            "leaf_material": _s("M_Leaf"),
         }}
 
     def run(self, kind, height, trunk_radius, crown_base, crown_width, branch_levels, branches, branch_angle,
-            length_ratio, gnarl, leaves, leaf_size, leaf_color, bark_color, sides, normal_bend, rand_seed, segments=8):
+            length_ratio, gnarl, leaves, leaf_size, leaf_color, bark_color, sides, normal_bend, rand_seed, segments=8,
+            leaf_material="M_Leaf"):
         def rgb(v, name):
             try:
                 c = [float(x) for x in str(v).replace(",", " ").split()]
@@ -514,8 +524,56 @@ class PCG_TreeGenerator:
             return c
         g, r = _tree.tree(kind, height, trunk_radius, crown_base, crown_width, branch_levels, branches, branch_angle,
                           length_ratio, gnarl, leaves, leaf_size, rgb(leaf_color, "Leaf Color"),
-                          rgb(bark_color, "Bark Color"), sides, normal_bend, rand_seed, segments)
+                          rgb(bark_color, "Bark Color"), sides, normal_bend, rand_seed, segments,
+                          str(leaf_material).strip() or "M_Leaf")
         return (g, _rep(r))
+
+
+@_node("cop", returns=((COP, "cop"),))
+class PCG_LeafCardTexture:
+    """
+    The colour and cutout of a foliage card, drawn procedurally: broadleaf (a twig rising from the bottom centre,
+    ovate leaves on alternate sides with a midrib, darker edges, each leaf its own shade, one at the tip) or conifer
+    (a spray of side shoots covered in needles). The twig is rooted at uv (0.5, 0) with v up, as Tree Generator's
+    cards stand on their branch. Layers <Prefix>_C (linear colour, Leaf Color times the pattern; the colour runs a
+    few texels past the leaves so filtering at the edge stays green) and <Prefix>_alpha (antialiased): with Prefix
+    the card material's name, Geometry Preview's 'basecolor = @{material}_C' and 'alpha = @{material}_alpha' find
+    them. With Leaf Color white the colour is a shading pattern for basecolor_tint to colour per card.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "kind": (list(_leaf.KINDS),),
+            "resolution": _i(512, 16, 4096),
+            "leaves": _i(9, 1, 40),
+            "leaf_color": _s("0.055 0.13 0.015"),
+            "stem_color": _s("0.07 0.04 0.02"),
+            "variation": _f(0.25, 0.0, 1.0, 0.01),
+            "rand_seed": _i(1, 0, 1 << 30),
+            "prefix": _s("M_Leaf"),
+        }}
+
+    def run(self, kind, resolution, leaves, leaf_color, stem_color, variation, rand_seed, prefix):
+        from .geo.cop.core import CopImage
+        from .geo.cop.pixel import put
+
+        def rgb(v, name):
+            try:
+                c = [float(x) for x in str(v).replace(",", " ").split()]
+            except ValueError:
+                c = []
+            if len(c) != 3:
+                raise ValueError(f"Leaf Card Texture: {name} takes three numbers (r g b), got {v!r}")
+            return c
+        pre = str(prefix).strip()
+        if not pre:
+            raise ValueError("Leaf Card Texture: Prefix must not be empty (the card material's name)")
+        c, a = _leaf.leaf_card(kind, resolution, leaves, rgb(leaf_color, "Leaf Color"), rgb(stem_color, "Stem Color"),
+                               variation, rand_seed)
+        img = CopImage(int(resolution), int(resolution))
+        put(img, f"{pre}_C", c)
+        put(img, f"{pre}_alpha", a)
+        return (img,)
 
 
 @_node("output", returns=(("STRING", "path"), ("STRING", "report")))
@@ -577,6 +635,7 @@ _NAMES = {
     "PCG_ImpostorTextures": "Impostor Textures (PCG)",
     "PCG_WorldManifest": "World Manifest (PCG)",
     "PCG_TreeGenerator": "Tree Generator (PCG)",
+    "PCG_LeafCardTexture": "Leaf Card Texture (PCG)",
 }
 
 NODE_CLASS_MAPPINGS = {k: globals()[k] for k in _NAMES}

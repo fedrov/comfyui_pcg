@@ -2,7 +2,7 @@
 
 Noise, patterns, shapes, ramps and other image sources.
 
-29 nodes.
+30 nodes.
 
 [Back to the reference index](README.md)
 
@@ -37,6 +37,7 @@ Noise, patterns, shapes, ramps and other image sources.
 - [COP Text (PCG)](#pcg-coptext) — Renders text into an anti-aliased coverage mask, optionally composited over a layer.
 - [COP WFC (PCG)](#pcg-copwfc) — Grows a larger image out of a small sample with Wave Function Collapse, so every local window of the result also occurs in the sample.
 - [COP Worley Noise (PCG)](#pcg-copworleynoise) — Generates Worley (cellular) noise and its feature-point, cell-border, center and ID layers.
+- [Leaf Card Texture (PCG)](#pcg-leafcardtexture) — Draws the colour and cutout of a foliage card: a broadleaf twig or a conifer needle spray.
 
 ## Nodes
 
@@ -2436,5 +2437,60 @@ Covers Worley Noise and Worley Noise 3D. Image coordinates are normalised by the
 **Tips**
 
 - Use `border` as a mask for cracks, or `id` to give every cell a random value (hash it in a Wrangle).
+
+---
+
+### Leaf Card Texture (PCG)
+
+<a id="pcg-leafcardtexture"></a>
+
+`PCG_LeafCardTexture` · category `PCG/cop`
+
+Draws the colour and cutout of a foliage card: a broadleaf twig or a conifer needle spray.
+
+A tree made of leaf cards reads as a cloud of green quads unless each card is cut out to a twig of leaves. This node draws that texture.
+
+- **Broadleaf Twig**: a stem rising from the bottom centre, ovate leaves on alternate sides on short petioles (a lighter midrib, faint veins, darker toward the edge), each leaf its own shade, and one at the tip.
+- **Conifer Spray**: a stem with side shoots, all covered in needles that point forward and out, shorter toward each tip.
+
+The twig is rooted at uv (0.5, 0) with v up, the way Tree Generator's cards stand on their branch. The image has two layers: `<Prefix>_C`, the linear colour (Leaf Color times the pattern), and `<Prefix>_alpha`, antialiased. The colour is carried a few texels past the leaves, so mip levels and bilinear lookups at the cutout's edge stay green instead of fading to black.
+
+With Prefix set to the card material's name, Geometry Preview's `basecolor = @{material}_C` and `alpha = @{material}_alpha` find the layers (connect it to `textures_cop` or merge it into the layer library on `detail_cop`); add `alpha_shadow = <material>` so the cards still cast shadows. With Leaf Color white the colour is only a shading pattern, and `basecolor_tint` colours it per card by `Cd`.
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `cop` | COPIMAGE | The card texture: <Prefix>_C and <Prefix>_alpha. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Kind `kind` | menu | Broadleaf Twig | Broadleaf Twig or Conifer Spray. Options: Broadleaf Twig (`broadleaf`), Conifer Spray (`conifer`). |
+| Resolution `resolution` | int [16..4096] | 512 | Width and height in pixels (the card is square). |
+| Leaves `leaves` | int [1..40] | 9 | Leaves on the twig, the last one at the tip (conifer: the number of side shoots). |
+
+*Colour*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Leaf Color `leaf_color` | string | `0.055 0.13 0.015` | Multiplies the leaves' pattern; linear, like every COP colour (the default is the sRGB green 0.26 0.40 0.13 decoded). White gives a shading pattern for basecolor_tint to colour. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Stem Color `stem_color` | string | `0.07 0.04 0.02` | The twig's colour (linear: the default is a dark brown). |
+| Variation `variation` | float [0.0..1.0] | 0.25 | How much each leaf's shade and hue differs from the others. |
+| Seed `rand_seed` | int [0..] | 1 | Seed of the leaves' sizes, angles and shades; the same seed draws the same card. |
+
+*Output*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Prefix `prefix` | string | `M_Leaf` | The card material's name; the layers are <Prefix>_C and <Prefix>_alpha. |
+
+**Compared with Houdini**
+
+Houdini has no node for this (SpeedTree and the Labs tree tools ship leaf atlases as images); it stands in for a painted leaf atlas.
 
 ---

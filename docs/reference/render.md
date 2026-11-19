@@ -293,11 +293,14 @@ The atlas has the layers `C` (linear base colour from the geometry's `Cd`, which
 
 The `card` output is a quad the size of the bounding sphere, centred on the object, with uv 0-1 and the detail attributes `impostor_type`, `frames_x`, `frames_y`, `radius` and `center`.
 
+**Textures.** With `Textures` (Geometry Preview's lines: `basecolor`, `alpha`, `basecolor_tint`) and the `textures_cop` input, the frames are rendered with them: leaf cards cut out by Leaf Card Texture render as leaves instead of quads, coloured by the texture (tinted by `Cd` where basecolor_tint names the material). The report lists the textures used and missing.
+
 **Inputs**
 
 | Input | Type | Description |
 |---|---|---|
 | `geo` | GEOMETRY | Object to make the impostor of. |
+| `textures_cop` *(optional)* | COPIMAGE | The '@layer' textures the Textures lines name (Leaf Card Texture's colour and alpha). |
 
 **Outputs**
 
@@ -331,6 +334,12 @@ The `card` output is a quad the size of the bounding sphere, centred on the obje
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | Sun Direction `sun_direction` | string | `0.4 0.8 0.45` | Direction toward the sun for the beauty layer (X Y Z). |
+
+*Textures*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Textures `textures` | string | *(empty)* | Geometry Preview's Textures lines for the render of the frames; empty renders `Cd` on the bare faces, as before. |
 
 **Compared with Houdini**
 

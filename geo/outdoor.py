@@ -88,7 +88,7 @@ def _trim():
         pass
 
 
-def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
+def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, color_attrib="Cd", ssaa=2,
                    textures="", tex_root=None, material_attrib="material", uv_attrib="uv", sun_elev=35.0,
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
@@ -160,16 +160,19 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
                 fix.set(POINT, uv_attrib, np.zeros((g_.npoints, 3), np.float32))
             parts[j_] = fix
     rep = {"used": [], "missing": []}
+    dev = K.torch_device(compute)                   # rasterizing, texture lookups, depth maps and sky light on torch
     rasts, Ts = [], []
     for g_ in parts:
         ts, T = K.soup(g_)
         ts, T, hid = S.shadow_only_split(g_, ts, T)
         atest, acut = S.alpha_tester(g_, tex, tex_root, material_attrib, uv_attrib, (tex_cop, splat_cop, detail_cop),
                                      rep)
+        acut = S.alpha_shadow_cut(g_, tex, acut, material_attrib)
         if acut is not None:                                 # cut-out faces cast no sun or sky shadow
             T = (T[0], T[1][~acut[T[2]]])
         Ts.append(T[:2])
-        r_ = R.rasterize(g_, cam, max_pairs=S._PAIRS, soup=ts, alpha=S.with_hidden(atest, hid))
+        r_ = R.rasterize(g_, cam, max_pairs=S._PAIRS if dev is None else S._PAIRS_T, soup=ts,
+                         alpha=S.with_hidden(atest, hid), device=dev)
         del ts
         # the frame buffers at half width (a supersampled frame: a few hundred MB per geometry otherwise)
         r_["bary"] = r_["bary"].astype(np.float32)
@@ -257,7 +260,7 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     if tex:
         for g_, r_, mk in zip(parts, rasts, masks):
             S._apply_textures(g_, r_, alb, N, surf & mk, tex, tex_root, material_attrib, uv_attrib, rep, tex_cop, pbr,
-                              cop_detail=detail_cop, P=P, cop_splat=splat_cop)
+                              cop_detail=detail_cop, P=P, cop_splat=splat_cop, rate=k)
             _trim()
     _trim()
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
@@ -323,7 +326,6 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
     vi = np.nonzero(valid)
     from .progress import check as _cancel
     _cancel()
-    dev = K.torch_device(compute)
     if dev is not None:
         dmap, meta = K.depth_map_t(K.to_device(T, dev), L, sc_, sr_, sres)
         dmap = dmap.cpu().numpy()
@@ -430,6 +432,22 @@ def render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, c
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     return _develop(lin_img, exposure, k)
 
+
+
+def render_outdoor(*args, **kwargs):
+    """See _render_outdoor. Compute (auto with CUDA, cuda, torch_cpu) also moves the texture lookups to torch for the
+    render."""
+    import inspect
+    ba = inspect.signature(_render_outdoor).bind(*args, **kwargs)
+    ba.apply_defaults()
+    S.set_texture_device(K.torch_device(ba.arguments["compute"]))
+    try:
+        return _render_outdoor(*args, **kwargs)
+    finally:
+        S.set_texture_device(None)
+
+
+render_outdoor.__doc__ = _render_outdoor.__doc__
 
 _CLASSES = ("vertex", "prim", "detail")
 

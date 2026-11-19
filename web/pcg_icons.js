@@ -3130,7 +3130,7 @@ export const NODE_GLYPH = {
   COPSpaceTransformWithAdjacency: "adjacency",
   // scene generation (after SideFX Labs)
   LotSubdivision: "lot_subdiv", BuildingGenerator: "building_gen", LODCreate: "lod_create",
-  ImpostorTextures: "impostor", COPWFC: "wfc", TreeGenerator: "lsystem",
+  ImpostorTextures: "impostor", COPWFC: "wfc", TreeGenerator: "lsystem", LeafCardTexture: "lsystem",
   COPTuringPatterns: "fx_turingpat", COPHeatDistortByLayer: "fx_heatlayer",
   COPChromaticAberration: "fx_chroma_ab", COPHeatDistort: "fx_heat",
   COPSwirl: "fx_swirl", COPLensDistort: "fx_lens",

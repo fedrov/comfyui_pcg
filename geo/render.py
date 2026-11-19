@@ -204,7 +204,7 @@ def project(cam, P):
 
 
 # ════════════════════════════════════════════════════════════════ rasterization
-def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None):
+def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None, device=None):
     """
     z-buffer rasterization. Returns a dict:
 
@@ -220,6 +220,8 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     alpha: alpha test (cutout), a function (triangle numbers of the soup, barycentric weights (n, 3) in those
     triangles, this dict) -> bool keep per fragment; a fragment it drops does not hide what lies behind it (leaves,
     fences, impostor cards).
+    device: a torch device to rasterize on (the same triangle-pixel pairs and depth test as the numpy path, in float64
+    on the CPU and float32 on a GPU; the alpha test still runs in numpy on the fragments of the faces it names).
     """
     from .spatial import tri_soup
     W, H = int(cam["xres"]), int(cam["yres"])
@@ -293,16 +295,117 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     bounds = np.searchsorted(cum, np.linspace(0, total, nbatch + 1)[1:])
     start = 0
     from .progress import check as _cancel
+    tst = _TorchRaster(device, cam, rast, sx, sy, z, W, H) if device is not None else None
     for stop in bounds:
         _cancel()
         stop = int(min(max(stop + 1, start + 1), len(idx)))
-        _raster_batch(out, cam, rast, sx, sy, z,
-                      idx[start:stop], x0[start:stop], y0[start:stop],
-                      bw[start:stop], bh[start:stop], area[start:stop], W, H)
+        args = (idx[start:stop], x0[start:stop], y0[start:stop], bw[start:stop], bh[start:stop], area[start:stop])
+        if tst is not None:
+            tst.batch(*args)
+        else:
+            _raster_batch(out, cam, rast, sx, sy, z, *args, W, H)
         start = stop
         if start >= len(idx):
             break
+    if tst is not None:
+        tst.finish(out)
     return out
+
+
+class _TorchRaster:
+    """_raster_batch on torch: the frame buffers stay on the device across the batches."""
+
+    def __init__(self, device, cam, rast, sx, sy, z, W, H):
+        import torch
+        self.t, self.dev = torch, device
+        self.fd = torch.float64 if torch.device(device).type == "cpu" else torch.float32
+        tri, rsrc, lam, nplain, alpha, outd = rast
+        T = lambda a, dt=None: torch.from_numpy(np.ascontiguousarray(a)).to(device, dt)  # noqa: E731
+        self.T = T
+        self.tri, self.rsrc = T(tri), T(rsrc)
+        self.lam, self.nplain, self.alpha, self.outd = (T(lam, self.fd) if lam is not None else None), nplain, alpha, outd
+        self.sx, self.sy, self.z = T(sx, self.fd), T(sy, self.fd), T(z, self.fd)
+        self.persp = cam["projection"] == "perspective"
+        self.W, self.H = W, H
+        self.zbuf = torch.full((W * H,), float("inf"), dtype=self.fd, device=device)
+        self.hit = torch.full((W * H,), -1, dtype=torch.int64, device=device)
+        self.bary = torch.zeros((W * H, 3), dtype=self.fd, device=device)
+        need = getattr(alpha, "prims", None) if alpha is not None else None
+        self.need = T(np.asarray(need, bool)) if need is not None else None
+        self.src = T(outd["src"]) if need is not None else None
+
+    def batch(self, idx, x0, y0, bw, bh, area):
+        torch, T = self.t, self.T
+        at = T(area)
+        tot = int(area.sum())
+        starts = torch.cumsum(at, 0) - at
+        flat = torch.arange(tot, device=self.dev) - torch.repeat_interleave(starts, at)
+        tid = torch.repeat_interleave(T(idx), at)
+        bwr = torch.repeat_interleave(T(bw), at)
+        px = torch.repeat_interleave(T(x0), at) + torch.remainder(flat, bwr)
+        py = torch.repeat_interleave(T(y0), at) + torch.div(flat, bwr, rounding_mode="floor")
+        del flat, bwr
+        a, b, c = self.tri[tid, 0], self.tri[tid, 1], self.tri[tid, 2]
+        ax, ay, bx, by, cx, cy = self.sx[a], self.sy[a], self.sx[b], self.sy[b], self.sx[c], self.sy[c]
+        den = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        ok = torch.abs(den) > 1e-12
+        den = torch.where(ok, den, torch.ones_like(den))
+        qx, qy = px.to(self.fd), py.to(self.fd)
+        w1 = ((qx - ax) * (cy - ay) - (qy - ay) * (cx - ax)) / den
+        w2 = ((bx - ax) * (qy - ay) - (by - ay) * (qx - ax)) / den
+        w0 = 1.0 - w1 - w2
+        ok &= (w0 >= -1e-9) & (w1 >= -1e-9) & (w2 >= -1e-9)
+        if not bool(ok.any()):
+            return
+        tid, px, py, w0, w1, w2, a, b, c = (v[ok] for v in (tid, px, py, w0, w1, w2, a, b, c))
+        if self.persp:
+            za, zb_, zc = self.z[a], self.z[b], self.z[c]
+            iz = w0 / za + w1 / zb_ + w2 / zc
+            zz = 1.0 / torch.where(torch.abs(iz) < 1e-30, torch.full_like(iz, 1e-30), iz)
+            b0, b1, b2 = w0 * zz / za, w1 * zz / zb_, w2 * zz / zc
+        else:
+            zz = w0 * self.z[a] + w1 * self.z[b] + w2 * self.z[c]
+            b0, b1, b2 = w0, w1, w2
+        if self.alpha is not None:
+            sub = self.rsrc[tid]
+            on = (torch.nonzero(self.need[self.src[sub]]).reshape(-1) if self.need is not None
+                  else torch.arange(len(tid), device=self.dev))
+            if len(on):
+                bb = torch.stack([b0[on], b1[on], b2[on]], 1)
+                if self.lam is not None:
+                    cl = tid[on] >= self.nplain
+                    if bool(cl.any()):
+                        bb[cl] = torch.einsum("mk,mkj->mj", bb[cl], self.lam[tid[on][cl] - self.nplain])
+                kp = np.asarray(self.alpha(sub[on].cpu().numpy(), bb.cpu().numpy().astype(np.float64), self.outd),
+                                bool)
+                keep = torch.ones(len(tid), dtype=torch.bool, device=self.dev)
+                keep[on] = T(kp)
+                if not bool(keep.all()):
+                    tid, px, py, zz, b0, b1, b2 = (v[keep] for v in (tid, px, py, zz, b0, b1, b2))
+            if not len(tid):
+                return
+        pix = py * self.W + px
+        best = self.zbuf.clone()                         # existing hits take part (zbuf is inf where none)
+        best.scatter_reduce_(0, pix, zz, reduce="amin")
+        win = zz <= best[pix]
+        wpix = pix[win]
+        self.zbuf[wpix] = zz[win]
+        tw = tid[win]
+        self.hit[wpix] = self.rsrc[tw]
+        bw_ = torch.stack([b0[win], b1[win], b2[win]], 1)
+        if self.lam is not None:
+            cl = tw >= self.nplain
+            if bool(cl.any()):
+                bw_[cl] = torch.einsum("mk,mkj->mj", bw_[cl], self.lam[tw[cl] - self.nplain])
+        self.bary[wpix] = bw_
+
+    def finish(self, out):
+        H, W = self.H, self.W
+        hit = self.hit.cpu().numpy().reshape(H, W)
+        out["hit"][:] = hit
+        out["z"][:] = np.where(hit >= 0, self.zbuf.cpu().numpy().reshape(H, W), 0.0)
+        out["bary"][:] = self.bary.cpu().numpy().reshape(H, W, 3)
+        del self.zbuf, self.hit, self.bary
 
 
 def _clip_near(P, tri, zt, ins, cnt, cut, near):

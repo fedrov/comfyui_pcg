@@ -593,7 +593,8 @@ err("an atlas above the limit is refused", lambda: IM.impostor_textures(SPH, "3d
 print("-- nodes")
 NODES = ("PCG_LotSubdivision", "PCG_BuildingGenerator", "PCG_LODCreate", "PCG_ImpostorTextures", "PCG_COPWFC")
 check("the five nodes are registered, each with a panel spec that covers its widgets",
-      all(n in M and set(PS.SPECS[n]["order"]) == {k for k, v in M[n].INPUT_TYPES()["required"].items()
+      all(n in M and set(PS.SPECS[n]["order"]) == {k for sec_ in ("required", "optional")
+                                                    for k, v in M[n].INPUT_TYPES().get(sec_, {}).items()
                                                     if v[0] not in ("COPIMAGE", "GEOMETRY")} for n in NODES))
 def dflt(n, **kw):
     a = {k: (s_[1]["default"] if len(s_) > 1 and isinstance(s_[1], dict) and "default" in s_[1] else s_[0][0])

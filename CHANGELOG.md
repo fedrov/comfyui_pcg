@@ -5,7 +5,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Faster renders and COP Wrangles, on every machine**: the Studio / Outdoor looks read their textures once per output
+  pixel where one surface covers it (as MSAA shades once per pixel) instead of once per supersample; texture
+  lookups and banded COP Wrangles (`rows_per_pass`) run on several threads (`PCG_THREADS`, up to 4 by default);
+  `noise()` reads Perlin's gradients from a table (the same numbers, faster). The world tiles run went from 23 to
+  18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
+
 ### Added
+- **Preview Image / Outdoor on the GPU**: with Compute auto (CUDA available) or cuda, the frame is also rasterized and
+  textured with torch -- the texture lookups were most of a terrain render's time on numpy -- besides the shadow maps
+  and the sky light; same result as numpy to float32 rounding.
+- **Leaf Card Texture** (new node): the colour and cutout of a foliage card -- a broadleaf twig or a conifer needle
+  spray -- rooted where Tree Generator's cards stand on their branch, as `<Prefix>_C` / `<Prefix>_alpha` layers.
+- **Tree Generator**: `leaf_material` (each kind its own leaf texture); conifer sprays smaller on the short top
+  branches.
+- **Impostor Textures**: `textures` and a `textures_cop` input -- the frames rendered with base colour, cutout and
+  tint, so leaf cards bake as leaves.
+- **Textures**: `alpha_shadow = <materials>` -- cut-out faces of those materials cast shadows (whole), for leaf
+  cards.
+- **World tiles, quick version** (`pcg_prod_world_tiles_quick`): the same world for a first look -- 2 m surface
+  textures, 800 x 450 previews without supersampling, the variants muted.
 - **Tree Generator** (new node): a procedural tree as a game asset -- broadleaf (a branching crown) or conifer
   (whorls along a trunk to the top) -- bark tubes with uv in metres, leaf cards with normals bent out of the crown,
   part / material / level attributes, seed variants.

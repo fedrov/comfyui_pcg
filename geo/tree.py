@@ -11,7 +11,8 @@ leaves as cards (one quad each) -- in two growth forms:
 Everything is driven by a seed, so a forest of variants is a seed attribute away. Point attributes: Cd (bark colour,
 leaves darker inside and low in the crown, where less sky reaches), N (bark: radial; leaves: the card's normal bent
 toward "out of the crown" by Normal Bend, so the crown shades as one soft volume), uv. Prim attributes: part (bark /
-leaf), material (M_Bark / M_Leaf), level (0 trunk, 1.. branches, -1 leaves).
+leaf), material (M_Bark / Leaf Material, M_Leaf by default), level (0 trunk, 1.. branches, -1 leaves). The leaf
+cards have uv 0..1 with v along their branch: Leaf Card Texture draws a twig or a spray to cut them out with.
 """
 from __future__ import annotations
 
@@ -88,7 +89,7 @@ class _Mesh:
         self.part.append("leaf")
         self.level.append(-1)
 
-    def geometry(self):
+    def geometry(self, leaf_material="M_Leaf"):
         g = Geometry.from_mesh(np.asarray(self.P, np.float32).reshape(-1, 3),
                                np.asarray(self.faces, np.int64).reshape(-1, 4))
         g.set(POINT, "N", np.asarray(self.N, np.float32))
@@ -97,7 +98,7 @@ class _Mesh:
         g.set(POINT, "uv", np.c_[uv, np.zeros(len(uv), np.float32)])
         part = np.asarray(self.part)
         g.set_string(PRIM, "part", part)
-        g.set_string(PRIM, "material", np.where(part == "bark", "M_Bark", "M_Leaf"))
+        g.set_string(PRIM, "material", np.where(part == "bark", "M_Bark", str(leaf_material)))
         g.set(PRIM, "level", np.asarray(self.level, np.int32))
         return g
 
@@ -121,7 +122,8 @@ def _curve(p0, d, length, steps, rng, gnarl, rise):
 
 def tree(kind="broadleaf", height=10.0, trunk_radius=0.25, crown_base=0.35, crown_width=6.0, branch_levels=2,
          branches=5, branch_angle=45.0, length_ratio=0.6, gnarl=0.3, leaves=300, leaf_size=0.7,
-         leaf_color=(0.26, 0.40, 0.13), bark_color=(0.24, 0.18, 0.13), sides=6, normal_bend=0.8, seed=1, segments=8):
+         leaf_color=(0.26, 0.40, 0.13), bark_color=(0.24, 0.18, 0.13), sides=6, normal_bend=0.8, seed=1, segments=8,
+         leaf_material="M_Leaf"):
     """-> (Geometry, report)"""
     if kind not in KINDS:
         raise ValueError(f"Tree Generator: Kind must be one of {KINDS}, got {kind!r}")
@@ -164,7 +166,7 @@ def tree(kind="broadleaf", height=10.0, trunk_radius=0.25, crown_base=0.35, crow
             f = crown_base + (1 - crown_base) * (k + 0.5) / whorls * 0.95
             p, _ = along(trunk, f)
             ln = crown_r * (1.0 - (f - crown_base) / (1 - crown_base)) ** 0.9 + 0.3
-            n_br = max(3, int(round(5 - 1.5 * f)))
+            n_br = max(4, int(round(7 - 2.5 * f)))
             for b in range(n_br):
                 a = 2 * np.pi * b / n_br + k * 0.9 + rng.normal(0, 0.15)
                 d = np.array([np.cos(a), -0.15 - 0.2 * rng.random(), np.sin(a)])
@@ -199,7 +201,10 @@ def tree(kind="broadleaf", height=10.0, trunk_radius=0.25, crown_base=0.35, crow
     if tips and n_leaf:
         per = np.full(len(tips), n_leaf // len(tips))
         per[: n_leaf - per.sum()] += 1
+        lmax = max(ln for _, ln in tips)
         for (pts, ln), k in zip(tips, per):
+            # conifer: smaller sprays on the short branches near the top (the cone stays a cone)
+            ksz = 1.0 if kind == "broadleaf" else 0.45 + 0.55 * ln / max(lmax, 1e-9)
             for _ in range(int(k)):
                 f = 0.35 + 0.65 * rng.random() if kind == "broadleaf" else 0.1 + 0.9 * rng.random()
                 p, d = along(pts, f)
@@ -209,7 +214,7 @@ def tree(kind="broadleaf", height=10.0, trunk_radius=0.25, crown_base=0.35, crow
                     up = d
                 else:
                     c = p + rng.normal(0, 0.12 * leaf_size, 3)
-                    n = np.array([0.0, 1.0, 0.0]) + rng.normal(0, 0.25, 3)
+                    n = np.array([0.0, 0.8, 0.0]) + rng.normal(0, 0.55, 3)
                     up = d
                 out = c - crown_c
                 cn = out / max(np.linalg.norm(out), 1e-9) + np.array([0, 0.6, 0])
@@ -217,9 +222,9 @@ def tree(kind="broadleaf", height=10.0, trunk_radius=0.25, crown_base=0.35, crow
                 depth = np.clip(np.linalg.norm(out * [1, 0.8, 1]) / crown_r, 0, 1.2)
                 shade = 0.55 + 0.4 * min(depth, 1.0) + 0.1 * np.clip((c[1] - crown_c[1]) / crown_r, -1, 1)
                 col = lc * shade * (0.85 + 0.3 * rng.random())
-                M.card(c, n, up, leaf_size * (0.8 + 0.4 * rng.random()),
+                M.card(c, n, up, leaf_size * ksz * (0.8 + 0.4 * rng.random()),
                        col, cn, float(np.clip(normal_bend, 0, 1)))
-    g = M.geometry()
+    g = M.geometry(leaf_material)
     part = np.asarray(M.part)
     rep = {"kind": kind, "points": g.npoints, "faces": g.nprims, "triangles": int(2 * g.nprims),
            "bark_faces": int((part == "bark").sum()), "leaf_cards": int((part == "leaf").sum()),

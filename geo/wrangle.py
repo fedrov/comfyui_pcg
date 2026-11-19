@@ -279,11 +279,33 @@ def _fade(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
 
 
-def _grad3(h, x, y, z):
+def _grad3_ref(h, x, y, z):
+    """Perlin's gradient as he wrote it (kept for the tests: _grad3 must match it bit for bit)."""
     h = h & 15
     u = np.where(h < 8, x, y)
     v = np.where(h < 4, y, np.where((h == 12) | (h == 14), x, z))
     return (np.where(h & 1 == 0, u, -u) + np.where(h & 2 == 0, v, -v))
+
+
+def _grad_table():
+    gx, gy, gz = np.zeros(16), np.zeros(16), np.zeros(16)
+    for h in range(16):
+        su = 1.0 if h & 1 == 0 else -1.0
+        sv = 1.0 if h & 2 == 0 else -1.0
+        (gx if h < 8 else gy)[h] += su
+        (gy if h < 4 else gx if h in (12, 14) else gz)[h] += sv
+    return gx, gy, gz
+
+
+_GX, _GY, _GZ = _grad_table()
+
+
+def _grad3(h, x, y, z):
+    """Perlin's gradient dot (x, y, z) as a lookup of the 16 gradients (+-1 / 0 per axis): three gathers and three
+    multiply-adds instead of half a dozen whole-array selects -- the same numbers (each term is +-x, +-y, +-z or 0,
+    and adding 0 changes nothing), several times faster; noise() is most of a big COP Wrangle's time."""
+    h = h & 15
+    return _GX[h] * x + _GY[h] * y + _GZ[h] * z
 
 
 def perlin3(p):

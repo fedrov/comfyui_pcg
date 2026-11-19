@@ -9,6 +9,11 @@ Tree Generator (geo/tree.py), checked against the parameters rather than by eye.
      crown (negative control: 0 leaves them random); leaves darker inside the crown than at its rim
   4. Seed: the same seed gives the same tree, another seed another; more Branch Levels -> more bark
   5. As an asset: a coarse variant of the same seed is LOD Create's custom LOD1; bad colours and kinds raise
+  6. Leaf cards: Leaf Material names the cards' material; Leaf Card Texture draws a twig / a needle spray rooted at
+     uv (0.5, 0) (alpha 1 there, 0 in the top corners), antialiased, the colour bled past the cutout, the same seed the
+     same card; with it as a cutout the cards render as leaves (an alpha-tested quad lets the sky through), cast
+     shadows whole with alpha_shadow (negative control: without it they cast none), and Impostor Textures cuts them
+     out too (less coverage than the bare quads, the texture's colour)
 """
 import os
 import sys
@@ -159,6 +164,81 @@ try:
 except ValueError:
     bad = True
 check("  an unknown kind raises", bad)
+
+# 6. Leaf cards
+g6, _ = T.tree("conifer", leaves=40, seed=2, leaf_material="M_Needle")
+mat6 = np.asarray(g6.get(PRIM, "material")).reshape(-1).astype(str)
+part6 = np.asarray(g6.get(PRIM, "part")).reshape(-1).astype(str)
+check("Leaf Material: the leaf cards carry it, the bark stays M_Bark",
+      set(mat6[part6 == "leaf"]) == {"M_Needle"} and set(mat6[part6 == "bark"]) == {"M_Bark"})
+from comfyui_pcg.geo.cop.leafcard import leaf_card  # noqa: E402
+for kind_ in ("broadleaf", "conifer"):
+    c_, a_ = leaf_card(kind_, 128, 9, (0.3, 0.5, 0.1), seed=5)
+    c2_, a2_ = leaf_card(kind_, 128, 9, (0.3, 0.5, 0.1), seed=5)
+    c3_, a3_ = leaf_card(kind_, 128, 9, (0.3, 0.5, 0.1), seed=6)
+    root = a_[1:4, 61:67].max()
+    corners = max(a_[-6:, :6].max(), a_[-6:, -6:].max())
+    soft = float(((a_ > 0.05) & (a_ < 0.95)).mean())
+    bleed = c_[(a_ < 0.02)].mean(0)
+    check(f"Leaf Card Texture {kind_}: rooted at uv (0.5, 0) (alpha {root:.2f}), the top corners empty ({corners:.2f}), "
+          f"coverage {a_.mean():.2f}, antialiased edge ({soft:.1%} partial), the colour bled past the cutout (green "
+          f"{np.round(bleed, 2)}); same seed same card, another seed another",
+          root > 0.9 and corners < 0.05 and 0.12 < a_.mean() < 0.6 and soft > 0.01 and bleed[1] > bleed[2] > 0
+          and np.array_equal(a_, a2_) and not np.array_equal(a_, a3_))
+lc_ = nrun("LeafCardTexture", kind="broadleaf", resolution=64, prefix="M_Leaf")[0]
+check("  the node: layers <Prefix>_C and <Prefix>_alpha", "M_Leaf_C" in lc_ and "M_Leaf_alpha" in lc_, lc_.names)
+for bad_ in (dict(kind="palm"), dict(prefix=" "), dict(leaf_color="green")):
+    try:
+        nrun("LeafCardTexture", resolution=32, **bad_)
+        ok_ = False
+    except (ValueError, KeyError):
+        ok_ = True
+    check(f"  bad input raises: {bad_}", ok_)
+
+from comfyui_pcg.geo import outdoor as O, render as R, build  # noqa: E402
+from comfyui_pcg.geo.cop.core import CopImage  # noqa: E402
+from comfyui_pcg.geo.cop.pixel import put  # noqa: E402
+from comfyui_pcg.geo.ops import merge  # noqa: E402
+# a 4 m card standing 3 m up over a ground plate, cut out entirely except for a disc in its middle
+card = build.grid(size_x=4.0, size_z=4.0, cols=2, rows=2)
+Pc = np.asarray(card.get(POINT, "P"), np.float32)
+card.set(POINT, "P", np.c_[Pc[:, 0], np.full(len(Pc), 3.0, np.float32), Pc[:, 2]])
+card.set(POINT, "uv", np.c_[(Pc[:, 0] + 2) / 4, (Pc[:, 2] + 2) / 4, np.zeros(len(Pc))].astype(np.float32))
+card.set_string(PRIM, "material", np.full(card.nprims, "M_Leaf"))
+plate = build.grid(size_x=30.0, size_z=30.0, cols=2, rows=2)
+plate.set(POINT, "uv", np.zeros((plate.npoints, 3), np.float32))
+plate.set_string(PRIM, "material", np.full(plate.nprims, "M_Ground"))
+scene = merge(card, plate)
+yy, xx = np.mgrid[0:64, 0:64]
+disc = (((xx - 31.5) ** 2 + (yy - 31.5) ** 2) < 12 ** 2).astype(np.float32)
+lcop = CopImage(64, 64)
+put(lcop, "M_Leaf_alpha", disc)
+cam6 = R.camera(None, "perspective", eye=[0, 22, 0.01], target=[0, 0, 0], fov=40)
+k6 = dict(cam=cam6, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, sun_elev=90.0, tex_cop=lcop)
+TX = "alpha = @{material}_alpha"
+img0 = O.render_outdoor(scene, 96, 96, textures=TX, **k6)
+img1 = O.render_outdoor(scene, 96, 96, textures=TX + "\nalpha_shadow = M_Leaf", **k6)
+ring = (lambda a: a[(np.hypot(*np.mgrid[0:96, 0:96] - 47.5) > 7) & (np.hypot(*np.mgrid[0:96, 0:96] - 47.5) < 10.5)])
+# the card spans 4 m at 19 m from the camera: about 28 px across, the disc about 10; its shadow on the plate 22 m away
+# about 24 px. The ring 7..10.5 px from the centre is outside the disc, on the cut-away part of the card: ground seen
+# through it, in the card's shadow or not
+check("alpha_shadow: a cut-out card casts its shadow whole (the ground seen through the cut-away part is darker "
+      "with it than without: without, cut-out faces cast no shadow)",
+      ring(img1).mean() < 0.8 * ring(img0).mean(), (round(float(ring(img1).mean()), 3), round(float(ring(img0).mean()), 3)))
+from comfyui_pcg.geo import impostor as I  # noqa: E402
+gt_, _ = T.tree("broadleaf", leaves=120, seed=3, leaf_color=(1, 1, 1))
+lc2 = nrun("LeafCardTexture", kind="broadleaf", resolution=128, prefix="M_Leaf", leaf_color="0.2 0.6 0.1")[0]
+i0, _, r0 = I.impostor_textures(gt_, "hemi_octahedron", 32, 4, 4)
+i1, _, r1 = I.impostor_textures(gt_, "hemi_octahedron", 32, 4, 4, textures="basecolor = @{material}_C\n"
+                                "alpha = @{material}_alpha\nbasecolor_tint = M_Leaf", textures_cop=lc2)
+C1 = np.asarray(i1.get("C"))
+A1 = np.asarray(i1.get("alpha"))[..., 0] > 0.5
+leafc = C1[A1].mean(0)
+check(f"Impostor Textures with the leaf texture: the cards cut out (coverage {r1['coverage']:.3f} vs "
+      f"{r0['coverage']:.3f} as quads), the colour the texture's green ({np.round(leafc, 3)}; Cd alone is grey)",
+      r1["coverage"] < 0.8 * r0["coverage"] and leafc[1] > 1.5 * leafc[2] and leafc[1] > leafc[0]
+      and "@M_Leaf_C" in r1.get("textures_used", []) and "@M_Leaf_alpha" in r1.get("textures_used", []),
+      r1.get("textures_used"))
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

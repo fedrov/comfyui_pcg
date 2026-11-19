@@ -163,7 +163,7 @@ Inside the code, `ch` and `chf` return a float, `chi` a rounded integer, `chs` a
 | `@res` | (width, height). |
 | `@ix` | Pixel index. |
 
-The function library is the same. With *Rows per Pass* above 0 the code runs on bands of rows to save memory; per-pixel code gives the same image, but whole-image reductions such as `@C.max()` then see one band at a time.
+The function library is the same. With *Rows per Pass* above 0 the code runs on bands of rows to save memory; per-pixel code gives the same image, but whole-image reductions such as `@C.max()` then see one band at a time. The bands also run on several threads at once (up to four by default; set the environment variable `PCG_THREADS` to choose, `1` for none), so a big per-pixel Wrangle uses several CPU cores; the result is the same as on one thread.
 
 ## Group patterns
 
