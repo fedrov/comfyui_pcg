@@ -685,6 +685,26 @@ check("fakecomfy.unwrap unpacks a dict, and passes plain tuples through unchange
       and fakecomfy.unwrap((3, 4)) == (3, 4)
       and fakecomfy.unwrap({"ui": {}}) == ())
 
+print("\n── Camera: Eye Above Ground")
+from comfyui_pcg.geo import build as _B  # noqa: E402
+_g = MAP["PCG_Grid"]
+_grid = _mk("PCG_Grid", size_x=100.0, size_z=100.0, rows=11, cols=11)
+_grid = _grid["result"][0] if isinstance(_grid, dict) else _grid[0]
+_W = MAP["PCG_Wrangle"]
+_hill = getattr(_W(), _W.FUNCTION)(geo=_grid, code="@P.y = 5 + 0.1 * @P.x", run_over="point", group="", rand_seed=0, ch_params="{}")
+_hill = _hill["result"][0] if isinstance(_hill, dict) else _hill[0]
+_cam = lambda **k: _mk("PCG_Camera", mode="look_at", eye_x=10.0, eye_y=1.0, eye_z=3.0, target_x=0.0, target_y=0.0,  # noqa: E731
+                         target_z=50.0, **k)
+c1, i1 = _cam(eye_above_ground=1.8, ground=_hill)
+check("ground wired, 1.8 m: the eye 1.8 over the ground under it (5 + 0.1 * 10 = 6 -> 7.8), reported in info",
+      abs(c1["eye"][1] - 7.8) < 1e-6 and "ground=6.000" in i1, (c1["eye"], i1))
+c0, _ = _cam(eye_above_ground=0.0, ground=_hill)
+c2, _ = _cam(eye_above_ground=1.8)
+check("  negative controls: 0 m, or no ground wired -- Eye Y as typed (1.0)", abs(c0["eye"][1] - 1.0) < 1e-9
+      and abs(c2["eye"][1] - 1.0) < 1e-9)
+c3, _ = _mk("PCG_Camera", mode="look_at", eye_x=500.0, eye_y=1.0, eye_z=0.0, eye_above_ground=1.8, ground=_hill)
+check("  no ground under the eye: Eye Y as typed", abs(c3["eye"][1] - 1.0) < 1e-9)
+
 print()
 print(f"{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

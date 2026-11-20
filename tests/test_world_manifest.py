@@ -197,5 +197,28 @@ bt2 = [k for k, t in T2.items() if t["buildings"]]
 check("Origin = center: the grid spans -1024..1024, the same town lands in tile (1, 1) instead of (0, 1)",
       W2["coordinates"]["world_min"] == [-1024.0, -1024.0] and bt2 == [(1, 1)], bt2)
 
+# Windows: os.walk spells a file "...\\output\\pcg\\world\\height\\Height.json" while a sidecar's relative path joined on is
+# "...\\output\\pcg/world/height/Height.json"; as dictionary keys the two never met (KeyError at the height). The same
+# file under two spellings, made here by walking with a redundant "." in every folder name
+from comfyui_pcg.geo import worldmanifest as _WMod  # noqa: E402
+_walk = os.walk
+
+
+def _walk2(top, *a, **k):
+    for dp, dn, fn in _walk(top, *a, **k):
+        yield os.path.join(dp, "."), dn, fn
+
+
+_WMod.os.walk = _walk2
+try:
+    W3, _ = _WMod.build_manifest(OUT, F, 2048.0, 1024.0, "north_west_corner")[1:]
+    ok3, err3 = True, ""
+except Exception as e:                                     # noqa: BLE001
+    ok3, err3 = False, f"{type(e).__name__}: {e}"
+finally:
+    _WMod.os.walk = _walk
+check("two spellings of one path (as on Windows): the manifest still finds the height's sidecar and its tiles",
+      ok3 and W3 is not None, err3)
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

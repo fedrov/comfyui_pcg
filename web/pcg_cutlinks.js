@@ -18,6 +18,9 @@
 // Keys: hold Y + left-drag = cut the links crossed; Esc during the drag cancels.
 
 import { app } from "../../scripts/app.js";
+
+// the network the canvas shows (inside a subgraph: its own wires)
+const net = () => app.canvas?.graph || app.graph;
 import { linkPolyline as wirePolyline } from "./pcg_wires.js";
 
 const CUT_COLOR = "#ff5a4e";
@@ -65,15 +68,15 @@ app.registerExtension({
     // testing against Béziers as before would cut invisible lines and miss visible ones
     const linkPolyline = (link) => {
       try {
-        const pts = wirePolyline(app.graph, link, canvas);
+        const pts = wirePolyline(net(), link, canvas);
         if (pts) return pts;
       } catch (_) { /* fall back to the old algorithm */ }
       return bezierPolyline(link);
     };
     // Old algorithm (links with reroutes are not handled by pcg_wires; this is the fallback). Control-point rule copied from litegraph's renderLink
     const bezierPolyline = (link) => {
-      const A = app.graph.getNodeById(link.origin_id);
-      const B = app.graph.getNodeById(link.target_id);
+      const A = net().getNodeById(link.origin_id);
+      const B = net().getNodeById(link.target_id);
       if (!A || !B || !A.getConnectionPos || !B.getConnectionPos) return null;
       const a = A.getConnectionPos(false, link.origin_slot);
       const b = B.getConnectionPos(true, link.target_slot);
@@ -93,7 +96,7 @@ app.registerExtension({
 
     const recompute = () => {
       const hits = new Set();
-      const links = app.graph.links;
+      const links = net().links;
       if (!links) return hits;
       const list = links instanceof Map ? [...links.values()] : Object.values(links);
       for (const link of list) {
@@ -152,18 +155,18 @@ app.registerExtension({
 
       if (hits.size) {
         // beforeChange/afterChange are ComfyUI's undo grouping hooks; wrapping makes it a single undo
-        app.graph.beforeChange?.();
-        const links = app.graph.links;
+        net().beforeChange?.();
+        const links = net().links;
         const get = (id) => (links instanceof Map ? links.get(id) : links[id]);
         for (const id of hits) {
           const link = get(id);
           if (!link) continue;
-          const B = app.graph.getNodeById(link.target_id);
+          const B = net().getNodeById(link.target_id);
           // Must go through disconnectInput: deleting entries from links directly leaves slot references,
           // disconnected on screen but the saved workflow is still connected
           if (B && B.disconnectInput) B.disconnectInput(link.target_slot);
         }
-        app.graph.afterChange?.();
+        net().afterChange?.();
         console.log(`[pcg.cutlinks] cut ${hits.size} links`);
       }
       canvas.setDirty(true, true);
@@ -193,7 +196,7 @@ app.registerExtension({
         ctx.lineWidth = 3 / s;
         ctx.strokeStyle = CUT_COLOR;
         ctx.globalAlpha = 0.85;
-        const links = app.graph.links;
+        const links = net().links;
         const get = (id) => (links instanceof Map ? links.get(id) : links[id]);
         for (const id of cut.hits) {
           const pts = linkPolyline(get(id));

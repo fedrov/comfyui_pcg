@@ -54,6 +54,7 @@ this makes no difference (the values are fixed anyway), but if you expect parame
 from __future__ import annotations
 
 import json
+import re
 import math
 
 TYPES = ("float", "int", "bool", "string", "vector", "vector4")
@@ -218,6 +219,64 @@ def parse(text):
         out.append({"type": kind, "name": name, "default": v,
                     "min": lo, "max": hi, "label": label, "n": n})
     return out
+
+
+# ── Multiparm blocks (Houdini's multiparm): a count and a template, repeated count times
+#
+#     multi pts = 2            # Points
+#         vector pos# = 0 0 0  # Position #
+#         float  w#   = 1 : 0 1
+#     end
+#
+# expands, with the count stored as 3, into "int pts = 2 : 0 64 # Points" and pos1 w1 pos2 w2 pos3 w3 (labels
+# "Position 1" ...). "#" right after a name is the instance number; after the label separator every "#" is.
+# **Must match expandMulti in web/pcg_params.js** (both are tested on the same cases).
+MULTI_MAX = 64
+_MULTI = re.compile(r"^multi\s+([A-Za-z_]\w*)\s*(?:=\s*(\d+))?\s*(?:#\s*(.*))?$")
+
+
+def _multi_line(tl, k):
+    t = tl.strip()
+    sep = -1
+    for i, ch in enumerate(t):
+        if ch == "#" and (i == 0 or t[i - 1].isspace()):
+            sep = i
+            break
+    head, lab = (t, "") if sep < 0 else (t[:sep], t[sep:])
+    head = re.sub(r"(\w)#", lambda m: m.group(1) + str(k), head)
+    lab = lab[:1] + lab[1:].replace("#", str(k)) if lab else ""
+    return head + lab
+
+
+def expand_multi(text, stored=None):
+    """Declaration text with multiparm blocks -> plain declaration text (the counts from the stored values)."""
+    stored = stored or {}
+    lines = str(text or "").splitlines()
+    out, i = [], 0
+    while i < len(lines):
+        m = _MULTI.match(lines[i].strip())
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        name, dflt, label = m.group(1), int(m.group(2) or 0), (m.group(3) or "").strip()
+        tmpl = []
+        i += 1
+        while i < len(lines) and lines[i].strip() != "end":
+            if lines[i].strip() and not lines[i].strip().startswith(("#", "//")):
+                tmpl.append(lines[i])
+            i += 1
+        i += 1                                     # the "end"
+        try:
+            n = int(stored.get(name, dflt))
+        except (TypeError, ValueError):
+            n = dflt
+        n = max(0, min(MULTI_MAX, n))
+        dflt = max(0, min(MULTI_MAX, dflt))
+        out.append(f"int {name} = {dflt} : 0 {MULTI_MAX}" + (f"  # {label}" if label else ""))
+        for k in range(1, n + 1):
+            out.extend(_multi_line(t, k) for t in tmpl)
+    return "\n".join(out)
 
 
 def defaults(specs):
@@ -467,11 +526,11 @@ class PCG_Parameters:
     CATEGORY = "PCG/param"
 
     def run(self, declare, values="{}"):
-        specs = parse(declare)
         try:
             stored = json.loads(values) if str(values).strip() else {}
         except json.JSONDecodeError as e:
             raise ValueError(f"parameter values are not valid JSON: {e}") from e
+        specs = parse(expand_multi(declare, stored if isinstance(stored, dict) else {}))
         return (json.dumps(merge(specs, stored), ensure_ascii=False,
                            sort_keys=True),
                 json.dumps(schema(specs), ensure_ascii=False,

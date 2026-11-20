@@ -223,7 +223,7 @@
    ],
    "size": [
     340,
-    783
+    823
    ],
    "flags": {},
    "order": 6,
@@ -294,11 +294,11 @@
    "type": "PCG_COPStreamPower",
    "pos": [
     760,
-    827
+    867
    ],
    "size": [
     340,
-    949
+    989
    ],
    "flags": {},
    "order": 7,

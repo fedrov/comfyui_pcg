@@ -37,7 +37,7 @@ NAV = [
     ("Concepts", ["concepts/geometry.md", "concepts/groups.md", "concepts/parameters.md",
                   "concepts/expressions.md", "concepts/wrangle.md", "concepts/loops-and-time.md",
                   "concepts/images.md", "concepts/viewing-and-export.md", "concepts/wires.md",
-                  "concepts/shortcuts.md"]),
+                  "concepts/assets.md", "concepts/network.md", "concepts/shortcuts.md"]),
     ("Examples", ["examples/README.md", "examples/tutorial_01_first_geometry.md",
                   "examples/tutorial_02_scatter_copy.md", "examples/tutorial_03_attributes_wrangle.md",
                   "examples/tutorial_04_foreach_variations.md", "examples/tutorial_05_cop_texture.md",

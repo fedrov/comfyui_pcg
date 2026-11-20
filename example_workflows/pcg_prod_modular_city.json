@@ -37,7 +37,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 1,
    "mode": 0,
    "inputs": [],
@@ -87,7 +89,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 2,
    "mode": 0,
    "inputs": [],
@@ -131,9 +135,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 140,
    "mode": 0,
    "inputs": [
@@ -190,13 +196,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    1643
+    1713
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 141,
    "mode": 0,
    "inputs": [
@@ -248,13 +256,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    1934
+    2074
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 198,
    "mode": 0,
    "inputs": [
@@ -310,13 +320,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    2144
+    2284
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 240,
    "mode": 0,
    "inputs": [
@@ -368,13 +380,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    2435
+    2645
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 3,
    "mode": 0,
    "inputs": [],
@@ -414,13 +428,15 @@
    "type": "PCG_Boolean",
    "pos": [
     0,
-    2699
+    2909
    ],
    "size": [
     340,
     349
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 142,
    "mode": 0,
    "inputs": [
@@ -472,13 +488,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    3092
+    3302
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 199,
    "mode": 0,
    "inputs": [
@@ -536,7 +554,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 4,
    "mode": 0,
    "inputs": [],
@@ -582,7 +602,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 5,
    "mode": 0,
    "inputs": [],
@@ -628,7 +650,9 @@
     340,
     349
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 143,
    "mode": 0,
    "inputs": [
@@ -684,9 +708,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 200,
    "mode": 0,
    "inputs": [
@@ -738,13 +764,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    1212
+    1282
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 6,
    "mode": 0,
    "inputs": [],
@@ -784,13 +812,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    1476
+    1546
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 144,
    "mode": 0,
    "inputs": [
@@ -842,13 +872,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    1767
+    1907
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 7,
    "mode": 0,
    "inputs": [],
@@ -888,13 +920,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    2031
+    2171
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 145,
    "mode": 0,
    "inputs": [
@@ -946,13 +980,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    2322
+    2532
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 8,
    "mode": 0,
    "inputs": [],
@@ -992,13 +1028,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    2586
+    2796
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 9,
    "mode": 0,
    "inputs": [],
@@ -1038,13 +1076,15 @@
    "type": "PCG_Merge",
    "pos": [
     380,
-    2850
+    3060
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 146,
    "mode": 0,
    "inputs": [
@@ -1100,13 +1140,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    3060
+    3270
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 201,
    "mode": 0,
    "inputs": [
@@ -1158,13 +1200,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    3351
+    3631
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 10,
    "mode": 0,
    "inputs": [],
@@ -1204,13 +1248,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    3615
+    3895
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 11,
    "mode": 0,
    "inputs": [],
@@ -1250,13 +1296,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    3879
+    4159
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 12,
    "mode": 0,
    "inputs": [],
@@ -1296,13 +1344,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    4143
+    4423
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 13,
    "mode": 0,
    "inputs": [],
@@ -1342,13 +1392,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    4407
+    4687
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 14,
    "mode": 0,
    "inputs": [],
@@ -1388,13 +1440,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    4671
+    4951
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 15,
    "mode": 0,
    "inputs": [],
@@ -1434,13 +1488,15 @@
    "type": "PCG_Merge",
    "pos": [
     380,
-    4935
+    5215
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 147,
    "mode": 0,
    "inputs": [
@@ -1496,13 +1552,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    5145
+    5425
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 202,
    "mode": 0,
    "inputs": [
@@ -1554,13 +1612,15 @@
    "type": "PCG_Merge",
    "pos": [
     380,
-    5436
+    5786
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 241,
    "mode": 0,
    "inputs": [
@@ -1616,13 +1676,15 @@
    "type": "PCG_Merge",
    "pos": [
     380,
-    5646
+    5996
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 262,
    "mode": 0,
    "inputs": [
@@ -1678,13 +1740,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    5856
+    6206
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 277,
    "mode": 0,
    "inputs": [
@@ -1736,13 +1800,15 @@
    "type": "PCG_Box",
    "pos": [
     380,
-    6147
+    6567
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 16,
    "mode": 0,
    "inputs": [],
@@ -1782,13 +1848,15 @@
    "type": "PCG_Boolean",
    "pos": [
     380,
-    6411
+    6831
    ],
    "size": [
     340,
     349
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 148,
    "mode": 0,
    "inputs": [
@@ -1840,13 +1908,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     380,
-    6804
+    7224
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 203,
    "mode": 0,
    "inputs": [
@@ -1905,7 +1975,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 17,
    "mode": 0,
    "inputs": [],
@@ -1949,9 +2021,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 149,
    "mode": 0,
    "inputs": [
@@ -2003,13 +2077,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    555
+    625
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 18,
    "mode": 0,
    "inputs": [],
@@ -2049,13 +2125,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    819
+    889
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 19,
    "mode": 0,
    "inputs": [],
@@ -2095,13 +2173,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    1083
+    1153
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 20,
    "mode": 0,
    "inputs": [],
@@ -2141,13 +2221,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    1347
+    1417
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 21,
    "mode": 0,
    "inputs": [],
@@ -2187,13 +2269,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    1611
+    1681
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 150,
    "mode": 0,
    "inputs": [
@@ -2249,13 +2333,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    1821
+    1891
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 204,
    "mode": 0,
    "inputs": [
@@ -2307,13 +2393,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    2112
+    2252
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 22,
    "mode": 0,
    "inputs": [],
@@ -2353,13 +2441,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    2376
+    2516
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 23,
    "mode": 0,
    "inputs": [],
@@ -2399,13 +2489,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    2640
+    2780
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 24,
    "mode": 0,
    "inputs": [],
@@ -2445,13 +2537,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    2904
+    3044
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 151,
    "mode": 0,
    "inputs": [
@@ -2507,13 +2601,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    3114
+    3254
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 205,
    "mode": 0,
    "inputs": [
@@ -2565,13 +2661,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    3405
+    3615
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 25,
    "mode": 0,
    "inputs": [],
@@ -2611,13 +2709,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    3669
+    3879
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 26,
    "mode": 0,
    "inputs": [],
@@ -2657,13 +2757,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    3933
+    4143
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 27,
    "mode": 0,
    "inputs": [],
@@ -2703,13 +2805,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    4197
+    4407
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 28,
    "mode": 0,
    "inputs": [],
@@ -2749,13 +2853,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    4461
+    4671
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 152,
    "mode": 0,
    "inputs": [
@@ -2811,13 +2917,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    4671
+    4881
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 206,
    "mode": 0,
    "inputs": [
@@ -2869,13 +2977,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    4962
+    5242
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 242,
    "mode": 0,
    "inputs": [
@@ -2931,13 +3041,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    5172
+    5452
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 263,
    "mode": 0,
    "inputs": [
@@ -2989,13 +3101,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    5463
+    5813
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 29,
    "mode": 0,
    "inputs": [],
@@ -3035,13 +3149,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    5727
+    6077
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 153,
    "mode": 0,
    "inputs": [
@@ -3093,13 +3209,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    6018
+    6438
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 30,
    "mode": 0,
    "inputs": [],
@@ -3139,13 +3257,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    6282
+    6702
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 31,
    "mode": 0,
    "inputs": [],
@@ -3185,13 +3305,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    6546
+    6966
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 32,
    "mode": 0,
    "inputs": [],
@@ -3231,13 +3353,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    6810
+    7230
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 33,
    "mode": 0,
    "inputs": [],
@@ -3277,13 +3401,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    7074
+    7494
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 34,
    "mode": 0,
    "inputs": [],
@@ -3323,13 +3449,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    7338
+    7758
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 154,
    "mode": 0,
    "inputs": [
@@ -3385,13 +3513,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    7548
+    7968
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 207,
    "mode": 0,
    "inputs": [
@@ -3443,13 +3573,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    7839
+    8329
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 35,
    "mode": 0,
    "inputs": [],
@@ -3489,13 +3621,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    8103
+    8593
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 155,
    "mode": 0,
    "inputs": [
@@ -3547,13 +3681,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    8394
+    8954
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 36,
    "mode": 0,
    "inputs": [],
@@ -3593,13 +3729,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    8658
+    9218
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 37,
    "mode": 0,
    "inputs": [],
@@ -3639,13 +3777,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    8922
+    9482
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 38,
    "mode": 0,
    "inputs": [],
@@ -3685,13 +3825,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    9186
+    9746
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 39,
    "mode": 0,
    "inputs": [],
@@ -3731,13 +3873,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    9450
+    10010
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 40,
    "mode": 0,
    "inputs": [],
@@ -3777,13 +3921,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    9714
+    10274
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 41,
    "mode": 0,
    "inputs": [],
@@ -3823,13 +3969,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    9978
+    10538
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 42,
    "mode": 0,
    "inputs": [],
@@ -3869,13 +4017,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    10242
+    10802
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 43,
    "mode": 0,
    "inputs": [],
@@ -3915,13 +4065,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    10506
+    11066
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 156,
    "mode": 0,
    "inputs": [
@@ -3977,13 +4129,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    10716
+    11276
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 208,
    "mode": 0,
    "inputs": [
@@ -4039,13 +4193,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    10926
+    11486
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 243,
    "mode": 0,
    "inputs": [
@@ -4097,13 +4253,15 @@
    "type": "PCG_Box",
    "pos": [
     760,
-    11217
+    11847
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 44,
    "mode": 0,
    "inputs": [],
@@ -4143,13 +4301,15 @@
    "type": "PCG_Add",
    "pos": [
     760,
-    11481
+    12111
    ],
    "size": [
     340,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 45,
    "mode": 0,
    "inputs": [
@@ -4197,13 +4357,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     760,
-    12035
+    12665
    ],
    "size": [
     340,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 157,
    "mode": 0,
    "inputs": [
@@ -4252,13 +4414,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    12454
+    13084
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 209,
    "mode": 0,
    "inputs": [
@@ -4310,13 +4474,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    12745
+    13445
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 264,
    "mode": 0,
    "inputs": [
@@ -4372,13 +4538,15 @@
    "type": "PCG_Merge",
    "pos": [
     760,
-    12955
+    13655
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 278,
    "mode": 0,
    "inputs": [
@@ -4434,13 +4602,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     760,
-    13165
+    13865
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 288,
    "mode": 0,
    "inputs": [
@@ -4498,7 +4668,9 @@
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 46,
    "mode": 0,
    "inputs": [],
@@ -4544,7 +4716,9 @@
     340,
     349
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 158,
    "mode": 0,
    "inputs": [
@@ -4600,9 +4774,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 210,
    "mode": 0,
    "inputs": [
@@ -4654,13 +4830,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    948
+    1018
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 47,
    "mode": 0,
    "inputs": [],
@@ -4700,13 +4878,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    1212
+    1282
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 159,
    "mode": 0,
    "inputs": [
@@ -4758,13 +4938,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    1503
+    1643
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 48,
    "mode": 0,
    "inputs": [],
@@ -4804,13 +4986,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    1767
+    1907
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 160,
    "mode": 0,
    "inputs": [
@@ -4862,13 +5046,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    2058
+    2268
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 49,
    "mode": 0,
    "inputs": [],
@@ -4908,13 +5094,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    2322
+    2532
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 50,
    "mode": 0,
    "inputs": [],
@@ -4954,13 +5142,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    2586
+    2796
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 51,
    "mode": 0,
    "inputs": [],
@@ -5000,13 +5190,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    2850
+    3060
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 52,
    "mode": 0,
    "inputs": [],
@@ -5046,13 +5238,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    3114
+    3324
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 53,
    "mode": 0,
    "inputs": [],
@@ -5092,13 +5286,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    3378
+    3588
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 54,
    "mode": 0,
    "inputs": [],
@@ -5138,13 +5334,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    3642
+    3852
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 55,
    "mode": 0,
    "inputs": [],
@@ -5184,13 +5382,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    3906
+    4116
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 161,
    "mode": 0,
    "inputs": [
@@ -5246,13 +5446,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    4116
+    4326
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 211,
    "mode": 0,
    "inputs": [
@@ -5308,13 +5510,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    4326
+    4536
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 244,
    "mode": 0,
    "inputs": [
@@ -5366,13 +5570,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    4617
+    4897
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 56,
    "mode": 0,
    "inputs": [],
@@ -5412,13 +5618,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    4881
+    5161
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 162,
    "mode": 0,
    "inputs": [
@@ -5470,13 +5678,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    5172
+    5522
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 57,
    "mode": 0,
    "inputs": [],
@@ -5516,13 +5726,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    5436
+    5786
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 163,
    "mode": 0,
    "inputs": [
@@ -5574,13 +5786,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    5727
+    6147
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 265,
    "mode": 0,
    "inputs": [
@@ -5636,13 +5850,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    5937
+    6357
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 279,
    "mode": 0,
    "inputs": [
@@ -5698,13 +5914,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    6147
+    6567
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 289,
    "mode": 0,
    "inputs": [
@@ -5756,13 +5974,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    6438
+    6928
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 58,
    "mode": 0,
    "inputs": [],
@@ -5802,13 +6022,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    6702
+    7192
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 59,
    "mode": 0,
    "inputs": [],
@@ -5848,13 +6070,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    6966
+    7456
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 60,
    "mode": 0,
    "inputs": [],
@@ -5894,13 +6118,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    7230
+    7720
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 164,
    "mode": 0,
    "inputs": [
@@ -5956,13 +6182,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    7440
+    7930
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 212,
    "mode": 0,
    "inputs": [
@@ -6014,13 +6242,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    7731
+    8291
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 245,
    "mode": 0,
    "inputs": [
@@ -6072,13 +6302,15 @@
    "type": "PCG_PolyBevel",
    "pos": [
     1140,
-    8022
+    8652
    ],
    "size": [
     340,
     474
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 165,
    "mode": 0,
    "inputs": [
@@ -6126,13 +6358,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    8540
+    9170
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 61,
    "mode": 0,
    "inputs": [],
@@ -6172,13 +6406,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    8804
+    9434
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 62,
    "mode": 0,
    "inputs": [],
@@ -6218,13 +6454,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    9068
+    9698
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 63,
    "mode": 0,
    "inputs": [],
@@ -6264,13 +6502,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    9332
+    9962
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 166,
    "mode": 0,
    "inputs": [
@@ -6326,13 +6566,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    9542
+    10172
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 213,
    "mode": 0,
    "inputs": [
@@ -6384,13 +6626,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    9833
+    10533
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 64,
    "mode": 0,
    "inputs": [],
@@ -6430,13 +6674,15 @@
    "type": "PCG_Add",
    "pos": [
     1140,
-    10097
+    10797
    ],
    "size": [
     340,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 65,
    "mode": 0,
    "inputs": [
@@ -6484,13 +6730,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     1140,
-    10651
+    11351
    ],
    "size": [
     340,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 167,
    "mode": 0,
    "inputs": [
@@ -6539,13 +6787,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    11070
+    11770
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 214,
    "mode": 0,
    "inputs": [
@@ -6597,13 +6847,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    11361
+    12131
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 215,
    "mode": 0,
    "inputs": [
@@ -6655,13 +6907,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    11652
+    12492
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 246,
    "mode": 0,
    "inputs": [
@@ -6717,13 +6971,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    11862
+    12702
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 266,
    "mode": 0,
    "inputs": [
@@ -6775,13 +7031,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    12153
+    13063
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 66,
    "mode": 0,
    "inputs": [],
@@ -6821,13 +7079,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    12417
+    13327
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 168,
    "mode": 0,
    "inputs": [
@@ -6879,13 +7139,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    12708
+    13688
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 216,
    "mode": 0,
    "inputs": [
@@ -6937,13 +7199,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    3383
+    3663
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 67,
    "mode": 0,
    "inputs": [],
@@ -6983,13 +7247,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    3647
+    3927
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 68,
    "mode": 0,
    "inputs": [],
@@ -7029,13 +7295,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    3911
+    4191
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 169,
    "mode": 0,
    "inputs": [
@@ -7091,13 +7359,15 @@
    "type": "PCG_Boolean",
    "pos": [
     0,
-    4121
+    4401
    ],
    "size": [
     340,
     349
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 217,
    "mode": 0,
    "inputs": [
@@ -7149,13 +7419,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    4514
+    4794
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 247,
    "mode": 0,
    "inputs": [
@@ -7207,13 +7479,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    4805
+    5155
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 69,
    "mode": 0,
    "inputs": [],
@@ -7253,13 +7527,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    5069
+    5419
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 70,
    "mode": 0,
    "inputs": [],
@@ -7299,13 +7575,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    5333
+    5683
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 170,
    "mode": 0,
    "inputs": [
@@ -7361,13 +7639,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    5543
+    5893
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 218,
    "mode": 0,
    "inputs": [
@@ -7419,13 +7699,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    5834
+    6254
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 71,
    "mode": 0,
    "inputs": [],
@@ -7465,13 +7747,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    6098
+    6518
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 72,
    "mode": 0,
    "inputs": [],
@@ -7511,13 +7795,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    6362
+    6782
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 73,
    "mode": 0,
    "inputs": [],
@@ -7557,13 +7843,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    6626
+    7046
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 74,
    "mode": 0,
    "inputs": [],
@@ -7603,13 +7891,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    6890
+    7310
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 75,
    "mode": 0,
    "inputs": [],
@@ -7649,13 +7939,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    7154
+    7574
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 171,
    "mode": 0,
    "inputs": [
@@ -7711,13 +8003,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    7364
+    7784
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 219,
    "mode": 0,
    "inputs": [
@@ -7769,13 +8063,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    7655
+    8145
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 76,
    "mode": 0,
    "inputs": [],
@@ -7815,13 +8111,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    7919
+    8409
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 77,
    "mode": 0,
    "inputs": [],
@@ -7861,13 +8159,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    8183
+    8673
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 78,
    "mode": 0,
    "inputs": [],
@@ -7907,13 +8207,15 @@
    "type": "PCG_Box",
    "pos": [
     0,
-    8447
+    8937
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 79,
    "mode": 0,
    "inputs": [],
@@ -7953,13 +8255,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    8711
+    9201
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 172,
    "mode": 0,
    "inputs": [
@@ -8015,13 +8319,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    8921
+    9411
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 220,
    "mode": 0,
    "inputs": [
@@ -8073,13 +8379,15 @@
    "type": "PCG_Merge",
    "pos": [
     0,
-    9212
+    9772
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 267,
    "mode": 0,
    "inputs": [
@@ -8135,13 +8443,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     0,
-    9422
+    9982
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 280,
    "mode": 0,
    "inputs": [
@@ -8193,13 +8503,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    12999
+    14049
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 80,
    "mode": 0,
    "inputs": [],
@@ -8239,13 +8551,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    13263
+    14313
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 81,
    "mode": 0,
    "inputs": [],
@@ -8285,13 +8599,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    13527
+    14577
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 173,
    "mode": 0,
    "inputs": [
@@ -8347,13 +8663,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    13737
+    14787
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 221,
    "mode": 0,
    "inputs": [
@@ -8405,13 +8723,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    14028
+    15148
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 82,
    "mode": 0,
    "inputs": [],
@@ -8451,13 +8771,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    14292
+    15412
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 83,
    "mode": 0,
    "inputs": [],
@@ -8497,13 +8819,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    14556
+    15676
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 84,
    "mode": 0,
    "inputs": [],
@@ -8543,13 +8867,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    14820
+    15940
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 174,
    "mode": 0,
    "inputs": [
@@ -8605,13 +8931,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    15030
+    16150
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 222,
    "mode": 0,
    "inputs": [
@@ -8663,13 +8991,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    15321
+    16511
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 248,
    "mode": 0,
    "inputs": [
@@ -8725,13 +9055,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    15531
+    16721
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 268,
    "mode": 0,
    "inputs": [
@@ -8783,13 +9115,15 @@
    "type": "PCG_Tube",
    "pos": [
     1140,
-    15822
+    17082
    ],
    "size": [
     340,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 85,
    "mode": 0,
    "inputs": [],
@@ -8829,13 +9163,15 @@
    "type": "PCG_Tube",
    "pos": [
     1140,
-    16170
+    17430
    ],
    "size": [
     340,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 86,
    "mode": 0,
    "inputs": [],
@@ -8875,13 +9211,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    16518
+    17778
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 175,
    "mode": 0,
    "inputs": [
@@ -8937,13 +9275,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    16728
+    17988
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 223,
    "mode": 0,
    "inputs": [
@@ -8995,13 +9335,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    17019
+    18349
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 87,
    "mode": 0,
    "inputs": [],
@@ -9041,13 +9383,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    17283
+    18613
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 88,
    "mode": 0,
    "inputs": [],
@@ -9087,13 +9431,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    17547
+    18877
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 89,
    "mode": 0,
    "inputs": [],
@@ -9133,13 +9479,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    17811
+    19141
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 90,
    "mode": 0,
    "inputs": [],
@@ -9179,13 +9527,15 @@
    "type": "PCG_Box",
    "pos": [
     1140,
-    18075
+    19405
    ],
    "size": [
     340,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 91,
    "mode": 0,
    "inputs": [],
@@ -9225,13 +9575,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    18339
+    19669
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 176,
    "mode": 0,
    "inputs": [
@@ -9287,13 +9639,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    18549
+    19879
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 224,
    "mode": 0,
    "inputs": [
@@ -9345,13 +9699,15 @@
    "type": "PCG_Merge",
    "pos": [
     1140,
-    18840
+    20240
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 249,
    "mode": 0,
    "inputs": [
@@ -9407,13 +9763,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1140,
-    19050
+    20450
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 269,
    "mode": 0,
    "inputs": [
@@ -9471,7 +9829,9 @@
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 296,
    "mode": 0,
    "inputs": [
@@ -9533,7 +9893,9 @@
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 301,
    "mode": 0,
    "inputs": [
@@ -9595,7 +9957,9 @@
     340,
     350
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 305,
    "mode": 0,
    "inputs": [
@@ -9664,9 +10028,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 309,
    "mode": 0,
    "inputs": [
@@ -9720,13 +10086,15 @@
    "type": "PCG_ExportMesh",
    "pos": [
     1560,
-    1105
+    1175
    ],
    "size": [
     340,
     497
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 313,
    "mode": 0,
    "inputs": [
@@ -9773,7 +10141,9 @@
     340,
     245
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 92,
    "mode": 0,
    "inputs": [],
@@ -9815,9 +10185,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 177,
    "mode": 0,
    "inputs": [
@@ -9869,13 +10241,15 @@
    "type": "PCG_Blast",
    "pos": [
     1940,
-    580
+    650
    ],
    "size": [
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 225,
    "mode": 0,
    "inputs": [
@@ -9911,13 +10285,15 @@
    "type": "PCG_Divide",
    "pos": [
     1940,
-    760
+    830
    ],
    "size": [
     340,
     262
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 250,
    "mode": 0,
    "inputs": [
@@ -9970,13 +10346,15 @@
    "type": "PCG_PolyExtrude",
    "pos": [
     1940,
-    1066
+    1136
    ],
    "size": [
     340,
     402
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 270,
    "mode": 0,
    "inputs": [
@@ -10053,13 +10431,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     1940,
-    1512
+    1582
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 281,
    "mode": 0,
    "inputs": [
@@ -10111,13 +10491,15 @@
    "type": "PCG_Blast",
    "pos": [
     1940,
-    1803
+    1943
    ],
    "size": [
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 290,
    "mode": 0,
    "inputs": [
@@ -10153,13 +10535,15 @@
    "type": "PCG_Normal",
    "pos": [
     1940,
-    1983
+    2123
    ],
    "size": [
     340,
     279
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 297,
    "mode": 0,
    "inputs": [
@@ -10207,7 +10591,9 @@
     340,
     255
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 302,
    "mode": 0,
    "inputs": [
@@ -10254,9 +10640,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 306,
    "mode": 0,
    "inputs": [
@@ -10309,13 +10697,15 @@
    "type": "PCG_Blast",
    "pos": [
     2320,
-    590
+    660
    ],
    "size": [
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 310,
    "mode": 0,
    "inputs": [
@@ -10350,13 +10740,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     2320,
-    770
+    840
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 314,
    "mode": 0,
    "inputs": [
@@ -10408,13 +10800,15 @@
    "type": "PCG_GroupCreate",
    "pos": [
     2320,
-    1061
+    1201
    ],
    "size": [
     340,
     244
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 298,
    "mode": 0,
    "inputs": [
@@ -10473,13 +10867,15 @@
    "type": "PCG_AttribPromote",
    "pos": [
     2320,
-    1349
+    1489
    ],
    "size": [
     340,
     236
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 303,
    "mode": 0,
    "inputs": [
@@ -10526,7 +10922,9 @@
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 307,
    "mode": 0,
    "inputs": [
@@ -10567,7 +10965,9 @@
     340,
     195
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 311,
    "mode": 0,
    "inputs": [
@@ -10621,7 +11021,9 @@
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 315,
    "mode": 0,
    "inputs": [
@@ -10660,9 +11062,11 @@
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 317,
    "mode": 0,
    "inputs": [
@@ -10714,13 +11118,15 @@
    "type": "PCG_ExtractCentroid",
    "pos": [
     2700,
-    890
+    960
    ],
    "size": [
     340,
     255
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 251,
    "mode": 0,
    "inputs": [
@@ -10763,13 +11169,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     2700,
-    1189
+    1259
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 271,
    "mode": 0,
    "inputs": [
@@ -10822,13 +11230,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     2700,
-    1480
+    1620
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 282,
    "mode": 0,
    "inputs": [
@@ -10880,13 +11290,15 @@
    "type": "PCG_Blast",
    "pos": [
     2700,
-    1771
+    1981
    ],
    "size": [
     340,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 291,
    "mode": 0,
    "inputs": [
@@ -10921,13 +11333,15 @@
    "type": "PCG_Merge",
    "pos": [
     2700,
-    1951
+    2161
    ],
    "size": [
     340,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 319,
    "mode": 0,
    "inputs": [
@@ -10984,13 +11398,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     2700,
-    2161
+    2371
    ],
    "size": [
     340,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 321,
    "mode": 0,
    "inputs": [
@@ -11042,13 +11458,15 @@
    "type": "PCG_ExportInstances",
    "pos": [
     2700,
-    2452
+    2732
    ],
    "size": [
     340,
     279
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 323,
    "mode": 0,
    "inputs": [
@@ -11092,7 +11510,9 @@
     520,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 322,
    "mode": 0,
    "inputs": [
@@ -11145,9 +11565,11 @@
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 324,
    "mode": 0,
    "inputs": [
@@ -11200,13 +11622,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    710
+    780
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 93,
    "mode": 0,
    "inputs": [],
@@ -11246,13 +11670,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    974
+    1044
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 94,
    "mode": 0,
    "inputs": [],
@@ -11292,13 +11718,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    1238
+    1308
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 178,
    "mode": 0,
    "inputs": [
@@ -11354,13 +11782,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    1448
+    1518
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 226,
    "mode": 0,
    "inputs": [
@@ -11412,13 +11842,15 @@
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    1739
+    1879
    ],
    "size": [
     520,
     350
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 252,
    "mode": 0,
    "inputs": [
@@ -11483,13 +11915,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    2133
+    2273
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 95,
    "mode": 0,
    "inputs": [],
@@ -11529,13 +11963,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    2397
+    2537
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 96,
    "mode": 0,
    "inputs": [],
@@ -11575,13 +12011,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    2661
+    2801
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 97,
    "mode": 0,
    "inputs": [],
@@ -11621,13 +12059,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    2925
+    3065
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 98,
    "mode": 0,
    "inputs": [],
@@ -11667,13 +12107,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    3189
+    3329
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 179,
    "mode": 0,
    "inputs": [
@@ -11729,13 +12171,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    3399
+    3539
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 227,
    "mode": 0,
    "inputs": [
@@ -11787,13 +12231,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    3690
+    3900
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 99,
    "mode": 0,
    "inputs": [],
@@ -11833,13 +12279,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    3954
+    4164
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 100,
    "mode": 0,
    "inputs": [],
@@ -11879,13 +12327,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    4218
+    4428
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 101,
    "mode": 0,
    "inputs": [],
@@ -11925,13 +12375,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    4482
+    4692
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 102,
    "mode": 0,
    "inputs": [],
@@ -11971,13 +12423,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    4746
+    4956
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 103,
    "mode": 0,
    "inputs": [],
@@ -12017,13 +12471,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    5010
+    5220
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 104,
    "mode": 0,
    "inputs": [],
@@ -12063,13 +12519,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    5274
+    5484
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 105,
    "mode": 0,
    "inputs": [],
@@ -12109,13 +12567,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    5538
+    5748
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 106,
    "mode": 0,
    "inputs": [],
@@ -12155,13 +12615,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    5802
+    6012
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 180,
    "mode": 0,
    "inputs": [
@@ -12217,13 +12679,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    6012
+    6222
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 228,
    "mode": 0,
    "inputs": [
@@ -12279,13 +12743,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    6222
+    6432
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 253,
    "mode": 0,
    "inputs": [
@@ -12337,13 +12803,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    6513
+    6793
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 107,
    "mode": 0,
    "inputs": [],
@@ -12383,13 +12851,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    6777
+    7057
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 181,
    "mode": 0,
    "inputs": [
@@ -12441,13 +12911,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    7068
+    7418
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 272,
    "mode": 0,
    "inputs": [
@@ -12503,13 +12975,15 @@
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    7278
+    7628
    ],
    "size": [
     520,
     350
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 283,
    "mode": 0,
    "inputs": [
@@ -12574,13 +13048,15 @@
    "type": "PCG_Color",
    "pos": [
     3080,
-    7672
+    8022
    ],
    "size": [
     520,
     195
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 292,
    "mode": 0,
    "inputs": [
@@ -12632,13 +13108,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    7911
+    8261
    ],
    "size": [
     520,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 108,
    "mode": 0,
    "inputs": [
@@ -12686,13 +13164,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    8465
+    8815
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 182,
    "mode": 0,
    "inputs": [
@@ -12744,13 +13224,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    8756
+    9176
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 109,
    "mode": 0,
    "inputs": [],
@@ -12790,13 +13272,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    9020
+    9440
    ],
    "size": [
     520,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 229,
    "mode": 0,
    "inputs": [
@@ -12845,13 +13329,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    9439
+    9859
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 254,
    "mode": 0,
    "inputs": [
@@ -12903,13 +13389,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    9730
+    10220
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 110,
    "mode": 0,
    "inputs": [],
@@ -12949,13 +13437,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    9994
+    10484
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 111,
    "mode": 0,
    "inputs": [],
@@ -12995,13 +13485,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    10258
+    10748
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 112,
    "mode": 0,
    "inputs": [],
@@ -13041,13 +13533,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    10522
+    11012
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 113,
    "mode": 0,
    "inputs": [],
@@ -13087,13 +13581,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    10786
+    11276
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 183,
    "mode": 0,
    "inputs": [
@@ -13149,13 +13645,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    10996
+    11486
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 230,
    "mode": 0,
    "inputs": [
@@ -13207,13 +13705,15 @@
    "type": "PCG_Tube",
    "pos": [
     3080,
-    11287
+    11847
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 114,
    "mode": 0,
    "inputs": [],
@@ -13253,13 +13753,15 @@
    "type": "PCG_MatchSize",
    "pos": [
     3080,
-    11635
+    12195
    ],
    "size": [
     520,
     390
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 184,
    "mode": 0,
    "inputs": [
@@ -13322,13 +13824,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    12069
+    12629
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 115,
    "mode": 0,
    "inputs": [],
@@ -13368,13 +13872,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    12333
+    12893
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 116,
    "mode": 0,
    "inputs": [],
@@ -13414,13 +13920,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    12597
+    13157
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 185,
    "mode": 0,
    "inputs": [
@@ -13476,13 +13984,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    12807
+    13367
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 231,
    "mode": 0,
    "inputs": [
@@ -13534,13 +14044,15 @@
    "type": "PCG_Transform",
    "pos": [
     3080,
-    13098
+    13728
    ],
    "size": [
     520,
     363
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 255,
    "mode": 0,
    "inputs": [
@@ -13595,13 +14107,15 @@
    "type": "PCG_Color",
    "pos": [
     3080,
-    13505
+    14135
    ],
    "size": [
     520,
     195
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 284,
    "mode": 0,
    "inputs": [
@@ -13653,13 +14167,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    13744
+    14374
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 273,
    "mode": 0,
    "inputs": [
@@ -13715,13 +14231,15 @@
    "type": "PCG_Sphere",
    "pos": [
     3080,
-    13954
+    14584
    ],
    "size": [
     520,
     270
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 117,
    "mode": 0,
    "inputs": [],
@@ -13762,13 +14280,15 @@
    "type": "PCG_Normal",
    "pos": [
     3080,
-    14268
+    14898
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 186,
    "mode": 0,
    "inputs": [
@@ -13810,13 +14330,15 @@
    "type": "PCG_AttribNoise",
    "pos": [
     3080,
-    14616
+    15246
    ],
    "size": [
     520,
     1098
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 232,
    "mode": 0,
    "inputs": [
@@ -13907,13 +14429,15 @@
    "type": "PCG_Normal",
    "pos": [
     3080,
-    15758
+    16388
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 256,
    "mode": 0,
    "inputs": [
@@ -13955,13 +14479,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    16106
+    16736
    ],
    "size": [
     520,
     435
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 118,
    "mode": 0,
    "inputs": [
@@ -14009,13 +14535,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    16585
+    17215
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 187,
    "mode": 0,
    "inputs": [
@@ -14067,13 +14595,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    16876
+    17576
    ],
    "size": [
     520,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 274,
    "mode": 0,
    "inputs": [
@@ -14122,13 +14652,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    17295
+    17995
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 285,
    "mode": 0,
    "inputs": [
@@ -14180,13 +14712,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    17586
+    18356
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 293,
    "mode": 0,
    "inputs": [
@@ -14242,13 +14776,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    17796
+    18566
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 299,
    "mode": 0,
    "inputs": [
@@ -14300,13 +14836,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    18087
+    18927
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 188,
    "mode": 0,
    "inputs": [
@@ -14358,13 +14896,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    18378
+    19288
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 119,
    "mode": 0,
    "inputs": [],
@@ -14404,13 +14944,15 @@
    "type": "PCG_PolyBevel",
    "pos": [
     3080,
-    18642
+    19552
    ],
    "size": [
     520,
     474
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 233,
    "mode": 0,
    "inputs": [
@@ -14458,13 +15000,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    19160
+    20070
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 189,
    "mode": 0,
    "inputs": [
@@ -14516,13 +15060,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    19451
+    20431
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 120,
    "mode": 0,
    "inputs": [],
@@ -14562,13 +15108,15 @@
    "type": "PCG_PolyBevel",
    "pos": [
     3080,
-    19715
+    20695
    ],
    "size": [
     520,
     474
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 234,
    "mode": 0,
    "inputs": [
@@ -14616,13 +15164,15 @@
    "type": "PCG_Normal",
    "pos": [
     3080,
-    20233
+    21213
    ],
    "size": [
     520,
     279
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 257,
    "mode": 0,
    "inputs": [
@@ -14664,13 +15214,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    20556
+    21536
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 258,
    "mode": 0,
    "inputs": [
@@ -14722,13 +15274,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    20847
+    21897
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 275,
    "mode": 0,
    "inputs": [
@@ -14780,13 +15334,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    21138
+    22258
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 235,
    "mode": 0,
    "inputs": [
@@ -14838,13 +15394,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    21429
+    22619
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 121,
    "mode": 0,
    "inputs": [],
@@ -14884,13 +15442,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    21693
+    22883
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 122,
    "mode": 0,
    "inputs": [],
@@ -14930,13 +15490,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    21957
+    23147
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 123,
    "mode": 0,
    "inputs": [],
@@ -14976,13 +15538,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    22221
+    23411
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 124,
    "mode": 0,
    "inputs": [],
@@ -15022,13 +15586,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    22485
+    23675
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 190,
    "mode": 0,
    "inputs": [
@@ -15084,13 +15650,15 @@
    "type": "PCG_Tube",
    "pos": [
     3080,
-    22695
+    23885
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 125,
    "mode": 0,
    "inputs": [],
@@ -15130,13 +15698,15 @@
    "type": "PCG_Tube",
    "pos": [
     3080,
-    23043
+    24233
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 126,
    "mode": 0,
    "inputs": [],
@@ -15176,13 +15746,15 @@
    "type": "PCG_Tube",
    "pos": [
     3080,
-    23391
+    24581
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 127,
    "mode": 0,
    "inputs": [],
@@ -15222,13 +15794,15 @@
    "type": "PCG_Tube",
    "pos": [
     3080,
-    23739
+    24929
    ],
    "size": [
     520,
     304
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 128,
    "mode": 0,
    "inputs": [],
@@ -15268,13 +15842,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    24087
+    25277
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 236,
    "mode": 0,
    "inputs": [
@@ -15326,13 +15902,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    24378
+    25638
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 191,
    "mode": 0,
    "inputs": [
@@ -15388,13 +15966,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    24588
+    25848
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 286,
    "mode": 0,
    "inputs": [
@@ -15450,13 +16030,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    24798
+    26058
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 294,
    "mode": 0,
    "inputs": [
@@ -15508,13 +16090,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    25089
+    26419
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 304,
    "mode": 0,
    "inputs": [
@@ -15570,13 +16154,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    25299
+    26629
    ],
    "size": [
     520,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 129,
    "mode": 0,
    "inputs": [
@@ -15624,13 +16210,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    25853
+    27183
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 192,
    "mode": 0,
    "inputs": [
@@ -15682,13 +16270,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    26144
+    27544
    ],
    "size": [
     520,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 130,
    "mode": 0,
    "inputs": [
@@ -15736,13 +16326,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    26698
+    28098
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 193,
    "mode": 0,
    "inputs": [
@@ -15794,13 +16386,15 @@
    "type": "PCG_Blast",
    "pos": [
     3080,
-    26989
+    28459
    ],
    "size": [
     520,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 237,
    "mode": 0,
    "inputs": [
@@ -15835,13 +16429,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    27169
+    28639
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 131,
    "mode": 0,
    "inputs": [],
@@ -15881,13 +16477,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    27433
+    28903
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 132,
    "mode": 0,
    "inputs": [],
@@ -15927,13 +16525,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    27697
+    29167
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 133,
    "mode": 0,
    "inputs": [],
@@ -15973,13 +16573,15 @@
    "type": "PCG_Box",
    "pos": [
     3080,
-    27961
+    29431
    ],
    "size": [
     520,
     220
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 134,
    "mode": 0,
    "inputs": [],
@@ -16019,13 +16621,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    28225
+    29695
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 194,
    "mode": 0,
    "inputs": [
@@ -16081,13 +16685,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    28435
+    29905
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 238,
    "mode": 0,
    "inputs": [
@@ -16139,13 +16745,15 @@
    "type": "PCG_Color",
    "pos": [
     3080,
-    28726
+    30266
    ],
    "size": [
     520,
     195
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 259,
    "mode": 0,
    "inputs": [
@@ -16197,13 +16805,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    28965
+    30505
    ],
    "size": [
     520,
     510
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 135,
    "mode": 0,
    "inputs": [
@@ -16251,13 +16861,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    29519
+    31059
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 195,
    "mode": 0,
    "inputs": [
@@ -16309,13 +16921,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    29810
+    31420
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 260,
    "mode": 0,
    "inputs": [
@@ -16371,13 +16985,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    30020
+    31630
    ],
    "size": [
     520,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 308,
    "mode": 0,
    "inputs": [
@@ -16426,13 +17042,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    30439
+    32049
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 312,
    "mode": 0,
    "inputs": [
@@ -16484,13 +17102,15 @@
    "type": "PCG_Grid",
    "pos": [
     3080,
-    30730
+    32410
    ],
    "size": [
     520,
     245
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 136,
    "mode": 0,
    "inputs": [],
@@ -16528,13 +17148,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    31019
+    32699
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 196,
    "mode": 0,
    "inputs": [
@@ -16586,13 +17208,15 @@
    "type": "PCG_Blast",
    "pos": [
     3080,
-    31310
+    33060
    ],
    "size": [
     520,
     136
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 239,
    "mode": 0,
    "inputs": [
@@ -16627,13 +17251,15 @@
    "type": "PCG_Primitive",
    "pos": [
     3080,
-    31490
+    33240
    ],
    "size": [
     520,
     549
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 261,
    "mode": 0,
    "inputs": [
@@ -16697,13 +17323,15 @@
    "type": "PCG_PolyExtrude",
    "pos": [
     3080,
-    32083
+    33833
    ],
    "size": [
     520,
     378
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 276,
    "mode": 0,
    "inputs": [
@@ -16780,13 +17408,15 @@
    "type": "PCG_Normal",
    "pos": [
     3080,
-    32505
+    34255
    ],
    "size": [
     520,
     279
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 287,
    "mode": 0,
    "inputs": [
@@ -16828,13 +17458,15 @@
    "type": "PCG_UVProject",
    "pos": [
     3080,
-    32828
+    34578
    ],
    "size": [
     520,
     350
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 295,
    "mode": 0,
    "inputs": [
@@ -16899,13 +17531,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    33222
+    34972
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 300,
    "mode": 0,
    "inputs": [
@@ -16957,13 +17591,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    33513
+    35333
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 325,
    "mode": 0,
    "inputs": [
@@ -17019,13 +17655,15 @@
    "type": "PCG_Merge",
    "pos": [
     3080,
-    33723
+    35543
    ],
    "size": [
     520,
     166
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 327,
    "mode": 0,
    "inputs": [
@@ -17082,7 +17720,7 @@
    "type": "PCG_Viewport",
    "pos": [
     3080,
-    33933
+    35753
    ],
    "size": [
     520,
@@ -17121,18 +17759,25 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    34497
+    36317
    ],
    "size": [
     520,
     250
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 137,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "ground",
      "type": "GEOMETRY",
      "link": null
     }
@@ -17177,6 +17822,7 @@
     1.0,
     0.0,
     0.01,
+    0.0,
     0.0
    ],
    "title": "Camera: low aerial over the crossing"
@@ -17186,13 +17832,15 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    34791
+    36611
    ],
    "size": [
     520,
     1048
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 328,
    "mode": 0,
    "inputs": [
@@ -17297,7 +17945,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    35883
+    37703
    ],
    "size": [
     520,
@@ -17325,18 +17973,25 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    36327
+    38147
    ],
    "size": [
     520,
     250
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 138,
    "mode": 0,
    "inputs": [
     {
      "name": "geo",
+     "type": "GEOMETRY",
+     "link": null
+    },
+    {
+     "name": "ground",
      "type": "GEOMETRY",
      "link": null
     }
@@ -17381,6 +18036,7 @@
     1.0,
     0.0,
     0.01,
+    0.0,
     0.0
    ],
    "title": "Camera: eye level in the street"
@@ -17390,13 +18046,15 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    36621
+    38441
    ],
    "size": [
     520,
     1048
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 329,
    "mode": 0,
    "inputs": [
@@ -17501,7 +18159,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    37713
+    39533
    ],
    "size": [
     520,
@@ -17529,13 +18187,15 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    38157
+    39977
    ],
    "size": [
     520,
     330
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 139,
    "mode": 0,
    "inputs": [
@@ -17583,13 +18243,15 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    38531
+    40351
    ],
    "size": [
     520,
-    247
+    317
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 197,
    "mode": 0,
    "inputs": [
@@ -17641,13 +18303,15 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    38822
+    40712
    ],
    "size": [
     520,
     375
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 316,
    "mode": 0,
    "inputs": [
@@ -17696,13 +18360,15 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    39241
+    41131
    ],
    "size": [
     520,
     508
    ],
-   "flags": {},
+   "flags": {
+    "collapsed": true
+   },
    "order": 318,
    "mode": 0,
    "inputs": [
@@ -17807,7 +18473,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    39793
+    41683
    ],
    "size": [
     520,

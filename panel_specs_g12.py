@@ -1237,6 +1237,9 @@ SPECS = {
             "eye_x": {"folder": "Transform", "section": None,
                       "hide": "{ mode != look_at }"},
             "up_x": {"folder": "Transform", "section": None, "sep": True},
+            "eye_above_ground": {"folder": "Transform", "label": "Eye Above Ground",
+                                 "hide": "{ mode != look_at }",
+                                 "help": "With ground wired: the eye this high over the ground under it (0 = Eye Y as typed)"},
         },
     },
 

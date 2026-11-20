@@ -22,7 +22,9 @@ ComfyUI's AI nodes live in the same graph.
 | [Groups](concepts/groups.md) | The group pattern syntax accepted by every *Group* field. |
 | [Expressions](concepts/expressions.md) | Expression nodes, expressions in parameter fields, `ch()`, frame variables, keyframe channels. |
 | [Wrangle syntax](concepts/wrangle.md) | The Wrangle language: attributes and type prefixes, `@group_`, operators, functions, Volume and COP Wrangle, VEX equivalents. |
-| [Parameters and panels](concepts/parameters.md) | The Houdini-style panel, ramps, references between parameters, the Parameters (PCG) controller. |
+| [Parameters and panels](concepts/parameters.md) | The Houdini-style panel, ramps, references between parameters, the Parameters (PCG) controller, multiparms, presets. |
+| [Digital assets](concepts/assets.md) | Subgraphs as HDAs: the asset's parameter interface, the library, paths across the asset's boundary. |
+| [Network feedback](concepts/network.md) | Cook times and error badges on the nodes, middle-button node info, the performance pane. |
 | [Loops and time](concepts/loops-and-time.md) | For-Each loops, frame loops, the playbar, trails. |
 | [Images (COP)](concepts/images.md) | COP images, layers and channels, devices, converting to and from ComfyUI images and geometry. |
 | [Viewing and export](concepts/viewing-and-export.md) | Preview images, the 3D viewport, cameras, exporting meshes, instances and images. |

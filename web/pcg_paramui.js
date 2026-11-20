@@ -44,8 +44,14 @@ const numStr = (x) => String(Number.isFinite(Number(x)) ? Number(x) : 0);
 export function parseItems(text) {
   const lines = String(text || "").split(/\r\n|\r|\n/);
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  let inBlock = false;                   // a multiparm block (multi ... end) is kept as written
   return lines.map((raw) => {
     const line = raw.trim();
+    if (/^multi\s/.test(line)) { inBlock = true; return { kind: "raw", text: line }; }
+    if (inBlock) {
+      if (line === "end") inBlock = false;
+      return { kind: "raw", text: raw.replace(/\s+$/, "") };
+    }
     if (!line || line.startsWith("#") || line.startsWith("//")) return { kind: "raw", text: line };
     let s;
     try { s = parse(line)[0]; } catch (e) { return { kind: "raw", text: line, error: lineErr(e) }; }

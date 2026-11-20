@@ -33,6 +33,22 @@ def _rel(path, root):
     return os.path.relpath(path, root).replace(os.sep, "/")
 
 
+def _key(path):
+    """One spelling per file: on Windows os.walk gives back-slashed paths while the sidecars' relative paths are joined
+    on with forward slashes ("...\\output\\pcg/world/height/Height.json"); as dict keys the two never met."""
+    return os.path.normcase(os.path.normpath(path))
+
+
+class _PathSet(set):
+    """A set of files that compares them by _key."""
+
+    def add(self, p):
+        super().add(_key(p))
+
+    def __contains__(self, p):
+        return super().__contains__(_key(p))
+
+
 def _glb_json(path):
     with open(path, "rb") as f:
         head = f.read(20)
@@ -177,7 +193,7 @@ def build_manifest(root, folder, world_size=4096.0, tile_size=1024.0, origin="no
             if dp == base and f == "World.json":
                 continue
             files.append(os.path.join(dp, f))
-    used = set()
+    used = _PathSet()
     tiles = {(i, j): {"tile": [i, j], "terrain": {}, "instances": {"count": 0, "assets": {}, "files": []},
                       "buildings": [], "roads": {}, "water": [], "assets": [], "bounds": None}
              for i in range(nt[0]) for j in range(nt[1])}
@@ -221,7 +237,7 @@ def build_manifest(root, folder, world_size=4096.0, tile_size=1024.0, origin="no
             continue
         if not isinstance(side, dict) or "files" not in side or "channels" not in side:
             continue
-        sidecars[p] = side
+        sidecars[_key(p)] = side
         used.add(p)
         name = os.path.splitext(_rel(p, base))[0]
         ent = {"sidecar": file_ref(p), "role": role(p), "channels": side.get("channels"),
@@ -251,7 +267,7 @@ def build_manifest(root, folder, world_size=4096.0, tile_size=1024.0, origin="no
             "shared_edge": h["shared_edge"],
             "decode": "metres = range_metres[0] + pixel / (2^bits - 1) * (range_metres[1] - range_metres[0])",
         }
-        side = sidecars[os.path.join(root, h["sidecar"])]
+        side = sidecars[_key(os.path.join(root, h["sidecar"]))]
         for fe in h["files"]:
             t = tiles.get((int(fe.get("tx", 0)), int(fe.get("ty", 0))))
             if t is None:

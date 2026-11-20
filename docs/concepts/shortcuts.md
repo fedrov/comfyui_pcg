@@ -17,9 +17,12 @@ Every shortcut and mouse action the plugin adds, in one place. ComfyUI's own sho
 | Press and drag the **last third** of a wire | Move its input end to another input; dropped on empty canvas it disconnects. |
 | Press and drag the **first third** of a wire | Pull a new wire from the same input to choose another output. |
 | **Shift** while dragging a node | Do not snap to wires and neighbours. |
-| Drop a wire on a **panel cell** | Connect it to that parameter. |
+| Drag a wire to a node, drop it on a line of the **list** under the node | Connect that parameter (docked pane). |
+| Drop a wire on a **panel cell** | Connect it to that parameter (panel on the node). |
 | Click the **blue** square above a node | Show the node in the floating 3D panel (display flag). Again: clear it. |
 | Click the **grey** square, or right-click / Ctrl+click the blue one | Use the node as the template (grey wireframe). |
+| **Middle button** pressed on a node (no drag) | Its info: cook time, counts, attributes, groups, layers, warnings, error. Esc or a click closes it. See [Network feedback](network.md). |
+| **Ctrl+click** a node (⌘+click) | Quick edit: its parameter panel next to it, without selecting it. Esc closes it. |
 | Click a COP node's **thumbnail** | Next layer (when there are several), otherwise the next display mode. |
 | **Shift+click** a COP thumbnail | Next display mode: auto, clamp, signed, normalize. |
 | Hover a COP thumbnail | Show the pixel value under the pointer. |
@@ -28,8 +31,15 @@ Wire style, snapping and the other canvas behaviour are described on [Wires](wir
 
 ## Parameter panel
 
+The panel is in the docked pane (the selected node's) or on each node, depending on the PCG setting *Parameters of PCG nodes*.
+
 | Input | Action |
 |---|---|
+| Select a node | Show its parameters in the docked pane. |
+| 📌 in the pane's title bar | Pin the pane to its node; selecting other nodes leaves it. |
+| ☰ in the pane's title bar | Presets of the node: load, save, delete, Revert to Defaults. |
+| ⟳ in the pane's title bar (an asset) | Update every instance of the asset from the library. |
+| Drag the pane's title bar / bottom-left corner | Move / resize the pane. ✕ hides it; the *Parameters* tab on the right edge of the window shows it again. |
 | Type a number, Enter | Set the value (replaces any expression, reference or keys). |
 | Type a formula, Enter | Store it as an [expression](expressions.md#parameter-expressions) (the field turns cyan). |
 | Esc | Abandon the edit. |

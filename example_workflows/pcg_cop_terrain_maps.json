@@ -35,7 +35,7 @@
    ],
    "size": [
     360,
-    1338
+    1378
    ],
    "flags": {},
    "order": 1,
@@ -97,11 +97,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     0,
-    1986
+    2026
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 2,
@@ -144,7 +144,7 @@
    ],
    "size": [
     360,
-    969
+    1009
    ],
    "flags": {},
    "order": 3,
@@ -200,11 +200,11 @@
    "type": "PCG_COPStrata",
    "pos": [
     420,
-    1013
+    1053
    ],
    "size": [
     360,
-    787
+    827
    ],
    "flags": {},
    "order": 4,
@@ -251,11 +251,11 @@
    "type": "PCG_COPThermalErosion",
    "pos": [
     420,
-    1844
+    1924
    ],
    "size": [
     360,
-    862
+    902
    ],
    "flags": {},
    "order": 5,
@@ -313,7 +313,7 @@
    ],
    "size": [
     360,
-    1010
+    1050
    ],
    "flags": {},
    "order": 6,
@@ -379,11 +379,11 @@
    "type": "PCG_COPResize",
    "pos": [
     840,
-    1054
+    1094
    ],
    "size": [
     360,
-    510
+    550
    ],
    "flags": {},
    "order": 7,
@@ -421,11 +421,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    1608
+    1688
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 8,
@@ -464,11 +464,11 @@
    "type": "PCG_COPFlowAccumulation",
    "pos": [
     840,
-    2203
+    2393
    ],
    "size": [
     360,
-    935
+    975
    ],
    "flags": {},
    "order": 9,
@@ -525,11 +525,11 @@
    "type": "PCG_COPSplatMap",
    "pos": [
     840,
-    3182
+    3412
    ],
    "size": [
     360,
-    1079
+    1119
    ],
    "flags": {},
    "order": 10,
@@ -592,7 +592,7 @@
    ],
    "size": [
     360,
-    654
+    694
    ],
    "flags": {},
    "order": 11,
@@ -632,11 +632,11 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     1260,
-    698
+    738
    ],
    "size": [
     360,
-    764
+    804
    ],
    "flags": {},
    "order": 12,
@@ -679,11 +679,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     1260,
-    1506
+    1586
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 13,
@@ -722,11 +722,11 @@
    "type": "PCG_COPLight",
    "pos": [
     1260,
-    2101
+    2291
    ],
    "size": [
     360,
-    899
+    939
    ],
    "flags": {},
    "order": 14,
@@ -777,11 +777,11 @@
    "type": "PCG_COPVisualize",
    "pos": [
     1260,
-    3044
+    3274
    ],
    "size": [
     360,
-    669
+    709
    ],
    "flags": {},
    "order": 15,

@@ -18,7 +18,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-E2E = ("test_panel_e2e.py", "test_wires_e2e.py")
+E2E = ("test_panel_e2e.py", "test_dock_e2e.py", "test_cook_e2e.py", "test_hda_e2e.py", "test_wires_e2e.py")
 HEAVY = ("test_prod_workflows.py",)
 # test_panel.py writes panel_fixture.json, which test_panel.mjs reads, so Python runs first.
 

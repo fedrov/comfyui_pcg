@@ -127,6 +127,20 @@ def frame_distance(radius, fov_deg, margin=1.15):
     return float(radius * float(margin) / max(np.sin(half), 1e-6))
 
 
+def ground_height(geo, x, z):
+    """The highest surface of geo straight above / below (x, z) (a ray down from above it), or None if none is there."""
+    from .spatial import ray_cast, tri_soup
+    if geo is None or geo.npoints == 0 or geo.nprims == 0:
+        return None
+    tri, _, _ = tri_soup(geo)
+    if not len(tri):
+        return None
+    P = np.asarray(geo.get(POINT, "P"), np.float64)
+    top = float(P[:, 1].max()) + 1.0
+    hit, t, _ = ray_cast(np.array([[float(x), top, float(z)]]), np.array([[0.0, -1.0, 0.0]]), P, tri)
+    return None if hit[0] < 0 else top - float(t[0])
+
+
 def camera(geo=None, projection="perspective", eye=(0.0, 0.0, 5.0),
            target=(0.0, 0.0, 0.0), up=(0.0, 1.0, 0.0), fov=45.0,
            ortho_size=2.0, xres=512, yres=512, near=0.01, far=0.0,
@@ -337,10 +351,12 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
 class _TorchRaster:
     """_raster_batch on torch: the frame buffers stay on the device across the batches."""
 
+    FLOAT32 = False          # tests: the GPU's float32 on the CPU
+
     def __init__(self, device, cam, rast, sx, sy, z, W, H):
         import torch
         self.t, self.dev = torch, device
-        self.fd = torch.float64 if torch.device(device).type == "cpu" else torch.float32
+        self.fd = torch.float64 if torch.device(device).type == "cpu" and not self.FLOAT32 else torch.float32
         tri, rsrc, lam, nplain, alpha, outd = rast
         T = lambda a, dt=None: torch.from_numpy(np.ascontiguousarray(a)).to(device, dt)  # noqa: E731
         self.T = T
@@ -355,6 +371,41 @@ class _TorchRaster:
         need = getattr(alpha, "prims", None) if alpha is not None else None
         self.need = T(np.asarray(need, bool)) if need is not None else None
         self.src = T(outd["src"]) if need is not None else None
+        # Ill-conditioned triangles get their fragments in float64 (on a GPU the rest is float32): a triangle reaching
+        # far off screen -- a sea plane of 60 km, cut at the near plane, has corners at millions of pixels and depths
+        # of the near distance -- interpolates 1/z from barycentric weights that float32 gets wrong by more than the
+        # 1/z of the ground behind it: the sea came out in front of the land in whole bands of rows (or the land
+        # through the sea), and a low camera saw nothing but water
+        self.bad = None
+        if self.fd != torch.float64 and len(tri):
+            zt = np.abs(z[tri])
+            ext = np.maximum(np.abs(sx[tri]).max(1), np.abs(sy[tri]).max(1))
+            bad = ext > 4 * max(W, H)
+            if self.persp:
+                bad |= zt.max(1) > 16 * np.maximum(zt.min(1), 1e-30)
+            if bad.any():
+                self.bad = T(bad)
+                self.sx64, self.sy64, self.z64 = T(sx, torch.float64), T(sy, torch.float64), T(z, torch.float64)
+
+    def _frag(self, tid, px, py, sx, sy, z):
+        """Coverage, depth and perspective-correct weights of candidate fragments, in the dtype of sx / sy / z."""
+        torch = self.t
+        a, b, c = self.tri[tid, 0], self.tri[tid, 1], self.tri[tid, 2]
+        ax, ay, bx, by, cx, cy = sx[a], sy[a], sx[b], sy[b], sx[c], sy[c]
+        den = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        ok = torch.abs(den) > 1e-12
+        den = torch.where(ok, den, torch.ones_like(den))
+        qx, qy = px.to(sx.dtype), py.to(sx.dtype)
+        w1 = ((qx - ax) * (cy - ay) - (qy - ay) * (cx - ax)) / den
+        w2 = ((bx - ax) * (qy - ay) - (by - ay) * (qx - ax)) / den
+        w0 = 1.0 - w1 - w2
+        ok &= (w0 >= -1e-9) & (w1 >= -1e-9) & (w2 >= -1e-9)
+        if self.persp:
+            za, zb_, zc = z[a], z[b], z[c]
+            iz = w0 / za + w1 / zb_ + w2 / zc
+            zz = 1.0 / torch.where(torch.abs(iz) < 1e-30, torch.full_like(iz, 1e-30), iz)
+            return ok, zz, w0 * zz / za, w1 * zz / zb_, w2 * zz / zc
+        return ok, w0 * z[a] + w1 * z[b] + w2 * z[c], w0, w1, w2
 
     def batch(self, idx, x0, y0, bw, bh, area):
         torch, T = self.t, self.T
@@ -367,27 +418,17 @@ class _TorchRaster:
         px = torch.repeat_interleave(T(x0), at) + torch.remainder(flat, bwr)
         py = torch.repeat_interleave(T(y0), at) + torch.div(flat, bwr, rounding_mode="floor")
         del flat, bwr
-        a, b, c = self.tri[tid, 0], self.tri[tid, 1], self.tri[tid, 2]
-        ax, ay, bx, by, cx, cy = self.sx[a], self.sy[a], self.sx[b], self.sy[b], self.sx[c], self.sy[c]
-        den = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
-        ok = torch.abs(den) > 1e-12
-        den = torch.where(ok, den, torch.ones_like(den))
-        qx, qy = px.to(self.fd), py.to(self.fd)
-        w1 = ((qx - ax) * (cy - ay) - (qy - ay) * (cx - ax)) / den
-        w2 = ((bx - ax) * (qy - ay) - (by - ay) * (qx - ax)) / den
-        w0 = 1.0 - w1 - w2
-        ok &= (w0 >= -1e-9) & (w1 >= -1e-9) & (w2 >= -1e-9)
+        ok, zz, b0, b1, b2 = self._frag(tid, px, py, self.sx, self.sy, self.z)
+        if self.bad is not None:
+            m = self.bad[tid]
+            if bool(m.any()):
+                r64 = self._frag(tid[m], px[m], py[m], self.sx64, self.sy64, self.z64)
+                ok[m] = r64[0]
+                for dst, v in zip((zz, b0, b1, b2), r64[1:]):
+                    dst[m] = v.to(self.fd)
         if not bool(ok.any()):
             return
-        tid, px, py, w0, w1, w2, a, b, c = (v[ok] for v in (tid, px, py, w0, w1, w2, a, b, c))
-        if self.persp:
-            za, zb_, zc = self.z[a], self.z[b], self.z[c]
-            iz = w0 / za + w1 / zb_ + w2 / zc
-            zz = 1.0 / torch.where(torch.abs(iz) < 1e-30, torch.full_like(iz, 1e-30), iz)
-            b0, b1, b2 = w0 * zz / za, w1 * zz / zb_, w2 * zz / zc
-        else:
-            zz = w0 * self.z[a] + w1 * self.z[b] + w2 * self.z[c]
-            b0, b1, b2 = w0, w1, w2
+        tid, px, py, zz, b0, b1, b2 = (v[ok] for v in (tid, px, py, zz, b0, b1, b2))
         if self.alpha is not None:
             sub = self.rsrc[tid]
             on = (torch.nonzero(self.need[self.src[sub]]).reshape(-1) if self.need is not None

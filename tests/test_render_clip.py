@@ -248,5 +248,54 @@ oc = R._occluded(zf, 64, 64, np.array([10, 10, 10]), np.array([20, 20, 2]), np.a
 check("the occlusion test: behind a drawn tile -> culled; in front of it, or over empty pixels -> drawn",
       oc.tolist() == [True, False, False], oc.tolist())
 
+print("═" * 28, "The GPU's float32: a sea plane cut at the near plane over land")
+try:
+    import torch  # noqa: F401
+    HAVE_T = True
+except ImportError:
+    HAVE_T = False
+if HAVE_T:
+    from comfyui_pcg.geo.core import Geometry
+    n = 257
+    xs = np.linspace(-2048, 2048, n)
+    X, Z = np.meshgrid(xs, xs)
+    rr = np.hypot(X, Z) / 2048
+    Hh = 380 * np.clip(1 - rr, 0, 1) ** 1.5 - 5 + 3 * np.sin(X / 37) * np.cos(Z / 53)   # an island, its shelf 5 m deep
+    Pg = np.stack([X.ravel(), Hh.ravel(), Z.ravel()], 1)
+    ii = np.arange(n * n).reshape(n, n)
+    qd = np.stack([ii[:-1, :-1].ravel(), ii[1:, :-1].ravel(), ii[1:, 1:].ravel(), ii[:-1, 1:].ravel()], 1)
+    Ps = np.array([[-3e4, 0, -3e4], [3e4, 0, -3e4], [3e4, 0, 3e4], [-3e4, 0, 3e4]])
+    gS = Geometry.from_mesh(np.concatenate([Pg, Ps]).astype(np.float32),
+                            np.concatenate([qd, [[n * n, n * n + 3, n * n + 2, n * n + 1]]]))
+    sea_prim = len(qd)
+    shots = {"from the air (Whole world)": dict(eye=(-2300, 1250, 2600), target=(0, 40, 120), fov=30),
+             "low over the shore (Dusk)": dict(eye=(1500, 12, 900), target=(0, 60, 0), fov=50)}
+
+    def hits(cam, f32, fix=True):
+        R._TorchRaster.FLOAT32 = f32
+        init = R._TorchRaster.__init__
+        if not fix:
+            def no_fix(self, *a, **k):
+                init(self, *a, **k)
+                self.bad = None
+            R._TorchRaster.__init__ = no_fix
+        try:
+            o = R.rasterize(gS, cam, device="cpu" if f32 is not None else None)
+        finally:
+            R._TorchRaster.FLOAT32 = False
+            R._TorchRaster.__init__ = init
+        h = o["hit"]
+        return np.where(h >= 0, o["src"][np.maximum(h, 0)], -1)
+    for nm, kw in shots.items():
+        cam = R.camera(projection="perspective", xres=480, yres=270, near=0.01, **kw)
+        ref = hits(cam, None)
+        g32 = hits(cam, True)
+        bad = hits(cam, True, fix=False)
+        sea = (ref == sea_prim).mean()
+        check(f"{nm}: float32 on torch = numpy (prims per pixel, {sea:.0%} of the frame sea)",
+              (g32 != ref).mean() < 1e-3 and 0.05 < sea < 0.95, (g32 != ref).mean())
+        check("  negative control: without the float64 fragments of the ill-conditioned triangles, whole bands differ",
+              (bad != ref).mean() > 0.01, (bad != ref).mean())
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

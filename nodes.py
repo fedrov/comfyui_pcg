@@ -3778,14 +3778,24 @@ class PCG_Camera:
             "up_z": _sec("Look At", _f(0.0, -1.0, 1.0, 0.1)),
             "near": _sec("Clipping", _f(0.01, 1e-6, 1e6, 0.01)),
             "far": _sec("Clipping", _f(0.0, 0.0, 1e6, 0.1)),
-        }, "optional": {"geo": (GEO,)}}
+            # appended: the eye this high over the ground under it (0 = off, as before)
+            "eye_above_ground": _sec("Look At", _f(0.0, 0.0, 1e5, 0.1)),
+        }, "optional": {"geo": (GEO,), "ground": (GEO,)}}
     RETURN_TYPES = (CAM, "STRING"); RETURN_NAMES = ("cam", "info")
     FUNCTION = "run"; CATEGORY = CAT + "/render"
 
     def run(self, projection, mode, resolution_x, resolution_y, fov,
             ortho_size, elev, azim, distance, margin, target_x, target_y,
             target_z, eye_x, eye_y, eye_z, up_x, up_y, up_z, near, far,
-            geo=None):
+            eye_above_ground=0.0, geo=None, ground=None):
+        # a camera at eye height over terrain: placed on the ground actually made, not on a height typed for one
+        # run of it (a terrain computed slightly differently -- another GPU, other erosion -- buried a fixed eye)
+        snapped = None
+        if ground is not None and float(eye_above_ground) > 0 and mode == "look_at":
+            gh = _rnd.ground_height(ground, eye_x, eye_z)
+            if gh is not None:
+                snapped = gh
+                eye_y = gh + float(eye_above_ground)
         cam = _rnd.camera(
             geo, projection=projection, eye=(eye_x, eye_y, eye_z),
             target=(target_x, target_y, target_z), up=(up_x, up_y, up_z),
@@ -3797,7 +3807,8 @@ class PCG_Camera:
         info = (f"{cam['projection']} {cam['xres']}x{cam['yres']} "
                 f"eye=({e[0]:.3f},{e[1]:.3f},{e[2]:.3f}) "
                 f"target=({t[0]:.3f},{t[1]:.3f},{t[2]:.3f}) "
-                f"dist={cam['distance']:.3f} r={cam['radius']:.3f}")
+                f"dist={cam['distance']:.3f} r={cam['radius']:.3f}"
+                + (f" ground={snapped:.3f}" if snapped is not None else ""))
         return (cam, info)
 
 

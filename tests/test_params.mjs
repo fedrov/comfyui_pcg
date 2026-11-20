@@ -1154,6 +1154,65 @@ sec("refSources / refEdges: references in bindings turned into source node → t
   check("  nodes without bindings: no edges", M.refSources(G, d).length === 0 && M.refSources(G, d2).length === 0);
 }
 
+sec("Multiparm blocks: the same expansion as params.py");
+{
+  const MG = JSON.parse(fs.readFileSync(path.join(_HERE, "multi_golden.json"), "utf-8"));
+  const bad = MG.filter((c) => M.expandMulti(c.src, c.stored) !== c.expect);
+  check(`all ${MG.length} cases of multi_golden.json expand as in Python`, !bad.length, J(bad.map((c) => c.src.slice(0, 30))));
+  const p = mkPanel(MG[0].src);
+  p.widgets.find((w) => w.name === "values").value = JSON.stringify({ pts: 1 });
+  const v1 = Object.keys(M.valuesOf(p));
+  p.widgets.find((w) => w.name === "values").value = JSON.stringify({ pts: 3 });
+  const v3 = Object.keys(M.valuesOf(p));
+  check("  a Parameters node: its values follow the stored count (1 -> pos1 w1; 3 -> up to w3)",
+        v1.includes("w1") && !v1.includes("w2") && v3.includes("w3"), J([v1, v3]));
+}
+
+sec("Inside digital assets (subgraphs): relative paths across networks");
+{
+  // root network: a controller and an asset instance; inside the asset: box1 and xf
+  const ROOTG = { _nodes: [] };
+  const G1 = { _nodes: [], rootGraph: ROOTG };
+  globalThis.__app.graph = ROOTG;
+  const ctl = mkNode("PCG_Null", [{ name: "amp", value: 5 }]); ctl.title = "ctl"; ctl.graph = ROOTG;
+  const inst = mkNode("uuid-asset", [{ name: "tx", value: 3 }]); inst.title = "asset"; inst.graph = ROOTG; inst.subgraph = G1;
+  const out = mkNode("PCG_Null", [{ name: "v", value: 0 }]); out.title = "out"; out.graph = ROOTG;
+  ROOTG._nodes.push(ctl, inst, out);
+  const box = mkNode("PCG_Box", [{ name: "sx", value: 2 }]); box.title = "box1"; box.graph = G1;
+  const xf = mkNode("PCG_Transform", [{ name: "ty", value: 0 }, { name: "tz", value: 0 }]); xf.title = "xf"; xf.graph = G1;
+  G1._nodes.push(box, xf);
+  check("paths -> stored ids: ../tx (the asset), ../box1/sx (a sibling inside), ../../ctl/amp (next to the asset)",
+        M.pathToCanon(G1, "../tx") === "@^/tx" && M.pathToCanon(G1, "../box1/sx") === `@${box.id}/sx`
+        && M.pathToCanon(G1, "../../ctl/amp") === `@^^${ctl.id}/amp`,
+        J([M.pathToCanon(G1, "../tx"), M.pathToCanon(G1, "../box1/sx"), M.pathToCanon(G1, "../../ctl/amp")]));
+  check("  from outside, down into the asset: ../asset/box1/sx", M.pathToCanon(ROOTG, "../asset/box1/sx") === `@${inst.id}:${box.id}/sx`,
+        M.pathToCanon(ROOTG, "../asset/box1/sx"));
+  const ev = (self, t) => M.evalStored(ROOTG, self, "=" + t);
+  check("evaluated inside: ch(\"../tx\") * 2 = 6, ch(\"../../ctl/amp\") = 5, ch(\"../box1/sx\") = 2",
+        ev(xf, 'ch("../tx") * 2').value === 6 && ev(xf, 'ch("../../ctl/amp")').value === 5
+        && ev(xf, 'ch("../box1/sx")').value === 2, J([ev(xf, 'ch("../tx") * 2'), ev(xf, 'ch("../../ctl/amp")')]));
+  check("  and from outside into the asset: ch(\"../asset/box1/sx\") = 2", ev(out, 'ch("../asset/box1/sx")').value === 2);
+  const r0 = ev(out, 'ch("../tx")');
+  check("  negative control: ch(\"../tx\") at the root is an error (not inside an asset)", !r0.ok
+        && r0.error.includes("not inside an asset"), r0.error);
+  const st = M.bindExpr(xf, "ty", 'ch("../tx") + 1', G1);
+  check("bound inside: stored by id, shown as typed, evaluated (4)", st.ok && M.bindings(xf).ty === '=ch("@^/tx") + 1'
+        && M.bindingText(ROOTG, xf, "ty") === 'ch("../tx") + 1' && xf.widgets[0].value === 4,
+        J([M.bindings(xf), M.bindingText(ROOTG, xf, "ty"), xf.widgets[0].value]));
+  inst.widgets[0].value = 10;
+  M.applyBindings(ROOTG);
+  check("  the asset's parameter changes, materializing from the root reaches inside (11)", xf.widgets[0].value === 11,
+        xf.widgets[0].value);
+  inst.title = "rock";
+  check("  renaming the asset: shown paths follow (stored by id)", M.pathToDisplay(ROOTG, out, `@${inst.id}:${box.id}/sx`)
+        === "../rock/box1/sx", M.pathToDisplay(ROOTG, out, `@${inst.id}:${box.id}/sx`));
+  M.bindExpr(xf, "tz", 'ch("../box1/sx") * 3', G1);
+  const e1 = M.refEdges(G1).map((e) => [e.from.title, e.to.title]);
+  check("reference lines inside the asset: box1 -> xf; none to the asset itself (another network)",
+        J(e1) === J([["box1", "xf"]]), J(e1));
+  globalThis.__app.graph = GRAPH;
+}
+
 const pass = OK.filter(Boolean).length;
 console.log(`\n${pass}/${OK.length} passed`);
 process.exit(pass === OK.length ? 0 : 1);

@@ -137,7 +137,7 @@ function addPreview(node) {
     },
 
     draw(ctx, n, width, y) {
-      const st = store.get(String(n.id));
+      const st = stOf(n);
       const boxW = width - PAD * 2;
       const boxH = (n.__pcgCopH || Math.round(boxW));
       this.last = { x: PAD, y, w: boxW, h: boxH };
@@ -218,7 +218,7 @@ function inside(b, pos) {
 function onDown(node, event, pos) {
   const hit = hitRect(node);
   if (!hit || !inside(hit.b, pos)) return false;
-  const st = store.get(String(node.id));
+  const st = stOf(node);
   const nl = st ? st.header.layers.length : 0;
   if (event.shiftKey) {
     hit.w.mode = MODES[(MODES.indexOf(hit.w.mode) + 1) % MODES.length];
@@ -237,7 +237,7 @@ function onMove(node, pos) {
   if (!hit) return;
   const prev = hit.w.hover;
   hit.w.hover = null;
-  const st = store.get(String(node.id));
+  const st = stOf(node);
   if (inside(hit.b, pos) && st && st.header.layers.length) {
     const li = Math.min(hit.w.layer, st.header.layers.length - 1);
     const L = st.header.layers[li];
@@ -268,14 +268,19 @@ function fmt(v) {
 }
 
 // ── fetching data ───────────────────────────────────────────────────────
-async function fetchPreview(nodeId, rev) {
+// by node object too: inside a subgraph the server's id ("12:5") is not the node's own id
+const BY_NODE = new WeakMap();
+const stOf = (n) => BY_NODE.get(n) ?? store.get(String(n.id));
+
+async function fetchPreview(nodeId, rev, owner = null) {
   const r = await api.fetchApi(`/pcg/cop/${nodeId}`);
   if (!r.ok) return;
   const buf = await r.arrayBuffer();
   const st = decode(buf);
   st.rev = rev;
   store.set(String(nodeId), st);
-  const node = app.graph.getNodeById(Number(nodeId));
+  if (owner) BY_NODE.set(owner, st);
+  const node = owner || app.graph.getNodeById(Number(nodeId));
   if (node) {
     if (node.__pcgCop) node.__pcgCop.cacheKey = "";
     node.setDirtyCanvas(true, true);
@@ -308,7 +313,7 @@ app.registerExtension({
     nodeType.prototype.onExecuted = function (message) {
       const r = onExecuted ? onExecuted.apply(this, arguments) : undefined;
       const m = message && message.pcg_cop && message.pcg_cop[0];
-      if (m) fetchPreview(m.node_id, m.rev);
+      if (m) fetchPreview(m.node_id, m.rev, this);
       return r;
     };
 

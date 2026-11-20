@@ -1,0 +1,40 @@
+[
+ {
+  "src": "float r = 1\nmulti pts = 2  # Points\n    vector pos# = 0 0 0  # Position #\n    float w# = 1 : 0 1\nend\nint after = 3",
+  "stored": {
+   "pts": 3
+  },
+  "expect": "float r = 1\nint pts = 2 : 0 64  # Points\nvector pos1 = 0 0 0  # Position 1\nfloat w1 = 1 : 0 1\nvector pos2 = 0 0 0  # Position 2\nfloat w2 = 1 : 0 1\nvector pos3 = 0 0 0  # Position 3\nfloat w3 = 1 : 0 1\nint after = 3"
+ },
+ {
+  "src": "multi pts = 2  # Points\n  float w# = 1\nend",
+  "stored": {},
+  "expect": "int pts = 2 : 0 64  # Points\nfloat w1 = 1\nfloat w2 = 1"
+ },
+ {
+  "src": "multi pts = 2\n  float w# = 1\nend",
+  "stored": {
+   "pts": 0
+  },
+  "expect": "int pts = 2 : 0 64"
+ },
+ {
+  "src": "multi n = 1\n  string name# = \"a\"  # Name #\n  # a comment inside\nend",
+  "stored": {
+   "n": "2"
+  },
+  "expect": "int n = 1 : 0 64\nstring name1 = \"a\"  # Name 1\nstring name2 = \"a\"  # Name 2"
+ },
+ {
+  "src": "multi big = 1\n  int k# = 0\nend",
+  "stored": {
+   "big": 500
+  },
+  "expect": "int big = 1 : 0 64\nint k1 = 0\nint k2 = 0\nint k3 = 0\nint k4 = 0\nint k5 = 0\nint k6 = 0\nint k7 = 0\nint k8 = 0\nint k9 = 0\nint k10 = 0\nint k11 = 0\nint k12 = 0\nint k13 = 0\nint k14 = 0\nint k15 = 0\nint k16 = 0\nint k17 = 0\nint k18 = 0\nint k19 = 0\nint k20 = 0\nint k21 = 0\nint k22 = 0\nint k23 = 0\nint k24 = 0\nint k25 = 0\nint k26 = 0\nint k27 = 0\nint k28 = 0\nint k29 = 0\nint k30 = 0\nint k31 = 0\nint k32 = 0\nint k33 = 0\nint k34 = 0\nint k35 = 0\nint k36 = 0\nint k37 = 0\nint k38 = 0\nint k39 = 0\nint k40 = 0\nint k41 = 0\nint k42 = 0\nint k43 = 0\nint k44 = 0\nint k45 = 0\nint k46 = 0\nint k47 = 0\nint k48 = 0\nint k49 = 0\nint k50 = 0\nint k51 = 0\nint k52 = 0\nint k53 = 0\nint k54 = 0\nint k55 = 0\nint k56 = 0\nint k57 = 0\nint k58 = 0\nint k59 = 0\nint k60 = 0\nint k61 = 0\nint k62 = 0\nint k63 = 0\nint k64 = 0"
+ },
+ {
+  "src": "float plain = 2  # no blocks at all",
+  "stored": {},
+  "expect": "float plain = 2  # no blocks at all"
+ }
+]

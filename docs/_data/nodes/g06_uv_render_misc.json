@@ -3,7 +3,8 @@
   "summary": "Builds a single camera that Render Sequence, Texture Render, Motion Vectors and UV Backproject can all share.",
   "description": "The camera is a standalone node so that the view used to render an image and the view used to project it back into UV space are literally the same wire. Entering the same parameters twice in two nodes invites a mismatch, and the result is a smoothly misaligned texture that looks like the diffusion model drew it crooked and is very hard to trace back to the camera.\n\nThree placement modes: `frame` places the camera on an orbit around the bounding sphere of the connected geometry and picks the distance (perspective) or the orthographic size automatically; `orbit` uses the same elevation / azimuth / distance parametrisation around an explicit target; `look_at` uses an explicit eye position, target and up vector. For multiple views use several Camera nodes, or one Camera with different `azim` values, each feeding its own render branch.",
   "inputs": {
-   "geo": "Geometry to frame. Required for the Frame Geometry mode; in the other modes it is optional and only supplies the bounding-sphere radius stored on the camera."
+   "geo": "Geometry to frame. Required for the Frame Geometry mode; in the other modes it is optional and only supplies the bounding-sphere radius stored on the camera.",
+   "ground": "Ground for Eye Above Ground: the surface (a terrain mesh) under the eye; the eye is placed that high over it."
   },
   "outputs": {
    "cam": "The camera, to be wired to render, projection and motion nodes.",
@@ -23,7 +24,8 @@
    "distance": "Distance from the target to the eye (orbit mode). Frame Geometry computes its own distance and ignores this value.",
    "margin": "Frame Geometry only. Multiplier on the fitting distance (or orthographic size); values above 1 leave empty border around the object.",
    "eye_x": "Camera position in world space (Look At mode).",
-   "up_x": "Up direction used to roll the camera (Look At mode). If it is parallel to the view direction a substitute up vector is chosen instead of producing NaNs."
+   "up_x": "Up direction used to roll the camera (Look At mode). If it is parallel to the view direction a substitute up vector is chosen instead of producing NaNs.",
+   "eye_above_ground": "With ground wired, in the Look At mode: the eye is placed this high over the highest surface of ground under Eye X / Eye Z, so a camera at eye height stays on the terrain actually made (the info output reports the ground height). 0 keeps Eye Y as typed."
   },
   "tips": [
    "Use one Camera node per view and wire the same node to both the render and the back-projection of that view."

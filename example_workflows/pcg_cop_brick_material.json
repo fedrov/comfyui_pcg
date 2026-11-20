@@ -35,7 +35,7 @@
    ],
    "size": [
     360,
-    1338
+    1378
    ],
    "flags": {},
    "order": 1,
@@ -97,11 +97,11 @@
    "type": "PCG_COPNoiseExtra",
    "pos": [
     0,
-    1986
+    2026
    ],
    "size": [
     360,
-    1058
+    1098
    ],
    "flags": {},
    "order": 2,
@@ -175,7 +175,7 @@
    ],
    "size": [
     360,
-    510
+    550
    ],
    "flags": {},
    "order": 3,
@@ -216,11 +216,11 @@
    "type": "PCG_COPPattern",
    "pos": [
     420,
-    554
+    594
    ],
    "size": [
     360,
-    704
+    744
    ],
    "flags": {},
    "order": 4,
@@ -306,7 +306,7 @@
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 5,
@@ -345,11 +345,11 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    595
+    705
    ],
    "size": [
     360,
-    654
+    694
    ],
    "flags": {},
    "order": 6,
@@ -389,11 +389,11 @@
    "type": "PCG_COPHeightToAO",
    "pos": [
     840,
-    1293
+    1443
    ],
    "size": [
     360,
-    764
+    804
    ],
    "flags": {},
    "order": 7,
@@ -440,7 +440,7 @@
    ],
    "size": [
     360,
-    653
+    693
    ],
    "flags": {},
    "order": 8,
@@ -481,11 +481,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     1260,
-    697
+    737
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 9,
@@ -524,11 +524,11 @@
    "type": "PCG_COPLight",
    "pos": [
     1260,
-    1292
+    1442
    ],
    "size": [
     360,
-    899
+    939
    ],
    "flags": {},
    "order": 10,
@@ -584,11 +584,11 @@
    "type": "PCG_COPTile",
    "pos": [
     1260,
-    2235
+    2425
    ],
    "size": [
     360,
-    510
+    550
    ],
    "flags": {},
    "order": 11,
@@ -626,11 +626,11 @@
    "type": "PCG_COPResize",
    "pos": [
     1260,
-    2789
+    3019
    ],
    "size": [
     360,
-    510
+    550
    ],
    "flags": {},
    "order": 17,

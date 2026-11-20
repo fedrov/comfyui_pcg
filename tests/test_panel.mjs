@@ -38,7 +38,7 @@ fs.mkdirSync(EXT, { recursive: true });
 fs.writeFileSync(path.join(ROOT, "scripts", "app.js"), "export const app = globalThis.__app;\n");
 fs.writeFileSync(path.join(ROOT, "scripts", "api.js"),
                  "export const api = { addEventListener() {} };\n");
-for (const f of ["pcg_panel.js", "pcg_sections.js", "pcg_groups.js", "pcg_params.js", "pcg_hexpr.js", "pcg_chan.js"])
+for (const f of ["pcg_panel.js", "pcg_sections.js", "pcg_groups.js", "pcg_params.js", "pcg_hexpr.js", "pcg_chan.js", "pcg_codehl.js"])
   fs.copyFileSync(path.join(PKG, "comfyui_pcg", "web", f), path.join(EXT, f));
 
 const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>",
@@ -1196,8 +1196,14 @@ check("node context menu 'PCG: Copy Parameter' -> clipboard holds this node's pa
 
 sec("extension registration");
 const ext = exts.find((e) => e.name === "pcg.panel");
-check("setting: Houdini panel / Native, default Houdini", ext.settings[0].id === M.SETTING_ID
-      && J(ext.settings[0].options) === J(M.MODES) && ext.settings[0].defaultValue === M.MODES[0]);
+check("setting: Docked pane / On node / Native, default Docked pane", ext.settings[0].id === M.SETTING_ID
+      && J(ext.settings[0].options) === J(M.MODES) && ext.settings[0].defaultValue === "Docked pane"
+      && J(M.MODES) === J(["Docked pane", "On node", "Native"]));
+SETTING = "Houdini panel";
+check("  the value older versions saved for the on-node panel reads as On node", M.panelMode() === "On node");
+SETTING = undefined;
+check("  nothing saved: Docked pane", M.panelMode() === "Docked pane");
+SETTING = "On node";
 function Ctor() {}
 Ctor.prototype.onDrawForeground = function () { this.drew = (this.drew || 0) + 1; };
 await ext.beforeRegisterNodeDef(Ctor, ndC);

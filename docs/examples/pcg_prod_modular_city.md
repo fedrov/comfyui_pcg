@@ -10,6 +10,8 @@ Modular buildings: first a kit of facade and roof pieces (each 4 m wide, one sto
 
 Drag `example_workflows/pcg_prod_modular_city.json` onto the ComfyUI canvas and press **Queue**. Only comfyui_pcg nodes plus ComfyUI's Preview Image are used. Run the [material library](pcg_prod_material_library.md) first if you want the kit to open with textures (see below).
 
+The working nodes open collapsed (their titles say what each does; double-click a title, or select nodes and press Alt+C, to open them): hundreds of open nodes, each code box a DOM element the frontend repositions on every frame, make the canvas slow to pan. Previews, viewports and notes stay open. After restarting ComfyUI, reload the browser page too (Ctrl+F5): a page left open keeps the node list of the server it first loaded, and nodes added since show as missing.
+
 Output, in `output/pcg/assets/kit/`:
 
 | File | Content |

@@ -517,7 +517,7 @@ class PCG_COPWrangle:
     @classmethod
     def INPUT_TYPES(cls):
         return {"required": {"cop": (COP,),
-                             "code": ("STRING", {"multiline": True,
+                             "code": ("STRING", {"multiline": True, "code_hl": True,
                                                  "default": "@C = @C * 2"}),
                              "rand_seed": _i(0, 0, 2 ** 31 - 1),
                              # pcg104 addition: ch("amp") reads custom parameters on the node (the frontend writes this JSON)

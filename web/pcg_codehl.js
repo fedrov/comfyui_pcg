@@ -93,8 +93,42 @@ function highlight(src) {
   return out + " ";
 }
 
-function attach(ta) {
+// One timer for every code box (a world-tiles graph has hundreds): picks up values changed without an input event
+// (loading a workflow, undo) on the boxes that are on screen, and attaches boxes whose DOM was not in place yet
+// Boxes are highlighted when they first come into view (an IntersectionObserver: no layout reads), not when their node
+// is created -- loading a graph of hundreds of code boxes set them all up at once, each reading computed styles
+const BOXES = new Map();                   // textarea -> {render, last}
+const SHOWN = new Set();
+const PENDING = new Set();
+const IO = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver((es) => {
+  for (const e of es) {
+    if (e.isIntersecting) {
+      SHOWN.add(e.target);
+      if (!e.target._pcgHL) attach(e.target, true);
+    } else SHOWN.delete(e.target);
+  }
+}) : null;
+setInterval(() => {
+  for (const ta of PENDING) {
+    if (!ta.isConnected) continue;
+    PENDING.delete(ta);
+    attach(ta);
+  }
+  for (const ta of (IO ? SHOWN : BOXES.keys())) {
+    const b = BOXES.get(ta);
+    if (!ta.isConnected) { BOXES.delete(ta); SHOWN.delete(ta); IO?.unobserve(ta); continue; }
+    if (b && ta.value !== b.last) { b.last = ta.value; b.render(); }
+  }
+}, 300);
+
+export function attach(ta, now = false) {
   if (!ta || ta._pcgHL) return;
+  // the widget's DOM may not be in the document yet (frontends that mount it later): try again on the timer
+  if (!ta.parentNode) { PENDING.add(ta); return; }
+  if (IO && !now) {                         // set up when it first comes into view
+    if (!ta._pcgObserved) { ta._pcgObserved = true; IO.observe(ta); }
+    return;
+  }
   ta._pcgHL = true;
 
   // Move the textarea's original background onto the wrapper, then make it transparent, otherwise the container color underneath shows through
@@ -146,11 +180,9 @@ function attach(ta) {
   });
   // Node zoom changes the textarea size and padding
   new ResizeObserver(() => { copyStyle(); render(); }).observe(ta);
-  // When the value is changed programmatically (loading a workflow, undo) no input event fires; poll as a fallback
-  let last = ta.value;
-  setInterval(() => {
-    if (ta.value !== last) { last = ta.value; render(); }
-  }, 250);
+  // When the value is changed programmatically (loading a workflow, undo) no input event fires: the shared timer
+  // above polls it
+  BOXES.set(ta, { render, last: ta.value });
 }
 
 app.registerExtension({

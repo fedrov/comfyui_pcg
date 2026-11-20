@@ -177,6 +177,59 @@ export function parse(text) {
   return out;
 }
 
+// ── Multiparm blocks: see expand_multi in params.py (the same rules, tested on the same cases)
+export const MULTI_MAX = 64;
+const MULTI = /^multi\s+([A-Za-z_]\w*)\s*(?:=\s*(\d+))?\s*(?:#\s*(.*))?$/;
+
+function multiLine(tl, k) {
+  const t = tl.trim();
+  let sep = -1;
+  for (let i = 0; i < t.length; i++) if (t[i] === "#" && (i === 0 || /\s/.test(t[i - 1]))) { sep = i; break; }
+  let head = sep < 0 ? t : t.slice(0, sep), lab = sep < 0 ? "" : t.slice(sep);
+  head = head.replace(/(\w)#/g, (_, c) => c + k);
+  if (lab) lab = lab[0] + lab.slice(1).replace(/#/g, String(k));
+  return head + lab;
+}
+
+/** Declaration text with multiparm blocks -> plain declaration text (the counts from the stored values). */
+export function expandMulti(text, stored = {}) {
+  const lines = String(text || "").split(/\r\n|\r|\n/);
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const m = MULTI.exec(lines[i].trim());
+    if (!m) { out.push(lines[i]); i++; continue; }
+    const name = m[1], label = (m[3] || "").trim();
+    let dflt = parseInt(m[2] || "0", 10);
+    const tmpl = [];
+    i++;
+    while (i < lines.length && lines[i].trim() !== "end") {
+      const t = lines[i].trim();
+      if (t && !t.startsWith("#") && !t.startsWith("//")) tmpl.push(lines[i]);
+      i++;
+    }
+    i++;
+    let n = Number.parseInt(stored?.[name] ?? dflt, 10);
+    if (!Number.isFinite(n)) n = dflt;
+    n = Math.max(0, Math.min(MULTI_MAX, n));
+    dflt = Math.max(0, Math.min(MULTI_MAX, dflt));
+    out.push(`int ${name} = ${dflt} : 0 ${MULTI_MAX}` + (label ? `  # ${label}` : ""));
+    for (let k = 1; k <= n; k++) for (const t of tmpl) out.push(multiLine(t, k));
+  }
+  return out.join("\n");
+}
+
+/** The counts of the multiparm blocks of a declaration: name -> {label, lines: template lines}. */
+export function multiBlocks(text) {
+  const out = {};
+  const lines = String(text || "").split(/\r\n|\r|\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const m = MULTI.exec(lines[i].trim());
+    if (m) out[m[1]] = { label: (m[3] || "").trim() || m[1] };
+  }
+  return out;
+}
+
 /** "pos.y" -> {name:"pos", comp:1}; "radius" -> {name:"radius", comp:null}. */
 export function splitRef(ref) {
   const s = String(ref || "").trim();
@@ -221,7 +274,7 @@ function declText(node) {
 /** Current values of all parameters on the panel (declaration merged with stored values). */
 export function valuesOf(node) {
   let specs;
-  try { specs = parse(declText(node)); } catch (_) { return {}; }
+  try { specs = parse(expandMulti(declText(node), readValues(node))); } catch (_) { return {}; }
   return mergeValues(specs, readValues(node));
 }
 
@@ -282,7 +335,7 @@ function outOfRange(spec, v) {
 export function syncPanel(node) {
   let specs;
   try {
-    specs = parse(declText(node));
+    specs = parse(expandMulti(declText(node), readValues(node)));
     node._pcgErr = "";
   } catch (e) {
     node._pcgErr = e.message;
@@ -335,6 +388,7 @@ export function syncPanel(node) {
         st[s.name][info.comp] = v;
       }
       writeValues(node, st);
+      if (multiBlocks(declText(node))[s.name]) setTimeout(() => syncPanel(node), 0);   // a multiparm count
     };
     let w;
     const cur = store[s.name];
@@ -354,6 +408,9 @@ export function syncPanel(node) {
                          opt);
     }
     w.label = info.label;
+    // the declaration and the values carry everything: the option alone does not keep the frontend from appending
+    // these to widgets_values
+    w.serialize = false;
     node._pcgW.set(wname, w);
     changed = true;
   }
@@ -475,15 +532,28 @@ export function coerce(node, widget, value) {
  * side effect in a callback it becomes "while the parameter panel is open, the whole graph twitches every 0.4 s".
  */
 export function applyBindings(graph) {
-  const { values, duplicates } = allValues(graph);
+  // every network from the root down: a parameter inside an asset may follow one outside it, and the other way
+  const root = rootOf(graph) || graph;
+  const { values, duplicates } = allValues(root);
   let wrote = 0;
   const missing = [];
-  for (const node of graph?._nodes ?? []) wrote += applyNode(graph, node, values, missing);
+  const seenG = new Set();
+  const walk = (g, d) => {
+    if (!g || seenG.has(g) || d > 8) return;
+    seenG.add(g);
+    for (const node of g._nodes ?? []) {
+      wrote += applyNode(g, node, values, missing);
+      if (node.subgraph) walk(node.subgraph, d + 1);
+    }
+  };
+  walk(root, 0);
+  if (graph && !seenG.has(graph)) walk(graph, 0);
   return { wrote, missing, duplicates };
 }
 
 /** Evaluate all bindings on a node and write them into widgets. Returns how many were written; references not found are pushed into missing. */
 export function applyNode(graph, node, values = allValues(graph).values, missing = []) {
+  graph = node?.graph || graph;
   let wrote = 0;
   const b = bindings(node);
   if (!b) {
@@ -530,14 +600,53 @@ export function applyNode(graph, node, values = allValues(graph).values, missing
 // Why node id rather than title: titles can be duplicated and changed any time; the id is stable within a workflow.
 // As in Houdini, when two nodes are copy-pasted together, the new one still references the **original** source node.
 // Reference chains (A refs B, B refs C) are resolved all the way in one go; cycles are marked not-found and the value is left alone.
-export const NODE_REF = /^@(-?\d+)\/(.+)$/;
+// Inside subgraphs (digital assets) the id may carry levels and descents, as Houdini's relative paths do:
+//   @5/tx      a node of this network (as before)            ch("../box1/tx")
+//   @^/tx      the asset this network is inside               ch("../tx")
+//   @^^7/tx    a node next to that asset (one network up)     ch("../../box1/tx")
+//   @12:3/tx   node 3 inside the asset 12 of this network     ch("../asset1/box1/tx")
+export const NODE_REF = /^@(\^+(?:-?\d+(?::-?\d+)*)?|-?\d+(?::-?\d+)*)\/(.+)$/;
+const NODE_ID = /^@(\^+(?:-?\d+(?::-?\d+)*)?|-?\d+(?::-?\d+)*)$/;
 const nodeKey = (id, w) => `@${id}/${w}`;
 
 export function nodeRef(node, wname) { return nodeKey(node.id, wname); }
 
-function nodeById(graph, id) {
+function plainNode(graph, id) {
   return graph?.getNodeById?.(id)
     ?? (graph?._nodes ?? []).find((n) => String(n.id) === String(id)) ?? null;
+}
+
+const rootOf = (g) => g?.rootGraph ?? app?.graph ?? g;
+
+/** The asset instance (subgraph node) whose network this is, or null for the root. */
+export function ownerOf(graph) {
+  const root = rootOf(graph);
+  if (!graph || graph === root) return null;
+  const walk = (g, d) => {
+    for (const n of g?._nodes ?? []) {
+      if (!n.subgraph) continue;
+      if (n.subgraph === graph) return n;
+      if (d < 8) { const r = walk(n.subgraph, d + 1); if (r) return r; }
+    }
+    return null;
+  };
+  return walk(root, 0);
+}
+
+/** id (as in NODE_REF: "5", "^", "^^7", "12:3") in the network graph -> node. */
+function nodeById(graph, id) {
+  const m = /^(\^*)(.*)$/.exec(String(id));
+  const up = Math.max(1, m[1].length), ids = m[2] ? m[2].split(":") : [];
+  let net = graph;
+  for (let i = 1; i < up; i++) {
+    const o = ownerOf(net);
+    if (!o) return null;
+    net = o.graph;
+  }
+  if (!ids.length) return m[1].length ? ownerOf(net) : null;
+  let n = plainNode(net, ids[0]);
+  for (const k of ids.slice(1)) n = n?.subgraph ? plainNode(n.subgraph, k) : null;
+  return n;
 }
 
 function isLinked(node, wname) {
@@ -565,8 +674,8 @@ export function resolveRef(graph, ref, values, seen = new Set()) {
   const up = bindings(src)?.[m[2]];
   if (up !== undefined) {
     seen.add(key);
-    if (isExpr(up)) return evalStored(graph, src, up, values, seen);
-    return resolveRef(graph, up, values, seen);
+    if (isExpr(up)) return evalStored(src.graph || graph, src, up, values, seen);
+    return resolveRef(src.graph || graph, up, values, seen);
   }
   return { ok: true, value: w.value };
 }
@@ -635,30 +744,66 @@ const PARAM_FUNCS = new Set(["ch", "chf", "chs"]);
 /** user-typed path -> stored path. Parameter path "../title/tx" -> "@id/tx"; node path "../title" -> "@id". Returns null if it cannot be converted. */
 export function pathToCanon(graph, path, fname = "ch") {
   const isParam = PARAM_FUNCS.has(fname);
-  const m = isParam ? /^\.\.\/(.+)\/([^/]+)$/.exec(String(path))
-    : /^\.\.\/([^/]+)$/.exec(String(path));
-  if (!m) return null;
-  const tail = isParam ? `/${m[2]}` : "";
-  const id = /^#(-?\d+)$/.exec(m[1]);
-  if (id) return `@${id[1]}${tail}`;
-  const hits = nodesTitled(graph, m[1]);
-  return hits.length === 1 ? `@${hits[0].id}${tail}` : null;
+  const segs = String(path).split("/").filter((x, i, a) => x !== "" || i === a.length - 1);
+  const tail = isParam ? segs.pop() : null;
+  if (isParam && !tail) return null;
+  let up = 0;
+  while (segs[up] === "..") up++;
+  const names = segs.slice(up);
+  if (!up || names.includes("..") || names.includes(".")) return null;
+  // up the networks: each ".." past the first leaves an asset
+  let net = graph;
+  for (let i = 1; i < up; i++) {
+    const o = ownerOf(net);
+    if (!o) return null;
+    net = o.graph;
+  }
+  const ids = [];
+  let g = net;
+  for (const nm of names) {
+    const id = /^#(-?\d+)$/.exec(nm);
+    if (id) {                       // "#id": by id, also one that no longer exists (shown so after a delete)
+      ids.push(id[1]);
+      g = plainNode(g, id[1])?.subgraph;
+      continue;
+    }
+    const hits = nodesTitled(g, nm);
+    if (hits.length !== 1) return null;
+    ids.push(hits[0].id);
+    g = hits[0].subgraph;
+  }
+  if (!ids.length && !ownerOf(net)) return null;                 // ".." at the root: no asset to point at
+  const lead = !ids.length || up > 1 ? "^".repeat(up) : "";
+  return `@${lead}${ids.join(":")}${isParam ? "/" + tail : ""}`;
 }
 
 /** stored path -> displayed path: "@id/tx" -> "../title/tx" (just "tx" for this node); "@id" -> "../title" ("." for this node). */
 export function pathToDisplay(graph, self, path) {
+  graph = self?.graph || graph;
   const s = String(path);
-  const nm = /^@(-?\d+)$/.exec(s);
-  if (nm) {
-    if (self && String(self.id) === nm[1]) return ".";
-    const src = nodeById(graph, nm[1]);
-    return `../${src ? titleOf(src) : "#" + nm[1]}`;
-  }
+  const disp = (id) => {
+    const src = nodeById(graph, id);
+    if (self && src === self) return ".";
+    const ups = /^(\^*)(.*)$/.exec(id);
+    if (!src) return `${"../".repeat(Math.max(1, ups[1].length))}${ups[2] ? "#" + ups[2].split(":").join("/#") : ""}`
+      .replace(/\/$/, "");
+    if (!ups[2]) return "../".repeat(ups[1].length).replace(/\/$/, "");          // an owner: "..", "../.."
+    // a node: as many ".." as levels, then the titles down
+    const lv = Math.max(1, ups[1].length);
+    const ids = ups[2].split(":");
+    let g = graph;
+    for (let i = 1; i < lv; i++) g = ownerOf(g)?.graph;
+    const titles = [];
+    let n = null;
+    for (const k of ids) { n = plainNode(n ? n.subgraph : g, k); titles.push(n ? titleOf(n) : "#" + k); }
+    return "../".repeat(lv) + titles.join("/");
+  };
+  const nm = NODE_ID.exec(s);
+  if (nm) return disp(nm[1]);
   const m = NODE_REF.exec(s);
   if (!m) return s;
-  if (self && String(self.id) === m[1]) return m[2];
-  const src = nodeById(graph, m[1]);
-  return `../${src ? titleOf(src) : "#" + m[1]}/${m[2]}`;
+  const d = disp(m[1]);
+  return d === "." ? m[2] : `${d}/${m[2]}`;
 }
 
 const mapFor = (stored) => (isTmpl(stored) ? mapTemplatePaths : mapChPaths);
@@ -676,6 +821,7 @@ export function exprDisplay(graph, self, stored) {
  * paths that were already known are converted the old way first -- with duplicate titles, the untouched part of the reference still points at the original node.
  */
 export function exprStore(graph, self, typed, old, prefix = EXPR_PREFIX) {
+  graph = self?.graph || graph;
   const hint = new Map();
   const learn = (p) => { hint.set(pathToDisplay(graph, self, p), p); return null; };
   if (isNumExpr(old) || isTmpl(old)) mapFor(old)(old.slice(1), learn);
@@ -703,18 +849,27 @@ export function currentFrame(graph) { return frameVars(graph).F; }
 function nodeAt(graph, self, path) {
   const p = String(path).trim();
   if (p === "." || p === "./" || p === "") return self;
-  const id = /^@(-?\d+)$/.exec(p) || /^\.\.\/#(-?\d+)$/.exec(p);
+  const id = NODE_ID.exec(p) || /^\.\.\/#(-?\d+)$/.exec(p);
   if (id) {
     const n = nodeById(graph, id[1]);
     if (!n) throw new ExprError(`node #${id[1]} no longer exists`);
     return n;
   }
+  if (!p.startsWith("..")) throw new ExprError(`unrecognized node path '${path}': "." (this node), "../node name", ".." (the asset this is inside), "../../node name" are supported`);
+  const c = pathToCanon(graph, p, "op");
+  if (c) {
+    const n = nodeById(graph, c.slice(1));
+    if (!n) throw new ExprError(`node ${c} no longer exists`);
+    return n;
+  }
   const r = /^\.\.\/([^/]+)$/.exec(p);
-  if (!r) throw new ExprError(`unrecognized node path '${path}': only "." (this node) and "../node name" are supported`);
-  const hits = nodesTitled(graph, r[1]);
-  if (!hits.length) throw new ExprError(`no node named '${r[1]}'`);
-  if (hits.length > 1) throw new ExprError(`${hits.length} nodes are named '${r[1]}', rename the one you want to reference first`);
-  return hits[0];
+  const hits = r ? nodesTitled(graph, r[1]) : [];
+  if (r && hits.length > 1) throw new ExprError(`${hits.length} nodes are named '${r[1]}', rename the one you want to reference first`);
+  if (r) throw new ExprError(`no node named '${r[1]}'`);
+  if (/^\.\.\/\.\./.test(p) || p === "..") {
+    if (!ownerOf(graph)) throw new ExprError(`unrecognized node path '${path}': this node is not inside an asset`);
+  }
+  throw new ExprError(`no node at '${path}'`);
 }
 
 /** ch() path -> value of that parameter (at: at which frame). Throws ExprError on failure (shown in the field's red tooltip). */
@@ -730,8 +885,8 @@ function readParam(graph, self, path, values, seen, at) {
     node = self;
     wname = p;
   } else {
-    const r = /^(\.\.\/.+)\/([^/]+)$/.exec(p);
-    if (!r) throw new ExprError(`unrecognized path '${path}': only "param name" and "../node name/param name" are supported`);
+    const r = /^(\.\.(?:\/.+)?)\/([^/]+)$/.exec(p);
+    if (!r) throw new ExprError(`unrecognized path '${path}': only "param", "../node name/param" and "../param" (the asset this is inside) are supported`);
     node = nodeAt(graph, self, r[1]);
     wname = r[2];
   }
@@ -754,8 +909,8 @@ function readParam(graph, self, path, values, seen, at) {
   if (up === undefined) return w.value;
   if (seen.has(key)) throw new ExprError(`reference cycle (${titleOf(node)}.${wname})`);
   seen.add(key);
-  const r = isExpr(up) ? evalStored(graph, node, up, values, seen, at)
-    : resolveRef(graph, up, values, seen);
+  const r = isExpr(up) ? evalStored(node.graph || graph, node, up, values, seen, at)
+    : resolveRef(node.graph || graph, up, values, seen);
   seen.delete(key);
   if (!r.ok) {
     if (r.pending) throw new ExprPending(r.error);
@@ -796,6 +951,7 @@ function makeCtx(graph, self, values, seen, at) {
 /** Evaluate a stored binding on node self -> {ok, value} / {ok:false, error, pending}. at: evaluate at another frame. */
 export function evalStored(graph, self, stored, values = allValues(graph).values,
                            seen = new Set(), at = undefined) {
+  graph = self?.graph || graph;                 // paths are relative to the node's own network
   try {
     const s = String(stored);
     if (isKeys(s)) {
@@ -822,6 +978,7 @@ export function evalStored(graph, self, stored, values = allValues(graph).values
 
 /** Evaluate one binding (of any kind). */
 export function evalBinding(graph, node, wname, values = allValues(graph).values) {
+  graph = node?.graph || graph;
   const b = bindings(node)?.[wname];
   if (b === undefined) return { ok: false, error: "no binding" };
   const seen = new Set([nodeKey(node.id, wname)]);
@@ -837,6 +994,7 @@ export function evalBinding(graph, node, wname, values = allValues(graph).values
  * (pasted references written as `chs(...)` with backticks -- so clicking in to edit gives a valid template).
  */
 export function bindingText(graph, node, wname, str = false, tmpl = false) {
+  graph = node?.graph || graph;
   const b = bindings(node)?.[wname];
   if (b === undefined) return "";
   if (isExpr(b)) return exprDisplay(graph, node, b);
@@ -1015,6 +1173,7 @@ export function bindingPaths(b) {     // drawing dashed lines walks the whole gr
 
 /** A path written in a binding -> the node it points at (null when not found / self / ambiguous duplicate name). */
 function pathTarget(graph, self, p) {
+  graph = self?.graph || graph;
   if (typeof p === "object") {                              // pasted reference / panel parameter name
     const m = NODE_REF.exec(p.legacy);
     if (m) return nodeById(graph, m[1]);
@@ -1022,12 +1181,13 @@ function pathTarget(graph, self, p) {
     try { name = splitRef(p.legacy).name; } catch (_) { return null; }
     return panels(graph).find((q) => name in valuesOf(q)) ?? null;
   }
-  const id = /^@(-?\d+)(?:\/|$)/.exec(p) || /^\.\.\/#(-?\d+)(?:\/|$)/.exec(p);
+  const id = /^@(\^+(?:-?\d+(?::-?\d+)*)?|-?\d+(?::-?\d+)*)(?:\/|$)/.exec(p) || /^\.\.\/#(-?\d+)(?:\/|$)/.exec(p);
   if (id) return nodeById(graph, id[1]);
-  const t = /^\.\.\/([^/]+)(?:\/[^/]+)?$/.exec(p);
-  if (!t) return null;                                      // "tx" / "." = this node
-  const hits = nodesTitled(graph, t[1]);
-  return hits.length === 1 ? hits[0] : null;
+  if (!String(p).startsWith("..")) return null;             // "tx" / "." = this node
+  // a parameter path ("../box1/tx", "../tx") or a node path ("../box1", "..")
+  const c = pathToCanon(graph, p, "ch") || pathToCanon(graph, p, "op");
+  const m = c && (NODE_REF.exec(c) || NODE_ID.exec(c));
+  return m ? nodeById(graph, m[1]) : null;
 }
 
 /** Which nodes this node references: [{node, params:[parameter names on this node]}]. */
@@ -1050,7 +1210,9 @@ export function refSources(graph, node) {
 export function refEdges(graph) {
   const out = [];
   for (const n of graph?._nodes ?? [])
-    for (const r of refSources(graph, n)) out.push({ from: r.node, to: n, params: r.params });
+    for (const r of refSources(graph, n))
+      if (r.node.graph === undefined || r.node.graph === n.graph)   // lines only within the network shown
+        out.push({ from: r.node, to: n, params: r.params });
   return out;
 }
 
@@ -1233,7 +1395,7 @@ export function applyIncoming(graph, incoming) {
   const claimed = new Set();
   for (const p of panels(graph)) {
     let specs;
-    try { specs = parse(declText(p)); } catch (_) { continue; }  // skip panels with a malformed declaration
+    try { specs = parse(expandMulti(declText(p), readValues(p))); } catch (_) { continue; }  // skip panels with a malformed declaration
     rep.panels++;
     const mine = {};
     for (const s of specs) {
@@ -1533,7 +1695,7 @@ app.registerExtension({
     nodeType.prototype.getExtraMenuOptions = function (canvas, options) {
       origMenu?.apply(this, arguments);
       try {
-        const items = menuFor(this, app.graph);
+        const items = menuFor(this, this.graph || app.graph);
         if (items.length) options.push(null, ...items);
       } catch (e) {
         console.error("[pcg.params] menu error", e);

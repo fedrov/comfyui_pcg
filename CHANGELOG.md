@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **World tiles, the Snow view**: the snow line is 60 m (was 140 m), so the snow covers the valley sides
+  and not only the summits.
+- **COP Wrangle**: its code box is highlighted like the other Wrangles'.
+- **Big example workflows open collapsed** (world tiles, its quick variant, the modular city: more than 300 nodes):
+  only previews, viewports and notes stay open, so the canvas does not carry hundreds of code boxes while panning.
 - **Tutorial 4 (for-each variations)**: the stones start from an icosphere (a jittered UV sphere pinched into
   spikes at its poles), jitter less than the point spacing (no folded slits), sit on the ground (Match Size: they
   floated at whatever height their shape reached) and get mottled grey-to-buff colours.
@@ -34,6 +39,38 @@ All notable changes to this project are documented here. The format follows
   18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
 
 ### Added
+- **Camera: Eye Above Ground** (appended; 0 = off, as before) with an optional `ground` input: in the Look At mode
+  the eye is placed that high over the ground under it; the info output reports the ground height.
+- **Digital assets on subgraphs** (Houdini's HDA): **PCG: Edit Asset Interface…** on a subgraph node is Type
+  Properties -- promote parameters of the nodes inside, order them, label, folder, section, range, default, hide /
+  disable rules, help; the instance's parameters are in the docked pane with the look of what they drive (a full
+  vector promoted is one row again). The interface lives on the definition and is copied onto its instances, so it
+  travels with Publish Subgraph and copy / paste. **Update from the library**: when the library has another version
+  of an asset (by name), ⟳ in the pane (or the node menu) brings every instance in the workflow to it, values kept.
+- **Paths across networks**: `ch("../tx")` is the parameter of the asset a node is inside, `ch("../../ctl/amp")` a
+  node next to the asset, `ch("../rock/box1/sx")` a node inside an asset from outside -- in expressions, references
+  and geometry queries, stored by id; materializing reaches every network. The display flag, the Tab menu, Y-cut,
+  shake, the ▾ name pickers and the COP thumbnails work inside subgraphs; the pane shows a node's path (`/rock/box1`).
+- **Network feedback**: every node that ran shows its cook time right of its title bar, a red / yellow badge when it
+  failed / warned, an amber dot when it is out of date (its parameters, wires or bypass, or something upstream,
+  changed since it cooked). The **middle button** on a node shows its info: time, counts, memory, bounding box,
+  attributes by class with type and size, groups, COP layers, warnings, the error. The **Performance** pane (tab on
+  the right edge) lists the last run slowest first. The server reports through `cookstats.py` ("pcg.cook" messages;
+  a node from the cache shows what it reported last, also after a page reload).
+- **Multiparm blocks** in declarations (`multi pts = 2 … end`, `#` = instance number), with + / − / ✕ in the panel;
+  the same expansion in Python and in the frontend (tested on the same cases).
+- **Presets**: ☰ in the pane or **PCG: Presets…** in a node's menu -- save, load, delete, Revert to Defaults; per node
+  type (per asset name), in the user's ComfyUI data.
+- **Quick edit**: Ctrl+click a node to open its panel next to it without selecting it.
+- **Docked parameter pane** (the new default of Settings -> PCG -> *Parameters of PCG nodes*: Docked pane / On node /
+  Native), as in Houdini: nodes on the canvas are their title and connectors, and one persistent pane shows the
+  selected node's panel (movable, resizable, a pin to keep it on one node, hidden and brought back from a tab on the
+  window's edge). No parameter elements on the canvas: the world tiles graph opens in about 2 s with all 833 nodes
+  open (13 s with a panel on every node) and pans at the same frame time as an empty canvas would allow. The
+  Wrangles' code is a tall highlighted editor in the pane. A connected parameter is an input row of the node with
+  the parameter's name; while a wire is dragged to a node, its free parameters of the wire's type are listed under it
+  to drop on. Values are stored as before: a workflow opens the same in all three modes. "On node" is the earlier
+  layout; a saved "Houdini panel" setting reads as On node.
 - **COP Wrangle on the GPU**: `compute` (appended; default cpu = numpy as before; auto / cuda = on a CUDA GPU). The same
   code runs on float32 tensors in bands of about half a million pixels: maths, set / components, clamp / fit / lerp /
   smoothstep, vectors, where, noise / pnoise, worley / pworley and their _dir, rand (the same 64-bit mixing as numpy).
@@ -272,6 +309,32 @@ All notable changes to this project are documented here. The format follows
   whole-image float64 temporaries.
 
 ### Fixed
+- **World tiles: the road camera** (Road, Dusk, Rain) sat at a fixed height 1.8 m over the road as one run made it;
+  a terrain made a little differently (another GPU's erosion) buried it, and the frames showed the terrain from
+  below. It now stands 1.8 m over the terrain the run made (Eye Above Ground).
+- **Inside subgraphs**: the Tab node menu put new nodes into the top-level graph, Y-cut and shake worked on the
+  top-level wires, the group / attribute ▾ pickers looked upstream there, and a COP node's thumbnail never showed.
+- **Renders on a CUDA GPU (Compute auto / cuda)**: the rasterizer's float32 got the depth of triangles reaching far off
+  screen wrong -- a sea plane cut at the near plane has corners at millions of pixels -- so the world tiles' sea came
+  out in front of the land in bands of rows (Whole world) or over the whole frame (Dusk, Rain: only the reflection on
+  the water showed). Such triangles now get their fragments in float64; the rest stays float32. (The CPU path was
+  never affected, which is why the example renders here were right.)
+- **Parameters (PCG)** no longer appends its generated controls to `widgets_values` (they were saved after the two
+  real values on every save); Tutorial 6 stores its values the way the frontend writes them back.
+- **Loading big graphs** (the parameter panel): every panel measured its height on the spot as the graph loaded --
+  a forced layout of the whole page, three times per node -- and the code boxes all set themselves up at once: the
+  world tiles graph took 36 s to load in the frontend, now 2.3 s (13 s with every node open). Collapsed nodes get
+  their panel when first opened; panels off the visible canvas are measured together in one layout before the next
+  frame; code boxes are highlighted when they first come into view.
+- **Example layouts**: the frontend widens a node with a code box to 400 px and draws image nodes some 35 px taller
+  than before; the layouts leave room for both (no overlapping nodes in the real frontend).
+- **World Manifest on Windows**: the height's sidecar was looked up by a path spelt with forward slashes
+  (`...\output\pcg/world/height/Height.json`) in a table filled from os.walk's back-slashed paths, and the node
+  failed with a KeyError at the end of the world tiles run; paths are now compared normalised (the same for the list
+  of files it had already accounted for).
+- **Code highlighting** (`pcg_codehl.js`): a code box whose DOM was not in the document yet threw (`insertBefore` of
+  null; 137 times on the world tiles graph) instead of being attached later; one shared timer now replaces the one
+  per box (hundreds on a big graph) and skips hidden boxes.
 - **COP Wrangle in bands** (`rows_per_pass`) kept every finished band's input rows (and, on several threads, its
   results) alive until the garbage collector ran: a 2048² splat Wrangle in 128-row bands peaked 1.9 GB over its input,
   now 0.7 GB; the world tiles run peaks some 1.3 GB lower.

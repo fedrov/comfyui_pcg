@@ -179,7 +179,7 @@
    ],
    "size": [
     360,
-    178
+    248
    ],
    "flags": {},
    "order": 5,
@@ -231,7 +231,7 @@
    "type": "PCG_Convert",
    "pos": [
     0,
-    1548
+    1618
    ],
    "size": [
     360,
@@ -285,7 +285,7 @@
    "type": "PCG_Normal",
    "pos": [
     0,
-    1797
+    1867
    ],
    "size": [
     360,
@@ -595,7 +595,7 @@
    ],
    "size": [
     360,
-    1338
+    1378
    ],
    "flags": {},
    "order": 2,
@@ -657,11 +657,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    1382
+    1422
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 4,
@@ -700,11 +700,11 @@
    "type": "PCG_COPHeightfieldErode",
    "pos": [
     840,
-    1977
+    2127
    ],
    "size": [
     360,
-    890
+    930
    ],
    "flags": {},
    "order": 6,
@@ -771,11 +771,11 @@
    "type": "PCG_COPErosion",
    "pos": [
     840,
-    2911
+    3101
    ],
    "size": [
     360,
-    999
+    1039
    ],
    "flags": {},
    "order": 8,
@@ -829,11 +829,11 @@
    "type": "PCG_COPHeightToNormal",
    "pos": [
     840,
-    3954
+    4184
    ],
    "size": [
     360,
-    654
+    694
    ],
    "flags": {},
    "order": 10,
@@ -874,11 +874,11 @@
    "type": "PCG_COPWrangle",
    "pos": [
     840,
-    4652
+    4922
    ],
    "size": [
     360,
-    551
+    661
    ],
    "flags": {},
    "order": 12,
@@ -917,7 +917,7 @@
    "type": "PCG_COPHeightfieldToMesh",
    "pos": [
     840,
-    5247
+    5627
    ],
    "size": [
     360,
@@ -962,7 +962,7 @@
    "type": "PCG_AttribPromote",
    "pos": [
     840,
-    5545
+    5925
    ],
    "size": [
     360,
@@ -1112,7 +1112,7 @@
    ],
    "size": [
     360,
-    247
+    317
    ],
    "flags": {},
    "order": 21,
@@ -1166,7 +1166,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     1260,
-    869
+    939
    ],
    "size": [
     360,
@@ -1221,7 +1221,7 @@
    "type": "PCG_ScatterAlign",
    "pos": [
     1260,
-    1288
+    1358
    ],
    "size": [
     360,
@@ -1318,11 +1318,11 @@
    "type": "PCG_Wrangle",
    "pos": [
     1260,
-    1866
+    1936
    ],
    "size": [
     360,
-    247
+    317
    ],
    "flags": {},
    "order": 22,
@@ -1376,7 +1376,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     1260,
-    2157
+    2297
    ],
    "size": [
     360,
@@ -1431,7 +1431,7 @@
    "type": "PCG_Merge",
    "pos": [
     1260,
-    2576
+    2716
    ],
    "size": [
     360,
@@ -1493,11 +1493,11 @@
    "type": "PCG_Wrangle",
    "pos": [
     1260,
-    2786
+    2926
    ],
    "size": [
     360,
-    247
+    317
    ],
    "flags": {},
    "order": 26,

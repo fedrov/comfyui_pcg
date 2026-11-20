@@ -32,11 +32,18 @@ import { bindings, copyParams, clipboard, pasteRefs, pasteValues, unbind, bindin
          bindExpr, bindTemplate, applyBindings, promote, panels, isKeys, keysOf, setKey,
          removeKey, onKey, currentFrame } from "./pcg_params.js";
 import { isPlainNumber, isTemplate } from "./pcg_hexpr.js";
+import { attach as highlightBox } from "./pcg_codehl.js";
 
 export const SETTING_ID = "PCG.ParamPanel";
-export const MODES = ["Houdini panel", "Native"];
-// Values saved by older versions (Chinese UI), still accepted when read
-export const LEGACY_MODES = { "Houdini \u9762\u677f": MODES[0], "\u539f\u751f": MODES[1] };
+// Docked pane: nodes on the canvas are title + connectors only, the selected node's panel is in one persistent pane
+// (pcg_dock.js, as in Houdini). On node: every node carries its own panel. Native: ComfyUI's widgets
+export const MODES = ["Docked pane", "On node", "Native"];
+const DOCKED = MODES[0], ON_NODE = MODES[1], NATIVE = MODES[2];
+// Values saved by older versions, still accepted when read ("Houdini panel" was the on-node panel)
+export const LEGACY_MODES = { "Houdini panel": ON_NODE, "Houdini \u9762\u677f": ON_NODE,
+                              "\u539f\u751f": NATIVE };
+// Filled in by pcg_dock.js (a registry rather than an import: the dock imports this file)
+export const DOCK = { adopt: null, release: null, draw: null, changed: null };
 export const UI_KEY = "pcg_ui";
 export const PROP_NATIVE = "pcg_native_panel";
 const STANDARD = new Set(["number", "combo", "toggle", "text", "string",
@@ -280,6 +287,7 @@ const CSS = `
 .pcgp textarea{height:53px;padding:3px 5px;resize:none;width:100%;line-height:15px;
   font-family:ui-monospace,Consolas,monospace;white-space:pre;overflow:auto}
 .pcgp .row.wide textarea{margin-top:1px}
+.pcgp textarea.codebox{font-size:12px;line-height:15px;white-space:pre;tab-size:4}
 .pcgp input.num{width:100%;text-align:left;cursor:ew-resize}
 .pcgp input.num:focus{cursor:text;border-color:#5fa3e0}
 .pcgp input.txt{width:100%}
@@ -344,7 +352,7 @@ const CSS = `
 .pcgp .ramp .err{color:#e0975f}
 .pcgp .note{color:#e0975f;font-size:11px}
 `;
-function injectCss() {
+export function injectCss() {
   if (document.getElementById("pcg-panel-css")) return;
   const st = document.createElement("style");
   st.id = "pcg-panel-css";
@@ -498,7 +506,8 @@ export class Panel {
   }
 
   buildBody() {
-    const m = buildModel(this.nd, [...this.widgets.keys()]);
+    // couriers other extensions hid (ch_params of the Wrangles, the values of a Parameters node) get no row
+    const m = buildModel(this.nd, [...this.widgets].filter(([, w]) => !isCourier(w)).map(([k]) => k));
     this.model = m;
     this.renderBlocks(m.top, this.inner);
     if (m.tabs.length) {
@@ -627,6 +636,15 @@ export class Panel {
       this.rows[this.rows.length - 1].toggleOff = () => this.get(u.toggle) === false;
     }
     this.renderValue(n, u, val, lab);
+    if (u.multi) {                         // a multiparm count: Houdini's + / - (and clear)
+      for (const [txt, d, tip] of [["+", 1, "Add an instance"], ["−", -1, "Remove the last instance"],
+                                   ["✕", 0, "Remove every instance"]]) {
+        const b = el("button", "btn", val);
+        b.textContent = txt;
+        b.title = tip;
+        b.onclick = () => this.set(n, d ? Math.max(0, Number(this.get(n) || 0) + d) : 0);
+      }
+    }
   }
 
   renderValue(n, u, val, lab) {
@@ -652,14 +670,17 @@ export class Panel {
       return;
     }
     if (u.kind === "vecstr" || u.kind === "colorstr") return this.vecStr(n, u, val);
-    if (u.kind === "text" || (o.multiline && u.kind !== "code")) {
+    if (u.kind === "text" || o.multiline) {
       val.parentElement?.classList.add("wide");   // multiline text takes the whole row, with the label above
-      const ta = el("textarea", "", val);
+      // a multiline code parameter (the Wrangle snippet) only reaches a panel in the docked pane: a code editor
+      const code = u.kind === "code" || !!o.code_hl;
+      const ta = el("textarea", code ? "codebox" : "", val);
       ta.spellcheck = false;
-      // Grows with line count (3 ~ 24 lines), so code boxes don't need resizing by hand
+      // Grows with line count (3 ~ 24 lines, code 8 ~ 60), so code boxes don't need resizing by hand
+      const [lo, hi] = code ? [8, 60] : [3, 24];
       const fit = () => {
         const lines = String(ta.value).split("\n").length;
-        const rows = Math.min(24, Math.max(3, lines + 1));
+        const rows = Math.min(hi, Math.max(lo, lines + 1));
         const px = rows * 15 + 8;
         if (ta.style.height !== px + "px") { ta.style.height = px + "px"; this.resize(true); }
       };
@@ -674,6 +695,7 @@ export class Panel {
         }
       };
       this.controls.push({ name: n, el: ta, set: (v) => { ta.value = v ?? ""; fit(); } });
+      if (code && o.code_hl) setTimeout(() => highlightBox(ta), 0);
       return;
     }
     const inp = el("input", "txt" + (u.kind === "code" ? " code" : ""), val);
@@ -1656,6 +1678,7 @@ export function alignSlots(node) {
 }
 
 // ════════════════════════════════════════════════════ hooking into nodes
+export function panelMode() { return mode(); }
 function mode() {
   try {
     const v = app.extensionManager?.setting?.get?.(SETTING_ID)
@@ -1667,25 +1690,32 @@ function mode() {
 }
 
 // Whether this node can be taken over: has layout info; no multiline code box; no custom widgets added by other extensions
-export function eligible(node, nodeData) {
+export function eligible(node, nodeData, { code = false } = {}) {
   const ws = node.widgets || [];
   if (!ws.length) return false;
   let any = false;
   for (const w of ws) {
     if (w.name === "pcg_panel") continue;
+    // a courier (ch_params of a Wrangle) comes with a code editor: only the docked pane takes those nodes
+    if (isCourier(w)) { if (!code) return false; continue; }
     const u = uiOf(nodeData, w.name);
     if (!u) {
       if (ALLOWED_TAIL.has(w.type)) continue;
       return false;                      // widgets added by the frontend / other extensions
     }
-    if (u.kind === "code" && optsOf(nodeData, w.name).multiline) return false;
+    // (the docked pane has room for a code editor; on a node it would be a second, slower box)
+    const o = optsOf(nodeData, w.name);
+    if ((u.kind === "code" || o.code_hl) && o.multiline && !code) return false;
     if (!STANDARD.has(w.type) && !(u.kind === "text")) return false;
     any = true;
   }
   return any;
 }
 
-function natives(node) {
+const COURIER = "pcg-hidden";
+const isCourier = (w) => (w.origType ?? w.type) === COURIER;
+
+export function natives(node) {
   return (node.widgets || []).filter((w) => w.name !== "pcg_panel" && !ALLOWED_TAIL.has(w.type));
 }
 
@@ -1722,7 +1752,7 @@ export function withSpare(nodeData, node) {
 export function activate(node, baseData) {
   // After custom parameters are added / removed the panel must be rebuilt (the widget set changed): pcg_spare calls this
   node._pcgPanelRebuild = () => {
-    if (mode() === MODES[1] || node.properties?.[PROP_NATIVE]) return;
+    if (mode() !== ON_NODE || node.properties?.[PROP_NATIVE]) return;
     if (node._pcgPanel) deactivate(node);
     activate(node, baseData);
   };
@@ -1778,8 +1808,7 @@ export function activate(node, baseData) {
   node._pcgPanel = panel;
   node._pcgPanelWidget = w;
   node._pcgPanelActive = true;
-  panel.onResize = () => {
-    const h = Math.ceil(measure(panel.root, panel.inner, node.size[0] - 2 * MARGIN)) + 4;
+  const applyHeight = (h) => {
     if (h && Math.abs(h - (panel.height || 0)) > 1) {
       panel.height = h;
       const need = node.computeSize?.() || node.size;
@@ -1787,15 +1816,80 @@ export function activate(node, baseData) {
       node.setDirtyCanvas?.(true, true);
     }
   };
+  // Measuring on the spot forces the browser to lay out the whole page; loading a graph of hundreds of panels did
+  // that three times per node (36 s for the world tiles graph, most of it here). A node that is collapsed or off the
+  // canvas's visible area is left to the ResizeObserver below, which reads the height after the browser's own
+  // layout, once the panel is shown
+  if (typeof ResizeObserver !== "undefined") {
+    panel._ro = new ResizeObserver(() => {
+      if (!panel.root.isConnected || node.flags?.collapsed) return;
+      const h0 = panel.inner.offsetHeight;
+      if (h0 > 0) applyHeight(Math.ceil(h0) + 4);
+    });
+    panel._ro.observe(panel.inner);
+  }
+  // measures on the spot, on screen or not (a forced layout: for the tests, and for nodes about to be shown)
+  panel.measureNow = () => applyHeight(Math.ceil(measure(panel.root, panel.inner, node.size[0] - 2 * MARGIN)) + 4);
+  panel.onResize = () => {
+    if (node.flags?.collapsed) return;                    // the observer measures it when it is opened
+    // off the canvas's visible area: measured with every other such panel in one batch before the next frame (one
+    // layout for all of them, not one per panel)
+    if (panel._ro && !onScreen(node)) { queueMeasure(panel, node, applyHeight); return; }
+    panel.measureNow();
+  };
   node.size[0] = Math.max(node.size[0], MIN_W);
   panel.refresh();                     // measure height synchronously once (without waiting for the next frame)
   requestAnimationFrame?.(() => panel.refresh());
   return panel;
 }
 
+// Batched measuring: the panels queued since the last frame go into one off-screen container (each at its node's
+// width), their heights are read in one go (one layout), and they go back where they were
+const MQ = new Map();
+let mqScheduled = false;
+function queueMeasure(panel, node, apply) {
+  MQ.set(panel, { node, apply });
+  if (mqScheduled) return;
+  mqScheduled = true;
+  rafOr(flushMeasure);
+}
+export function flushMeasure() {
+  mqScheduled = false;
+  if (!MQ.size) return;
+  const items = [...MQ].filter(([p]) => p.root.isConnected);
+  MQ.clear();
+  const box = document.createElement("div");
+  box.style.cssText = "position:absolute;left:-100000px;top:0;visibility:hidden";
+  document.body.appendChild(box);
+  const moved = items.map(([p, it]) => {
+    const wrap = document.createElement("div");
+    wrap.style.width = `${Math.max(120, (it.node.size?.[0] || MIN_W) - 2 * MARGIN)}px`;
+    const parent = p.root.parentNode, next = p.root.nextSibling;
+    box.appendChild(wrap);
+    wrap.appendChild(p.root);
+    return { p, it, parent, next };
+  });
+  const hs = moved.map((m) => m.p.inner.offsetHeight);   // one layout for all of them
+  for (const m of moved) {
+    if (m.parent) m.parent.insertBefore(m.p.root, m.next); else m.p.root.remove();
+  }
+  box.remove();
+  moved.forEach((m, i) => { if (hs[i] > 0) m.it.apply(Math.ceil(hs[i]) + 4); });
+}
+
+// Whether the node lies in the canvas's visible area (graph coordinates; no layout read)
+function onScreen(node) {
+  const va = app.canvas?.visible_area;
+  if (!va || !node.pos || !node.size) return true;
+  const th = globalThis.LiteGraph?.NODE_TITLE_HEIGHT ?? 30;
+  return !(node.pos[0] > va[0] + va[2] || node.pos[0] + node.size[0] < va[0]
+    || node.pos[1] > va[1] + va[3] || node.pos[1] + node.size[1] < va[1] - th);
+}
+
 export function deactivate(node) {
   const w = node._pcgPanelWidget;
   if (!w) return;
+  node._pcgPanel?._ro?.disconnect?.();
   const i = node.widgets.indexOf(w);
   if (i >= 0) node.widgets.splice(i, 1);
   try { w.onRemove?.(); } catch (e) { /* */ }
@@ -1818,7 +1912,10 @@ app.registerExtension({
   settings: [{
     id: SETTING_ID,
     category: ["PCG", "Parameter panel", "Style"],
-    name: "Parameter panel for PCG nodes (refresh the page after changing)",
+    name: "Parameters of PCG nodes (refresh the page after changing)",
+    tooltip: "Docked pane: nodes show only their title and connectors, the selected node's parameters are in one " +
+      "persistent pane (fast with hundreds of nodes, as in Houdini). On node: each node carries its own panel. " +
+      "Native: ComfyUI's widgets.",
     type: "combo",
     options: MODES,
     defaultValue: MODES[0],
@@ -1834,7 +1931,26 @@ app.registerExtension({
       const r = onCreated?.apply(this, arguments);
       // Wait until other extensions' onNodeCreated have all run (they may also append widgets) before deciding
       setTimeout(() => {
-        if (mode() === MODES[1] || this.properties?.[PROP_NATIVE]) return;
+        const m = mode();
+        if (m === NATIVE || this.properties?.[PROP_NATIVE]) return;
+        if (m === DOCKED && DOCK.adopt) {
+          try { DOCK.adopt(this, nodeData); } catch (e) { console.error("[pcg.dock]", e); }
+          return;
+        }
+        // a collapsed node (the big example graphs open that way) gets its panel when it is first opened: hundreds
+        // of panel elements the frontend would otherwise keep positioning while nothing of them shows
+        if (this.flags?.collapsed && typeof this.collapse === "function") {
+          const node = this, collapse0 = this.collapse;
+          this.collapse = function () {
+            const r2 = collapse0.apply(this, arguments);
+            if (!this.flags?.collapsed) {
+              this.collapse = collapse0;
+              try { activate(node, nodeData); } catch (e) { console.error("[pcg.panel]", e); }
+            }
+            return r2;
+          };
+          return;
+        }
         try { activate(this, nodeData); } catch (e) { console.error("[pcg.panel]", e); }
       }, 0);
       return r;
@@ -1845,7 +1961,9 @@ app.registerExtension({
       const r = onConfigure?.apply(this, arguments);
       setTimeout(() => {
         if (this.properties?.[PROP_NATIVE] && this._pcgPanel) deactivate(this);
+        if (this.properties?.[PROP_NATIVE] && this._pcgDocked) DOCK.release?.(this);
         this._pcgPanel?.refresh();
+        if (this._pcgDocked) DOCK.changed?.(this);
       }, 0);
       return r;
     };
@@ -1853,6 +1971,9 @@ app.registerExtension({
     const onDraw = nodeType.prototype.onDrawForeground;
     nodeType.prototype.onDrawForeground = function () {
       const r = onDraw?.apply(this, arguments);
+      if (this._pcgDocked) {
+        try { DOCK.draw?.(this, arguments[0]); } catch (e) { /* labels must not stop the canvas */ }
+      }
       const p = this._pcgPanel;
       if (p) {
         // Values may have been changed elsewhere (parameter references, undo, loading): read them back; recompute visibility only if changed
@@ -1872,6 +1993,7 @@ app.registerExtension({
     nodeType.prototype.onConnectionsChange = function () {
       const r = onConn?.apply(this, arguments);
       this._pcgPanel?.refresh();
+      if (this._pcgDocked) DOCK.changed?.(this);
       return r;
     };
 
@@ -1879,7 +2001,18 @@ app.registerExtension({
     nodeType.prototype.getExtraMenuOptions = function (canvas, options) {
       const r = menu?.apply(this, arguments);
       try {
-        if (Array.isArray(options) && mode() !== MODES[1]) {
+        const m = mode();
+        if (Array.isArray(options) && m === DOCKED && DOCK.adopt) {
+          const on = !!this._pcgDocked;
+          options.push(null, {
+            content: on ? "Parameters: native widgets on the node" : "Parameters: docked pane",
+            callback: () => {
+              this.properties = this.properties || {};
+              if (on) { this.properties[PROP_NATIVE] = true; DOCK.release(this); }
+              else { delete this.properties[PROP_NATIVE]; DOCK.adopt(this, nodeData); }
+            },
+          });
+        } else if (Array.isArray(options) && m === ON_NODE) {
           const on = !!this._pcgPanel;
           options.push(null, {
             content: on ? "Parameter panel: use native widgets" : "Parameter panel: use Houdini panel",

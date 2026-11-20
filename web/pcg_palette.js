@@ -119,13 +119,14 @@ function create(it) {
   if (!it) return;
   const node = LiteGraph.createNode(it.type);
   if (!node) return;
-  app.graph.beforeChange?.();
-  app.graph.add(node);
+  const g = app.canvas?.graph || app.graph;          // the network shown (inside a subgraph: there)
+  g.beforeChange?.();
+  g.add(node);
   node.pos = [dropAt[0], dropAt[1]];
-  app.graph.afterChange?.();
+  g.afterChange?.();
   app.canvas?.selectNode?.(node);
   close();
-  app.graph.setDirtyCanvas(true, true);
+  g.setDirtyCanvas(true, true);
 }
 
 function close() {

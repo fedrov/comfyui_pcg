@@ -469,5 +469,29 @@ check("all three nodes are registered in the package",
                              "PCG_ParamPick")))
 
 
+print("── multiparm blocks (expand_multi; web/pcg_params.js expandMulti is checked on the same cases)")
+MG = json.load(open(os.path.join(_R, "multi_golden.json"), encoding="utf-8"))
+from comfyui_pcg.params import expand_multi, parse  # noqa: E402
+check("every case of multi_golden.json expands as recorded", all(expand_multi(c["src"], c["stored"]) == c["expect"]
+                                                                 for c in MG))
+names = [x["name"] for x in parse(expand_multi(MG[0]["src"], {"pts": 3}))]
+check("  count 3: the count itself, then pos1 w1 pos2 w2 pos3 w3, the lines around kept",
+      names == ["r", "pts", "pos1", "w1", "pos2", "w2", "pos3", "w3", "after"], names)
+labs = [x["label"] for x in parse(expand_multi(MG[0]["src"], {"pts": 2}))]
+check("  labels numbered too (Position 1, Position 2); the count keeps its range 0..64", "Position 2" in labs
+      and parse(expand_multi(MG[0]["src"], {}))[1]["max"] == 64, labs)
+check("  nothing stored: the declared count (2); stored 0: none; stored 500: clamped to 64",
+      len(parse(expand_multi(MG[1]["src"], {}))) == 3 and len(parse(expand_multi(MG[2]["src"], {"pts": 0}))) == 1
+      and len(parse(expand_multi(MG[4]["src"], {"big": 500}))) == 65)
+out = json.loads(MAP["PCG_Parameters"]().run(MG[0]["src"], json.dumps({"pts": 3, "w2": 0.25}))[0])
+check("Parameters (PCG) with a block: its json output has every instance (w2 as stored, the others at default)",
+      out["pts"] == 3 and out["w2"] == 0.25 and out["w3"] == 1 and out["pos3"] == [0, 0, 0], out)
+thrown = False
+try:
+    parse(MG[0]["src"])
+except ValueError:
+    thrown = True
+check("  negative control: the block without expanding is not a declaration", thrown)
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

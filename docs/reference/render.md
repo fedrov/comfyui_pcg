@@ -40,6 +40,7 @@ Three placement modes: `frame` places the camera on an orbit around the bounding
 | Input | Type | Description |
 |---|---|---|
 | `geo` *(optional)* | GEOMETRY | Geometry to frame. Required for the Frame Geometry mode; in the other modes it is optional and only supplies the bounding-sphere radius stored on the camera. |
+| `ground` *(optional)* | GEOMETRY | Ground for Eye Above Ground: the surface (a terrain mesh) under the eye; the eye is placed that high over it. |
 
 **Outputs**
 
@@ -73,6 +74,12 @@ Three placement modes: `frame` places the camera on an orbit around the bounding
 | Frame Margin `margin` | float [0.5..10.0] | 1.15 | Frame Geometry only. Multiplier on the fitting distance (or orthographic size); values above 1 leave empty border around the object. *Hidden when mode ≠ frame.* |
 | Eye `eye_x` `eye_y` `eye_z` | float | 0, 0, 5 | Camera position in world space (Look At mode). *Hidden when mode ≠ look_at.* |
 | Up Vector `up_x` `up_y` `up_z` | float [-1.0..1.0] | 0, 1, 0 | Up direction used to roll the camera (Look At mode). If it is parallel to the view direction a substitute up vector is chosen instead of producing NaNs. |
+
+*Transform › Look At*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Eye Above Ground `eye_above_ground` | float [0.0..] | 0 | With ground wired, in the Look At mode: the eye is placed this high over the highest surface of ground under Eye X / Eye Z, so a camera at eye height stays on the terrain actually made (the info output reports the ground height). 0 keeps Eye Y as typed. *Hidden when mode ≠ look_at.* |
 
 **Tips**
 

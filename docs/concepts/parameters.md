@@ -8,6 +8,20 @@ The plugin's menu entries and settings use Houdini's English terms (for example 
 
 The panel is drawn over the node's original ComfyUI widgets, which stay on the node but hidden. Every control reads and writes those widgets, so a workflow saved with the panel is identical to one saved without it, and undo, API prompts and other extensions see ordinary widget values.
 
+### Docked pane or on the node
+
+The PCG setting *Parameters of PCG nodes* chooses where the panel is (reload the page after changing it):
+
+- **Docked pane** (the default), as in Houdini: on the canvas a node is its title and its connectors, and one persistent pane shows the panel of the selected node (the last one selected when there are several). The canvas carries no parameter elements, so graphs of hundreds of nodes open in a couple of seconds and pan smoothly with every node open. Drag the pane by its title bar, resize it from its bottom-left corner; 📌 pins it to its node while you select others; ✕ hides it, and the *Parameters* tab on the window's right edge brings it back. Its position is remembered. Nodes with a code editor (the Wrangles) get it in the pane: a tall, highlighted editor; the code is applied when the editor loses focus. A COP node keeps its thumbnail on the canvas.
+- **On node**: every node carries its own panel (the layout of the earlier versions). Big graphs are slower to open and to pan.
+- **Native**: ComfyUI's widgets.
+
+The three store exactly the same values; a workflow opens the same in each.
+
+**Quick edit:** Ctrl+click a node (⌘+click on a Mac) to open its panel next to it without selecting it, so the pane keeps showing what it shows. Esc, a click outside or ✕ closes it.
+
+**Presets** (Houdini's gear menu): ☰ in the pane's title bar, or **PCG: Presets…** in any node's menu, saves the node's parameters as a named preset, loads one back, deletes one, or reverts every parameter to its default. Presets are kept per node type (per asset name for [digital assets](assets.md)) in your ComfyUI user data, so every workflow has them. Custom parameters and multiparm instances are part of a preset.
+
 | Element | Behaviour |
 |---|---|
 | Labels and menus | Houdini's names (*Attribute Class*, *Ramp from Attribute*). The internal parameter name is listed in the [reference](../reference/README.md) next to each label. |
@@ -41,14 +55,14 @@ The ramp is still saved as the same line of text (`position:value` entries), so 
 
 ### Nodes without the panel
 
-The panel does not take over nodes with a code editor (Wrangle, Volume Wrangle, Attribute Adjust), the Parameters (PCG) declaration node, Geometry Spreadsheet, and nodes without parameters. To go back to native widgets everywhere, change the PCG *parameter panel* setting in ComfyUI's settings to native (reload the page afterwards); for a single node, use its right-click entry that switches the panel to native widgets.
+The panel does not take over the Parameters (PCG) declaration node, Geometry Spreadsheet, and nodes without parameters; on the node, it also leaves the nodes with a code editor (Wrangle, COP Wrangle, Volume Wrangle) to ComfyUI's widgets (the docked pane takes them). To go back to native widgets everywhere, set the PCG *Parameters of PCG nodes* setting to Native (reload the page afterwards); for a single node, use its right-click entry (*Parameters: native widgets on the node*; *Parameters: docked pane* brings it back).
 
 ### Connecting wires to parameters
 
 ComfyUI's own way of driving a parameter from another node's output still works with the panel:
 
-- Drop a wire **on the cell** you want; it connects to that parameter (the cell is outlined in yellow while dragging). Dropping on a row label connects to the first compatible parameter of the row.
-- The input dot is aligned to the panel row.
+- **Docked pane:** drag a wire to the node; under it a list of its free parameters of a matching type opens (yellow frame). Drop the wire on a line of the list to connect that parameter. A connected parameter becomes an input row of the node, under its own inputs, with the parameter's name (*Translate Y*).
+- **On node:** drop a wire **on the cell** you want; it connects to that parameter (the cell is outlined in yellow while dragging). Dropping on a row label connects to the first compatible parameter of the row. The input dot is aligned to the panel row.
 - A connected cell shows `⇠ source.output` (purple, read-only). Disconnect to get the value back.
 
 Wires are evaluated on the server at run time and work with the API; panel references and expressions (below) are evaluated in the browser.
@@ -145,6 +159,19 @@ Renaming a custom parameter in the dialog updates every reference to it: pasted 
 
 The declaration and the values are kept in the node's properties (`pcg_spare`, `pcg_spare_vals`), by name, so adding or removing custom parameters never shifts the node's normal parameter values in the saved workflow, and copied nodes keep them. The server does not see them as inputs. Their effect comes from references and expressions, which are evaluated in the browser like any other. The exceptions are the three Wrangle nodes (geometry, volume and COP), which receive all custom parameter values and read them with `ch()`; see [`ch()` parameters](wrangle.md#ch-parameters).
 
+## Multiparm blocks
+
+A block of parameters that repeats a number of times you choose, as Houdini's multiparm. Write it in a declaration (custom parameters or Parameters (PCG)):
+
+```
+multi pts = 2            # Points
+    vector pos# = 0 0 0  # Position #
+    float  w#   = 1 : 0 1
+end
+```
+
+`pts` is the number of instances (0 to 64), shown with **+**, **−** and **✕** (remove all) next to it in the panel. Each instance gets the template's parameters with `#` replaced by its number: `pos1`, `w1`, `pos2`, `w2` ..., labels *Position 1*, *Position 2*. In a Wrangle, read them with `ch("w1")`, a loop over `ch("pts")` instances, or `chv("pos2")`. Removing instances drops their values; adding them gives the defaults. The Edit Parameter Interface dialog keeps a block as written; edit its lines in the declaration text.
+
 ## Filling parameters from JSON
 
 Two nodes take parameter values from JSON text, typically written by a language model:
@@ -166,6 +193,7 @@ These are separate from parameters but come with the same front end; see [Wires]
 ## See also
 
 - [Expressions](expressions.md): expression syntax in fields, templates, keyframes and channels
+- [Digital assets](assets.md): folding nodes into one with its own parameters; paths across the asset's boundary
 - [Wires](wires.md) and [Keyboard and mouse](shortcuts.md)
 - [Getting started](../getting-started.md)
 - [Houdini users](../houdini-users.md)

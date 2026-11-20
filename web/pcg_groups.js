@@ -72,9 +72,10 @@ function upstreamOf(node, i) {
   if (n) return n;
   const linkId = node.inputs?.[i]?.link;
   if (linkId == null) return null;
-  const links = app.graph?.links;
+  const g = node.graph || app.graph;
+  const links = g?.links;
   const link = links instanceof Map ? links.get(linkId) : links?.[linkId];
-  return link ? app.graph.getNodeById(link.origin_id) : null;
+  return link ? g.getNodeById(link.origin_id) : null;
 }
 
 function inputNames(node, store, depth = 0, acc = {}, seen = new Set()) {

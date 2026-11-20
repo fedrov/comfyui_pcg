@@ -60,7 +60,7 @@
    },
    "widgets_values": [
     "float ring_radius = 4 : 1 12  # Ring radius\nint pillars = 12 : 3 48  # Pillar count\nfloat pillar_height = 3 : 0.5 10  # Pillar height\n",
-    "{\"pillar_height\": 3.0, \"pillars\": 12, \"ring_radius\": 4.0}"
+    "{\"pillar_height\":3,\"pillars\":12,\"ring_radius\":4}"
    ],
    "title": "Controls"
   },

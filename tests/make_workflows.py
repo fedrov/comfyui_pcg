@@ -136,6 +136,10 @@ def is_widget(t):
                                                               "UPLOAD")
 
 
+COLLAPSE_ABOVE = 300
+KEEP_OPEN = {"PreviewImage", "SaveImage", "LoadImage", "PCG_Viewport", "Note"}
+
+
 class Graph:
     def __init__(self):
         self.nodes = []
@@ -237,8 +241,12 @@ class Graph:
             size = n["size"] or [340, 46 + 24 * (nw + max(
                 len(outputs), len(inputs) - sum(
                     1 for i in inputs if "widget" in i)))]
+            # big graphs (the open world, the modular city: hundreds of nodes) open with the working nodes collapsed:
+            # their titles say what they do, and the canvas does not carry hundreds of widgets (a code box is a DOM
+            # element the frontend repositions on every frame). Previews, viewports and notes stay open
+            collapse = len(self.nodes) > COLLAPSE_ABOVE and n["type"] not in KEEP_OPEN
             d = {"id": n["id"], "type": n["type"], "pos": n["pos"],
-                 "size": size, "flags": {}, "order": order[n["id"]],
+                 "size": size, "flags": {"collapsed": True} if collapse else {}, "order": order[n["id"]],
                  "mode": n["mode"], "inputs": inputs, "outputs": outputs,
                  "properties": {"Node name for S&R": n["type"], **n["props"]},
                  "widgets_values": wv}
@@ -467,9 +475,10 @@ def est_height(n, width):
         if panel_applies(n["type"], it):
             linked = [name for name, t, _ in n["ins"]
                       if is_widget(t) and name in n["in_links"]]
+            # (+40 on image nodes: frontend 1.47 draws the image preview area about 35 px taller than measured before)
             return estimate_node_height(
                 n["type"], it, len(n["outs"]), n["values"], max(width, 340), linked,
-                any(t == "COPIMAGE" for _, t in n["outs"]))
+                any(t == "COPIMAGE" for _, t in n["outs"])) + (40 if any(t == "COPIMAGE" for _, t in n["outs"]) else 0)
     meta = _sections(n["type"])
     gates, members, cur = {}, [], None
     vis = 0
@@ -491,7 +500,10 @@ def est_height(n, width):
                 if not is_widget(t) or name in n["in_links"])
     h = 34 + 22 * max(socks, len(n["outs"])) + 25 * vis
     if any(t == "COPIMAGE" for _, t in n["outs"]):
-        h += width + 10
+        h += width + 50
+    if n["type"] in ("PCG_COPWrangle", "PCG_Wrangle", "PCG_VolumeWrangle"):
+        # the frontend sizes a code box by its text (a long one is up to ~60 px taller than the estimate above)
+        h += 70
     return h
 
 
@@ -4264,7 +4276,11 @@ def world_tiles(quick=False):
     # and the houses are for
     cam3 = G("PCG_Camera", title="Camera: on the road, toward the peak", projection="perspective",
              mode="look_at", resolution_x=RW, resolution_y=RH, fov=55.0, eye_x=CAM3[0], eye_y=CAM3[1],
-             eye_z=CAM3[2], target_x=CAM3[3], target_y=CAM3[4], target_z=CAM3[5])
+             eye_z=CAM3[2], target_x=CAM3[3], target_y=CAM3[4], target_z=CAM3[5],
+             eye_above_ground=round(CAM3[1] - 8.0, 2))
+    # the eye 1.8 m over the terrain made (its height there differs a little from run to run, GPU to CPU: a fixed
+    # eye was buried under it, and the frame showed the terrain from below)
+    g.link(msh, "geo", cam3, "ground")
     pr3 = G("PCG_PreviewImage", title="Road: the preview", width=RW, height=RH, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=WORLD_TEXTURES, sun_elevation=18.0, sun_azimuth=55.0, haze=1.0,
             ground_plane=False, clouds=0.45, cloud_seed=3, emit_attrib="", **RQ)
@@ -4280,7 +4296,7 @@ def world_tiles(quick=False):
     pv3 = G("PreviewImage", title="On the road", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
     # ④b The same world at dusk, in the rain and under snow (the renderer's weather, emitted light and point lights)
-    V5c = Col(g, 4780, 9000, width=520)
+    V5c = Col(g, 4780, max(9000, Wt.y + 120), width=520)      # below the water column
     V5 = (lambda *a, **k: V5c(*a, **{"node_mode": 2, **k})) if quick else V5c      # quick: the variants muted
     lsel = V5("PCG_Wrangle", title="Lamps: their lights (the head's place, colour, intensity)", code=(
         "n = @name.astype(str)\n"
@@ -4299,7 +4315,7 @@ def world_tiles(quick=False):
         ("Rain", cam3, mg3, dict(sun_elevation=22.0, sun_azimuth=55.0, haze=5.0, clouds=0.95, exposure=1.15,
                                  wetness=1.0, emit_attrib=""), False),
         ("Snow", cam2, far_view(CAM2, 500.0, "Snow", mute=quick), dict(sun_elevation=18.0, sun_azimuth=26.0, haze=1.4, clouds=0.5,
-                                                         snow_line=140.0, snow_amount=1.0, emit_attrib=""), False))
+                                                         snow_line=60.0, snow_amount=1.0, emit_attrib=""), False))
     for nm_, cam_, xg_, kw_, lit_ in variants:
         pw_ = V5("PCG_PreviewImage", title=f"{nm_}: the preview", width=1280, height=720, elevation=10.0, azimuth=0.0,
                  shading="color", look="outdoor", textures=WORLD_TEXTURES, ground_plane=False, cloud_seed=3, **kw_)
@@ -5600,12 +5616,13 @@ def material_library(only=None):
 
     y0, bottom = 0, 0
     for k, (name, label, src, hcode, ccode, _) in enumerate(mats):
-        x0 = 460 + (k % 4) * 1180
+        # (columns 440 apart: the frontend widens a node with a code box to 400 px)
+        x0 = 460 + (k % 4) * 1360
         if k and k % 4 == 0:                    # second row starts below the tallest column of the first
             y0 = bottom + 120
         A = Col(g, x0, y0, width=W)
-        B = Col(g, x0 + 380, y0, width=W)
-        C = Col(g, x0 + 760, y0, width=W)
+        B = Col(g, x0 + 440, y0, width=W)
+        C = Col(g, x0 + 880, y0, width=W)
         c = material_maps(g, A, B, name)
         for layer, mode, bits, enc, ny, suffix in (
                 ("basecolor", "clamp", "8", "srgb", "+y", "BaseColor"),
@@ -5963,7 +5980,9 @@ def tut_controller():
         "API, the workflow uses the values last written into the widgets."),
         h=520, title="Controller panel (read me)", w=W)
     ctl = A("PCG_Parameters", title="Controls", declare=TUT_CONTROLS,
-            values=json.dumps(P, sort_keys=True))
+            # as the front end writes it back (JSON.stringify: compact, whole numbers without .0)
+            values=json.dumps({k: int(v) if isinstance(v, float) and v.is_integer() else v for k, v in P.items()},
+                              sort_keys=True, separators=(",", ":")))
     cir = B("PCG_Circle", title="Pillar positions", orientation="zx",
             radius_x=P["ring_radius"], radius_y=P["ring_radius"],
             divisions=P["pillars"])

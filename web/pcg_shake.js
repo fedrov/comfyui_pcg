@@ -39,7 +39,7 @@ function draggedNode(canvas) {
 
 function disconnectAll(node) {
   let n = 0;
-  app.graph.beforeChange?.();
+  (app.canvas?.graph || app.graph).beforeChange?.();
   for (let i = 0; i < (node.inputs?.length || 0); i++) {
     if (node.inputs[i].link != null) {
       node.disconnectInput(i);
@@ -53,7 +53,7 @@ function disconnectAll(node) {
       node.disconnectOutput(i);
     }
   }
-  app.graph.afterChange?.();
+  (app.canvas?.graph || app.graph).afterChange?.();
   return n;
 }
 

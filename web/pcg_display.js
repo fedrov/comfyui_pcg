@@ -933,6 +933,9 @@ export function syncTitle(graph) {
   S.title.textContent = s;
 }
 
+// The network the canvas shows (inside a subgraph: its own Display node, which runs as part of the asset)
+const net = () => app.canvas?.graph || app.graph;
+
 // ════════════════════════════════════════════════════════════ registration
 app.registerExtension({
   name: "pcg.display",
@@ -970,7 +973,7 @@ app.registerExtension({
     canvas.onDrawForeground = function (ctx, area) {
       prev?.apply(this, arguments);
       try {
-        drawFlags(ctx, app.graph);
+        drawFlags(ctx, net());
       } catch (e) {
         console.error("[pcg.display] error drawing flags", e);
       }
@@ -989,19 +992,19 @@ app.registerExtension({
 
     el.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 && e.button !== 2) return;
-      const hit = hitFlag(app.graph, toGraph(e));
+      const hit = hitFlag(net(), toGraph(e));
       if (!hit) return;
       e.preventDefault();
       e.stopPropagation();
       // Right-click / Ctrl-click on the display square also counts as template, saving you from aiming at that small cell
       const kind = (e.button === 2 || e.ctrlKey || e.metaKey)
         ? "tmpl" : hit.kind;
-      app.graph.beforeChange?.();
-      const changed = setFlag(app.graph, kind, hit.node, hit.slot);
-      app.graph.afterChange?.();
+      net().beforeChange?.();
+      const changed = setFlag(net(), kind, hit.node, hit.slot);
+      net().afterChange?.();
       if (changed) {
         if (!S.open) setOpen(true);
-        syncTitle(app.graph);
+        syncTitle(net());
         canvas.setDirty(true, true);
         requestRun();
       }
@@ -1009,7 +1012,7 @@ app.registerExtension({
 
     // Don't pop up litegraph's menu on right-click over a flag
     el.addEventListener("contextmenu", (e) => {
-      if (hitFlag(app.graph, toGraph(e))) {
+      if (hitFlag(net(), toGraph(e))) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -1034,7 +1037,7 @@ app.registerExtension({
 
     // After the graph changes (loading a workflow, undo, manual wiring) refresh the title and the camera list
     setInterval(() => {
-      try { syncTitle(app.graph); syncCamList(app.graph); } catch (_) {}
+      try { syncTitle(net()); syncCamList(app.graph); } catch (_) {}
     }, 700);
 
     // Camera linking gets its own faster tick: when locked this is the only driver of "tumble the viewport -> camera follows";

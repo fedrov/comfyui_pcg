@@ -27,6 +27,9 @@ If you know Houdini, most of comfyui_pcg will feel familiar: the same geometry m
 | Display and template flags | Blue and grey squares above each node; see [Viewing and export](concepts/viewing-and-export.md). |
 | Geometry Spreadsheet | [Geometry Spreadsheet (PCG)](reference/output.md#pcg-geospreadsheet), in the node body. |
 | Null with spare parameters, Edit Parameter Interface | [Parameters (PCG)](reference/param.md#pcg-parameters) with an Edit Parameter Interface dialog; see [Parameters](concepts/parameters.md). |
+| Collapse into subnet, HDA, Type Properties, Promote Parameter | Convert to Subgraph, then **PCG: Edit Asset Interface…**; Publish Subgraph for the library. See [Digital assets](concepts/assets.md). |
+| Middle-click node info, Performance Monitor, cook times | Middle button on a node; the Performance tab; times and badges on the nodes. See [Network feedback](concepts/network.md). |
+| Multiparm block, presets (gear menu) | `multi ... end` blocks in declarations; ☰ in the parameter pane. See [Parameters](concepts/parameters.md#multiparm-blocks). |
 | Spare parameters on any node, Wrangle's "create spare parameters" button | Right-click any node, **PCG: Edit Parameter Interface...**; Wrangle `ch()` calls create them automatically. See [Custom parameters on any node](concepts/parameters.md#custom-parameters-on-any-node). |
 | Copy Parameter / Paste Relative References, `ch()`, HScript expressions, `$F`, keyframes | In the panel, with the same menu, `ch("../node/parm")` paths, degree-based trig and Alt+click keys; see [Expressions](concepts/expressions.md#parameter-expressions). |
 | Switch with lazy branches, Switch-If | [Switch (PCG)](reference/modify.md#pcg-switch) (only the chosen branch runs; `detail(-1, ...)` reads the control input), [Switch-If (PCG)](reference/modify.md#pcg-switchif). |

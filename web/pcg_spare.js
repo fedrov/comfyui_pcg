@@ -28,7 +28,7 @@
 //   yours to manage and are not auto-deleted (Houdini doesn't delete them either).
 
 import { app } from "../../scripts/app.js";
-import { parse, mergeValues, bindings, applyBindings, isNumExpr, isTmpl, NODE_REF } from "./pcg_params.js";
+import { parse, expandMulti, multiBlocks, mergeValues, bindings, applyBindings, isNumExpr, isTmpl, NODE_REF } from "./pcg_params.js";
 import { mapChPaths, mapTemplatePaths } from "./pcg_hexpr.js";
 import { parseItems, toText, openDialog } from "./pcg_paramui.js";
 
@@ -46,7 +46,7 @@ export function spareText(node) {
 }
 
 /** declaration -> parameter specs. Throws when malformed (error messages carry line numbers, same as Parameters). */
-export function spareSpecs(node) { return parse(spareText(node)); }
+export function spareSpecs(node) { return parse(expandMulti(spareText(node), storedVals(node))); }
 
 /** Which widget names a parameter occupies: a scalar is itself, a vector appends x y z w as in Houdini. */
 export function compNames(spec) {
@@ -149,9 +149,11 @@ export function syncSpare(node) {
   const hasFolder = ["required", "optional"].some((g) => Object.values(nd?.input?.[g] || {})
     .some((v) => Array.isArray(v) && v[1]?.pcg_ui?.folder));
   const ui = {};
+  const counts = multiBlocks(spareText(node));
   for (const [wn, info] of want) {
     const s = info.spec;
     ui[wn] = uiSpec(s, info.comp, info.comp === null || info.comp === 0, hasFolder);
+    if (counts[s.name]) ui[wn][1].pcg_ui.multi = true;
     const cur = info.comp === null ? vals[s.name] : vals[s.name][info.comp];
     let w = node._pcgSpareW.get(wn);
     if (w) {
@@ -213,6 +215,8 @@ export function setSpareValue(node, name, comp, v) {
   node.properties = node.properties || {};
   node.properties[SPARE_VALS] = st;
   pushChStore(node);
+  // a multiparm count: its instances come and go
+  if (multiBlocks(spareText(node))[name]) setTimeout(() => syncSpare(node), 0);
 }
 
 // ════════════════════════════════════════════════════ references: who uses it, renames follow

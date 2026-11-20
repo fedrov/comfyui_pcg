@@ -91,6 +91,10 @@ async def main():
               and errs.append(m.text))
         await pg.goto(URL, wait_until="networkidle")
         await pg.wait_for_function("window.app && window.app.graph", timeout=90000)
+        # this file is about the panel on the node (the docked pane, the default, is test_dock_e2e.py)
+        await pg.evaluate("app.extensionManager.setting.set('PCG.ParamPanel', 'On node')")
+        await pg.reload(wait_until="networkidle")
+        await pg.wait_for_function("window.app && window.app.graph", timeout=90000)
         await pg.wait_for_timeout(2500)
         for _ in range(3):
             await pg.keyboard.press("Escape")
@@ -107,6 +111,8 @@ async def main():
           for (const t of types) { const n = LiteGraph.createNode(t); n.pos = [x, 0]; x += 500; app.graph.add(n); }
           await __t.wait(3000);
           const out = {};
+          // (off-screen panels are measured when they come into view; measure them here on the spot)
+          for (const n of app.graph._nodes) n._pcgPanel?.measureNow?.();
           for (const n of app.graph._nodes)
             out[n.type] = {panel: !!n._pcgPanel, h: n._pcgPanel?.height ?? null, w: n.size[0]};
           app.graph.clear();
@@ -148,10 +154,14 @@ async def main():
                   diff.push(n.type);
               }
               const TH = LiteGraph.NODE_TITLE_HEIGHT;
-              const R = app.graph._nodes.map(n => [n.pos[0], n.pos[1] - TH, n.pos[0] + n.size[0], n.pos[1] + n.size[1], n.title]);
+              // a collapsed node is its title bar only
+              const R = app.graph._nodes.map(n => n.flags?.collapsed
+                ? [n.pos[0], n.pos[1] - TH, n.pos[0] + (n._collapsed_width || 120), n.pos[1], n.title, true]
+                : [n.pos[0], n.pos[1] - TH, n.pos[0] + n.size[0], n.pos[1] + n.size[1], n.title, false]);
               const ov = [];
               for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) {
                 const a = R[i], b = R[j];
+                if (a[5] && b[5]) continue;            // two collapsed title bars may run under each other: they take no room
                 if (a[0] < b[2] - 2 && b[0] < a[2] - 2 && a[1] < b[3] - 2 && b[1] < a[3] - 2) ov.push([a[4], b[4]]);
               }
               const panels = app.graph._nodes.filter(n => n._pcgPanel).length;
@@ -826,10 +836,30 @@ async def main():
               and c2.split()[1].split(":")[1] == "0,1,0", c2)
         await pg.screenshot(path=os.path.join(_R, "pcg97_ramp_color.png"), clip={"x": 80, "y": 60, "width": 400, "height": 380})
 
+        sec("big graphs: the world tiles example loads fast, collapsed nodes get their panel when opened")
+        wfj = json.load(open(os.path.join(PKG, "comfyui_pcg", "example_workflows", "pcg_prod_world_tiles.json"),
+                             encoding="utf-8"))
+        t0 = await pg.evaluate("performance.now()")
+        await pg.evaluate("async (wf) => { await app.loadGraphData(wf); }", wfj)
+        t1 = await pg.evaluate("performance.now()")
+        big = await pg.evaluate("""async () => {
+          const g = app.graph, ns = g._nodes;
+          const col = ns.filter(n => n.flags?.collapsed);
+          const withPanel = col.filter(n => n._pcgPanel).length;
+          const n = ns.find(x => x.type === 'PCG_COPHeightfieldErode');
+          n.collapse(); await new Promise(r => setTimeout(r, 300));
+          return {nodes: ns.length, collapsed: col.length, withPanel, opened: !!n._pcgPanel};
+        }""")
+        check(f"world tiles ({big['nodes']} nodes, {big['collapsed']} collapsed) loads in {(t1 - t0) / 1000:.1f} s "
+              f"(it took 36 s when every node measured its panel on loading); collapsed nodes carry no panel "
+              f"({big['withPanel']}), an opened one gets it", (t1 - t0) < 10000 and big["withPanel"] == 0
+              and big["opened"] and big["collapsed"] > 700, big)
+
         for e in errs:
             if "three" not in e:
                 print("  ERR", e[:300])
         check("no PCG-related page errors during the whole run", not [e for e in errs if "three" not in e])
+        await pg.evaluate("app.extensionManager.setting.set('PCG.ParamPanel', 'Docked pane')")
         await b.close()
 
 

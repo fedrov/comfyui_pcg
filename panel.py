@@ -586,6 +586,14 @@ def panel_applies(node_id, it):
     return any_w
 
 
+def dock_applies(node_id, it):
+    """Whether the docked parameter pane takes this node (matches eligible(..., {code: true}) in pcg_panel.js): as
+    panel_applies, plus the nodes with a code editor (multiline code, the ch_params courier of the Wrangles)."""
+    if not str(node_id).startswith("PCG_") or node_id in JS_CUSTOM:
+        return False
+    return any(_widget_kind(v) for grp in ("required", "optional") for v in (it.get(grp) or {}).values())
+
+
 def estimate_node_height(node_id, it, outs=1, values=None, width=340, linked=(),
                          cop_preview=False):
     """
