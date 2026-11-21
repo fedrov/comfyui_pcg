@@ -137,13 +137,15 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     th = np.tan(np.radians(cam["fov"] * 0.5))
     aspect = W / float(H)
     # view ray per pixel (row 0 = bottom, rasterizer convention)
-    jj, ii = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H, dtype=np.float32))
-    ndx = (jj + 0.5) / W * 2 - 1
-    ndy = (ii + 0.5) / H * 2 - 1
-    D = (fwd[None, None] + rgt[None, None] * (ndx * th * aspect)[..., None]
-         + up[None, None] * (ndy * th)[..., None]).astype(np.float32)
-    del jj, ii, ndx, ndy
-    D /= np.linalg.norm(D, axis=-1, keepdims=True)
+    def rays(ii, jj):
+        """The unit view rays (float32) of the pixels at rows ii, columns jj: the whole frame's are only kept
+        until the surfaces are found; the shading makes its chunk's again (a supersampled frame's are 70 MB)."""
+        ndx = (np.asarray(jj, np.float32) + 0.5) / W * 2 - 1
+        ndy = (np.asarray(ii, np.float32) + 0.5) / H * 2 - 1
+        d_ = (fwd + rgt * (ndx * th * aspect)[..., None] + up * (ndy * th)[..., None]).astype(np.float32)
+        d_ /= np.linalg.norm(d_, axis=-1, keepdims=True)
+        return d_
+    D = rays(*np.meshgrid(np.arange(H, dtype=np.float32), np.arange(W, dtype=np.float32), indexing="ij"))
     if not have:
         sk_ = K.clouds(D.reshape(-1, 3), L, sky_radiance(D.reshape(-1, 3), L), clouds, cloud_seed)
         return _develop(sk_.reshape(H, W, 3).astype(np.float32), exposure, k)
@@ -177,7 +179,9 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         Ts.append(T[:2])
         r_ = R.rasterize(g_, cam, max_pairs=S._PAIRS if dev is None else S._PAIRS_T, soup=ts,
                          alpha=S.with_hidden(atest, hid), device=dev)
-        del ts
+        # the alpha test holds the geometry's uv sets (four per impostor card, per vertex: a hundred MB or more
+        # over a forest): let it go now, not at the end of the render
+        del ts, atest, acut, hid
         # the frame buffers at half width (a supersampled frame: a few hundred MB per geometry otherwise)
         r_["bary"] = r_["bary"].astype(np.float32)
         r_["z"] = r_["z"].astype(np.float32)
@@ -192,11 +196,10 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         rasts[1]["hit"] = np.where(wb, rasts[1]["hit"], -1)
         zall = np.minimum(za, zb)
         del za, zb, wb
-        T = (np.concatenate([Ts[0][0], Ts[1][0]]), np.concatenate([Ts[0][1], Ts[1][1] + len(Ts[0][0])]))
+        for r_ in rasts:                                     # the depth is in zall from here on
+            r_.pop("z", None)
     else:
         zall = rasts[0]["z"]
-        T = Ts[0]
-    del Ts
     _trim()
     masks = [r_["hit"] >= 0 for r_ in rasts]
     m = masks[0] | masks[1] if len(masks) > 1 else masks[0]
@@ -262,6 +265,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         N[gplane] = (0.0, 1.0, 0.0)
         FN[gplane] = (0.0, 1.0, 0.0)
         del tg
+    del D
     surf = m & ~gplane
     valid = surf | gplane
 
@@ -350,6 +354,11 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     vi = np.nonzero(valid)
     from .progress import check as _cancel
     _cancel()
+    # the shadow casters as one soup, joined only now: during the texturing its copy would sit beside the frame
+    # buffers (the parts share their triangles with the rasterizer's soups)
+    T = Ts[0] if len(Ts) == 1 else (np.concatenate([Ts[0][0], Ts[1][0]]),
+                                    np.concatenate([Ts[0][1], Ts[1][1] + len(Ts[0][0])]))
+    del Ts
     if dev is not None:
         dmap, meta = K.depth_map_t(K.to_device(T, dev), L, sc_, sr_, sres)
         dmap = dmap.cpu().numpy()
@@ -425,7 +434,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         amb = Es[so].astype(np.float64) + bounce[None] * down * (0.35 + 0.65 * vis_s[so][:, None])
         lit = np.clip(n_ @ L, 0.0, 1.0) * sh[so]
         occ_s = occ[so] * pbr["ao"][so]
-        Dv = D[so].astype(np.float64)
+        Dv = rays(*so).astype(np.float64)
         if use_pbr:
             lin = S._shade_pbr(alb[so], n_, -Dv, L, sun, lit, amb, occ_s,
                                pbr["roughness"][so], pbr["metallic"][so], env=env,
@@ -471,7 +480,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     sk_all = np.nonzero(~valid)
     for s0 in range(0, len(sk_all[0]), step):
         sk = (sk_all[0][s0:s0 + step], sk_all[1][s0:s0 + step])
-        Dk = D[sk].astype(np.float64)
+        Dk = rays(*sk).astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     return _develop(lin_img, exposure, k)
 

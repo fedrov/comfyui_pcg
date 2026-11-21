@@ -12,7 +12,11 @@ All notable changes to this project are documented here. The format follows
   without a seam. Leaf cards, the impostor cards and the coarse trees' cards are translucent; the coarse trees have
   more, smaller cards. Bushes, hedges and orchard trees are built by Tree Generator (dense leaf cards) instead of lumpy
   spheres and boxes; ferns are nine arching fronds; rocks come from the rock assets' SDF, coloured by curvature.
-- **Geometry Preview, memory**: the sun and sky depth maps rasterize their triangles in batches (the same maps).
+- **Geometry Preview (Outdoor), memory**: the sun and sky depth maps rasterize their triangles in batches; the
+  alpha test (with every vertex's uv sets) is let go right after the rasterizing, the per-geometry depth once the
+  two are merged, the frame's view rays once the surfaces are found (the shading makes its chunk's again), and the
+  shadow casters are joined into one soup only after the texturing. The same image, bit for bit; about 480 MB less
+  at the peak of the world-tiles road view (1600 x 900, supersampled), on top of the tangent frames below.
 - **Geometry Preview (Outdoor and Studio), memory**: a normal-mapped material's tangent frames are built from the
   triangles around the visible ones only (the same frames at every visible pixel): a few hundred MB less at the
   peak of the world-tiles road view, whose terrain is mostly off screen.
