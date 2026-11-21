@@ -1757,7 +1757,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ]
   },
   {

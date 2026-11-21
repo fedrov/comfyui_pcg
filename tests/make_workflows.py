@@ -3759,25 +3759,34 @@ def world_tiles(quick=False):
         coarse_ = G("PCG_TreeGenerator", title=f"Tree: {kind_}, coarse (the middle distance, LOD1)", kind=kind_,
                     **ckw_)
         tgen[nm_] = (full_, coarse_)
-    def slim_tree(node, kind_):
+    def slim_tree(node, kind_, top=0.0, leaves_only=False):
+        # the leaf cards are thin: lit from both sides, the sun shining through them (the previews'
+        # translucency_attrib)
+        t_ = G("PCG_Wrangle", title=f"Tree {kind_}: the leaves translucent", run_over="prim",
+               code='@translucency = where(@part.astype(str) == "leaf", 0.5, 0.0)')
+        g.link(node, "geo", t_, "geo")
+        if leaves_only:                                      # a bush's twigs are hidden in its leaves anyway
+            b_ = G("PCG_Blast", title=f"Tree {kind_}: the leaves only", group='@part == "bark"', cls="prim")
+            g.link(t_, "geo", b_, "geo")
+            t_ = b_
         # the previews copy these thousands of times: only what the render reads (P, N, Cd; the kind for the copy)
         d_ = G("PCG_AttribDelete", title=f"Tree {kind_} for the previews: P, N, Cd, uv, material only",
-               point="* ^P ^N ^Cd ^uv", vertex="*", prim="* ^material")
-        g.link(node, "geo", d_, "geo")
-        return named(G, d_, kind_)
+               point="* ^P ^N ^Cd ^uv", vertex="*", prim="* ^material ^translucency")
+        g.link(t_, "geo", d_, "geo")
+        return named(G, d_, kind_, top)
     pine, pine1 = slim_tree(tgen["pine"][0], "pine"), slim_tree(tgen["pine"][1], "pine1")
     broad, broad1 = slim_tree(tgen["broad"][0], "broad"), slim_tree(tgen["broad"][1], "broad1")
     # the engine assets (and the impostors) from the full trees with their uv, parts and materials
     pine_a, pine1_a = tgen["pine"]
     broad_a, broad1_a = tgen["broad"]
-    bsh = G("PCG_Sphere", title="Bush", radius=1.0, cols=6, rows=4)
-    bsj = G("PCG_PointJitter", title="Bush lumps", scale=0.35, rand_seed=5)
-    g.link(bsh, "geo", bsj, "geo")
-    bst = G("PCG_Transform", title="Bush on the ground", ty=0.55, sy=0.65)
-    g.link(bsj, "geo", bst, "geo")
-    bsc = G("PCG_Color", title="Bush green", attribute_class="point", r=0.25, g=0.31, b=0.13)
-    g.link(bst, "geo", bsc, "geo")
-    bushp = named(G, bsc, "bush", 1.3)
+    # a bush: a low broadleaf of Tree Generator, leaf cards from the ground up (it reads as leaves, not as a lump)
+    # (a few large cards, each a whole twig: thousands are copied over the island, so a bush stays cheap)
+    bsh = G("PCG_TreeGenerator", title="Bush (Tree Generator: a low broadleaf)", kind="broadleaf", height=0.7,
+            trunk_radius=0.04, crown_base=0.05, crown_width=2.4, branch_levels=1, branches=3, leaves=20,
+            leaf_size=1.0, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=7)
+    bst = G("PCG_Transform", title="Bush: low and wide (1.3 m)", sx=0.95, sy=0.6, sz=0.95)
+    g.link(bsh, "geo", bst, "geo")
+    bushp = slim_tree(bst, "bush", leaves_only=True)
     fns = G("PCG_Sphere", title="Fern", radius=1.0, cols=8, rows=3)
     fnt = G("PCG_Transform", title="Fern: low and wide", sx=0.75, sy=0.35, sz=0.75, ty=0.2)
     g.link(fns, "geo", fnt, "geo")
@@ -3793,13 +3802,10 @@ def world_tiles(quick=False):
     g.link(rkt, "geo", rkc, "geo")
     rockp = named(G, rkc, "rock")
     # orchard tree: a short trunk and a round crown; hedge: a long low lump of green
-    frc = G("PCG_Sphere", title="Fruit tree crown", radius=1.0, cols=8, rows=5)
-    frt = G("PCG_Transform", title="Fruit tree crown: 2 m wide, at 3 m", sx=2.1, sy=1.7, sz=2.1, ty=3.2)
-    g.link(frc, "geo", frt, "geo")
-    frl = G("PCG_Color", title="Fruit tree green", attribute_class="point", r=0.24, g=0.34, b=0.12)
-    g.link(frt, "geo", frl, "geo")
-    fruit = named(G, merge_n(G, "Fruit tree proxy", [tube(G, "Fruit tree trunk", 0.16, 0.12, 2.0, 1.0, trunk, 5),
-                                                    frl]), "fruit", 4.9)
+    frc = G("PCG_TreeGenerator", title="Fruit tree (Tree Generator: a short, round broadleaf)", kind="broadleaf",
+            height=3.9, trunk_radius=0.12, crown_base=0.4, crown_width=4.2, branch_levels=1, branches=4, leaves=30,
+            leaf_size=1.9, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=11)
+    fruit = slim_tree(frc, "fruit")
     hgs = G("PCG_Box", title="Hedge", size_x=3.2, size_y=1.7, size_z=1.1, cy=0.8)
     hgd = hgs
     hgj = G("PCG_PointJitter", title="Hedge: lumpy", scale=0.25, rand_seed=6)
@@ -3924,20 +3930,40 @@ def world_tiles(quick=False):
     pex = V("PCG_ExportMesh", title="Props: one glb, a node per asset", filename="pcg/world/assets/SM_Props",
             format="glb", split_attribute="name")
     g.link(merge_n(V, "Props", pnm_), "geo", pex, "geo")
-    # a grass tuft: six blades (triangles) leaning out, 0.3-0.5 m; dark at the base, light at the tips, and the
-    # ground's up as their normal, so from either side a blade shades like the ground it grows from
-    tuft = G("PCG_Add", title="Grass tuft: six blades", points=(
-        "0.029 0 0.024\n0.031 0 -0.020\n0.183 0.479 0.011\n0.001 0 0.037\n0.036 0 0.010\n0.120 0.360 0.154\n"
-        "-0.029 0 0.023\n0.013 0 0.035\n-0.051 0.464 0.179\n-0.030 0 -0.022\n-0.030 0 0.022\n-0.123 0.361 0.002\n"
-        "0 0 -0.037\n-0.036 0 -0.011\n-0.091 0.389 -0.120\n0.034 0 -0.014\n-0.003 0 -0.037\n0.097 0.499 -0.158"),
-        use_pattern=True, pattern="0-2\n3-5\n6-8\n9-11\n12-14\n15-17")
-    tufc = G("PCG_Wrangle", title="Tuft: lighter to the tips, the ground's normal; mostly dry in the rain", code=(
-        "f = smoothstep(0, 0.45, @P.y)\n"
-        "@Cd = lerp(set(0.85, 0.85, 0.85), set(1.2, 1.18, 1.02), f)\n"
+    # a grass tuft: six blades bending out, 0.3-0.55 m, each a narrowing quad and a tip (two segments, so a blade
+    # curves); dark at the base, yellow-green and light at the tips, and the ground's up as their normal, so from
+    # either side a blade shades like the ground it grows from; thin, so the sun shines through them
+    import math as _m
+    import random as _rnd
+    trng = _rnd.Random(21)
+    tpts, tpat = [], []
+    for b_ in range(6):
+        a_ = (b_ + 0.35 * trng.random()) * 2 * _m.pi / 6
+        dx, dz = _m.cos(a_), _m.sin(a_)
+        sx_, sz_ = -dz, dx                                   # across the blade
+        h_ = 0.3 + 0.25 * trng.random()
+        lean = (0.12 + 0.2 * trng.random()) * h_ / 0.45
+        r0, w0, w1 = 0.025 * trng.random(), 0.016, 0.011
+        c0 = (r0 * dx, 0.0, r0 * dz)
+        c1 = (c0[0] + 0.3 * lean * dx, 0.55 * h_, c0[2] + 0.3 * lean * dz)
+        c2 = (c0[0] + lean * dx, h_, c0[2] + lean * dz)
+        o_ = len(tpts)
+        tpts += [(c0[0] - w0 * sx_, 0.0, c0[2] - w0 * sz_), (c0[0] + w0 * sx_, 0.0, c0[2] + w0 * sz_),
+                 (c1[0] + w1 * sx_, c1[1], c1[2] + w1 * sz_), (c1[0] - w1 * sx_, c1[1], c1[2] - w1 * sz_), c2]
+        tpat += [f"{o_} {o_ + 1} {o_ + 2} {o_ + 3}", f"{o_ + 3} {o_ + 2} {o_ + 4}"]
+    tuft = G("PCG_Add", title="Grass tuft: six curved blades", points="\n".join(
+        " ".join(f"{v_:.3f}" for v_ in p_) for p_ in tpts), use_pattern=True, pattern="\n".join(tpat))
+    tufc = G("PCG_Wrangle", title="Tuft: dark at the base, yellow-green tips; the ground's normal; mostly dry in "
+             "the rain", code=(
+        "f = smoothstep(0, 0.5, @P.y)\n"
+        "@Cd = lerp(set(0.62, 0.64, 0.6), set(1.25, 1.22, 0.95), f)\n"
         "@N = set(0, 1, 0) + 0 * @P\n"
         "# the renderer's weather_attrib: blades with the ground's normal would otherwise take its puddles\n"
         "@weather = 0.2 + 0 * @P.y"))
     g.link(tuft, "geo", tufc, "geo")
+    # thin: the sun shines through (the previews' translucency_attrib), one value per blade face
+    tuft_t = G("PCG_Wrangle", title="Tuft: translucent", run_over="prim", code="@translucency = 0.45 + 0 * @primnum")
+    g.link(tufc, "geo", tuft_t, "geo")
     gsc = G("PCG_COPLayerToPoints", title="Grass: one tuft per sample", mode="scatter", count=392000,
             density_layer="gd", height_layer="Cdh", height_scale=2048.0, attribs="terrain_albedo", plane="xz",
             world_size=GN * gt, rand_seed=9)
@@ -3950,12 +3976,16 @@ def world_tiles(quick=False):
         "@N = set(sin(a), 0 * a, cos(a))\n"
         "@up = set(0, 1, 0)\n"
         "@pscale = 0.6 + 0.7 * rand(@ptnum + 3.1)\n"
-        "# the albedo is linear; Cd is a display colour\n"
-        "@Cd = pow(clamp(@terrain_albedo, 0, 1), 1 / 2.2) * (0.85 + 0.3 * rand(@ptnum + 5.3))\n"
+        "# the albedo is linear; Cd is a display colour: grass greens, fresh to dry, with a third of the ground's\n"
+        "# colour under it (so dry and shaded patches carry through)\n"
+        "gc = pow(clamp(@terrain_albedo, 0, 1), 1 / 2.2)\n"
+        "k = rand(@ptnum + 7.9)\n"
+        "gr = lerp(set(0.33, 0.46, 0.15), set(0.56, 0.54, 0.25), k * k)\n"
+        "@Cd = lerp(gr, gc, 0.35) * (0.85 + 0.3 * rand(@ptnum + 5.3))\n"
         "@P.y -= 0.04"))
     g.link(gmv, "geo", gpw, "geo")
     grass = G("PCG_CopyToPoints", title="Grass tufts", target_point_attributes="Cd", multiply_attributes="Cd")
-    g.link(tufc, "geo", grass, "source")
+    g.link(tuft_t, "geo", grass, "source")
     g.link(gpw, "geo", grass, "points")
     kt = G("PCG_Wrangle", title="Trees → pine / broad", code='s@kind = where(np.char.startswith(@name.astype(str), "Tree_Pine"), "pine", "broad")')
     g.link(tw, "geo", kt, "geo")

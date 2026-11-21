@@ -694,6 +694,14 @@ def _material_frames(geo, rast, tgt, uvattr, mattr_values, mat):
         prim_ok = np.fromiter((str(x) == mat for x in names), bool, len(names)) if names.dtype == object \
             else names.astype(str) == mat
         tri_mask = prim_ok[src]
+    # only the triangles that share a point with a visible one: every triangle that adds to a visible corner's
+    # wedge shares its point, so the visible frames are exact, at the cost of the visible part of the mesh (a
+    # terrain seen from a road is a small part of its millions of corners)
+    tri_ = rast["tri"]
+    seen = np.zeros(geo.npoints, bool)
+    seen[tri_[np.unique(rast["hit"][tgt])].reshape(-1)] = True
+    tri_mask = tri_mask & seen[tri_].any(1)
+    del seen
     vids, Nc, T4 = corner_frames_subset(geo, uvattr, rast["tri"], rast["cor"], tri_mask)
     t = rast["hit"][tgt]
     w = rast["bary"][tgt]

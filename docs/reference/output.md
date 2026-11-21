@@ -361,6 +361,12 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 |---|---|---|---|
 | Weather Attribute `weather_attrib` | string | `weather` | Outdoor: a float attribute 0..1 that scales the snow and the wetness per surface, so grass blades (whose normals point up like the ground's) can stay dry: 0 keeps a surface as it is. Where the attribute is absent the weather applies in full. *Hidden when look ≠ outdoor.* |
 
+*Outdoor*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Translucency Attribute `translucency_attrib` | string | `translucency` | Outdoor: a float attribute 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side (the face turned away from the sun is not put in shadow; the shading normal decides), and when the sun is behind them that share of its light shines through, tinted by their colour. Where the attribute is absent a surface is opaque, as before. *Hidden when look ≠ outdoor.* |
+
 ---
 
 ### Geometry Spreadsheet (PCG)

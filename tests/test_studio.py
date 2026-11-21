@@ -798,5 +798,36 @@ check("Outdoor extra: drawn beside the scene without a merge, the picture matche
       float((dd_ < 2 / 255).mean()) > 0.99 and float(np.abs(sep - alone).max(-1).mean()) > 0.005,
       (round(float((dd_ < 2 / 255).mean()), 4), round(float(np.abs(sep - alone).max(-1).mean()), 4)))
 
+# normal-map frames from the triangles round the visible ones only: equal to the frames from every triangle at the
+# visible pixels (a wavy uv'd grid seen in part: most of it off screen)
+from comfyui_pcg.geo import render as _R  # noqa: E402
+from comfyui_pcg.geo.meshexport import corner_frames_subset as _cfs  # noqa: E402
+_gw = build.grid(size_x=40.0, size_z=40.0, cols=81, rows=81)
+_P = np.asarray(_gw.get(POINT, "P"), np.float32).copy()
+_P[:, 1] = np.sin(_P[:, 0] * 0.7) * 0.8 + np.cos(_P[:, 2] * 0.5) * 0.6
+_gw.set(POINT, "P", _P)
+_gw.set(POINT, "uv", np.c_[_P[:, 0] * 0.13, _P[:, 2] * 0.11, np.zeros(len(_P))].astype(np.float32))
+_cam = _R.camera(None, "perspective", eye=[-14, 3, -14], target=[-8, 0, -8], fov=30, xres=96, yres=72)
+_rs = _R.rasterize(_gw, _cam)
+_tg = np.nonzero(_rs["hit"] >= 0)
+_Nn, _Tt, _hd = S._material_frames(_gw, _rs, _tg, "uv", None, "")
+_vids, _Nc, _T4 = _cfs(_gw, "uv", _rs["tri"], _rs["cor"], np.ones(len(_rs["src"]), bool))
+_t = _rs["hit"][_tg]
+_w = _rs["bary"][_tg]
+_ids = np.searchsorted(_vids, _rs["cor"][_t])
+_ref = (_T4[_ids[:, 0], :3] * _w[:, 0:1] + _T4[_ids[:, 1], :3] * _w[:, 1:2] + _T4[_ids[:, 2], :3] * _w[:, 2:3])
+_nvis = len(np.unique(_t))
+check(f"normal-map frames from the visible triangles' neighbourhood ({_nvis} of {len(_rs['src'])} triangles seen) "
+      "= the frames from every triangle", len(_tg[0]) > 500 and _nvis < 0.5 * len(_rs["src"])
+      and np.abs(_Tt - _ref).max() < 1e-5 and np.array_equal(_hd, np.where(_T4[_ids[:, 0], 3] == 0, 1.0,
+                                                                            _T4[_ids[:, 0], 3]).astype(np.float32)),
+      float(np.abs(_Tt - _ref).max()))
+_vm = np.zeros(len(_rs["src"]), bool)
+_vm[np.unique(_t)] = True
+_v2, _N2, _T42 = _cfs(_gw, "uv", _rs["tri"], _rs["cor"], _vm)
+_i2 = np.searchsorted(_v2, _rs["cor"][_t])
+_r2 = (_T42[_i2[:, 0], :3] * _w[:, 0:1] + _T42[_i2[:, 1], :3] * _w[:, 1:2] + _T42[_i2[:, 2], :3] * _w[:, 2:3])
+check("  negative control: the visible triangles alone (no neighbours) give other frames at the edge of the view",
+      np.abs(_r2 - _ref).max() > 1e-3, float(np.abs(_r2 - _ref).max()))
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

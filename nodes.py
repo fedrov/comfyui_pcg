@@ -1956,6 +1956,8 @@ class PCG_PreviewImage:
             "light_range": _f(40.0, 0.1, 1e5, 1.0),
             "cameras": (CAMSEQ, {"tooltip": "Outdoor: render every camera of the sequence (a batch of frames)"}),
             "weather_attrib": ("STRING", {"default": "weather"}),
+            # appended: thin surfaces (grass, leaf cards) lit from both sides and letting sunlight through (Outdoor)
+            "translucency_attrib": ("STRING", {"default": "translucency"}),
         }}
     # appended outputs: the outdoor look's guide passes (for ControlNet: depth, normal); other looks give flat ones
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE"); RETURN_NAMES = ("image", "depth", "normal")
@@ -1967,14 +1969,15 @@ class PCG_PreviewImage:
             sun_elevation=35.0, sun_azimuth=135.0, haze=1.0, ground_plane=True,
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
             compute="auto", detail_cop=None, splat_cop=None, extra_geo=None, snow_line=150.0, snow_amount=0.0,
-            wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, cameras=None, weather_attrib="weather"):
+            wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, cameras=None, weather_attrib="weather",
+            translucency_attrib="translucency"):
         if cameras is not None and len(cameras) and look == "outdoor":
             import torch as _torch
             outs = [self.run(geo, width, height, elevation, azimuth, shading, color_attrib, look, supersampling,
                              textures, material_attrib, uv_attrib, textures_cop, c_, sun_elevation, sun_azimuth, haze,
                              ground_plane, ground_color, exposure, clouds, cloud_seed, sky_samples, compute,
                              detail_cop, splat_cop, extra_geo, snow_line, snow_amount, wetness, emit_attrib, lights,
-                             light_range, None, weather_attrib) for c_ in cameras]
+                             light_range, None, weather_attrib, translucency_attrib) for c_ in cameras]
             outs = [o_["result"] if isinstance(o_, dict) else o_ for o_ in outs]
             return tuple(_torch.cat([o_[i] for o_ in outs], 0) for i in range(3))
         extra_od = None
@@ -1985,7 +1988,7 @@ class PCG_PreviewImage:
             # only what the render reads is merged (the merge copies; a terrain's other attributes and groups would
             # be copied for nothing, and filled in for the extra geometry): shallow copies without the rest
             keep = {"P", "N", "Alpha", "shadow_only", str(color_attrib), str(uv_attrib), str(material_attrib),
-                    str(emit_attrib), str(weather_attrib)}
+                    str(emit_attrib), str(weather_attrib), str(translucency_attrib)}
 
             def _slim(g_):
                 s_ = g_.copy()
@@ -2016,7 +2019,8 @@ class PCG_PreviewImage:
                                      sky_samples=sky_samples, compute=compute, detail_cop=detail_cop,
                                      splat_cop=splat_cop, extra=extra_od, aux=aux, snow_line=snow_line,
                                      snow_amount=snow_amount, wetness=wetness, emit_attrib=emit_attrib,
-                                     lights=lights, light_range=light_range, weather_attrib=weather_attrib)
+                                     lights=lights, light_range=light_range, weather_attrib=weather_attrib,
+                                     translucency_attrib=translucency_attrib)
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,

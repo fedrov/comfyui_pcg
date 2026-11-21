@@ -93,7 +93,8 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
                    sun_azim=135.0, haze=1.0, ground=True, ground_color=GROUND_DEFAULT, exposure=1.0,
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
                    detail_cop=None, splat_cop=None, extra=None, aux=None, snow_line=0.0, snow_amount=0.0,
-                   wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, weather_attrib="weather"):
+                   wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, weather_attrib="weather",
+                   translucency_attrib="translucency"):
     """
     (H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective).
     extra: a second geometry drawn with geo without merging the two (each is rasterized on its own and the nearer
@@ -108,6 +109,9 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     a colour attribute added as emitted light (lit windows, lamp heads); lights: points (P, Cd colour, intensity) lit
     as unshadowed point lights within light_range metres (street lamps at dusk). weather_attrib names a float
     attribute 0..1 that scales the snow and the wetness per surface (grass blades kept dry: 0); where it is absent, 1.
+    translucency_attrib names a float attribute 0..1 for thin surfaces (grass blades, leaf cards): they are lit from
+    either side (no terminator on the face turned from the sun) and let that much sunlight through, tinted by their
+    colour, when the sun is behind them; where it is absent, 0 (opaque, as before).
     """
     try:                                   # start from a trimmed heap: the render needs a few GB of buffers
         from ..memtrim import trim as _trim
@@ -218,8 +222,28 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         N[mk] = S._smooth_normals(g_, r_, FN)[mk]
     # a face seen from behind turns its normals to the viewer; an authored normal that already faces the viewer stays
     # (grass and foliage cards carry the ground's up as N, so both sides of a blade shade like the ground)
+    trn = None
+    if translucency_attrib:
+        for g_, r_, mk in zip(parts, rasts, masks):
+            if not (g_.has(POINT, translucency_attrib) or any(g_.has(c_, translucency_attrib) for c_ in _CLASSES)):
+                continue
+            e_ = _attrib_image(g_, r_, translucency_attrib)
+            if e_ is None:
+                continue
+            if trn is None:
+                trn = np.zeros((H, W), np.float32)
+            trn[mk] = np.clip(e_[..., 0][mk], 0.0, 1.0)
+            del e_
+        if trn is not None and not (trn > 0).any():
+            trn = None
     flip = (FN * D).sum(-1) > 0
-    N[flip & ((N * D).sum(-1) > 0)] *= -1
+    # (a thin surface keeps its authored normal: grass carries the ground's up, which a view from below the
+    # blades -- up a slope -- would otherwise turn down, into the dark)
+    turn = flip & ((N * D).sum(-1) > 0)
+    if trn is not None:
+        turn &= ~(trn > 0)
+    N[turn] *= -1
+    del turn
     FN[flip] *= -1
 
     _trim()
@@ -341,8 +365,12 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     # Faces turned away from the sun are in their own shadow, faces at a grazing angle fade into it (with
     # smooth-normal shading, treating grazing faces as lit lights single triangles along every terminator of a
     # coarse mesh; the normal offset in sun_shadow handles the acne)
-    t_ = np.clip((FN @ L32 + 0.02) / 0.12, 0.0, 1.0)
+    fl_ = FN @ L32
+    if trn is not None:                     # thin surfaces: lit from either side (the shading normal decides)
+        fl_ = np.where(trn > 0, np.abs(fl_), fl_)
+    t_ = np.clip((fl_ + 0.02) / 0.12, 0.0, 1.0)
     sh = sh * (t_ * t_ * (3 - 2 * t_))
+    del fl_
     cam_h = max(sr_ * 1.2, 600.0)                           # cloud layer height: by the visible scene, not the bbox
     if clouds > 0:
         for s0 in range(0, len(vi[0]), step):
@@ -410,6 +438,14 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         # aerial perspective in metres: Haze 1 = light falls to 1/e over HAZE_METRES; the haze glows toward the sun
         # (forward scattering). It used to scale with the bounding box, which a sea quad to the horizon made 60 km wide:
         # the haze then started some 600 km out, and near and far ridges looked the same
+        if trn is not None:
+            # sunlight through a thin surface when the sun is behind it (FN faces the viewer): tinted by the
+            # surface's colour twice (it passes through the pigment), strongest looking toward the sun
+            tr_ = trn[so].astype(np.float64)
+            back = np.clip(-(FN[so].astype(np.float64) @ L), 0.0, 1.0)
+            fwd_s = np.clip(Dv @ L, 0.0, 1.0) ** 4
+            a_ = alb[so].astype(np.float64)
+            lin = lin + (a_ * np.minimum(a_ * 3.0, 1.0)) * sun[None] * (tr_ * sh[so] * (0.6 * back + 0.8 * fwd_s))[:, None]
         if Ept is not None:
             lin = lin + alb[so].astype(np.float64) * Ept[so].astype(np.float64) * occ[so][:, None]
         if emit is not None:

@@ -1122,12 +1122,12 @@ else:
     if gg_ is None:
         check("grass: the Grass tufts node ran", False)
     else:
-        GP = gg_["P"].reshape(-1, 18, 3)
-        base = GP[:, [0, 1, 3, 4, 6, 7, 9, 10, 12, 13, 15, 16]].mean(1)
+        GP = gg_["P"].reshape(-1, 30, 3)                    # six blades of five points, the first two at the base
+        base = GP[:, [5 * b_ + k_ for b_ in range(6) for k_ in (0, 1)]].mean(1)
         ntuft = len(base)
         rr = np.hypot(base[:, 0] - MW.CAM3[0], base[:, 2] - MW.CAM3[2])
-        check(f"grass: {ntuft} tufts of six blades, all within 141 m of the road camera",
-              30000 < ntuft < 90000 and gg_["prims"] == 6 * ntuft and rr.max() < 141.0, round(float(rr.max()), 1))
+        check(f"grass: {ntuft} tufts of six two-segment blades, all within 141 m of the road camera",
+              30000 < ntuft < 90000 and gg_["prims"] == 12 * ntuft and rr.max() < 141.0, round(float(rr.max()), 1))
         near = (rr < 10).sum() / (np.pi * 100)
         far = ((rr > 60) & (rr < 100)).sum() / (np.pi * (100 ** 2 - 60 ** 2))
         check(f"  {near:.1f} per m² within 10 m of the camera, {far:.2f} per m² at 60-100 m (1 / distance², floor 2)",

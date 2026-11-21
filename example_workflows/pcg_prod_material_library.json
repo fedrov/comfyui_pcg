@@ -926,7 +926,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Wall: studio preview"
   },
@@ -1619,7 +1620,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "Ground_Cobble: studio preview"
   },
@@ -2267,7 +2269,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Door: studio preview"
   },
@@ -2915,7 +2918,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Roof: studio preview"
   },
@@ -3563,7 +3567,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Trim: studio preview"
   },
@@ -4211,7 +4216,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Glass: studio preview"
   },
@@ -4859,7 +4865,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Metal: studio preview"
   },
@@ -5552,7 +5559,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Sign: studio preview"
   },
@@ -6245,7 +6253,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_BrickBuff: studio preview"
   },
@@ -6938,7 +6947,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_Stucco: studio preview"
   },
@@ -7631,7 +7641,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "Ground_Asphalt: studio preview"
   },
@@ -8324,7 +8335,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_RoofFlat: studio preview"
   },
@@ -8972,7 +8984,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_FacadeFar: studio preview"
   },
@@ -9620,7 +9633,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ],
    "title": "M_FacadeFarBrick: studio preview"
   },

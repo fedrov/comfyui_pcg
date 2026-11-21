@@ -372,7 +372,7 @@ else:
           _k[_k.index("sky_samples") + 1] == "compute"
           and _k[_k.index("compute") + 1:] == ["detail_cop", "splat_cop", "extra_geo", "snow_line", "snow_amount",
                                                "wetness", "emit_attrib", "lights", "light_range", "cameras",
-                                               "weather_attrib"], _k[_k.index("compute") + 1:])
+                                               "weather_attrib", "translucency_attrib"], _k[_k.index("compute") + 1:])
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

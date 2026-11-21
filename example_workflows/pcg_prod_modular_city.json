@@ -17836,7 +17836,7 @@
    ],
    "size": [
     520,
-    1048
+    1108
    ],
    "flags": {
     "collapsed": true
@@ -17937,7 +17937,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ]
   },
   {
@@ -17945,7 +17946,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    37703
+    37763
    ],
    "size": [
     520,
@@ -17973,7 +17974,7 @@
    "type": "PCG_Camera",
    "pos": [
     3080,
-    38147
+    38207
    ],
    "size": [
     520,
@@ -18046,11 +18047,11 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    38441
+    38501
    ],
    "size": [
     520,
-    1048
+    1108
    ],
    "flags": {
     "collapsed": true
@@ -18151,7 +18152,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ]
   },
   {
@@ -18159,7 +18161,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    39533
+    39653
    ],
    "size": [
     520,
@@ -18187,7 +18189,7 @@
    "type": "PCG_Add",
    "pos": [
     3080,
-    39977
+    40097
    ],
    "size": [
     520,
@@ -18243,7 +18245,7 @@
    "type": "PCG_Wrangle",
    "pos": [
     3080,
-    40351
+    40471
    ],
    "size": [
     520,
@@ -18303,7 +18305,7 @@
    "type": "PCG_CopyToPoints",
    "pos": [
     3080,
-    40712
+    40832
    ],
    "size": [
     520,
@@ -18360,7 +18362,7 @@
    "type": "PCG_PreviewImage",
    "pos": [
     3080,
-    41131
+    41251
    ],
    "size": [
     520,
@@ -18465,7 +18467,8 @@
     0.0,
     "emit",
     40.0,
-    "weather"
+    "weather",
+    "translucency"
    ]
   },
   {
@@ -18473,7 +18476,7 @@
    "type": "PreviewImage",
    "pos": [
     3080,
-    41683
+    41803
    ],
    "size": [
     520,

@@ -1052,7 +1052,7 @@ SPECS = {
                   "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
                   "sun_elevation", "sun_azimuth", "haze", "clouds", "cloud_seed", "sky_samples",
                   "ground_plane", "ground_color", "exposure", "compute", "snow_line", "snow_amount",
-                  "wetness", "emit_attrib", "light_range", "weather_attrib"],
+                  "wetness", "emit_attrib", "light_range", "weather_attrib", "translucency_attrib"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
@@ -1109,6 +1109,10 @@ SPECS = {
             "weather_attrib": {"label": "Weather Attribute", "section": "Weather", "hide": "{ look != outdoor }",
                                "help": "A float 0..1 scaling the snow and wetness per surface (0 keeps grass dry); "
                                        "absent = 1"},
+            "translucency_attrib": {"label": "Translucency Attribute", "section": "Outdoor",
+                                    "hide": "{ look != outdoor }",
+                                    "help": "A float 0..1 for thin surfaces (grass, leaf cards): lit from both "
+                                            "sides, that much sunlight shines through them; absent = 0"},
         },
     },
 
