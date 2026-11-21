@@ -8,8 +8,11 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 - **World tiles, grass and foliage**: the grass tufts are six curved blades in grass greens (fresh to dry, a third
   of the ground's colour), yellow-green at the tips and translucent; they no longer show as dark strokes on slopes
-  seen from below. Leaf cards are translucent. Bushes and orchard trees are built by Tree Generator (leaf cards) instead
-  of lumpy spheres.
+  seen from below; from 35 m out they fade into the ground's colour and get shorter, so they meet the terrain texture
+  without a seam. Leaf cards, the impostor cards and the coarse trees' cards are translucent; the coarse trees have
+  more, smaller cards. Bushes, hedges and orchard trees are built by Tree Generator (dense leaf cards) instead of lumpy
+  spheres and boxes; ferns are nine arching fronds; rocks come from the rock assets' SDF, coloured by curvature.
+- **Geometry Preview, memory**: the sun and sky depth maps rasterize their triangles in batches (the same maps).
 - **Geometry Preview (Outdoor and Studio), memory**: a normal-mapped material's tangent frames are built from the
   triangles around the visible ones only (the same frames at every visible pixel): a few hundred MB less at the
   peak of the world-tiles road view, whose terrain is mostly off screen.
@@ -49,8 +52,8 @@ All notable changes to this project are documented here. The format follows
 - **Geometry Preview (Outdoor): Translucency Attribute** (`translucency_attrib`, appended, default `translucency`): a
   float 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side, keep their authored
   normal when seen from behind (grass with the ground's up normal no longer turns dark when seen from below, up a
-  slope), and let that share of the sunlight through, tinted by their colour, when the sun is behind them. Geometry
-  without the attribute renders as before.
+  slope), let that share of the sunlight through, tinted by their colour, when the sun is behind them, and get a
+  faint sheen toward the sun. Geometry without the attribute renders as before.
 - **Camera: Eye Above Ground** (appended; 0 = off, as before) with an optional `ground` input: in the Look At mode
   the eye is placed that high over the ground under it; the info output reports the ground height.
 - **Digital assets on subgraphs** (Houdini's HDA): **PCG: Edit Asset Interface…** on a subgraph node is Type

@@ -357,17 +357,41 @@ check("translucency: a card with an up normal seen from below keeps it (lit like
       (round(float(u1[cm_].mean()), 3), round(float(u0[cm_].mean()), 3)))
 check("  translucency 0 on every point = no attribute (bit for bit); translucency_attrib empty = not read",
       np.array_equal(uz, u0) and np.array_equal(O.render_outdoor(c1_, 64, 48, translucency_attrib="", **ku_), u0))
-# the sun behind the card (camera on +x, sun from -x, 30 degrees up): sunlight through it, tinted by its colour
+# the sun behind the card (camera on +x, the sun on -x, 60 degrees up), a card whose normal faces the camera: the
+# sun is on its back, so no diffuse light and no sheen reach the front; what shows is what comes through
+def _cardx(cd=(0.2, 0.6, 0.1), tr=None):
+    c_ = _card(cd)
+    c_.set(POINT, "N", np.tile(np.array([[1.0, 0.0, 0.0]], np.float32), (4, 1)))
+    if tr is not None:
+        c_.set(POINT, "translucency", np.full(4, tr, np.float32))
+    return c_
 camb2 = R.camera(None, "perspective", eye=[12, 2, 0], target=[0, 2, 0], fov=30)
-kt_ = dict(cam=camb2, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, sun_elev=30, sun_azim=270)
-kf2_ = dict(kt_, sun_azim=90)                                 # the same sun on the camera's side
-b0, b1, f0, f1 = (O.render_outdoor(g_, 64, 48, **k_) for k_ in (kt_, kf2_) for g_ in (c0_, c1_))
-d_ = b1[cm_].mean((0, 1)) - f1[cm_].mean((0, 1))
-check("translucency: backlit by the sun the card glows through, brighter than lit by the same sun from the camera's "
-      "side (its up normal sees both the same), green (its colour) gaining most",
-      d_[1] > 0.05 and d_[1] > d_[0] and d_[1] > d_[2], np.round(d_, 3))
-check("  negative control: the opaque card backlit is no brighter than front-lit (nothing shines through)",
-      b0[cm_].mean() <= f0[cm_].mean() + 1e-3, (round(float(b0[cm_].mean()), 3), round(float(f0[cm_].mean()), 3)))
+kt_ = dict(cam=camb2, ssaa=1, haze=0.0, clouds=0.0, sky_samples=0, ground=False, sun_elev=60, sun_azim=270)
+x0_, x1_ = _cardx(), _cardx(tr=0.5)
+b0, b1 = (O.render_outdoor(g_, 64, 48, **kt_) for g_ in (x0_, x1_))
+d_ = b1[cm_].mean((0, 1)) - b0[cm_].mean((0, 1))
+check("translucency: backlit by the sun the card glows through (brighter than the opaque card), green (its colour) "
+      "gaining most", d_[1] > 0.03 and d_[1] > d_[0] and d_[1] > d_[2], np.round(d_, 3))
+f0, f1 = (O.render_outdoor(g_, 64, 48, **dict(kt_, sun_azim=90)) for g_ in (x0_, x1_))
+_fd = (f1[cm_] - f0[cm_]).mean((0, 1))
+check("  negative control: the same sun on the camera's side -- nothing green comes through (only the faint sheen, "
+      "the sun's colour: red >= green, under a quarter of the glow)", _fd[1] <= _fd[0] + 1e-3
+      and _fd.max() < 0.25 * d_[1], np.round(_fd, 3))
+# ... and waxy: a sheen toward the sun, looking toward a low sun the translucent ground is brighter; with the sun
+# behind the camera there is none (and nothing shines through ground lit from above): the same as the opaque ground
+SUNZ_ = 0 if O.sun_dir(15, 0)[2] < 0 else 180
+fl1_ = flat.copy()
+fl1_.set(POINT, "translucency", np.full(fl1_.npoints, 0.5, np.float32))
+kg_ = dict(kf_, sun_elev=15, sun_azim=SUNZ_)
+gp0, gp1 = (O.render_outdoor(g_, 96, 72, **kg_) for g_ in (flat, fl1_))
+_gd = (gp1 - gp0).mean(-1)
+_gm = np.unravel_index(np.argmax(_gd), _gd.shape)
+check("translucency: waxy -- looking toward a low sun the translucent ground has a sheen: brighter, in the sun's "
+      "colour (not the ground's)", _gd.max() > 0.015 and (gp1 - gp0)[_gm][0] >= (gp1 - gp0)[_gm][1],
+      (round(float(_gd.max()), 3), np.round((gp1 - gp0)[_gm], 3)))
+gn0, gn1 = (O.render_outdoor(g_, 96, 72, **dict(kg_, sun_azim=SUNZ_ + 180)) for g_ in (flat, fl1_))
+check("  negative control: the sun behind the camera -- no sheen, nothing through: as the opaque ground",
+      np.abs(gn1 - gn0).max() < 2 / 255, float(np.abs(gn1 - gn0).max()))
 bx_ = build.box(size=(4.0, 4.0, 4.0), center=(0.0, 2.0, 0.0))
 bx2 = bx_.copy()
 bx2.set(POINT, "emit", np.tile(np.array([[2.0, 1.5, 0.8]], np.float32), (bx2.npoints, 1)))

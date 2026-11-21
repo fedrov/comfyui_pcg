@@ -134,6 +134,19 @@ def _depth_map(T, d, center, radius, res):
     py_ = ((Q @ u) * sc + res * 0.5).astype(np.float32)
     pz_ = (radius - Q @ d).astype(np.float32)
     del Q
+    # in batches of triangles: the per-triangle screen corners and boxes are a dozen arrays the length of the
+    # batch (a scene of millions of triangles made them a few hundred MB); the depth is a minimum, so the batches
+    # give the same map in any order
+    for c0 in range(0, len(tri), _DM_BATCH):
+        _splat_tris(depth, px_, py_, pz_, tri[c0:c0 + _DM_BATCH], res)
+    return depth.reshape(res, res), meta
+
+
+_DM_BATCH = 1 << 21          # triangles per batch of _depth_map
+
+
+def _splat_tris(depth, px_, py_, pz_, tri, res):
+    """Rasterize one batch of triangles (corners projected in px_, py_, depth pz_) into the flat depth map, min."""
     i0, i1, i2 = tri[:, 0], tri[:, 1], tri[:, 2]
     sx = (px_[i0], px_[i1], px_[i2])
     sy = (py_[i0], py_[i1], py_[i2])
@@ -223,7 +236,6 @@ def _depth_map(T, d, center, radius, res):
             zz = (w0 * z[0][t] + w1 * z[1][t] + w2 * z[2][t]) / np.maximum(w0 + w1 + w2, 1e-6)
             np.minimum.at(depth, (py * res + px)[ok], zz[ok])
             start = stop
-    return depth.reshape(res, res), meta
 
 
 # ══════════════════════════════════════════════════════════════════ torch path (pcg126)

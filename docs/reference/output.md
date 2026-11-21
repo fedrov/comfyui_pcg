@@ -365,7 +365,7 @@ The outdoor look lights the scene like a photograph: the sky is an area light wi
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| Translucency Attribute `translucency_attrib` | string | `translucency` | Outdoor: a float attribute 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side (the face turned away from the sun is not put in shadow; the shading normal decides), and when the sun is behind them that share of its light shines through, tinted by their colour. Where the attribute is absent a surface is opaque, as before. *Hidden when look ≠ outdoor.* |
+| Translucency Attribute `translucency_attrib` | string | `translucency` | Outdoor: a float attribute 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side (the face turned away from the sun is not put in shadow; the shading normal decides), when the sun is behind them that share of its light shines through, tinted by their colour, and they get a faint waxy sheen toward the sun. Where the attribute is absent a surface is opaque, as before. *Hidden when look ≠ outdoor.* |
 
 ---
 

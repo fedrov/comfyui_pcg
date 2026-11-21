@@ -440,12 +440,19 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         # the haze then started some 600 km out, and near and far ridges looked the same
         if trn is not None:
             # sunlight through a thin surface when the sun is behind it (FN faces the viewer): tinted by the
-            # surface's colour twice (it passes through the pigment), strongest looking toward the sun
+            # surface's colour twice (it passes through the pigment), strongest looking toward the sun (only through a
+            # surface the sun is behind: lit from the front nothing comes through)
             tr_ = trn[so].astype(np.float64)
             back = np.clip(-(FN[so].astype(np.float64) @ L), 0.0, 1.0)
             fwd_s = np.clip(Dv @ L, 0.0, 1.0) ** 4
             a_ = alb[so].astype(np.float64)
-            lin = lin + (a_ * np.minimum(a_ * 3.0, 1.0)) * sun[None] * (tr_ * sh[so] * (0.6 * back + 0.8 * fwd_s))[:, None]
+            lin = lin + (a_ * np.minimum(a_ * 3.0, 1.0)) * sun[None] * (tr_ * sh[so] * back * (0.6 + 0.8 * fwd_s))[:, None]
+            # and waxy: a small white sheen toward the sun (the sun's lobe only -- a smoother roughness would also
+            # mirror the blue sky over whole meadows and grey them)
+            hh_ = L[None] - Dv
+            hh_ /= np.linalg.norm(hh_, axis=1, keepdims=True)
+            sp_ = np.clip((n_ * hh_).sum(1), 0.0, 1.0) ** 16 * 0.25 * tr_ * sh[so] * np.clip(n_ @ L, 0.0, 1.0)
+            lin = lin + sp_[:, None] * sun[None]
         if Ept is not None:
             lin = lin + alb[so].astype(np.float64) * Ept[so].astype(np.float64) * occ[so][:, None]
         if emit is not None:

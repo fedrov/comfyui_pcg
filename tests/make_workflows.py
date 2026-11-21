@@ -3754,7 +3754,8 @@ def world_tiles(quick=False):
                                                         leaves=1100, leaf_size=1.25, rand_seed=3,
                                                         leaf_color="1 1 1", leaf_material="M_Leaf"))):
         full_ = G("PCG_TreeGenerator", title=f"Tree: {kind_} (Tree Generator)", kind=kind_, **kw_)
-        ckw_ = dict(kw_, leaves=130 if kind_ == "conifer" else 110, leaf_size=2.8 if kind_ == "conifer" else 3.4,
+        # (more and smaller cards than one per branch: from 60 m out the crown still reads as leaves, not as blobs)
+        ckw_ = dict(kw_, leaves=150 if kind_ == "conifer" else 130, leaf_size=2.6 if kind_ == "conifer" else 3.1,
                     sides=3, branch_levels=1, branches=4 if kind_ == "conifer" else 3, segments=3)
         coarse_ = G("PCG_TreeGenerator", title=f"Tree: {kind_}, coarse (the middle distance, LOD1)", kind=kind_,
                     **ckw_)
@@ -3780,39 +3781,84 @@ def world_tiles(quick=False):
     pine_a, pine1_a = tgen["pine"]
     broad_a, broad1_a = tgen["broad"]
     # a bush: a low broadleaf of Tree Generator, leaf cards from the ground up (it reads as leaves, not as a lump)
-    # (a few large cards, each a whole twig: thousands are copied over the island, so a bush stays cheap)
-    bsh = G("PCG_TreeGenerator", title="Bush (Tree Generator: a low broadleaf)", kind="broadleaf", height=0.7,
-            trunk_radius=0.04, crown_base=0.05, crown_width=2.4, branch_levels=1, branches=3, leaves=20,
-            leaf_size=1.0, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=7)
-    bst = G("PCG_Transform", title="Bush: low and wide (1.3 m)", sx=0.95, sy=0.6, sz=0.95)
+    # (a few large cards close together, each a whole twig: thousands are copied over the island, so a bush stays
+    # cheap and still reads as dense)
+    bsh = G("PCG_TreeGenerator", title="Bush (Tree Generator: a low broadleaf)", kind="broadleaf", height=0.5,
+            trunk_radius=0.04, crown_base=0.05, crown_width=1.3, branch_levels=1, branches=3, leaves=26,
+            leaf_size=0.9, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=7)
+    bst = G("PCG_Transform", title="Bush: low and wide (1.3 m)", sx=0.95, sy=0.62, sz=0.95, ty=0.2)
     g.link(bsh, "geo", bst, "geo")
-    bushp = slim_tree(bst, "bush", leaves_only=True)
-    fns = G("PCG_Sphere", title="Fern", radius=1.0, cols=8, rows=3)
-    fnt = G("PCG_Transform", title="Fern: low and wide", sx=0.75, sy=0.35, sz=0.75, ty=0.2)
-    g.link(fns, "geo", fnt, "geo")
-    fnc = G("PCG_Color", title="Fern green", attribute_class="point", r=0.20, g=0.30, b=0.10)
-    g.link(fnt, "geo", fnc, "geo")
-    fernp = named(G, fnc, "fern", 0.55)
-    rk = G("PCG_Sphere", title="Rock", radius=1.0, cols=7, rows=5)
-    rkj = G("PCG_PointJitter", title="Rock: angular", scale=0.45, rand_seed=8)
-    g.link(rk, "geo", rkj, "geo")
-    rkt = G("PCG_Transform", title="Rock: squat", sy=0.62, sx=1.25)
-    g.link(rkj, "geo", rkt, "geo")
-    rkc = G("PCG_Color", title="Rock grey", attribute_class="point", r=0.44, g=0.42, b=0.39)
-    g.link(rkt, "geo", rkc, "geo")
-    rockp = named(G, rkc, "rock")
+    bushp = slim_tree(bst, "bush", leaves_only=True, )
+    # a fern: nine fronds arching out of a crown, each a two-segment card cut out by the needle spray (a midrib with
+    # leaflets on both sides), lighter and yellower than the conifer's
+    import math as _m
+    import random as _rnd
+    frng = _rnd.Random(5)
+    fpts, fpat = [], []
+    for b_ in range(9):
+        a_ = (b_ + 0.4 * frng.random()) * 2 * _m.pi / 9
+        dx, dz = _m.cos(a_), _m.sin(a_)
+        sx_, sz_ = -dz, dx
+        ln_ = 0.55 + 0.25 * frng.random()
+        rise = 0.35 + 0.15 * frng.random()
+        w_ = 0.13 * ln_ / 0.65
+        o_ = len(fpts)
+        for f_, (rr_, yy_, ww_) in enumerate(((0.02, 0.05, 0.25), (0.5 * ln_, rise, 1.0), (ln_, rise * 0.55, 0.55))):
+            cx_, cz_ = rr_ * dx, rr_ * dz
+            fpts += [(cx_ - ww_ * w_ * sx_, yy_, cz_ - ww_ * w_ * sz_), (cx_ + ww_ * w_ * sx_, yy_, cz_ + ww_ * w_ * sz_)]
+        fpat += [f"{o_} {o_ + 1} {o_ + 3} {o_ + 2}", f"{o_ + 2} {o_ + 3} {o_ + 5} {o_ + 4}"]
+    fns = G("PCG_Add", title="Fern: nine arching fronds", points="\n".join(
+        " ".join(f"{v_:.3f}" for v_ in p_) for p_ in fpts), use_pattern=True, pattern="\n".join(fpat))
+    fnc = G("PCG_Wrangle", title="Fern: the frond's uv (v along it), soft normals, a light green tint", code=(
+        "k = @ptnum % 6\n"
+        "@uv = set(k % 2, floor(k / 2) * 0.5, 0 * k)\n"
+        "o = normalize(set(@P.x, 0 * @P.x, @P.z) + set(1e-6, 0, 0))\n"
+        "@N = normalize(set(0, 1, 0) + o * 0.5 + 0 * @P)\n"
+        "@Cd = set(1.9, 2.0, 1.3) * (0.75 + 0.25 * smoothstep(0, 0.4, @P.y)) + 0 * @P"))
+    g.link(fns, "geo", fnc, "geo")
+    fnm = G("PCG_Wrangle", title="Fern: the needle-spray material, translucent", run_over="prim", code=(
+        's@material = "M_Needle"\n@translucency = 0.5 + 0 * @primnum'))
+    g.link(fnc, "geo", fnm, "geo")
+    fernp = named(G, fnm, "fern")
+    # a rock: the rock assets' SDF (big flat faces, chipped arrises, a flattened bottom) on a coarse 7 cm grid,
+    # reduced to a few hundred faces and coloured by its curvature (dirt in the hollows, pale edges, moss on top)
+    rkv = G("PCG_Volume", title="Rock: sampling volume (7 cm voxels)", res_x=40, res_y=36, res_z=37, size_x=2.8,
+            size_y=2.5, size_z=2.6, value=1.0)
+    rks = G("PCG_VolumeWrangle", title="Rock: SDF (a boulder)", code=ROCK_SDF, rand_seed=0)
+    g.link(rkv, "geo", rks, "geo")
+    rkm = G("PCG_Convert", title="Rock: surface", convert_to="polygons")
+    g.link(rks, "geo", rkm, "geo")
+    rkr = G("PCG_PolyReduce", title="Rock: a few hundred faces", keep_percent=3.0)
+    g.link(rkm, "geo", rkr, "geo")
+    rkn = G("PCG_Normal", title="Rock: smooth normals", cusp_angle=60.0)
+    g.link(rkr, "geo", rkn, "geo")
+    rkk = G("PCG_Measure", title="Rock: curvature", element_type="points", measurement="curvature",
+            attribute_name="curv")
+    g.link(rkn, "geo", rkk, "geo")
+    rkc = G("PCG_Wrangle", title="Rock: colour by curvature and up-ness", code=(
+        "cav = clamp(-@curv / 6, 0, 1)\n"
+        "edge = clamp(@curv / 8, 0, 1)\n"
+        "base = set(0.44, 0.42, 0.38) * (0.85 + 0.3 * noise(@P * 2.5 + 1.7))\n"
+        "base = lerp(base, set(0.66, 0.64, 0.60), edge * 0.6)\n"
+        "base = lerp(base, set(0.17, 0.15, 0.12), cav * 0.7)\n"
+        "moss = smoothstep(0.6, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n"
+        "@Cd = lerp(base, set(0.30, 0.34, 0.16), moss)"))
+    g.link(rkk, "geo", rkc, "geo")
+    rkd = G("PCG_AttribDelete", title="Rock: P, N, Cd only", point="* ^P ^N ^Cd", vertex="*", prim="*")
+    g.link(rkc, "geo", rkd, "geo")
+    rockp = named(G, rkd, "rock")
     # orchard tree: a short trunk and a round crown; hedge: a long low lump of green
     frc = G("PCG_TreeGenerator", title="Fruit tree (Tree Generator: a short, round broadleaf)", kind="broadleaf",
-            height=3.9, trunk_radius=0.12, crown_base=0.4, crown_width=4.2, branch_levels=1, branches=4, leaves=30,
-            leaf_size=1.9, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=11)
+            height=3.0, trunk_radius=0.12, crown_base=0.45, crown_width=2.6, branch_levels=1, branches=4, leaves=28,
+            leaf_size=1.75, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=11)
     fruit = slim_tree(frc, "fruit")
-    hgs = G("PCG_Box", title="Hedge", size_x=3.2, size_y=1.7, size_z=1.1, cy=0.8)
-    hgd = hgs
-    hgj = G("PCG_PointJitter", title="Hedge: lumpy", scale=0.25, rand_seed=6)
-    g.link(hgd, "geo", hgj, "geo")
-    hgc = G("PCG_Color", title="Hedge green", attribute_class="point", r=0.17, g=0.26, b=0.10)
-    g.link(hgj, "geo", hgc, "geo")
-    hedgep = named(G, hgc, "hedge", 1.7)
+    # a hedge: a bush of leaf cards squeezed into a 3.2 x 1.7 x 1.1 m row
+    hgs = G("PCG_TreeGenerator", title="Hedge (Tree Generator: a bush to squeeze)", kind="broadleaf", height=0.5,
+            trunk_radius=0.04, crown_base=0.05, crown_width=1.2, branch_levels=1, branches=4, leaves=24,
+            leaf_size=1.1, leaf_color="1 1 1", leaf_material="M_Leaf", sides=3, segments=2, rand_seed=6)
+    hgt = G("PCG_Transform", title="Hedge: 3.2 m long, 1.7 m high, 1.1 m thick", sx=1.15, sy=0.77, sz=0.39, ty=0.28)
+    g.link(hgs, "geo", hgt, "geo")
+    hedgep = slim_tree(hgt, "hedge", leaves_only=True)
     # road furniture: a bridge deck (30 m along the road, with parapets), a street lamp, a 4 m guard rail
     fdeck = G("PCG_Box", title="Bridge deck (30 x 8 m)", size_x=8.0, size_y=0.8, size_z=30.0, cy=-0.3)
     # the bridge: a stone arch bridge -- the deck with parapets, an arch under it
@@ -3982,6 +4028,12 @@ def world_tiles(quick=False):
         "k = rand(@ptnum + 7.9)\n"
         "gr = lerp(set(0.33, 0.46, 0.15), set(0.56, 0.54, 0.25), k * k)\n"
         "@Cd = lerp(gr, gc, 0.35) * (0.85 + 0.3 * rand(@ptnum + 5.3))\n"
+        "# far out the tufts turn to the ground's colour and sink into it (shorter), so where they thin out to\n"
+        "# under a pixel the terrain texture takes over without a seam or a shimmer\n"
+        f"r = length(set(@P.x - {CAM3[0]}, 0 * @P.x, @P.z - {CAM3[2]}))\n"
+        "fd = smoothstep(35, 125, r)\n"
+        "@Cd = lerp(@Cd, gc * (0.9 + 0.2 * rand(@ptnum + 5.3)), 0.75 * fd)\n"
+        "@pscale = @pscale * (1 - 0.5 * smoothstep(50, 140, r))\n"
         "@P.y -= 0.04"))
     g.link(gmv, "geo", gpw, "geo")
     grass = G("PCG_CopyToPoints", title="Grass tufts", target_point_attributes="Cd", multiply_attributes="Cd")
@@ -4137,7 +4189,7 @@ def world_tiles(quick=False):
             "@Cd = set(1, 1, 1) + 0 * @P\n@N = normalize(set(0, 0.6, 1) + 0 * @P)"))
         g.link(cpu, "geo", cw, "geo")
         cm = H("PCG_Wrangle", title=f"{asset_} card: the impostor material", run_over="prim",
-               code=f's@material = "imp_{kind_}"\ns@kind = "{kind_}"')
+               code=f's@material = "imp_{kind_}"\ns@kind = "{kind_}"\n@translucency = 0.35 + 0 * @primnum')
         g.link(cw, "geo", cm, "geo")
         cardl.append(cm)
         bs = H("PCG_Sphere", title=f"{asset_} shadow blob", radius=1.0, cols=6, rows=4)

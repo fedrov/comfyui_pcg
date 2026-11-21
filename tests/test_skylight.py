@@ -76,6 +76,20 @@ tiny = tris([[(0.001 * i, 0, 0.3), (0.001 * i + 0.0004, 0, 0.3), (0.001 * i + 0.
              for i in range(50)])
 dt, _ = K.depth_map(tiny, np.array([0.0, 1.0, 0.0]), np.zeros(3), 1.0, 64)
 check("  sub-pixel triangles are splatted (they still cast shadow)", np.isfinite(dt).sum() >= 1, int(np.isfinite(dt).sum()))
+_bt = K._DM_BATCH
+K._DM_BATCH = 301                               # the sphere's 2112 triangles in eight batches (odd sizes)
+dmb, _ = K._depth_map(T, d, np.zeros(3), 1.5, 512)
+K._DM_BATCH = _bt
+dm1, _ = K._depth_map(T, d, np.zeros(3), 1.5, 512)
+check("  in batches of triangles: the same map, bit for bit (a minimum over the batches); negative control, one "
+      "batch alone covers less", np.array_equal(dmb, dm1) and len(T[1]) > 4 * 301, len(T[1]))
+_one = np.full(512 * 512, np.inf, np.float32)
+_Q = T[0].astype(np.float64)
+_r, _u = K.basis(d)
+K._splat_tris(_one, ((_Q @ _r) * (512 / 3.0) + 256).astype(np.float32), ((_Q @ _u) * (512 / 3.0) + 256).astype(np.float32),
+              (1.5 - _Q @ d).astype(np.float32), T[1][:301], 512)
+check("    (one batch: fewer texels than the whole map)", np.isfinite(_one).sum() < 0.5 * np.isfinite(dm1).sum(),
+      (int(np.isfinite(_one).sum()), int(np.isfinite(dm1).sum())))
 
 print("\n[2. Sky dome]")
 white = lambda dd: np.ones((len(dd), 3))                         # noqa: E731
