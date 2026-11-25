@@ -174,6 +174,9 @@ av = {"SM_Bridge", "SM_Proxy_Pine_LOD0"}
 check("assets: its own mesh, else the proxy by prefix, else none", UE.asset_mesh_name("SM_Bridge", av) == "SM_Bridge"
       and UE.asset_mesh_name("Tree_Pine_A", av) == "SM_Proxy_Pine_LOD0"
       and UE.asset_mesh_name("Tree_Broadleaf_B", av) is None and UE.asset_mesh_name("Odd", av) is None)
+check("  a LOD chain: an asset with only <asset>_LOD0 uses it (the modular kit's glbs), not the bare name",
+      UE.asset_mesh_name("SM_Kit_Wall_Window", av | {"SM_Kit_Wall_Window_LOD0", "SM_Kit_Wall_Window_LOD1"})
+      == "SM_Kit_Wall_Window_LOD0" and UE.asset_mesh_name("SM_Kit_Wall_Door", av | {"SM_Kit_Wall_Window_LOD0"}) is None)
 
 print("\n[4-6. Unity (C# with Mono)]")
 mcs, mono = shutil.which("mcs"), shutil.which("mono")

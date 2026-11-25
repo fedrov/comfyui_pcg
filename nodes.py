@@ -2083,7 +2083,8 @@ class PCG_ExportMesh:
 
     LOD Manifest (off by default): also writes <filename>.lods.json -- per asset (prim name `<asset>_LOD<k>`, as LOD
     Create names its levels) the LOD nodes, switch distances (lod_distance), triangle counts, bounds and materials,
-    with Unreal screen sizes and Unity LODGroup transition heights for a camera of LOD FOV degrees.
+    with Unreal screen sizes and Unity LODGroup transition heights for a camera of LOD FOV degrees. With File Attribute,
+    one manifest beside each file (<file>.lods.json), listing that file's assets.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -2127,9 +2128,20 @@ class PCG_ExportMesh:
                            gpu_instancing=gpu_instancing)
         if lod_manifest:
             from .geo import lodmanifest as _lm
-            mp = os.path.join(outdir, filename) + ".lods.json"
-            _lm.write(geo, mp, lod_fov, scale, lod_cull_screen_size)
-            paths = list(paths) + [mp]
+            fa = str(file_attribute).strip()
+            if fa:                                      # one manifest beside each file, for that file's assets
+                from .geo.ops import delete_prims
+                lab, keys = _mx._split_values(geo, fa)
+                mps = []
+                for i, p_ in enumerate(paths[:len(keys)]):
+                    mp = os.path.splitext(p_)[0] + ".lods.json"
+                    _lm.write(delete_prims(geo, lab == i), mp, lod_fov, scale, lod_cull_screen_size)
+                    mps.append(mp)
+                paths = list(paths) + mps
+            else:
+                mp = os.path.join(outdir, filename) + ".lods.json"
+                _lm.write(geo, mp, lod_fov, scale, lod_cull_screen_size)
+                paths = list(paths) + [mp]
         rels = [os.path.relpath(p, outdir).replace("\\", "/") for p in paths]
         rel = rels[0] if len(rels) == 1 else "\n".join(rels)
         # Note: the ui structure Preview3D expects changes between ComfyUI versions;

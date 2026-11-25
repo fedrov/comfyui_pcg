@@ -1,7 +1,7 @@
 # Engine import examples
 
 Two scripts that read a world exported by comfyui_pcg through the single file **World.json** (written by the
-World Manifest node, as in the `pcg_prod_world_tiles` example workflow) and set it up in an engine: terrain,
+World Manifest node, as in the `pcg_prod_world_tiles` example workflow, or `pcg_prod_modular_city`'s `pcg/city`) and set it up in an engine: terrain,
 instances, LODs, materials, roads and water.
 
 They are examples to start from rather than finished importers. The parts that need no engine are covered by the
@@ -39,7 +39,7 @@ W.run(r"D:/ComfyUI/output/pcg/world/World.json")
 - **Meshes:** the glbs are imported. Each town's LOD chain is set on its LOD0 mesh, using the screen sizes from
   the LOD manifest.
 - **Instances:** Hierarchical Instanced Static Mesh components, one actor per tile and asset. An asset without a
-  mesh of its own name falls back to the exported proxies.
+  mesh of its own name uses `<asset>_LOD0` (a LOD chain, as the modular kit's glbs hold), else the exported proxies.
 - **Roads:** one spline actor per polyline. The road class, width and material are stored in the actor's tags.
 - **If the towns land off the Landscape:** your glTF importer converts axes differently. Pass `mesh_yaw` to turn
   the placed meshes.
@@ -58,7 +58,7 @@ To run it, use the menu **Tools > PCG World > Import World.json...**.
 - **Buildings:** each town gets an LODGroup with the Unity transition heights from the LOD manifest.
 - **Water:** the water mesh is placed in the scene. Its flow is stored in the vertex colour.
 - **Instances:** each instance uses `Prefabs/<asset>.prefab`, or else the node of the same name in the asset
-  library glbs.
+  library glbs (or `<asset>_LOD0`).
 - **Roads:** one LineRenderer per polyline, as wide as its road class.
 - **Axis setting:** `GltfFlipsX` tells the script how the glTF importer converts axes. glTFast negates x, which is
   the default.

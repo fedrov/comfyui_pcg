@@ -4,7 +4,7 @@ LOD manifest: what an engine needs to set up the LOD chains of an exported mesh,
 The geometry is LOD Create's output (or anything shaped like it): prims carry `name` (`<asset>_LOD<k>`, as Export
 Mesh's Split Attribute writes the nodes), optionally `lod` (the level) and `lod_distance` (the switch distance in
 metres). Per asset the manifest lists its levels (node name, level, distance, triangle count), its bounds and its
-materials, and two ready-made sets of thresholds for a camera with the given vertical field of view:
+materials (and its collision nodes, UCX_<asset>_NN, which are not levels), and two ready-made sets of thresholds for a camera with the given vertical field of view:
 
     screen_size     the fraction of the screen height the bounding sphere covers at the level's distance:
                     r / (d tan(fov / 2)), 1 at distance 0 -- Unreal's per-LOD Screen Size (switch to LOD k below it)
@@ -24,6 +24,7 @@ import numpy as np
 from .core import POINT, PRIM
 
 _LODRE = re.compile(r"^(.*)_LOD(\d+)$")
+_UCXRE = re.compile(r"^UCX_(.*)_\d+$")
 
 
 def manifest(geo, fov=60.0, scale=1.0, cull_screen_size=0.0):
@@ -36,7 +37,13 @@ def manifest(geo, fov=60.0, scale=1.0, cull_screen_size=0.0):
     la = geo.get(PRIM, "lod")
     lod = np.full(n, -1, np.int64) if la is None else np.rint(np.asarray(la, np.float64).reshape(-1)).astype(np.int64)
     asset = np.empty(n, object)
+    ucx = {}                                       # collision nodes (UCX_<asset>_NN) by asset: not levels
     for i, s in enumerate(names):
+        u = _UCXRE.match(s)
+        if u:
+            asset[i] = None
+            ucx.setdefault(u.group(1), set()).add(s)
+            continue
         m = _LODRE.match(s)
         asset[i] = m.group(1) if m else s
         if lod[i] < 0:
@@ -50,7 +57,7 @@ def manifest(geo, fov=60.0, scale=1.0, cull_screen_size=0.0):
     tris = np.maximum(np.diff(off) - 2, 0)
     P = np.asarray(geo.get(POINT, "P"), np.float64) * float(scale)
     out = []
-    for a in sorted(set(asset.tolist())):
+    for a in sorted(set(asset.tolist()) - {None}):
         sel = asset == a
         levels = sorted(set(lod[sel].tolist()))
         l0 = sel & (lod == levels[0])
@@ -72,7 +79,7 @@ def manifest(geo, fov=60.0, scale=1.0, cull_screen_size=0.0):
         out.append({"name": a, "bounds": {"min": [round(float(v), 4) for v in lo], "max": [round(float(v), 4) for v in hi],
                                           "center": [round(float(v), 4) for v in c], "radius": round(r, 4)},
                     "materials": sorted(set(mats[sel].tolist()) - {""}) if mats is not None else [],
-                    "lods": lods})
+                    "lods": lods, **({"collision": sorted(ucx[a])} if a in ucx else {})})
     return {"fov_degrees": float(fov), "units": "metres x scale", "up": "+Y", "assets": out}
 
 

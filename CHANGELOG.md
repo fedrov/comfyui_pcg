@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Modular city, overhauled**: the lane and park trees are Tree Generator broadleaves with leaf cards (translucent);
+  the facades are weathered per building (a tint, grime at the foot, curtains, dark and lit windows, the texture
+  shifted per building); curbs, paving, manholes, benches, bins, bus shelters and traffic lights; rounder cars;
+  context blocks tinted by district and per block, with rooftop clutter; a third shot, the block at dusk (lit
+  windows, the lamps as point lights). The rules: shops along the main street and near the crossing only, a
+  two-storey podium under towers of 9+ floors, one balcony style per building (none, scattered, bands), a stair core
+  (the new kit piece `Roof_Penthouse`) on buildings of 8+ floors. The rules wrangle can generate the block (spare
+  parameters Layout 1, Seed, Density, Min / Max Floors). Every kit glb holds LOD0, LOD1 (the small parts stripped, at
+  40 m) and a convex `UCX_` collision hull, with a `.lods.json` beside it; the block is also written as a world
+  (`pcg/city/World.json`, the kit in `assets/`, a 1024 m tile's table) for the engine importers.
+- **Export Mesh, LOD Manifest**: with File Attribute, one `<file>.lods.json` beside each file for its own assets
+  (was one manifest named after the unreplaced `{name}`); `UCX_<asset>_NN` collision nodes are listed under their
+  asset (`collision`) instead of as assets of their own.
+- **Engine importers (Unreal, Unity)**: an instance asset with no mesh of its own name uses `<asset>_LOD0`, its LOD
+  chain (the modular kit's glbs).
 - **World tiles, round three**: rocks in the rock assets' four kinds (one picked per rock), with hard edges and each
   its own stone; forests tinted by stands a few hundred metres across and a little darker higher up; the sea and the
   rivers and lakes shaded as water; cut-out edges dithered (alpha to coverage).

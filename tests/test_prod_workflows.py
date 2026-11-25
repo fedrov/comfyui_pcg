@@ -20,7 +20,10 @@ CSV read with the csv module; expected values come from the conventions stated i
          wall count = "footprint outline edge count × floor count" recomputed with numpy by the rules; every wall at the midpoint of a 4 m edge,
          outer normal pointing outwards (the cell in front is not this building, the cell behind is) -- negative control: no wall lands on a grid point
          (before the bug in Extract Centroid's per-face centers was fixed, 24 walls were at the origin and the rest all on corners);
-         no duplicate placements; the material library runs first, then the kit's glb are validated and all textures are found
+         no duplicate placements; the material library runs first, then the kit's glb are validated and all textures are found;
+         every glb holds LOD0, a lighter LOD1 and a convex UCX with LOD0's bounds; shops, the podium, one balcony style per
+         building and the stair cores recomputed from the rules (negative controls: the far side street has no shops, a mixed
+         balcony set is not one style); pcg/city/World.json read by the Unreal importer's own functions, every asset found
   materials  14 sets × 5 maps, 1024², real-size relief (brick joints, cobble domes, seam height); seamless on all four edges (the jump across the wrapped column is of the same magnitude as between neighbouring columns --
          negative control: crop off 30% and it fails); Normal_DX's G = 255 - Normal_GL's G, R and B identical;
          normals unit length; ORM: brick wall metalness all 0, metalness full where the roof is chipped, the door studs have metalness
@@ -1377,8 +1380,36 @@ else:
     KD = os.path.join(OUT, "pcg/assets/kit")
     kit = {os.path.basename(p)[:-4]: p for p in glob.glob(os.path.join(KD, "SM_Kit_*.glb"))}
     names = ["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony", "Wall_Shopfront",
-             "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank"]
+             "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank", "Roof_Penthouse"]
     check(f"one glb for each of the {len(names)} kit pieces", sorted(kit) == sorted("SM_Kit_" + n for n in names))
+    # LODs and collision: LOD0, LOD1 (the small parts stripped) and one convex UCX hull in every glb
+    ok_n, ok_l, ok_c, ok_b, bad = True, True, True, True, {}
+    for n in names:
+        a = "SM_Kit_" + n
+        js, nm = node_meshes(kit[a])
+        if sorted(nm) != sorted([a + "_LOD0", a + "_LOD1", f"UCX_{a}_00"]):
+            ok_n = False
+            bad[n] = sorted(nm)
+            continue
+        t0, t1 = len(nm[a + "_LOD0"][2]), len(nm[a + "_LOD1"][2])
+        ok_l &= t1 <= t0 and (t1 < t0 or n in ("Roof_Flat", "Corner_Pillar"))
+        Q, _, I, _ = nm[f"UCX_{a}_00"]
+        T = Q[I]
+        nrm = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0])
+        sd = np.einsum("tk,pk->tp", nrm / np.maximum(np.linalg.norm(nrm, axis=1, keepdims=True), 1e-12), Q) \
+            - np.einsum("tk,tk->t", nrm / np.maximum(np.linalg.norm(nrm, axis=1, keepdims=True), 1e-12), T[:, 0])[:, None]
+        ok_c &= bool(np.all((sd.max(1) < 1e-3) | (sd.min(1) > -1e-3)))           # every point on one side of every face
+        P0 = nm[a + "_LOD0"][0]
+        ok_b &= np.allclose(Q.min(0), P0.min(0), atol=1e-3) and np.allclose(Q.max(0), P0.max(0), atol=1e-3)
+    check("  every glb: nodes SM_Kit_<piece>_LOD0, _LOD1 and UCX_SM_Kit_<piece>_00, nothing else", ok_n, bad)
+    check("  LOD1 has fewer triangles than LOD0 (the same where nothing is small: the roof panel, the pillar)", ok_l)
+    check("  UCX: convex (every point on one side of every face) and exactly the bounds of LOD0", ok_c and ok_b,
+          (ok_c, ok_b))
+    lj = json.load(open(os.path.join(KD, "SM_Kit_Wall_Window.lods.json")))
+    a0 = (lj.get("assets") or [{}])[0]
+    check("  SM_Kit_Wall_Window.lods.json: one asset, LOD1 at 40 m, its collision node listed",
+          len(lj.get("assets", [])) == 1 and [l_["distance"] for l_ in a0.get("lods", [])] == [0.0, 40.0]
+          and a0.get("collision") == ["UCX_SM_Kit_Wall_Window_00"], a0.get("lods"))
     okp, info = True, {}
     for n in names:
         js, nm = node_meshes(kit["SM_Kit_" + n])
@@ -1408,7 +1439,8 @@ else:
             "Wall_WindowPair": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Roof_Flat": {"M_RoofFlat"},
             "Roof_Unit": {"M_Trim", "M_Metal"}, "Roof_Tank": {"M_Roof", "M_Metal"},
             "Wall_Balcony": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"},
-            "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign"}}
+            "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign"},
+            "Roof_Penthouse": {"M_Wall", "M_Door", "M_Trim", "M_Metal"}}
     got = {n: {m.get("name") for m in node_meshes(kit["SM_Kit_" + n])[0].get("materials", [])} for n in want}
     check("  kit detail: window frames / door casings / railings / shopfront frames carry their material slots",
           all(got[n] == want[n] for n in want), {n: sorted(got[n]) for n in want if got[n] != want[n]})
@@ -1486,6 +1518,67 @@ else:
           and all(r["asset"] != "SM_Kit_Wall_Window" for r in walls if int(r["facade"]) == 2)
           and any(r["asset"] == "SM_Kit_Wall_WindowPair" for r in walls)
           and all(r["asset"] != "SM_Kit_Wall_WindowPair" for r in walls if int(r["facade"]) != 2))
+    # the street rules, recomputed from each wall's position and facing
+    ST = MW.CITY_STREET
+
+    def facing(r):
+        qx, qy, qz, qw = (float(r[c]) for c in ("qx", "qy", "qz", "qw"))
+        n = (2 * (qx * qz + qw * qy), 1 - 2 * (qx * qx + qy * qy))
+        fx, fz = float(r["px"]) + 2 * n[0], float(r["pz"]) + 2 * n[1]
+        main, side = abs(fz) < ST, abs(fx) < ST
+        return main, side, main or (side and abs(float(r["pz"])) < 24)
+
+    g0 = [(r, *facing(r)) for r in walls if r["floor"] == "0"]
+    far = [r for r, m_, s_, sh in g0 if s_ and not m_ and not sh]
+    check("shops: every ground-floor wall on the main street, and on the side street within 24 m of the crossing, "
+          "is a shopfront; no other ground floor is",
+          all((r["asset"] == "SM_Kit_Wall_Shopfront") == sh for r, m_, s_, sh in g0)
+          and any(sh for *_, sh in g0), sum((r["asset"] == "SM_Kit_Wall_Shopfront") != sh for r, m_, s_, sh in g0))
+    check("  negative control: the side street away from the crossing has ground floors, none of them shops",
+          len(far) > 0 and not any(r["asset"] == "SM_Kit_Wall_Shopfront" for r in far), len(far))
+    g1 = [(r, *facing(r)) for r in walls if r["floor"] == "1"]
+    check("  towers (9+ floors) stand on a podium: first-floor shopfronts exactly where a 9+ floor building has shops",
+          all((r["asset"] == "SM_Kit_Wall_Shopfront") == (sh and floors[int(r["bld"])] >= 9) for r, m_, s_, sh in g1)
+          and any(r["asset"] == "SM_Kit_Wall_Shopfront" for r, *_ in g1))
+    balf = {}
+    for r in walls:
+        if r["asset"] == "SM_Kit_Wall_Balcony":
+            balf.setdefault(int(r["bld"]), set()).add(int(r["floor"]))
+
+    def one_style(fs):                  # scattered on even floors, or bands on every third floor -- not both
+        return all(f % 2 == 0 for f in fs) or all(f % 3 == 2 for f in fs)
+    check("  balconies: one style per building (even floors only, or every third floor)",
+          balf and all(one_style(fs) for fs in balf.values()), balf)
+    check("  negative control: a mixed set (floors 2, 5, 6) is not one style", not one_style({2, 5, 6}))
+    pent = [r for r in rows if r["asset"] == "SM_Kit_Roof_Penthouse"]
+    check("stair cores: exactly one on each building of 8+ floors, none on lower ones, on its roof, no plant in its cell",
+          sorted(int(r["bld"]) for r in pent) == sorted(b for b, f in floors.items() if f >= 8)
+          and all(abs(float(r["py"]) - 3.5 * floors[int(r["bld"])]) < 1e-3
+                  and occ(float(r["px"]), float(r["pz"])) == int(r["bld"]) for r in pent)
+          and not any(abs(float(o["px"]) - float(r["px"])) < 2 and abs(float(o["pz"]) - float(r["pz"])) < 2
+                      for r in pent for o in plant), [(r["bld"], r["px"], r["pz"]) for r in pent])
+    # the same block for the engine importers: World.json under pcg/city
+    wj = os.path.join(OUT, "pcg/city/World.json")
+    W = json.load(open(wj)) if os.path.exists(wj) else {}
+    ms = W.get("meshes", {})
+    import importlib.util as _ilu
+    _sp = _ilu.spec_from_file_location("pcg_world_import", os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "engine", "unreal", "pcg_world_import.py"))
+    UE = _ilu.module_from_spec(_sp)
+    _sp.loader.exec_module(UE)
+    avail = {l_["node"] for m in ms.values() for a in m.get("assets", []) for l_ in a.get("lods", [])}
+    ci = {}
+    for t in W.get("tiles", []):
+        for a, xs in UE.read_instances(W, UE.load(wj)[1], t["tile"]).items():
+            ci[a] = ci.get(a, 0) + len(xs)
+    check("City world: World.json with the 12 kit glbs as the asset library (role assets), one 1024 m tile, "
+          "the facade materials",
+          len(ms) == len(names) and all(m.get("role") == "assets" for m in ms.values())
+          and [t["tile"] for t in W.get("tiles", [])] == [[0, 0]]
+          and W.get("city", {}).get("facade_materials", {}).get("1") == MW.CITY_FACADE_MAT[1], (len(ms), W.get("tiles")))
+    check("  the importer reads every row (the block's counts per asset) and finds a mesh for every asset (its LOD0)",
+          ci == {a: sum(r["asset"] == a for r in rows) for a in {r["asset"] for r in rows}}
+          and all(UE.asset_mesh_name(a, avail) == a + "_LOD0" for a in ci), sorted(ci)[:3])
 
     # ═══════════════════════════════════════════════ 3. Rock assets
     sec("Rock assets")

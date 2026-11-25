@@ -175,10 +175,13 @@ ASSET_FALLBACK = (("Tree_Pine", "SM_Proxy_Pine_LOD0"), ("Tree_Broadleaf", "SM_Pr
 
 
 def asset_mesh_name(asset, available, fallback=ASSET_FALLBACK):
-    """The static mesh an instance asset uses: its own name when there is such a mesh, else the first fallback
+    """The static mesh an instance asset uses: its own name when there is such a mesh, else <asset>_LOD0 (its LOD
+    chain), else the first fallback
     whose prefix it starts with and that exists, else None (skipped)."""
     if asset in available:
         return asset
+    if asset + "_LOD0" in available:            # a LOD chain (LOD Create's <asset>_LOD0 carries the others)
+        return asset + "_LOD0"
     for pre, m in fallback:
         if asset.startswith(pre) and m in available:
             return m

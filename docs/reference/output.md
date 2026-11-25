@@ -157,7 +157,7 @@ With **GPU Instancing** on (the default) a `.glb` writes packed primitives (from
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| LOD Manifest `lod_manifest` | toggle | off | Also write `<filename>.lods.json`: per asset (prims named `<asset>_LOD<k>`, as LOD Create writes them) its LOD node names, switch distances (`lod_distance`), triangle counts, bounds and materials, plus Unreal per-LOD Screen Size (`r / (d tan(fov/2))`, the fraction of the screen height the bounding sphere covers) and Unity LODGroup `screenRelativeTransitionHeight` per level (the next level's screen size). |
+| LOD Manifest `lod_manifest` | toggle | off | Also write `<filename>.lods.json`: per asset (prims named `<asset>_LOD<k>`, as LOD Create writes them) its LOD node names, switch distances (`lod_distance`), triangle counts, bounds and materials, plus Unreal per-LOD Screen Size (`r / (d tan(fov/2))`, the fraction of the screen height the bounding sphere covers) and Unity LODGroup `screenRelativeTransitionHeight` per level (the next level's screen size). With File Attribute, one manifest beside each file (`<file>.lods.json`) for that file's assets. Collision nodes (`UCX_<asset>_NN`) are listed under their asset as `collision`, not as levels. |
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|

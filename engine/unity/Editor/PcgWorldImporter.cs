@@ -9,8 +9,8 @@
 //   buildings   the towns' glb, each asset under an LODGroup built from its LOD manifest (Unity transition heights)
 //   water       the water glb (flow in the vertex colour, see World.json's water)
 //   instances   the instance tables, a child per instance under one object per tile and asset; an asset uses
-//               Assets/.../Prefabs/<asset>.prefab, else the proxy node of the same name in the asset library glbs,
-//               else it is skipped (counted in the log)
+//               Assets/.../Prefabs/<asset>.prefab, else the node of the same name in the asset library glbs (or
+//               <asset>_LOD0, a LOD chain's first level), else it is skipped (counted in the log)
 //   roads       a LineRenderer per road polyline, its width from the road class
 //
 // Coordinates: see PcgWorldCore.cs (x = x, y = y, z = -z). glTF importers already convert glb files from glTF's
@@ -244,6 +244,7 @@ namespace Pcg.World
                     string ap = AssetPath(w.Path_(World.Str(m, "file")));
                     var lib = ap != null ? AssetDatabase.LoadAssetAtPath<GameObject>(ap) : null;
                     var t = lib != null ? Find(lib.transform, asset) : null;
+                    if (t == null && lib != null) t = Find(lib.transform, asset + "_LOD0");   // a LOD chain's LOD0
                     if (t != null) { g = t.gameObject; break; }
                 }
             cache[asset] = g;

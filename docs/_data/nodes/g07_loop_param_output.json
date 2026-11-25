@@ -98,7 +98,7 @@
    "textures": "One `slot = path` per line (`basecolor`, `normal`, `orm`, `emissive`). Paths are relative to the exported file; `{material}` is replaced with the material slot name. In `.glb` they are written as external image references.",
    "texture_materials": "Space-separated wildcard patterns limiting which material slots receive the textures. `*` matches all.",
    "gpu_instancing": "glb only: write packed primitives as instanced meshes (EXT_mesh_gpu_instancing) instead of unpacking them.",
-   "lod_manifest": "Also write `<filename>.lods.json`: per asset (prims named `<asset>_LOD<k>`, as LOD Create writes them) its LOD node names, switch distances (`lod_distance`), triangle counts, bounds and materials, plus Unreal per-LOD Screen Size (`r / (d tan(fov/2))`, the fraction of the screen height the bounding sphere covers) and Unity LODGroup `screenRelativeTransitionHeight` per level (the next level's screen size).",
+   "lod_manifest": "Also write `<filename>.lods.json`: per asset (prims named `<asset>_LOD<k>`, as LOD Create writes them) its LOD node names, switch distances (`lod_distance`), triangle counts, bounds and materials, plus Unreal per-LOD Screen Size (`r / (d tan(fov/2))`, the fraction of the screen height the bounding sphere covers) and Unity LODGroup `screenRelativeTransitionHeight` per level (the next level's screen size). With File Attribute, one manifest beside each file (`<file>.lods.json`) for that file's assets. Collision nodes (`UCX_<asset>_NN`) are listed under their asset as `collision`, not as levels.",
    "lod_fov": "Vertical field of view, in degrees, of the camera the screen sizes are computed for.",
    "lod_cull_screen_size": "Screen size at which the last level ends in the Unity values (0 = never culled)."
   }

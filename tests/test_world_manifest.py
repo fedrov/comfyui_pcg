@@ -220,5 +220,23 @@ finally:
 check("two spellings of one path (as on Windows): the manifest still finds the height's sidecar and its tiles",
       ok3 and W3 is not None, err3)
 
+# LOD Manifest with File Attribute: one manifest beside each file (its own assets), not one "{name}.lods.json"
+kit = merge(named_box((4, 3.5, 0.3), (0, 1.75, 0), "SM_A_LOD0", "M_Wall"), named_box((4, 3.5, 0.3), (0, 1.75, 0), "SM_A_LOD1", "M_Wall"),
+            named_box((1, 1, 1), (0, 0.5, 0), "SM_B_LOD0", "M_Trim"), named_box((1, 1, 1), (0, 0.5, 0), "UCX_SM_B_00", "M_Trim"))
+kit.set_string(PRIM, "asset", np.array(["SM_A"] * 12 + ["SM_B"] * 12))
+kit.set(PRIM, "lod_distance", np.array([0.0] * 6 + [40.0] * 6 + [0.0] * 12, np.float32))
+kp = nrun("ExportMesh", geo=kit, filename="pcg/kitlods/{name}", format="glb", split_attribute="name",
+          file_attribute="asset", lod_manifest=True)[0].split("\n")
+KD = os.path.join(OUT, "pcg/kitlods")
+ma = json.load(open(os.path.join(KD, "SM_A.lods.json"))) if os.path.exists(os.path.join(KD, "SM_A.lods.json")) else {}
+mb = json.load(open(os.path.join(KD, "SM_B.lods.json"))) if os.path.exists(os.path.join(KD, "SM_B.lods.json")) else {}
+check("LOD Manifest + File Attribute: SM_A.lods.json and SM_B.lods.json beside the glbs, each with only its own asset",
+      "SM_A" in json.dumps(ma) and "SM_B" not in json.dumps(ma) and "SM_B" in json.dumps(mb) and "SM_A" not in json.dumps(mb)
+      and "pcg/kitlods/SM_A.lods.json" in kp, kp)
+ab = {a["name"]: a for a in mb.get("assets", [])}
+check("  the collision node is listed under its asset (collision: UCX_SM_B_00), not as an asset of its own",
+      list(ab) == ["SM_B"] and ab["SM_B"].get("collision") == ["UCX_SM_B_00"] and len(ab["SM_B"]["lods"]) == 1, list(ab))
+check("  negative control: no literal {name}.lods.json", not os.path.exists(os.path.join(KD, "{name}.lods.json")))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

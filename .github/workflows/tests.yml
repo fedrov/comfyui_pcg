@@ -1,15 +1,21 @@
 name: tests
 
+# Two jobs: every push and pull request runs all suites but the heavy production-workflow one (a few minutes);
+# the production pipelines (rocks, the open-world tiles with their preview renders, modular buildings, the material
+# library: about 45 minutes and up to 6 GB) run on pushes to main, every night, and by hand from the Actions tab.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 jobs:
-  test:
+  quick:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       # The suites import the package as `comfyui_pcg`, so check it out under that folder name.
       - uses: actions/checkout@v4
@@ -39,4 +45,43 @@ jobs:
 
       - name: Run test suites
         working-directory: comfyui_pcg
-        run: python tests/run_tests.py --js
+        run: python tests/run_tests.py --js --quick --logs test-logs
+
+      - name: Keep the suites' output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-quick
+          path: comfyui_pcg/test-logs
+
+  production:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: comfyui_pcg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: comfyui_pcg/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r comfyui_pcg/requirements.txt scipy manifold3d fonttools pillow
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Run the production workflows
+        working-directory: comfyui_pcg
+        run: python tests/run_tests.py -k test_prod_workflows --timeout 6600 --logs test-logs
+
+      - name: Keep the suite's output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-production
+          path: comfyui_pcg/test-logs

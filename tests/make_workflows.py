@@ -4552,6 +4552,13 @@ def world_tiles(quick=False):
 CITY_TEXTURES = ("basecolor = pcg/materials/T_{material}_BaseColor.png\n"
                  "normal = pcg/materials/T_{material}_Normal_GL.png\n"
                  "orm = pcg/materials/T_{material}_ORM.png")
+# The street previews (Outdoor): the trees' leaf cards from the leaf card image on textures_cop (cut out, dithered
+# edges, casting shadows whole, translucent through their attribute), and the walls and the glass tinted by the
+# buildings' corner colours (weathering, curtains)
+CITY_PREVIEW_TEXTURES = (CITY_TEXTURES.replace("basecolor = pcg/materials/T_{material}_BaseColor.png",
+                                               "basecolor = pcg/materials/T_{material}_BaseColor.png | @{material}_C")
+                         + "\nalpha = @{material}_alpha\nalpha_coverage = 0.5\nalpha_shadow = M_Leaf"
+                         + "\nbasecolor_tint = M_Leaf M_Wall M_BrickBuff M_Stucco M_Glass M_Trim M_FacadeFar M_FacadeFarBrick")
 
 
 # Modular city layout (pcg118): 4 m cells on a 104 m x 88 m grid, two crossing 16 m streets (|x| < 8 and |z| < 8),
@@ -4582,19 +4589,72 @@ CITY_FACADE_MAT = ("M_Wall", "M_BrickBuff", "M_Stucco")
 
 
 def city_rules_code():
-    """Wrangle (over prims) that writes i@bld and i@floors from CITY_LOTS."""
+    """
+    Wrangle (over prims) that writes i@bld, i@floors and i@facade: from CITY_LOTS (Layout 0, the default), or a
+    generated block (Layout 1): each quarter cut into lots along both streets -- 3 to 5 cells (12-20 m) of frontage,
+    3 or 4 deep, the last cell of each a 4 m lane (so no two buildings share a wall) --, a lot built with the
+    probability Density, taller toward the crossing (Max Floors there, Min Floors at the edge, give or take two), a
+    facade variant each. Seed picks another block. The settings are the node's spare parameters (ch()).
+    """
     lines = ["x = @P.x", "z = @P.z", "b = 0 * x - 1", "f = 0 * x"]
     for b, x0, x1, z0, z1, fl in CITY_LOTS:
         cond = f"(x >= {x0}) & (x <= {x1}) & (z >= {z0}) & (z <= {z1})"
         lines.append(f"b = where({cond}, {b}, b)")
         lines.append(f"f = where({cond}, {fl}, f)")
-    lines += ["i@bld = where(b < 0, -1, b)", "i@floors = where(b < 0, 0, f)"]
     lines.append("fa = 0 * x")
     for b, v in CITY_FACADE.items():
         if v:
             lines.append(f"fa = where(b == {b}, {v}, fa)")
-    lines.append("i@facade = fa")
+    lines += [
+        "# ── a generated block (Layout 1)",
+        'layout = chi("layout", 0)',
+        'sd = chi("seed", 1)',
+        'dens = ch("density", 0.85)',
+        'fmin = max(1, chi("min_floors", 3))',
+        f'fmax = min({CITY_MAX_FLOORS}, max(fmin, chi("max_floors", 12)))',
+        "def hh(a):",
+        "    v = np.sin(np.asarray(a, np.float64) * 12.9898 + sd * 78.233 + 0.5) * 43758.5453",
+        "    return v - np.floor(v)",
+        "ax = np.abs(np.asarray(x))",
+        "az = np.abs(np.asarray(z))",
+        "q = (np.asarray(x) > 0) * 1 + (np.asarray(z) > 0) * 2",
+        f"u = np.floor((ax - {CITY_STREET:g}) / 4)              # cells out from the street along x",
+        f"v = np.floor((az - {CITY_STREET:g}) / 4)              # and along z",
+        "lot = np.full(ax.shape, -1.0)",
+        "dl = np.zeros(ax.shape)",
+        "lane = np.zeros(ax.shape, bool)",
+        "for qq in range(4):",
+        "    wu = [3 + int(hh(qq * 101 + k * 7.3) * 3) for k in range(12)]      # frontages: 3-5 cells",
+        "    wv = [3 + int(hh(qq * 211 + k * 5.1) * 2) for k in range(12)]      # depths: 3-4 cells",
+        "    cu = np.cumsum(wu)",
+        "    cv = np.cumsum(wv)",
+        "    m = q == qq",
+        "    iu = np.searchsorted(cu, u[m], side='right')",
+        "    iv = np.searchsorted(cv, v[m], side='right')",
+        "    lot[m] = qq * 1000 + iu * 20 + iv",
+        "    lane[m] = (u[m] == cu[iu] - 1) | (v[m] == cv[iv] - 1)            # the last cell of a lot: a lane",
+        "    su = np.concatenate([[0], cu])[iu]",
+        "    sv = np.concatenate([[0], cv])[iv]",
+        f"    dl[m] = np.sqrt(({CITY_STREET:g} + 4 * su + 8) ** 2 + ({CITY_STREET:g} + 4 * sv + 8) ** 2)",
+        f"on = (ax > {CITY_STREET:g}) & (az > {CITY_STREET:g}) & ~lane & (hh(lot * 0.37 + 0.11) < dens)",
+        "near = 1 - np.clip((dl - 14) / 46, 0, 1)",
+        "gf = np.clip(np.round(fmin + (fmax - fmin) * near * near * (3 - 2 * near) + (hh(lot * 1.7) - 0.5) * 4), fmin, fmax)",
+        "gfa = np.floor(hh(lot * 2.3 + 0.9) * 3)",
+        "ids = np.unique(lot[on])",
+        "gb = np.where(on, np.searchsorted(ids, lot), -1)",
+        "b = where(layout == 1, gb, b)",
+        "f = where(layout == 1, np.where(on, gf, 0), f)",
+        "fa = where(layout == 1, np.where(on, gfa, 0), fa)",
+        "i@bld = where(b < 0, -1, b)",
+        "i@floors = where(b < 0, 0, f)",
+        "i@facade = fa",
+    ]
     return "\n".join(lines)
+
+
+KIT_TEXTURES = ("basecolor = ../../materials/T_{material}_BaseColor.png\n"
+                "normal = ../../materials/T_{material}_Normal_GL.png\n"
+                "orm = ../../materials/T_{material}_ORM.png")
 
 
 def modular_city():
@@ -4607,7 +4667,7 @@ def modular_city():
         "Modular buildings: first build a kit (each piece 4 m wide, one storey 3.5 m tall), then place the kit by rules onto "
         "every building's facades - the deliverable is **the kit meshes + an instance table**, not a lump of merged buildings.\n\n"
         "Kit (the four left columns): Wall_Plain / Wall_Window / Wall_WindowPair / Wall_Door / Wall_Shopfront / "
-        "Wall_Balcony / Corner_Pillar / Roof_Cornice / Roof_Flat / Roof_Unit / Roof_Tank. Convention: pivot at the midpoint of the bottom edge "
+        "Wall_Balcony / Corner_Pillar / Roof_Cornice / Roof_Flat / Roof_Unit / Roof_Tank / Roof_Penthouse (a stair core). Convention: pivot at the midpoint of the bottom edge "
         "(rooftop plant: on the roof surface), outer facade facing +Z, wall thickness towards −Z; each piece's primitives have a material "
         "attribute (M_Wall / M_Trim / M_Glass / M_Door / M_Metal / M_Roof / M_RoofFlat / M_Sign), exported as glTF material slots; "
         "the facade column of the table swaps M_Wall for M_BrickBuff or M_Stucco per building (a material override); UVs are a world-scale "
@@ -4616,17 +4676,26 @@ def modular_city():
         "run the material library first and the kit opens textured.\n\n"
         "Assembly (right side):\n"
         "① On a 4 m grid, rules mark out the footprints of 12 buildings in the four quarters of two crossing 16 m streets (L shapes, "
-        "slabs, a 14-storey tower, small houses), merged into outlines, each with its own number of floors.\n"
+        "slabs, a 14-storey tower, small houses), merged into outlines, each with its own number of floors. The rules wrangle's "
+        "spare parameters: Layout 1 generates the block instead (lots of 12-20 m frontage with lanes between, Density, "
+        "Min / Max Floors -- taller toward the crossing --, Seed for another block); Layout 0 is the table above.\n"
         "② The outlines are extruded floor by floor, each side face is a 4 m × 3.5 m slot; slot centre → point (with outward normal).\n"
-        "③ Rules: street-facing ground floor is shopfronts, other ground floors occasionally get doors; upper floors take a random number per \"column\" (the same column "
-        "lines up vertically), even floors on the street side get random balconies, a few are solid walls; a ring of cornice above the top floor, roofs tiled per cell; "
-        "pillars stand at the outer wall corners (sharp edges of the extruded mass).\n"
-        "④ Instance table (CSV, with bld / floor / facade columns) + one glb per kit piece (SM_Kit_*.glb).\n"
-        "⑤ Preview (right column): Copy to Points by name places the kit back; the streets get asphalt, sidewalks, road "
-        "paint, lamps, trees and parked cars; low-detail context blocks (extruded footprints with a whole-bay facade "
-        "texture) fill the distance; two Camera nodes give a low aerial and an eye-level shot in the Outdoor look "
-        "(sun, sky, haze)."),
-        h=780, title="Modular building assembly (read me first)", w=W)
+        "③ Rules: shopfronts on the main street's ground floors, on the side street only near the crossing (further on, "
+        "entrances and windows); towers of 9+ floors stand on a two-storey podium (the first floor shopfront too); upper "
+        "floors take a random piece per \"column\" (lined up vertically); one balcony style per building (none, scattered on "
+        "even floors, or bands on every third floor); a cornice ring above the top floor, roofs tiled per cell, rooftop plant, "
+        "and a stair core on buildings of 8+ floors; pillars at the outer wall corners.\n"
+        "④ Instance table (CSV, with bld / floor / facade columns) + one glb per kit piece (SM_Kit_*.glb) holding LOD0, "
+        "LOD1 (the small parts stripped, at 40 m) and a convex UCX collision hull, with a .lods.json beside it.\n"
+        "⑤ Preview (right column): Copy to Points by name places the kit back, weathered per building (tint, grime at the "
+        "foot, curtains, dark and lit windows); the streets get curbs, paving, road paint, manholes, lamps, benches, bins, "
+        "bus shelters, traffic lights, lane and park trees (Tree Generator with leaf cards) and parked cars; context "
+        "blocks (whole-bay facade texture, tinted per district, rooftop clutter) fill the distance; an aerial, an "
+        "eye-level shot, and the aerial again at dusk (the windows and lamps lit).\n"
+        "⑥ The block again under pcg/city as a world: the kit glbs in assets/, a 1024 m tile's instance table, and a "
+        "World.json (World Manifest) that engine/unreal and engine/unity import; its city key names the facade "
+        "materials (the importers place the pieces, the facade swap is left to the project)."),
+        h=1000, title="Modular building assembly (read me first)", w=W)
 
     def box(col, title, sx, sy, sz, cx, cy, cz, rx=0.0):
         return col("PCG_Box", title=title, size_x=sx, size_y=sy, size_z=sz,
@@ -4787,7 +4856,17 @@ def modular_city():
                                        (0.1, 0.75, 0.1, 0.5, 0.375, 0.5), (0.1, 0.75, 0.1, -0.5, 0.375, 0.5),
                                        (0.1, 0.75, 0.1, 0.5, 0.375, -0.5), (0.1, 0.75, 0.1, -0.5, 0.375, -0.5),
                                        (1.2, 0.08, 1.2, 0.0, 0.72, 0.0)])])
-    lib = A("PCG_Merge", title="Kit library (11 pieces)")
+    # Stair / lift core on the roofs of tall buildings (pivot on the roof surface): rendered walls, a door, an
+    # overhanging slab with a parapet coping, a vent
+    ph_w = box(K4, "Core walls 3.6 × 3.0 × 3.6", 3.6, 3.0, 3.6, 0.0, 1.5, 0.0)
+    ph_d = box(K4, "Core door opening", 1.1, 2.2, 0.6, 0.0, 1.1, 1.8)
+    ph_c = tag(K4, cut(K4, "Core walls − door", ph_w, ph_d), "M_Wall")
+    ph_l = tag(K4, box(K4, "Core door leaf", 1.1, 2.2, 0.04, 0.0, 1.1, 1.62), "M_Door")
+    ph_s = boxes(K4, "Core roof slab + coping", "M_Trim", [(3.9, 0.2, 3.9, 0.0, 3.1, 0.0),
+                                                          (1.4, 0.12, 0.5, 0.0, 2.3, 1.95)])
+    ph_v = boxes(K4, "Core vent", "M_Metal", [(0.5, 0.6, 0.5, 0.9, 3.5, -0.9)])
+    pent = piece(K4, "Roof_Penthouse", [ph_c, ph_l, ph_s, ph_v])
+    lib = A("PCG_Merge", title="Kit library (12 pieces)")
     for i, p in enumerate((plain, window, door, balcony, shop, pil)):
         g.link(p, "geo", lib, f"geo{i + 1}")
     lib2 = A("PCG_Merge", title="Kit library (cont.)")
@@ -4797,9 +4876,12 @@ def modular_city():
     g.link(pair, "geo", lib2, "geo4")
     g.link(unit, "geo", lib2, "geo5")
     g.link(tank, "geo", lib2, "geo6")
+    lib3 = A("PCG_Merge", title="Kit library (cont.)")
+    g.link(lib2, "geo", lib3, "geo1")
+    g.link(pent, "geo", lib3, "geo2")
     uvp = A("PCG_UVProject", title="World-scale box projection (1 UV = 1 m, same density as the material library)",
             mode="box", fit_to_01=False, scale_u=1.0, scale_v=1.0)
-    g.link(lib2, "geo", uvp, "geo")
+    g.link(lib3, "geo", uvp, "geo")
     kc = A("PCG_Wrangle", title="Preview colour (by material)", run_over="prim", code=(
         'm = @material\n'
         '@Cd = where(m == "M_Wall", set(0.66, 0.46, 0.36),'
@@ -4810,14 +4892,50 @@ def modular_city():
         ' where(m == "M_RoofFlat", set(0.36, 0.36, 0.35),'
         ' where(m == "M_Sign", set(0.80, 0.55, 0.20), set(0.86, 0.84, 0.79))))))))'))
     g.link(uvp, "geo", kc, "geo")
-    kx = A("PCG_ExportMesh", title="Export: one glb per kit piece (textures point to the material library)",
-           filename="pcg/assets/kit/SM_Kit_{name}", format="glb",
-           split_attribute="name", file_attribute="name",
-           textures=("basecolor = ../../materials/T_{material}_BaseColor.png\n"
-                     "normal = ../../materials/T_{material}_Normal_GL.png\n"
-                     "orm = ../../materials/T_{material}_ORM.png"),
-           texture_materials="*")
-    g.link(kc, "geo", kx, "geo")
+    # pcg: LODs and collision. Every glb holds SM_Kit_<piece>_LOD0 (the piece), _LOD1 (the same without the small
+    # parts -- frames, mullions, rails, dentils: faces under 0.1 m²; the outline, openings and glass stay, so the
+    # silhouette and the textures match at a distance) and UCX_SM_Kit_<piece>_00 (one convex hull, the common engine
+    # collision naming); a .lods.json beside each lists the switch distances
+    kas = A("PCG_Wrangle", title="Asset = glb name (SM_Kit_<piece>)", run_over="prim", code=(
+        's@asset = sprintf("SM_Kit_%s", @name)\n'
+        "s@name = @asset"))
+    g.link(kc, "geo", kas, "geo")
+    kms = A("PCG_Measure", title="Face areas", measurement="area")
+    g.link(kas, "geo", kms, "geo")
+    kl1 = A("PCG_Blast", title="LOD1: without the small parts (faces < 0.1 m²)", group="@area < 0.1", cls="prim")
+    g.link(kms, "geo", kl1, "geo")
+    kl1t = A("PCG_Wrangle", title="LOD1: level 1", run_over="prim", code="i@lod = 1")
+    g.link(kl1, "geo", kl1t, "geo")
+    klod = A("PCG_LODCreate", title="LOD Create: LOD0 the piece, LOD1 the stripped piece (switch at 40 m)",
+             percents="100 100", distances="0 40", preserve_uvs=True, recalculate_normals=True, cusp_angle=30.0)
+    g.link(kas, "geo", klod, "geo")
+    g.link(kl1t, "geo", klod, "custom")
+    kfb = A("PCG_ForEachBegin", title="Each kit piece (by name)", method="fetch_piece", iterate_over="pieces",
+            piece_attribute="name")
+    g.link(kas, "geo", kfb, "geo")
+    kcx = A("PCG_ConvexHull", title="Collision: the piece's convex hull", merge_coplanar_faces=True)
+    g.link(kfb, "geo", kcx, "geo")
+    kuc = A("PCG_Wrangle", title="Collision: UCX_ naming, the piece's main material", run_over="prim", code=(
+        'a = detail(1, "value")                # the piece this iteration (Block Begin\'s value)\n'
+        "s@asset = a\n"
+        's@name = sprintf("UCX_%s_00", a)\n'
+        "# a slot the piece already has (engines ignore the collision's material; the glb keeps its slot set)\n"
+        's@material = where(a == "SM_Kit_Roof_Flat", "M_RoofFlat", where(a == "SM_Kit_Roof_Unit", "M_Metal",\n'
+        '    where(a == "SM_Kit_Roof_Tank", "M_Roof", where((a == "SM_Kit_Corner_Pillar") | (a == "SM_Kit_Roof_Cornice"),\n'
+        '    "M_Trim", "M_Wall"))))'))
+    g.link(kcx, "geo", kuc, "geo")
+    g.link(kfb, "geo", kuc, "geo1")
+    kfe = A("PCG_ForEachEnd", title="All collision hulls", gather="merge")
+    g.link(kuc, "geo", kfe, "geo")
+    g.link(kfb, "loop", kfe, "loop")
+    kall = A("PCG_Merge", title="LODs + collision")
+    g.link(klod, "geo", kall, "geo1")
+    g.link(kfe, "geo", kall, "geo2")
+    kx = A("PCG_ExportMesh", title="Export: one glb per kit piece (LOD0, LOD1, UCX; textures point to the material library)",
+           filename="pcg/assets/kit/{name}", format="glb",
+           split_attribute="name", file_attribute="asset", textures=KIT_TEXTURES,
+           texture_materials="*", lod_manifest=True)
+    g.link(kall, "geo", kx, "geo")
 
     # ① Footprints
     grd = B("PCG_Grid", title="4 m grid (104 m × 88 m)", **CITY_GRID)
@@ -4854,11 +4972,22 @@ def modular_city():
         "h = rand(col * 7.31 + @bld * 13.7 + face * 0.37)\n"
         "ox = @P.x + 2 * @N.x                 # 2 m in front of the facade\n"
         "oz = @P.z + 2 * @N.z\n"
-        f"street = (abs(ox) < {CITY_STREET:g}) | (abs(oz) < {CITY_STREET:g})   # facing one of the two streets\n"
+        f"main = abs(oz) < {CITY_STREET:g}                # facing the main street (it runs along x)\n"
+        f"side = abs(ox) < {CITY_STREET:g}                # facing the side street\n"
+        "street = main | side\n"
+        "# shops: all along the main street; on the side street only near the crossing (within 24 m of it)\n"
+        "shop = main | (side & (abs(@P.z) < 24))\n"
         "win = where(@facade == 2, \"Wall_WindowPair\", \"Wall_Window\")   # render facades: paired windows\n"
-        "up_ = where(street & (h > 0.55) & (fl % 2 == 0), \"Wall_Balcony\",\n"
-        "            where(h < 0.12, \"Wall_Plain\", win))\n"
-        "ground = where(street, \"Wall_Shopfront\", where(h > 0.78, \"Wall_Door\", \"Wall_Plain\"))\n"
+        "# one balcony style per building: 0 none, 1 scattered on even floors, 2 bands (every street column, every third floor)\n"
+        "bs = floor(rand(@bld * 5.31 + 1.7) * 3)\n"
+        "bal = street & (fl >= 1) & (((bs == 1) & (h > 0.55) & (fl % 2 == 0)) | ((bs == 2) & (fl % 3 == 2)))\n"
+        "# towers (9+ floors) stand on a two-storey podium: the first floor is shopfront too where the ground floor is\n"
+        "podium = (@floors >= 9) & (fl == 1) & shop\n"
+        "up_ = where(podium, \"Wall_Shopfront\", where(bal, \"Wall_Balcony\",\n"
+        "            where((h < 0.12) & (bs != 2), \"Wall_Plain\", win)))\n"
+        "# ground floor: shops; the rest of the side street gets entrances and windows; the backs doors and plain walls\n"
+        "ground = where(shop, \"Wall_Shopfront\", where(street, where(h > 0.6, \"Wall_Door\", win),\n"
+        "               where(h > 0.78, \"Wall_Door\", \"Wall_Plain\")))\n"
         "s@name = where(fl == 0, ground, up_)\n"
         "@up = set(0, 1, 0)"))
     g.link(slots, "geo", rl, "geo")
@@ -4901,15 +5030,27 @@ def modular_city():
         "@N = set(0, 0, 1)\n"
         "@up = set(0, 1, 0)"))
     g.link(rc, "geo", rf, "geo")
-    rp = D("PCG_Wrangle", title="→ Rooftop plant (some roof cells)", code=(
+    rp = D("PCG_Wrangle", title="→ Rooftop plant (some roof cells), a stair core on 8+ floors", code=(
         "h = rand(@ptnum * 3.17 + 0.5)\n"
         "big = @floors >= 5\n"
-        's@name = where(big & (h < 0.035), "Roof_Tank", where(h < 0.14, "Roof_Unit", ""))\n'
-        "# random quarter turns and a little slack inside the 4 m cell\n"
+        "# the stair / lift core: on buildings of 8+ floors, the roof cell nearest the building's middle\n"
+        "b = np.asarray(@bld).reshape(-1).astype(int) + 1\n"
+        "px = np.asarray(@P.x).reshape(-1)\n"
+        "pz = np.asarray(@P.z).reshape(-1)\n"
+        "n_ = np.bincount(b, minlength=b.max() + 1).astype(float)\n"
+        "mx = np.bincount(b, px, b.max() + 1) / np.maximum(n_, 1)\n"
+        "mz = np.bincount(b, pz, b.max() + 1) / np.maximum(n_, 1)\n"
+        "d = (px - mx[b]) ** 2 + (pz - mz[b]) ** 2 + np.asarray(rand(@ptnum * 0.73)).reshape(-1) * 1e-3\n"
+        "dm = np.full(b.max() + 1, 1e9)\n"
+        "np.minimum.at(dm, b, d)\n"
+        "stair = (d == dm[b]) & (np.asarray(@floors).reshape(-1) >= 8)\n"
+        's@name = where(stair, "Roof_Penthouse", where(big & (h < 0.035), "Roof_Tank", where(h < 0.14, "Roof_Unit", "")))\n'
+        "# random quarter turns, and (plant only) a little slack inside the 4 m cell\n"
         "a = floor(rand(@ptnum * 1.91) * 4) * 1.5708\n"
         "@N = set(sin(a), 0, cos(a))\n"
-        "@P.x += (rand(@ptnum * 2.3) - 0.5) * 1.2\n"
-        "@P.z += (rand(@ptnum * 4.1) - 0.5) * 1.2"))
+        "k = where(stair, 0.0, 1.2)\n"
+        "@P.x += (rand(@ptnum * 2.3) - 0.5) * k\n"
+        "@P.z += (rand(@ptnum * 4.1) - 0.5) * k"))
     g.link(rf, "geo", rp, "geo")
     rpk = D("PCG_Blast", title="Keep the cells that got plant", group='@name == ""', cls="point")
     g.link(rp, "geo", rpk, "geo")
@@ -4923,6 +5064,32 @@ def modular_city():
     ex = D("PCG_ExportInstances", title="Instance table", filename="pcg/assets/kit/Block_Instances",
            format="csv", asset_attribute="asset", extra_attributes="bld floor facade")
     g.link(an, "geo", ex, "points")
+    # ⑥ The same block as a world for the engine importers (engine/unreal, engine/unity read World.json): the kit glbs
+    # (in assets/, where the importers look an instance's asset up: its <asset>_LOD0 node) and the instance table
+    # again under pcg/city, the block moved into the middle of one 1024 m tile whose origin is
+    # its north-west corner; World.json names the kit meshes, the tile's table, and (Extra JSON) which wall material
+    # each facade variant means -- the importers place the pieces, the facade swap is left to the project
+    cmv = D("PCG_Transform", title="City: into the middle of a 1024 m tile (origin at its north-west corner)",
+            tx=512.0, tz=512.0)
+    g.link(an, "geo", cmv, "geo")
+    cei = D("PCG_ExportInstances", title="City: instance table per 1024 m tile",
+            filename="pcg/city/instances/Instances_x{tx}_y{ty}", format="csv", asset_attribute="asset",
+            extra_attributes="bld floor facade", tile_size=1024.0)
+    g.link(cmv, "geo", cei, "points")
+    ckx = D("PCG_ExportMesh", title="City: the kit glbs (LOD0, LOD1, UCX) as the asset library", filename="pcg/city/assets/{name}",
+            format="glb", split_attribute="name", file_attribute="asset", textures=KIT_TEXTURES,
+            texture_materials="*", lod_manifest=True)
+    g.link(kall, "geo", ckx, "geo")
+    cman = D("PCG_WorldManifest", title="City: World Manifest (World.json for the engine importers)", folder="pcg/city",
+             world_size=1024.0, tile_size=1024.0, origin="north_west_corner",
+             extra_json=json.dumps({"city": {
+                 "instances_facade_column": "facade",
+                 "wall_material": "M_Wall",
+                 "facade_materials": {str(k): v for k, v in enumerate(CITY_FACADE_MAT)},
+                 "note": "Walls of a facade variant swap M_Wall for that material (a material override per instance)."}},
+                 indent=1))
+    g.link(cei, "report", cman, "after1")
+    g.link(ckx, "path", cman, "after2")
 
     # Preview: place the kit back by name; the facade variant swaps the wall material per building (an engine does
     # the same with a material override from the table's facade column)
@@ -4937,6 +5104,48 @@ def modular_city():
         "s@material = m\n"
         "@Cd = where(m == \"M_BrickBuff\", set(0.70, 0.62, 0.46), where(m == \"M_Stucco\", set(0.84, 0.77, 0.63), @Cd))"))
     g.link(cp, "geo", fv, "geo")
+    # Weathering, per building and per window, on the corners (vertex colour: a wall piece's faces are 3.5 m tall,
+    # a face colour would step floor by floor). The preview multiplies the wall and glass textures by it
+    # (basecolor_tint): every building its own shade, darker at the foot (splash and street dirt) and over the lower
+    # floors; the glass of each window lighter (curtains), darker (an empty room) or as it is; at dusk about a third
+    # of the windows lit (emit). The texture is shifted by a random offset per building, so neighbouring buildings
+    # do not show the same bricks in the same places
+    wk_ = E("PCG_Wrangle", title="Weathering: what each face is (wall, glass), a number per window", run_over="prim",
+            code=(
+                "m = @material\n"
+                '@wk = where((m == "M_Wall") | (m == "M_BrickBuff") | (m == "M_Stucco"), 1, where(m == "M_Glass", 2, 0))\n'
+                "@gk = rand(@copynum * 1.37 + 0.5)"))
+    g.link(fv, "geo", wk_, "geo")
+    hy_ = E("PCG_Wrangle", title="Weathering: each point's height", code="@hy = @P.y")
+    g.link(wk_, "geo", hy_, "geo")
+    prev_ = hy_
+    for nm_, cls_ in (("wk", "prim"), ("gk", "prim"), ("Cd", "prim"), ("bld", "point"), ("floors", "point"),
+                      ("hy", "point")):
+        pm_ = E("PCG_AttribPromote", title=f"Weathering: {nm_} to the corners", original_name=nm_,
+                original_class=cls_, new_class="vertex", method="first_match", delete_original=False)
+        g.link(prev_, "geo", pm_, "geo")
+        prev_ = pm_
+    wv_ = E("PCG_Wrangle", title="Weathering: shade per building, dirt at the foot, curtains, lit windows, offset",
+            run_over="vertex", code=(
+                "b = @bld\n"
+                "# every building its own shade (brighter or darker, warmer or cooler)\n"
+                "br = 0.88 + 0.24 * rand(b * 3.7 + 0.1)\n"
+                "hh = rand(b * 5.1 + 0.3) - 0.5\n"
+                "tint = set(br * (1 + 0.10 * hh), br, br * (1 - 0.10 * hh))\n"
+                "# dirt: splashed up the foot of the wall, and a little over the lower floors\n"
+                "grime = (1 - 0.30 * (1 - smoothstep(0.0, 1.6, @hy))) * (0.90 + 0.10 * smoothstep(0.0, 14.0, @hy))\n"
+                "gk = @gk\n"
+                "glass = where(gk < 0.22, set(1.30, 1.15, 0.98), where(gk < 0.40, set(0.55, 0.56, 0.60), set(1, 1, 1)))\n"
+                "@Cd = where(@wk == 1, tint * grime, where(@wk == 2, glass * sqrt(grime), @Cd))\n"
+                "# about a third of the windows lit at dusk, warm, each its own brightness\n"
+                "lit = (@wk == 2) & (gk > 0.45) & (gk < 0.80)\n"
+                "@emit = set(1.6, 1.05, 0.55) * where(lit, 0.6 + rand(gk * 91.3), 0.0)\n"
+                "# the texture shifted per building\n"
+                "@uv = @uv + set(floor(rand(b * 2.3 + 0.7) * 8), floor(rand(b * 7.1 + 0.2) * 8) + rand(b * 1.9))"))
+    g.link(prev_, "geo", wv_, "geo")
+    bpv = E("PCG_AttribDelete", title="Buildings for the preview: what it reads", point="* ^P ^uv",
+            vertex="* ^uv ^Cd ^emit", prim="* ^material")
+    g.link(wv_, "geo", bpv, "geo")
     hx, hz = CITY_GRID["size_x"] / 2, CITY_GRID["size_z"] / 2
     cw = 5.0                    # curb: 5 m from the street axis (10 m carriageway), 3 m sidewalks behind it
     reach = 300.0               # the two streets run on past the block, between the context buildings
@@ -4953,14 +5162,26 @@ def modular_city():
         sp for sx in (-1, 1) for sz in (-1, 1) for sp in (
             (reach - cw, 0.17, 3.0, sx * (cw + reach) / 2, -0.065, sz * (cw + 1.5)),
             (3.0, 0.17, reach - cw, sx * (cw + 1.5), -0.065, sz * (cw + reach) / 2))])
-    # the ground the context blocks stand on: one concrete slab (their forecourts and the lanes between them)
-    slab = boxes(E, "Context ground", "M_Trim", [(640.0, 0.1, 640.0, 0.0, -0.21, 0.0)])
+    # granite curbs: 25 cm wide, standing 17 cm above the asphalt along every sidewalk's street edge
+    curb = boxes(E, "Curbs along the sidewalks", "Curb", [
+        sp for sx in (-1, 1) for sz in (-1, 1) for sp in (
+            (reach - cw, 0.22, 0.25, sx * (cw + reach) / 2, -0.09, sz * (cw + 0.125)),
+            (0.25, 0.22, reach - cw, sx * (cw + 0.125), -0.09, sz * (cw + reach) / 2))])
+    crbc = E("PCG_Color", title="Curbs: granite grey", attribute_class="prim", r=0.52, g=0.52, b=0.50)
+    g.link(curb, "geo", crbc, "geo")
+    # the ground the context blocks stand on: one slab of concrete paving (their forecourts and the lanes between
+    # them), the sidewalks' texture tinted darker so the distance does not glare
+    slab = E("PCG_Wrangle", title="Context ground: marked", run_over="prim", code="i@slab = 1")
+    g.link(boxes(E, "Context ground", "M_Trim", [(640.0, 0.1, 640.0, 0.0, -0.21, 0.0)]), "geo", slab, "geo")
     swk = merge_all(E, "Paving + sidewalks", [yard, walk, slab])
     swu = E("PCG_UVProject", title="Sidewalk UVs (1 UV = 1 m)", mode="box", fit_to_01=False, scale_u=1.0,
             scale_v=1.0)
     g.link(swk, "geo", swu, "geo")
-    swc = E("PCG_Color", title="Sidewalk colour (viewport)", attribute_class="prim", r=0.58, g=0.57, b=0.54)
+    swc = E("PCG_Wrangle", title="Sidewalk and paving colours (sidewalks: a tint on their concrete texture)",
+            run_over="prim", code=(
+                '@Cd = where(@slab == 1, set(0.50, 0.50, 0.48), set(0.78, 0.77, 0.74))'))
     g.link(swu, "geo", swc, "geo")
+    swc = merge_all(E, "Paving + sidewalks + curbs", [swc, crbc])
     # Road paint: dashed centre lines, zebra crossings on the four arms of the crossing, stop lines
     paint = []
     for d in range(12, int(reach), 9):
@@ -4987,6 +5208,17 @@ def modular_city():
     rpm = E("PCG_Wrangle", title="Paint: white, no texture", run_over="prim",
             code='s@material = "Road_Paint"\n@Cd = set(0.86, 0.86, 0.82)')
     g.link(rpc, "geo", rpm, "geo")
+    # manhole covers and gully grates down the streets (dark iron discs and bars flush with the asphalt)
+    mhp = E("PCG_Add", title="Manholes: positions", points="\n".join(
+        f"{a:g} -0.145 {b:g}" for d in range(18, int(reach * 0.6), 24) for sg in (-1, 1)
+        for a, b in ((sg * d, 1.6 * sg), (2.0 * sg, sg * d))))
+    mhd = E("PCG_Tube", title="Manhole cover", radius1=0.34, radius2=0.34, height=0.012, cols=16, rows=2, caps=True)
+    mhc = E("PCG_CopyToPoints", title="Manholes")
+    g.link(mhd, "geo", mhc, "source")
+    g.link(mhp, "geo", mhc, "points")
+    mhm = E("PCG_Wrangle", title="Manholes: iron", run_over="prim", code='s@material = "Iron"\n@Cd = set(0.16, 0.16, 0.17)')
+    g.link(mhc, "geo", mhm, "geo")
+    rpm = merge_all(E, "Road paint + manholes", [rpm, mhm])
     # Street furniture on the sidewalks, 1.2 m from the curb: lamps and trees alternating every 6 m
     lamp = merge_all(E, "Street lamp", [
         box(E, "Lamp pole", 0.14, 5.0, 0.14, 0.0, 2.5, 0.0), box(E, "Lamp base", 0.3, 0.5, 0.3, 0.0, 0.25, 0.0),
@@ -4994,43 +5226,31 @@ def modular_city():
     lampn = E("PCG_Wrangle", title="Lamp: metal, name", run_over="prim",
               code='s@material = "M_Metal"\ns@name = "lamp"')
     g.link(lamp, "geo", lampn, "geo")
-    # Street tree: a tapering trunk, two limbs, a crown of eighteen lumpy leaf clusters, darker inside and low
-    trunk = E("PCG_Tube", title="Tree trunk", radius1=0.17, radius2=0.10, height=3.2, cols=10, rows=2)
-    tkm = E("PCG_MatchSize", title="Trunk on the ground", justify_y="min")
-    g.link(trunk, "geo", tkm, "geo")
-    limbs = boxes(E, "Limbs", "Bark", [(0.12, 1.6, 0.12, 0.35, 3.6, 0.0, 0.0), (0.1, 1.4, 0.1, -0.3, 3.5, 0.2, 0.0)])
-    lmb = E("PCG_Transform", title="Limbs lean out", rz=-18.0, py=2.8)
-    g.link(limbs, "geo", lmb, "geo")
-    tkc = E("PCG_Color", title="Bark", attribute_class="prim", r=0.45, g=0.39, b=0.32)
-    g.link(merge_all(E, "Trunk + limbs", [tkm, lmb]), "geo", tkc, "geo")
-    blob = E("PCG_Sphere", title="Leaf cluster", radius=1.0, cols=12, rows=8)
-    blbn = E("PCG_Normal", title="Cluster normals")
-    g.link(blob, "geo", blbn, "geo")
-    bln0 = E("PCG_AttribNoise", title="Lumpy cluster", noise_along_vector=True, amplitude=0.3)
-    g.link(blbn, "geo", bln0, "geo")
-    bln = E("PCG_Normal", title="Normals of the lumpy surface")
-    g.link(bln0, "geo", bln, "geo")
-    # eighteen clusters on the shell of an ellipsoid crown: small enough to read as foliage masses, not balloons
-    cpts = E("PCG_Add", title="Crown: cluster centres", points=(
-        "-1.06 5.11 -0.85\n1.14 4.08 -0.72\n0.48 5.70 1.35\n0.65 5.02 -1.22\n1.39 5.14 -0.76\n1.32 5.03 -0.33\n0.38 4.79 -1.29\n-1.13 5.40 -0.85\n-0.55 5.74 -0.68\n0.44 4.21 -0.64\n-0.34 6.33 0.46\n1.21 4.38 -1.17\n-0.52 4.37 -1.53\n-1.44 5.09 1.04\n-0.34 6.46 -0.08\n-0.30 4.25 1.48\n-0.93 4.23 -1.11\n0.59 5.87 0.93"))
-    cpw = E("PCG_Wrangle", title="Cluster sizes + greens", code=(
-        "@pscale = 0.7 + 0.35 * rand(@ptnum * 3.3)\n"
-        "t = rand(@ptnum * 7.7)\n"
-        "# darker low and inside the crown, sunlit yellow-greens on top\n"
-        "hgt = smoothstep(3.8, 6.3, @P.y)\n"
-        "v@leaf = lerp(set(0.13, 0.22, 0.08), set(0.30, 0.42, 0.14), 0.25 * t + 0.75 * hgt)\n"
-        "@N = set(sin(@ptnum * 2.1), 0, cos(@ptnum * 2.1))\n"
-        "@up = set(0, 1, 0)"))
-    g.link(cpts, "geo", cpw, "geo")
-    crc = E("PCG_CopyToPoints", title="Crown", target_point_attributes="", target_prim_attributes="leaf")
-    g.link(bln, "geo", crc, "source")
-    g.link(cpw, "geo", crc, "points")
-    crg = E("PCG_Wrangle", title="Leaf colour per cluster", run_over="prim",
-            code='@Cd = v@leaf\ns@material = "Leaves"')
-    g.link(crc, "geo", crg, "geo")
-    tree = merge_all(E, "Street tree", [tkc, crg])
-    treen = E("PCG_Wrangle", title="Tree: name", run_over="prim", code='s@name = "tree"')
-    g.link(tree, "geo", treen, "geo")
+    # Street tree: Tree Generator's broadleaf (a trunk, two branch levels, leaf cards cut out by Leaf Card Texture's
+    # twig), as in the world tiles: the cards are thin (lit from both sides, glowing against the sun); the preview's
+    # texture slots read the twig from the leaf card image on textures_cop
+    lfc = E("PCG_LeafCardTexture", title="Leaf card: broadleaf twig (M_Leaf)", kind="broadleaf", resolution=512,
+            leaves=9, leaf_color="0.055 0.15 0.016", rand_seed=3, prefix="M_Leaf")
+    tgn = E("PCG_TreeGenerator", title="Street tree (Tree Generator: a broadleaf, leaf cards)", kind="broadleaf",
+            height=7.0, trunk_radius=0.16, crown_base=0.45, crown_width=4.6, branch_levels=2, branches=5, leaves=380,
+            leaf_size=1.0, leaf_color="1 1 1", leaf_material="M_Leaf", sides=5, segments=4, rand_seed=5)
+    # the street furniture is merged with lamps and cars that have face colours only: the tree's shading goes onto
+    # its faces too (a merge fills a missing point colour with black)
+    tgc = E("PCG_AttribPromote", title="Tree: colour to the faces", original_name="Cd", original_class="point",
+            new_class="prim", method="average", delete_original=True)
+    g.link(tgn, "geo", tgc, "geo")
+    treen = E("PCG_Wrangle", title="Tree: name, the leaves translucent", run_over="prim", code=(
+        's@name = "tree"\n'
+        'leaf = @part.astype(str) == "leaf"\n'
+        "@translucency = where(leaf, 0.5, 0.0)\n"
+        "@Cd = where(leaf, @Cd, set(0.45, 0.39, 0.32))"))
+    g.link(tgc, "geo", treen, "geo")
+    # the street's UVs are on vertices (UV Project): merged with them, a point uv would lose to a zero vertex uv and
+    # the leaf cards would sample the empty corner of their image -- so the tree's go to the vertices too
+    tuv = E("PCG_AttribPromote", title="Tree: uv to the vertices", original_name="uv", original_class="point",
+            new_class="vertex", method="average", delete_original=True)
+    g.link(treen, "geo", tuv, "geo")
+    treen = tuv
     # Parked car: a body with rounded shoulders, a cabin tapered to a raked windscreen and rear window (glass sides,
     # painted roof), lights, four wheels; the body takes a paint colour per car
     cbt = E("PCG_Wrangle", title="Body: narrower at the shoulders", code=(
@@ -5038,14 +5258,14 @@ def modular_city():
         "@P.z = where(top, @P.z * 0.94, @P.z)\n"
         "@P.x = where(top, @P.x * 0.97, @P.x)"))
     g.link(box(E, "Car body box", 4.4, 0.66, 1.8, 0.0, 0.6, 0.0), "geo", cbt, "geo")
-    cbody = E("PCG_PolyBevel", title="Car body (bevelled)", distance=0.12)
+    cbody = E("PCG_PolyBevel", title="Car body (bevelled)", distance=0.2)
     g.link(cbt, "geo", cbody, "geo")
     cct = E("PCG_Wrangle", title="Cabin: raked screens, tumblehome", code=(
         "top = @P.y > 1.4\n"
         "@P.x = where(top, @P.x * 0.6 - 0.2, @P.x)\n"
         "@P.z = where(top, @P.z * 0.86, @P.z)"))
     g.link(box(E, "Cabin box", 2.7, 0.6, 1.62, -0.15, 1.22, 0.0), "geo", cct, "geo")
-    ccab = E("PCG_PolyBevel", title="Cabin (bevelled)", distance=0.05)
+    ccab = E("PCG_PolyBevel", title="Cabin (bevelled)", distance=0.1)
     g.link(cct, "geo", ccab, "geo")
     ccn = E("PCG_Normal", title="Cabin normals", add_to="prim")
     g.link(ccab, "geo", ccn, "geo")
@@ -5068,7 +5288,34 @@ def modular_city():
     car = merge_all(E, "Car", [cbm, ccm, clt, wm])
     carn = E("PCG_Wrangle", title="Car: name", run_over="prim", code='s@name = "car"')
     g.link(car, "geo", carn, "geo")
-    props = merge_all(E, "Street furniture library", [lampn, treen, carn])
+    # benches, litter bins, a bus shelter and traffic lights (the sidewalk's own life between the lamps and trees)
+    bench = merge_all(E, "Bench", [
+        boxes(E, "Bench seat + back", "Wood", [(1.8, 0.06, 0.42, 0.0, 0.45, 0.0), (1.8, 0.4, 0.05, 0.0, 0.72, -0.2)]),
+        boxes(E, "Bench legs", "M_Metal", [(0.06, 0.45, 0.42, -0.75, 0.22, 0.0), (0.06, 0.45, 0.42, 0.75, 0.22, 0.0)])])
+    benchn = E("PCG_Wrangle", title="Bench: name, wood colour", run_over="prim",
+               code='s@name = "bench"\n@Cd = where(@material == "Wood", set(0.45, 0.30, 0.18), set(0.2, 0.2, 0.2))')
+    g.link(bench, "geo", benchn, "geo")
+    binb = E("PCG_Tube", title="Litter bin", radius1=0.26, radius2=0.3, height=0.9, cols=12, rows=2, caps=True,
+             center_y=0.45)
+    binn = E("PCG_Wrangle", title="Bin: name, green", run_over="prim",
+             code='s@name = "bin"\ns@material = "Bin"\n@Cd = set(0.12, 0.22, 0.15)')
+    g.link(binb, "geo", binn, "geo")
+    shel = merge_all(E, "Bus shelter", [
+        boxes(E, "Shelter roof + posts", "M_Metal", [(4.0, 0.1, 1.6, 0.0, 2.5, 0.0), (0.08, 2.5, 0.08, -1.95, 1.25, -0.75),
+                                                     (0.08, 2.5, 0.08, 1.95, 1.25, -0.75), (0.08, 2.5, 0.08, -1.95, 1.25, 0.75),
+                                                     (0.08, 2.5, 0.08, 1.95, 1.25, 0.75)]),
+        boxes(E, "Shelter glass", "M_Glass", [(3.9, 2.1, 0.03, 0.0, 1.25, -0.75), (0.03, 2.1, 1.4, -1.95, 1.25, 0.0)]),
+        boxes(E, "Shelter bench", "Wood", [(2.4, 0.05, 0.35, 0.0, 0.48, -0.5)])])
+    sheln = E("PCG_Wrangle", title="Shelter: name", run_over="prim",
+              code='s@name = "shelter"\n@Cd = where(@material == "Wood", set(0.45, 0.30, 0.18), set(1, 1, 1))')
+    g.link(shel, "geo", sheln, "geo")
+    tl = merge_all(E, "Traffic light", [
+        boxes(E, "Signal pole", "M_Metal", [(0.12, 3.2, 0.12, 0.0, 1.6, 0.0)]),
+        boxes(E, "Signal head", "Signal", [(0.32, 0.95, 0.25, 0.0, 3.4, 0.1)])])
+    tln = E("PCG_Wrangle", title="Traffic light: name, dark head", run_over="prim",
+            code='s@name = "signal"\n@Cd = where(@material == "Signal", set(0.08, 0.08, 0.08), set(1, 1, 1))')
+    g.link(tl, "geo", tln, "geo")
+    props = merge_all(E, "Street furniture library", [lampn, treen, carn, benchn, binn, sheln, tln])
     off = cw + 1.2
     fpts = ([(sx * off, 0.0, sz * z) for sx in (-1, 1) for sz in (-1, 1) for z in range(10, int(reach * 0.5), 6)]
             + [(sx * x, 0.0, sz * off) for sx in (-1, 1) for sz in (-1, 1) for x in range(10, int(reach * 0.5), 6)])
@@ -5085,6 +5332,32 @@ def modular_city():
         "@up = set(0, 1, 0)\n"
         "@pscale = where(tree, 0.8 + 0.45 * rand(@ptnum * 1.7), 1.0)"))
     g.link(fp_, "geo", fpn, "geo")
+    # benches between every other lamp and tree, a bin beside every third lamp, set back from the curb; a bus shelter
+    # on each street near the crossing; traffic lights on the four corners, facing the oncoming traffic
+    xtra = []
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            for k, z in enumerate(range(13, int(reach * 0.5), 6)):
+                if k % 4 == 0 and not 26 <= z <= 34:
+                    xtra.append(("bench", sx * (cw + 2.2), sz * z, -sx, 0))
+                    xtra.append(("bench", sz * z, sx * (cw + 2.2), 0, -sx))
+                if k % 6 == 3:
+                    xtra.append(("bin", sx * (cw + 0.8), sz * (z + 1.0), -sx, 0))
+                    xtra.append(("bin", sz * (z + 1.0), sx * (cw + 0.8), 0, -sx))
+            xtra.append(("signal", sx * (cw + 0.5), sz * 12.0, 0, -sz))
+    xtra += [("shelter", cw + 2.0, 30.0, -1, 0), ("shelter", -30.0, cw + 2.0, 0, -1)]
+    xpt = E("PCG_Add", title="Benches, bins, shelters, signals: positions",
+            points="\n".join(f"{x:g} 0 {z:g}" for _, x, z, _, _ in xtra))
+    xpw = E("PCG_Wrangle", title="Benches, bins, shelters, signals: which, facing", code=(
+        "names = np.array([" + ", ".join(f'"{n}"' for n, *_ in xtra) + "])\n"
+        "fx = np.array([" + ", ".join(f"{a:g}" for *_, a, _ in xtra) + "])\n"
+        "fz = np.array([" + ", ".join(f"{b:g}" for *_, b in xtra) + "])\n"
+        "s@name = names[@ptnum]\n"
+        "@N = set(fx[@ptnum], 0 * @P.x, fz[@ptnum])\n"
+        "@up = set(0, 1, 0)\n"
+        "@pscale = 1.0 + 0 * @P.x"))
+    g.link(xpt, "geo", xpw, "geo")
+    fpn = merge_all(E, "Lamps, trees and the rest of the furniture", [fpn, xpw])
     # parked cars in the 2 m parking lane beside each curb, about two in three slots taken
     cpos = ([(sx * (cw - 1.0), 0.0, sz * z) for sx in (-1, 1) for sz in (-1, 1) for z in range(14, int(reach * 0.6), 6)]
             + [(sx * x, 0.0, sz * (cw - 1.0)) for sx in (-1, 1) for sz in (-1, 1) for x in range(14, int(reach * 0.6), 6)])
@@ -5122,7 +5395,17 @@ def modular_city():
         x, z = rr.uniform(x0 + 2, x1 - 2) * rr.choice((-1, 1)), rr.uniform(cw + 7, hz + 12) * rr.choice((-1, 1))
         if all((x - a) ** 2 + (z - b) ** 2 > 20 for a, _, b in ppts):
             ppts.append((x, 0.0, z))
-    pk = E("PCG_Add", title="Park trees", points="\n".join(f"{x:.2f} {y:g} {z:.2f}" for x, y, z in ppts))
+    # trees along the lanes between the nearer context blocks (the paved ground between them was a bare expanse)
+    for e_ in range(-320, 321, 32):
+        for t_ in range(-150, 151, 12):
+            for x, z in ((e_ + rr.uniform(-0.8, 0.8), t_ + rr.uniform(-2, 2)), (t_ + rr.uniform(-2, 2), e_ + rr.uniform(-0.8, 0.8))):
+                if abs(x) > 150 or abs(z) > 150 or abs(x) < 20 or abs(z) < 20:
+                    continue
+                if abs(x) < hx + 26 and abs(z) < hz + 16:
+                    continue
+                if (x * x + z * z) ** 0.5 < 150 and rr.random() < 0.55:
+                    ppts.append((x, 0.0, z))
+    pk = E("PCG_Add", title="Park and lane trees", points="\n".join(f"{x:.2f} {y:g} {z:.2f}" for x, y, z in ppts))
     pkw = E("PCG_Wrangle", title="Park trees: size, turn", code=(
         's@name = "tree"\n'
         "a = rand(@ptnum * 3.7 + 0.2) * 6.2832\n"
@@ -5151,7 +5434,8 @@ def modular_city():
         "# low around the plot so the hero buildings read, taller toward the horizon\n"
         "f = floor(3 + 4 * rand(@primnum * 1.37) + 7 * smoothstep(110, 280, d) * rand(@primnum * 2.9))\n"
         "@h = f * 3.5\n"
-        "i@far = where(rand(@primnum * 4.4) < 0.5, 0, 1)"))
+        "i@far = where(rand(@primnum * 4.4) < 0.5, 0, 1)\n"
+        "i@blk = @primnum"))
     g.link(ctx, "geo", ctw, "geo")
     ctb = E("PCG_Blast", title="Context: keep blocks", group="@drop == 1", cls="prim")
     g.link(ctw, "geo", ctb, "geo")
@@ -5166,18 +5450,39 @@ def modular_city():
     ctu = E("PCG_UVProject", title="Context UVs: u = x / 4, v = y / 3.5 (one bay per image)", mode="box",
             fit_to_01=False, scale_u=0.25, scale_v=1.0 / 3.5)
     g.link(ctn, "geo", ctu, "geo")
-    ctm = E("PCG_Wrangle", title="Context materials", run_over="prim", code=(
+    ctm = E("PCG_Wrangle", title="Context materials; blocks shaded by stands and each its own", run_over="prim", code=(
         "top = @N.y > 0.5\n"
         's@material = where(top, "M_RoofFlat", where(@far == 0, "M_FacadeFar", "M_FacadeFarBrick"))\n'
-        "@Cd = where(top, set(0.36, 0.36, 0.36), where(@far == 0, set(0.66, 0.60, 0.51), set(0.52, 0.30, 0.22)))"))
+        "# the facade image is tinted (basecolor_tint): districts a few hundred metres across lighter or darker,\n"
+        "# warmer or cooler, and each block a little different -- the distance no longer repeats one building\n"
+        "st = noise(@P * 0.006 + 1.3)\n"
+        "hu = noise(@P * 0.004 + 8.1) - 0.5\n"
+        "br = (0.72 + 0.5 * st) * (0.9 + 0.2 * rand(@blk * 2.9 + 0.4))\n"
+        "@Cd = where(top, set(0.36, 0.36, 0.36), set(br * (1 + 0.25 * hu), br, br * (1 - 0.25 * hu)))"))
     g.link(ctu, "geo", ctm, "geo")
-    mg = E("PCG_Merge", title="Block")
-    g.link(fv, "geo", mg, "geo1")
-    g.link(gt, "geo", mg, "geo2")
+    # rooftop clutter on the context blocks: a plant room and a smaller box per roof, each block its own size and turn
+    crc_ = E("PCG_ExtractCentroid", title="Context: a point on each roof", run_over="primitives",
+             method="average_position", output="points", use_transfer=True, transfer_attributes="h blk")
+    g.link(cts, "geo", crc_, "geo")
+    crw_ = E("PCG_Wrangle", title="Context roofs: height, turn, size", code=(
+        "@P.y = @h\n"
+        "a = floor(rand(@ptnum * 1.7) * 4) * 1.5708\n"
+        "@N = set(sin(a), 0, cos(a))\n"
+        "@up = set(0, 1, 0)\n"
+        "@pscale = 0.7 + 0.7 * rand(@ptnum * 3.3)"))
+    g.link(crc_, "geo", crw_, "geo")
+    crb_ = boxes(E, "Context roof clutter", "M_RoofFlat", [(7.0, 3.0, 5.0, -3.0, 1.5, 2.0), (3.0, 1.6, 3.0, 6.0, 0.8, -5.0)])
+    crk_ = E("PCG_Color", title="Context roof clutter: grey", attribute_class="prim", r=0.42, g=0.42, b=0.41)
+    g.link(crb_, "geo", crk_, "geo")
+    crp_ = E("PCG_CopyToPoints", title="Context roof clutter on the roofs")
+    g.link(crk_, "geo", crp_, "source")
+    g.link(crw_, "geo", crp_, "points")
+    mg = E("PCG_Merge", title="Street, furniture, context (the buildings are drawn beside it)")
+    g.link(gt, "geo", mg, "geo1")
     g.link(swc, "geo", mg, "geo3")
     g.link(fcc, "geo", mg, "geo4")
     g.link(rpm, "geo", mg, "geo5")
-    g.link(ctm, "geo", mg, "geo6")
+    g.link(merge_all(E, "Context blocks + roof clutter", [ctm, crp_]), "geo", mg, "geo6")
     mg0 = mg
     mg = E("PCG_Merge", title="Block + green belt")
     g.link(mg0, "geo", mg, "geo1")
@@ -5189,9 +5494,11 @@ def modular_city():
              resolution_x=1600, resolution_y=900, fov=38.0, eye_x=-104.0, eye_y=34.0, eye_z=66.0,
              target_x=6.0, target_y=13.0, target_z=-10.0)
     pr = E("PCG_PreviewImage", width=1600, height=900, elevation=32.0, azimuth=30.0, shading="color",
-           look="outdoor", textures=CITY_TEXTURES, sun_elevation=30.0, sun_azimuth=250.0, haze=2.5,
-           ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5)
+           look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=30.0, sun_azimuth=250.0, haze=2.5,
+           ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5, emit_attrib="")
     g.link(mg, "geo", pr, "geo")
+    g.link(bpv, "geo", pr, "extra_geo")
+    g.link(lfc, "cop", pr, "textures_cop")
     g.link(cam1, "cam", pr, "camera")
     pv = E("PreviewImage", title="Assembled block", size=[520, 400])
     g.link(pr, "image", pv, "images")
@@ -5199,17 +5506,40 @@ def modular_city():
              resolution_x=1600, resolution_y=900, fov=55.0, eye_x=-2.2, eye_y=1.7, eye_z=56.0,
              target_x=-0.5, target_y=8.0, target_z=-20.0)
     pr2 = E("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
-            look="outdoor", textures=CITY_TEXTURES, sun_elevation=40.0, sun_azimuth=35.0, haze=2.5,
-            ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5)
+            look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=40.0, sun_azimuth=35.0, haze=2.5,
+            ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5, emit_attrib="")
     g.link(mg, "geo", pr2, "geo")
+    g.link(bpv, "geo", pr2, "extra_geo")
+    g.link(lfc, "cop", pr2, "textures_cop")
     g.link(cam2, "cam", pr2, "camera")
     pv2 = E("PreviewImage", title="Street level", size=[520, 400])
     g.link(pr2, "image", pv2, "images")
-    kpts = E("PCG_Add", title="11 points in three rows (5 m apart)",
-             points="\n".join(f"{5 * (i % 4)} 0 {-6 * (i // 4)}" for i in range(11)))
+    # Dusk over the crossing: the sun 4 degrees under the horizon, a third of the windows lit (the buildings' emit),
+    # every street lamp a point light at its head
+    llp = E("PCG_Blast", title="Dusk: the lamps", group='@name != "lamp"', cls="point")
+    g.link(fpn, "geo", llp, "geo")
+    llw = E("PCG_Wrangle", title="Dusk: a light at each lamp head (warm)", code=(
+        "@P = @P + set(0, 4.8, 0) + @N * 1.2\n"
+        "@Cd = set(1.0, 0.74, 0.45) + 0 * @P\n"
+        "@intensity = 55.0 + 0 * @P.y"))
+    g.link(llp, "geo", llw, "geo")
+    pr3 = E("PCG_PreviewImage", title="Dusk: the preview", width=1600, height=900, elevation=10.0, azimuth=0.0,
+            shading="color", look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=-4.0, sun_azimuth=250.0,
+            haze=2.0, ground_color="0.40 0.39 0.36", clouds=0.3, cloud_seed=5, exposure=2.2, emit_attrib="emit",
+            light_range=30.0)
+    g.link(mg, "geo", pr3, "geo")
+    g.link(bpv, "geo", pr3, "extra_geo")
+    g.link(lfc, "cop", pr3, "textures_cop")
+    g.link(llw, "geo", pr3, "lights")
+    g.link(cam1, "cam", pr3, "camera")
+    pv3 = E("PreviewImage", title="At dusk", size=[520, 400])
+    g.link(pr3, "image", pv3, "images")
+    kpts = E("PCG_Add", title="12 points in three rows (5 m apart)",
+             points="\n".join(f"{5 * (i % 4)} 0 {-6 * (i // 4)}" for i in range(12)))
     kn = E("PCG_Wrangle", title="One piece per point", code=(
         'order = np.array(["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony",'
-        ' "Wall_Shopfront", "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank"])\n'
+        ' "Wall_Shopfront", "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank",'
+        ' "Roof_Penthouse"])\n'
         "s@name = order[@ptnum]\n"
         "@N = set(0, 0, 1)\n"
         "@up = set(0, 1, 0)"))
