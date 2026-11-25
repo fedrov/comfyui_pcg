@@ -528,5 +528,63 @@ sec("Reference dashed lines (pcg94): with a node selected, faint dashed lines to
   canvas.graph = g0; canvas.selected_nodes = sel0; canvas.ds.scale = sc0;
 }
 
+sec("Hovering a parameter in the panel: the nodes that use it (orange) and that it reads (cyan) light up");
+{
+  const P = await import(path.join(EXT, "pcg_params.js"));
+  const mk = (id, title, x, y) => { const n = new Node(id, x, y, 120, 60); n.title = title; n.type = "PCG_X";
+                                    n.properties = {}; n.widgets = [{ name: "tx", value: 0 }, { name: "ty", value: 0 },
+                                                                    { name: "s", value: 0 }]; return n; };
+  const src = mk(61, "src", 0, 0), dst = mk(62, "dst", 400, 0), d3 = mk(63, "d3", 0, 300), oth = mk(64, "other", 400, 300);
+  dst.properties.pcg_bind = { tx: `=ch("@61/tx") * 2`, ty: "@61/ty" };
+  d3.properties.pcg_bind = { s: `=ch("../src/tx") + ch("ty")` };           // a path by title, and its own ty
+  oth.properties.pcg_bind = { tx: "k:0:0  10:1" };                          // keyframes read nothing
+  const G4 = { _nodes: [src, dst, d3, oth], links: new Map(),
+               getNodeById(id) { return this._nodes.find((n) => String(n.id) === String(id)) ?? null; } };
+  for (const n of G4._nodes) n.graph = G4;
+  const ids = (rs) => J(rs.map((r) => [r.node.title, r.params]));
+  let L = P.paramLinks(G4, src, "tx");
+  check("paramLinks: src.tx is used by dst.tx (a pasted reference in an expression) and d3.s (a ../title path); it reads nothing",
+        ids(L.users) === J([["dst", ["tx"]], ["d3", ["s"]]]) && L.sources.length === 0, ids(L.users));
+  L = P.paramLinks(G4, src, "ty");
+  check("  src.ty: only dst.ty uses it (d3's ch(\"ty\") is d3's own ty)", ids(L.users) === J([["dst", ["ty"]]]), ids(L.users));
+  L = P.paramLinks(G4, d3, "s");
+  check("  d3.s reads src.tx and its own ty (a parameter of the same node counts)",
+        ids(L.sources) === J([["src", ["tx"]], ["d3", ["ty"]]]) && L.users.length === 0, ids(L.sources));
+  L = P.paramLinks(G4, d3, "ty");
+  check("  d3.ty is used by d3.s, on the same node", ids(L.users) === J([["d3", ["s"]]]), ids(L.users));
+  L = P.paramLinks(G4, oth, "tx");
+  check("  negative control: a keyframed field neither uses nor is used", L.users.length === 0 && L.sources.length === 0);
+  check("paramLinksText: one tooltip line", P.paramLinksText(P.paramLinks(G4, src, "tx")) === "Used by dst (tx), d3 (s)",
+        P.paramLinksText(P.paramLinks(G4, src, "tx")));
+  check("  and nothing for a parameter without links", P.paramLinksText(P.paramLinks(G4, oth, "tx")) === "");
+  P.setParamHilite(src, "tx");
+  const hs = M.hiliteShapes(P.PARAM_HILITE.cur);
+  check("hiliteShapes: an orange outline and a label on each user, a line from src to it",
+        hs.length === 2 && hs.every((x) => x.color === M.USE_COLOR && x.seg) && hs[0].label === "uses tx → tx"
+        && J(hs[0].seg) === J(M.refSegment(M.nodeRect(src), M.nodeRect(dst))), J(hs.map((x) => [x.node.title, x.label])));
+  P.setParamHilite(d3, "s");
+  const hs2 = M.hiliteShapes(P.PARAM_HILITE.cur);
+  check("  what d3.s reads: cyan, the node itself outlined without a line",
+        hs2.length === 2 && hs2.every((x) => x.color === M.READ_COLOR) && hs2[1].node === d3 && hs2[1].seg === null,
+        J(hs2.map((x) => [x.node.title, x.label, !!x.seg])));
+  const ops = [];
+  const ctx3 = new Proxy({}, {
+    get: (t, k) => (k in t ? t[k] : (...a) => ops.push([k, ...a])),
+    set: (t, k, v) => { if (k === "strokeStyle") ops.push([k, v]); t[k] = v; return true; },
+  });
+  const g0 = canvas.graph;
+  canvas.graph = G4;
+  P.setParamHilite(src, "tx");
+  canvas.onDrawForeground(ctx3, [0, 0, 1000, 1000]);
+  check("drawn on the canvas: two outlines in the users' colour, their labels",
+        ops.filter((o) => o[0] === "strokeRect").length === 2 && ops.some((o) => o[0] === "strokeStyle" && o[1] === M.USE_COLOR)
+        && ops.filter((o) => o[0] === "fillText" && o[1] === "uses tx → tx").length === 1, J(ops.slice(0, 6)));
+  ops.length = 0;
+  P.setParamHilite(null);
+  canvas.onDrawForeground(ctx3, [0, 0, 1000, 1000]);
+  check("  nothing hovered: nothing drawn", !ops.some((o) => o[0] === "strokeRect"));
+  canvas.graph = g0;
+}
+
 console.log(`\n${OK.filter(Boolean).length}/${OK.length} passed`);
 process.exit(OK.every(Boolean) ? 0 : 1);

@@ -145,9 +145,31 @@ n0 = len(SENT)
 CS.warn("outside a node")
 check("  warn() outside a node goes nowhere (negative control)", len(SENT) == n0 and CS._LOCAL["warn"] is None)
 
+
+
+class _Note:
+    FUNCTION = "run"
+    RETURN_TYPES = ("INT",)
+
+    def run(self, n):
+        CS.note(f"rasterize {n} s")
+        return (n,)
+
+
+CS.attach_cookstats({"N": _Note})
+_srv.PromptServer.instance.last_node_id = "21"
+_Note().run(2)
+m = SENT[-1][1]
+check("cookstats.note: a plain line in the node's report (notes), not a warning (no badge)",
+      m["node"] == "21" and m["notes"] == ["rasterize 2 s"] and m["warnings"] == [], m)
+n0 = len(SENT)
+CS.note("outside a node")
+check("  note() outside a node goes nowhere (negative control)", len(SENT) == n0 and CS._LOCAL["note"] is None)
+_srv.PromptServer.instance.last_node_id = "9"
+
 kept = CS.last(["7", "9", "nope"])
 check("the last report of each node is kept for cached runs (the route /pcg/cookstats)",
-      set(kept) == {"7", "9"} and kept["9"]["ok"] is False and kept["7"]["outputs"][0]["npoints"] == 8, list(kept))
+      {"7", "9"} <= set(kept) and "nope" not in kept and kept["9"]["ok"] is False and kept["7"]["outputs"][0]["npoints"] == 8, list(kept))
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

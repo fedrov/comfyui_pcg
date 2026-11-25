@@ -14,6 +14,9 @@ Every shortcut and mouse action the plugin adds, in one place. ComfyUI's own sho
 | **Y + left-drag** | Cut every wire the drawn line crosses. Esc cancels. |
 | **Alt + left-drag** on two or more selected nodes | Arrange them in a column (drag vertically) or a row (drag horizontally). Esc cancels. |
 | **Shake** a node while dragging | Disconnect all its wires. |
+| **C** with nodes or boxes selected | Houdini's colour palette: colours, none, node shapes. Esc closes it. |
+| Right-click a group: **PCG: Collapse Box / Expand Box** | Collapse a network box to a list of its nodes; expand it back. |
+| Hover a parameter in the panel | Outline the nodes that use it (orange) and that it reads (cyan). |
 | Press and drag the **last third** of a wire | Move its input end to another input; dropped on empty canvas it disconnects. |
 | Press and drag the **first third** of a wire | Pull a new wire from the same input to choose another output. |
 | **Shift** while dragging a node | Do not snap to wires and neighbours. |
@@ -107,8 +110,10 @@ Shown when the graph has a [Frame (PCG)](../reference/param.md#pcg-frame) node.
 |---|---|
 | **Space** | Play / pause. |
 | **←** / **→** | Previous / next frame. |
+| **Ctrl+←** / **Ctrl+→** | Previous / next keyframe (of the selected nodes, or every node when none is selected). |
+| Click a ◆ over the slider | Go to that keyframe. |
 
-These act only when no text field has the focus and no modifier key is held; the keyboard button on the playbar turns them off.
+These act only when no text field has the focus (and, but for Ctrl with the arrows, no modifier key is held); the keyboard button on the playbar turns them off.
 
 ## Geometry Spreadsheet
 

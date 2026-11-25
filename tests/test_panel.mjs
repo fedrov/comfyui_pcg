@@ -797,6 +797,14 @@ check("  the context menu's Delete Reference also shows the expression",
   check("  source changes while showing the value: field shows the new value", f.value === "3.5", f.value);
   rowT.lab.dispatchEvent(ev("click", 0));
   check("  click again: back to the expression", f.value === 'ch("../Box Move/tx")');
+  // Hovering the row: what it reads lights up on the canvas, and the label's tooltip says so
+  rowT.el.dispatchEvent(new window.MouseEvent("mouseenter"));
+  const hl = PR.PARAM_HILITE.cur;
+  check("hovering the Translate row: the hovered parameter is tx of this node, it reads Box Move's tx; the tooltip says so",
+        hl && hl.node === tB && hl.wname === "tx" && hl.links.sources.length === 1 && hl.links.sources[0].node === tA
+        && /reads Box Move \(tx\)/.test(rowT.lab.title), rowT.lab.title);
+  rowT.el.dispatchEvent(new window.MouseEvent("mouseleave"));
+  check("  leaving the row: nothing is highlighted", PR.PARAM_HILITE.cur === null);
   const cnt = W(tB, "tx").calls;
   rowT.lab.dispatchEvent(ev("pointerdown", 0, 5, 20));
   window.dispatchEvent(ev("pointermove", 0, 80, 20));

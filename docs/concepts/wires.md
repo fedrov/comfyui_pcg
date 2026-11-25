@@ -45,6 +45,14 @@ To line up several nodes at once, select them and **Alt + left-drag**: drag most
 
 When a node is selected, a faint dashed line is drawn between it and every node it has a **parameter reference** with (`ch("../title/parm")` in a field, or a pasted relative reference), in both directions, as in Houdini's network view. They are drawn only, not wires: the reference is evaluated in the browser, see [Parameters](parameters.md#linking-parameters). Turn them off with **Reference dashed lines**.
 
+## Network boxes and colours
+
+ComfyUI's groups are Houdini's network boxes. Right-click a group and choose **PCG: Collapse Box**: every node inside it is collapsed to its title bar and stacked at the box's top left in reading order, and the box shrinks round them (its title gets a ▸). The wires stay connected. **PCG: Expand Box** puts every node back where it was, collapsed or open as it was, and the box back to its size. The state is kept in the group itself, so a box collapsed in one session expands in the next.
+
+Press **C** with nodes or boxes selected (or right-click a node, **PCG: Colour Palette…**) for Houdini's palette: twenty colours, *none* (the default) and the node shapes box, round and card. A node takes the colour on its title bar and a darker shade on its body. Setting: **PCG → Houdini feel → Colour palette**.
+
+Duplicating a node with **Alt + drag** and adding a dot to route a wire with **Alt + click** on it are ComfyUI's own and work as in Houdini.
+
 ## Renamed nodes
 
 A node whose title was changed shows its original type in small, dimmer text after the title (`tree proxy  Tube`), so a renamed node can still be recognised. Its right-click menu shows the full original name and can restore it. Setting: **PCG → Nodes → Show original type on renamed nodes** (All nodes, PCG nodes only, Off).

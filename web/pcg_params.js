@@ -1216,6 +1216,93 @@ export function refEdges(graph) {
   return out;
 }
 
+// ── Which parameters use which (pcg: hovering a parameter in the panel highlights them on the canvas)
+/** A path written in a binding -> {node, param} (param null for a node path; null when not found). Unlike
+ *  pathTarget, the node itself counts too (ch("tx") is this node's tx). */
+function pathParam(graph, self, p) {
+  graph = self?.graph || graph;
+  const base = (q) => (q == null ? null : String(q).split(/[.[]/)[0]);
+  if (typeof p === "object") {
+    const m = NODE_REF.exec(p.legacy);
+    if (m) return { node: nodeById(graph, m[1]), param: base(m[2]) };
+    let name;
+    try { name = splitRef(p.legacy).name; } catch (_) { return null; }
+    const pn = panels(graph).find((q) => name in valuesOf(q));
+    return pn ? { node: pn, param: name } : null;
+  }
+  const s = String(p);
+  const id = /^@(\^+(?:-?\d+(?::-?\d+)*)?|-?\d+(?::-?\d+)*)(?:\/(.*))?$/.exec(s) || /^\.\.\/#(-?\d+)(?:\/(.*))?$/.exec(s);
+  if (id) return { node: nodeById(graph, id[1]), param: base(id[2] || null) };
+  if (!s.startsWith("..")) {                                  // "tx" = this node's parameter, "." = this node
+    return s === "." || s === "" ? { node: self, param: null } : { node: self, param: base(s) };
+  }
+  const c = pathToCanon(graph, s, "ch");
+  const m = c && NODE_REF.exec(c);
+  if (m) return { node: nodeById(graph, m[1]), param: base(m[2]) };
+  const c2 = pathToCanon(graph, s, "op");
+  const m2 = c2 && (NODE_REF.exec(c2) || NODE_ID.exec(c2));
+  return m2 ? { node: nodeById(graph, m2[1]), param: null } : null;
+}
+
+/**
+ * The parameter wname of node and its links: users = [{node, params}] (fields elsewhere -- or on this node -- whose
+ * reference, expression or template reads it), sources = [{node, params}] (what its own binding reads; params empty
+ * for a node path such as npoints("../box1")). Keyframes read nothing.
+ */
+export function paramLinks(graph, node, wname) {
+  graph = node?.graph || graph;
+  const group = (pairs) => {
+    const by = new Map();
+    for (const [n, p] of pairs) {
+      if (!n) continue;
+      if (!by.has(n)) by.set(n, new Set());
+      if (p != null) by.get(n).add(p);
+    }
+    return [...by].map(([n, ps]) => ({ node: n, params: [...ps] }));
+  };
+  const users = [];
+  for (const n of graph?._nodes ?? []) {
+    const b = bindings(n);
+    if (!b) continue;
+    for (const [w, ref] of Object.entries(b)) {
+      if (n === node && w === wname) continue;
+      for (const p of bindingPaths(ref)) {
+        const t = pathParam(graph, n, p);
+        if (t && t.node === node && t.param === wname) users.push([n, w]);
+      }
+    }
+  }
+  const srcs = [];
+  const own = bindings(node)?.[wname];
+  if (own != null) {
+    for (const p of bindingPaths(own)) {
+      const t = pathParam(graph, node, p);
+      if (t && t.node && !(t.node === node && t.param === wname)) srcs.push([t.node, t.param]);
+    }
+  }
+  return { users: group(users), sources: group(srcs) };
+}
+
+/** The parameter hovered in a panel ({node, wname, links}), drawn on the canvas by pcg_wires.js; null = none. */
+export const PARAM_HILITE = { cur: null };
+
+export function setParamHilite(node, wname) {
+  if (!node || !wname) { PARAM_HILITE.cur = null; return null; }
+  let links;
+  try { links = paramLinks(node.graph || app?.graph, node, wname); } catch (_) { links = { users: [], sources: [] }; }
+  PARAM_HILITE.cur = { node, wname, links };
+  node.graph?.setDirtyCanvas?.(true, true);
+  return PARAM_HILITE.cur;
+}
+
+/** One line for a tooltip: "Used by Box 3 (sizex), Grid (rows) · reads Controls (radius)"; "" when it has no links. */
+export function paramLinksText(links) {
+  const nm = (r) => `${r.node.title || r.node.type}${r.params.length ? ` (${r.params.join(", ")})` : ""}`;
+  const a = links?.users?.length ? `Used by ${links.users.map(nm).join(", ")}` : "";
+  const b = links?.sources?.length ? `reads ${links.sources.map(nm).join(", ")}` : "";
+  return [a, b].filter(Boolean).join(" · ");
+}
+
 // ── Keyframes (Alt+click on a parameter in Houdini)
 /** Keyframes of this field [{f, v, c, s}]; null when it is not a keyframe binding. */
 export function keysOf(node, wname) {

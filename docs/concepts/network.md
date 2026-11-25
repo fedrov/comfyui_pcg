@@ -23,6 +23,7 @@ Press the middle mouse button on a node without moving it: its info opens next t
 - for geometry: point, primitive and vertex counts, memory, bounding box and size, the attributes by class (point, vertex, primitive, detail) with their type and size (`f3` = 3 floats), the point and primitive groups
 - for a COP image: its resolution and layers with their channel counts
 - its warnings, or its error message (with what its last good result was)
+- notes on how its time was spent, where a node gives them (Geometry Preview's Outdoor look: the frame size, CPU or GPU, and the seconds per stage)
 
 It stays open until the next click or Esc. Dragging with the middle button still pans the canvas and shows nothing. Nodes cached by the server since before you reloaded the page still show what they reported when they last ran.
 

@@ -36,8 +36,8 @@ export const app = globalThis.__app;
 fs.writeFileSync(path.join(ROOT, "scripts", "api.js"), `
 export const api = globalThis.__api;
 `);
-fs.copyFileSync(path.join(PKG, "comfyui_pcg", "web", "pcg_playbar.js"),
-                path.join(EXT, "pcg_playbar.js"));
+for (const f of ["pcg_playbar.js", "pcg_chan.js"])
+  fs.copyFileSync(path.join(PKG, "comfyui_pcg", "web", f), path.join(EXT, f));
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>",
                       { url: "http://localhost/", pretendToBeVisual: true });
@@ -291,6 +291,52 @@ bKeys.dispatchEvent(new dom.window.Event("click"));    // turn shortcuts off
 ev = key("ArrowRight");
 check("with ⌨ off nothing responds", !ev.defaultPrevented);
 bKeys.dispatchEvent(new dom.window.Event("click"));
+
+console.log("═".repeat(28), "Keyframes on the timeline");
+// keyframe channels as pcg_params.js stores them: node.properties.pcg_bind[widget] = "k:frame:value  frame:value ..."
+check("keyFrames: every keyed frame of the nodes, sorted, once each; other bindings and broken channels ignored",
+      JSON.stringify(mod.keyFrames([
+        { properties: { pcg_bind: { tx: "k:3:1  10:2", ty: "=ch(\"tx\")" } } },
+        { properties: { pcg_bind: { s: "k:10:0  15:1:linear", bad: "k:what" } } },
+        { properties: {} }])) === "[3,10,15]",
+      JSON.stringify(mod.keyFrames([{ properties: { pcg_bind: { tx: "k:3:1  10:2" } } }])));
+check("nextKey: the next / previous keyframe, null past the last / before the first",
+      mod.nextKey([3, 10, 15], 5, 1) === 10 && mod.nextKey([3, 10, 15], 10, 1) === 15
+      && mod.nextKey([3, 10, 15], 10, -1) === 3 && mod.nextKey([3, 10, 15], 15, 1) === null
+      && mod.nextKey([3, 10, 15], 3, -1) === null);
+check("tickLeft: a tick sits where the slider's thumb centre is at that frame (half a thumb in from each end)",
+      mod.tickLeft(0, 0, 10, 214) === 7 && mod.tickLeft(10, 0, 10, 214) === 207 && mod.tickLeft(5, 0, 10, 214) === 107);
+W(n1, "start").value = 0; W(n1, "end").value = 23; W(n1, "frame").value = 5;
+const keyed = { type: "PCG_Grid", properties: { pcg_bind: { size: "k:2:1  12:2  20:3" } }, widgets: [] };
+nodes.push(keyed);
+fire("execution_success", {});
+await sleep(450);
+const ticks = [...bar.querySelectorAll(".pcg-key")].map((d) => Number(d.dataset.frame));
+check("the timeline shows a tick per keyframe in the range (nothing selected: every node's)",
+      JSON.stringify(ticks) === "[2,12,20]", JSON.stringify(ticks));
+ev = key("ArrowRight", { ctrlKey: true });
+check("Ctrl+→ goes to the next keyframe", W(n1, "frame").value === 12 && ev.defaultPrevented, W(n1, "frame").value);
+fire("execution_success", {});
+ev = key("ArrowLeft", { ctrlKey: true });
+check("Ctrl+← goes to the previous keyframe", W(n1, "frame").value === 2, W(n1, "frame").value);
+fire("execution_success", {});
+ev = key("ArrowLeft", { ctrlKey: true });
+check("  no keyframe before: nothing happens, the key is not taken (negative control)",
+      W(n1, "frame").value === 2 && !ev.defaultPrevented);
+byTitle("Next keyframe").dispatchEvent(new dom.window.Event("click"));
+check("the ▶◆ button goes to the next keyframe", W(n1, "frame").value === 12, W(n1, "frame").value);
+fire("execution_success", {});
+bar.querySelector('.pcg-key[data-frame="20"]').dispatchEvent(new dom.window.Event("click"));
+check("clicking a tick goes to its frame", W(n1, "frame").value === 20, W(n1, "frame").value);
+fire("execution_success", {});
+globalThis.__app.canvas.selected_nodes = { 9: n1 };           // the Frame node selected: it has no keys
+await sleep(450);
+check("  with other nodes selected, only their keyframes show (none here)",
+      bar.querySelectorAll(".pcg-key").length === 0, bar.querySelectorAll(".pcg-key").length);
+globalThis.__app.canvas.selected_nodes = {};
+nodes.pop();
+W(n1, "frame").value = 5;
+await sleep(450);
 
 console.log("═".repeat(28), "Live recompute toggle");
 bLive.dispatchEvent(new dom.window.Event("click"));    // turn live off

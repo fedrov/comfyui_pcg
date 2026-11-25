@@ -97,7 +97,8 @@ export function onCook(d) {
   const id = String(d.node);
   const old = COOK.get(id) || {};
   const rec = { ...old, ok: !!d.ok, time: d.time, outputs: d.outputs || (d.ok ? [] : old.outputs || []),
-                warnings: d.warnings || [], error: d.ok ? null : d.error, cached: false, pcg: true };
+                warnings: d.warnings || [], notes: d.notes || [], error: d.ok ? null : d.error, cached: false,
+                pcg: true };
   stamp(id, rec);
   const r = runRow(id);
   r.time = d.time;
@@ -142,6 +143,7 @@ export function onCached(d) {
       for (const [k, v] of Object.entries(got || {})) {
         const rec = COOK.get(k) || {};
         stamp(k, { ...rec, ok: !!v.ok, time: v.time, outputs: v.outputs || [], warnings: v.warnings || [],
+                   notes: v.notes || [],
                    error: v.ok ? null : v.error, pcg: true, cached: true });
         const r = RUN.order.find((x) => x.id === k);
         if (r) r.time = v.time;
@@ -299,6 +301,7 @@ export function infoHtml(node) {
     h.push(`<div class="st">${st}${DIRTY.has(node) ? ' · <span class="dt">out of date</span>' : ""}</div>`);
     if (rec.error) h.push(`<div class="er pre">${esc(rec.error)}</div>`);
     for (const w of rec.warnings || []) h.push(`<div class="wn">⚠ ${esc(w)}</div>`);
+    for (const n of rec.notes || []) h.push(`<div class="nt">${esc(n)}</div>`);
     if (!rec.ok && (rec.outputs || []).length) h.push(`<div class="st">Its last good result:</div>`);
     for (const o of rec.outputs || []) {
       if (o.kind === "geometry") {
@@ -338,7 +341,7 @@ const POP_CSS = `
   border-radius:6px;padding:8px 10px;color:#cfd5dc;font:12px/1.45 Inter,"Segoe UI",system-ui,sans-serif;
   box-shadow:0 6px 24px #000a;pointer-events:none}
 .pcg-info .hd{margin-bottom:3px}.pcg-info .ty{color:#7d8794;font:11px ui-monospace,monospace}
-.pcg-info .st{color:#aeb6bf;margin-bottom:4px}.pcg-info .er{color:#ff8f8f}.pcg-info .wn{color:#e8c86a}
+.pcg-info .st{color:#aeb6bf;margin-bottom:4px}.pcg-info .er{color:#ff8f8f}.pcg-info .wn{color:#e8c86a}.pcg-info .nt{color:#9fc3e0}
 .pcg-info .dt{color:#e0975f}.pcg-info .pre{white-space:pre-wrap;font:11px ui-monospace,monospace;margin:3px 0}
 .pcg-info table.cnt{border-collapse:collapse;margin:2px 0 4px}.pcg-info table.cnt td{padding:0 10px 0 0}
 .pcg-info table.cnt td:last-child{text-align:right;color:#e6eaee;font-variant-numeric:tabular-nums}

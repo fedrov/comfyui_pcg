@@ -22,12 +22,19 @@ import numpy as np
 
 _MARK = "_pcg_cookstats"
 MAX_ATTRIBS = 64                 # per class, so a message stays small
-_LOCAL = {"warn": None}          # warnings collected for the node running now
+_LOCAL = {"warn": None, "note": None}     # warnings and notes collected for the node running now
 
 
 def warn(message):
     """Called from node code: a warning shown on the node (yellow badge) and in its info."""
     lst = _LOCAL["warn"]
+    if lst is not None:
+        lst.append(str(message))
+
+
+def note(message):
+    """Called from node code: a line of plain information in the node's info (no badge): how the time was spent."""
+    lst = _LOCAL["note"]
     if lst is not None:
         lst.append(str(message))
 
@@ -127,8 +134,9 @@ def attach_cookstats(mappings):
         def make(orig):
             def wrapped(self, *args, **kwargs):
                 nid = _node_id()
-                outer = _LOCAL["warn"]
+                outer, outer_n = _LOCAL["warn"], _LOCAL["note"]
                 mine = _LOCAL["warn"] = []
+                notes = _LOCAL["note"] = []
                 t0 = time.perf_counter()
                 try:
                     with _warnings.catch_warnings(record=True) as caught:
@@ -136,10 +144,10 @@ def attach_cookstats(mappings):
                         out = orig(self, *args, **kwargs)
                 except Exception as e:
                     _send({"node": nid, "ok": False, "time": time.perf_counter() - t0,
-                           "error": f"{type(e).__name__}: {e}"[:2000], "warnings": mine[:20]})
+                           "error": f"{type(e).__name__}: {e}"[:2000], "warnings": mine[:20], "notes": notes[:20]})
                     raise
                 finally:
-                    _LOCAL["warn"] = outer
+                    _LOCAL["warn"], _LOCAL["note"] = outer, outer_n
                 dt = time.perf_counter() - t0
                 for w in caught:
                     if not issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning)):
@@ -149,7 +157,7 @@ def attach_cookstats(mappings):
                     outs = describe(res)
                 except Exception:                  # describing must never break the node itself
                     outs = []
-                _send({"node": nid, "ok": True, "time": dt, "outputs": outs, "warnings": mine[:20]})
+                _send({"node": nid, "ok": True, "time": dt, "outputs": outs, "warnings": mine[:20], "notes": notes[:20]})
                 return out
             wrapped.__dict__.update(getattr(orig, "__dict__", {}))
             setattr(wrapped, _MARK, True)

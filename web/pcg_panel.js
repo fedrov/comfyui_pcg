@@ -30,7 +30,7 @@ import { setShown } from "./pcg_sections.js";
 import { upstreamNames } from "./pcg_groups.js";
 import { bindings, copyParams, clipboard, pasteRefs, pasteValues, unbind, bindingText,
          bindExpr, bindTemplate, applyBindings, promote, panels, isKeys, keysOf, setKey,
-         removeKey, onKey, currentFrame } from "./pcg_params.js";
+         removeKey, onKey, currentFrame, setParamHilite, paramLinksText, PARAM_HILITE } from "./pcg_params.js";
 import { isPlainNumber, isTemplate } from "./pcg_hexpr.js";
 import { attach as highlightBox } from "./pcg_codehl.js";
 
@@ -596,6 +596,16 @@ export class Panel {
                 hide: this.cond(names[0], "hide"), disable: this.cond(names[0], "disable") };
     this.rows.push(r);
     row.addEventListener("contextmenu", (e) => this.rowMenu(e, r));
+    // Hovering a parameter: the nodes that use it, and what it reads, light up on the canvas; the label's tooltip
+    // lists them (Houdini's highlighting of a parameter's references)
+    row.addEventListener("mouseenter", () => {
+      const h = setParamHilite(this.node, names[0]);
+      const t = paramLinksText(h?.links);
+      if (label !== null) lab.title = t ? `${label}\n${t}` : label;
+    });
+    row.addEventListener("mouseleave", () => {
+      if (PARAM_HILITE.cur?.node === this.node && PARAM_HILITE.cur?.wname === names[0]) setParamHilite(null);
+    });
     // Clicking the label: a referenced field toggles between expression / value (Houdini's clicking the parameter name). Clicks on the checkbox inside the label don't count
     lab.addEventListener("click", (e) => {
       if (e.target?.tagName !== "INPUT") this.toggleExpr(r.names);

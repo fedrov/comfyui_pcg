@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **World tiles, round three**: rocks in the rock assets' four kinds (one picked per rock), with hard edges and each
+  its own stone; forests tinted by stands a few hundred metres across and a little darker higher up; the sea and the
+  rivers and lakes shaded as water; cut-out edges dithered (alpha to coverage).
+- **Tests**: every push and pull request runs the quick suites; the production workflows run on pushes to `main`,
+  nightly and by hand, their output kept as an artifact. `tests/run_tests.py --logs <folder>` keeps each suite's
+  output; `tools/run_tests.bat` runs the suites with the Windows portable ComfyUI's Python.
 - **World tiles, grass and foliage**: the grass tufts are six curved blades in grass greens (fresh to dry, a third
   of the ground's colour), yellow-green at the tips and translucent; they no longer show as dark strokes on slopes
   seen from below; from 35 m out they fade into the ground's colour and get shorter, so they meet the terrain texture
@@ -53,6 +59,24 @@ All notable changes to this project are documented here. The format follows
   18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
 
 ### Added
+- **Network boxes**: right-click a group, *PCG: Collapse Box* -- its nodes collapse and stack at its top left, the box
+  shrinks round them (wires stay connected); *PCG: Expand Box* puts every node back as it was. Kept in the group, so it
+  survives saving and loading.
+- **Colour palette**: C with nodes or boxes selected (or a node's menu) opens Houdini's palette of node colours, the
+  default and the node shapes.
+- **Which parameters use this one**: hovering a parameter in the panel outlines the nodes that read it (orange) and
+  the ones it reads (cyan) on the canvas, with their fields; the label's tooltip lists them.
+- **Keyframes on the playbar**: a diamond over the slider per keyframe of the selected nodes (all nodes when none is
+  selected), click to go there; Ctrl+← / Ctrl+→ and ◆◀ / ▶◆ go to the previous / next keyframe.
+- **Textures: `water`** (Outdoor look): material names (wildcards) shaded as a water surface -- the sky and its
+  clouds mirrored by Fresnel's law over two scales of ripples that fade out where they would be under a pixel, and the
+  sun's glint where it is not shadowed. Materials not named render as before.
+- **Textures: `alpha_coverage`**: a width (0..1, default 0 = the hard cut as before) that dithers the alpha cutoff in a
+  fixed 4 x 4 screen pattern (alpha to coverage): with supersampling, cut-out edges come out soft and steady from frame
+  to frame.
+- **Node info: notes.** `cookstats.note()` adds plain lines to a node's middle-button info; Geometry Preview's Outdoor
+  look reports the frame size, CPU or GPU, and the seconds of each stage (rasterize, surfaces and textures, sun and
+  cloud shadows, sky light, shading, tone).
 - **Geometry Preview (Outdoor): Translucency Attribute** (`translucency_attrib`, appended, default `translucency`): a
   float 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side, keep their authored
   normal when seen from behind (grass with the ground's up normal no longer turns dark when seen from below, up a

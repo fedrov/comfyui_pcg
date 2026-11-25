@@ -27,7 +27,7 @@
 //    and before each redraw compute the snap from it and set pos to the snapped value -- so snapping on and pulling away again doesn't drift further and further.
 
 import { app } from "../../scripts/app.js";
-import { refEdges } from "./pcg_params.js";
+import { refEdges, PARAM_HILITE } from "./pcg_params.js";
 
 export const STYLE_ID = "PCG.Wire.Style";
 export const STYLES = ["Houdini rounded polyline", "Follow ComfyUI setting"];
@@ -325,6 +325,27 @@ export function refLines(graph, sel) {
 
 export let lastRefLines = [];              // which ones were drawn in the latest frame (for tests / e2e)
 
+export const USE_COLOR = "#f0a040";        // nodes that use the hovered parameter
+export const READ_COLOR = "#4fc3d9";       // nodes the hovered parameter reads
+
+/**
+ * What to draw for a parameter hovered in a panel (PARAM_HILITE.cur): an outline round each node that uses it
+ * (orange) or that it reads (cyan), a label with those parameters, and a dashed line from the parameter's node.
+ * -> [{node, rect, color, label, seg}] (seg null for the node itself or overlapping boxes).
+ */
+export function hiliteShapes(h) {
+  if (!h?.node || !h.links) return [];
+  const out = [];
+  const from = nodeRect(h.node);
+  const add = (r, color, label) => {
+    const rect = nodeRect(r.node);
+    out.push({ node: r.node, rect, color, label, seg: r.node === h.node ? null : refSegment(from, rect) });
+  };
+  for (const r of h.links.users) add(r, USE_COLOR, `uses ${h.wname}${r.params.length ? ` → ${r.params.join(", ")}` : ""}`);
+  for (const r of h.links.sources) add(r, READ_COLOR, `${h.wname} reads${r.params.length ? ` ${r.params.join(", ")}` : " it"}`);
+  return out;
+}
+
 function boxOf(n, pos = n.pos) {
   // pos is the bottom edge of the title bar, size excludes the title bar. Alignment only compares "differences between two nodes"; the title bars are the same height on both,
   // so adding it or not makes no difference, and it isn't added
@@ -525,6 +546,30 @@ app.registerExtension({
         ctx.beginPath();
         for (const { seg } of lastRefLines) { ctx.moveTo(seg[0][0], seg[0][1]); ctx.lineTo(seg[1][0], seg[1][1]); }
         ctx.stroke();
+        ctx.restore();
+      }
+      let hs = [];
+      try { hs = hiliteShapes(PARAM_HILITE.cur).filter((x) => x.node.graph === (this.graph || app.graph)); }
+      catch (err) { hs = []; }
+      if (hs.length) {
+        ctx.save();
+        ctx.font = `${12 / sc}px sans-serif`;
+        for (const x of hs) {
+          ctx.strokeStyle = x.color;
+          ctx.lineWidth = 2.5 / sc;
+          ctx.setLineDash([]);
+          ctx.strokeRect(x.rect.x - 3 / sc, x.rect.y - 3 / sc, x.rect.w + 6 / sc, x.rect.h + 6 / sc);
+          ctx.fillStyle = x.color;
+          ctx.fillText(x.label, x.rect.x, x.rect.y - 7 / sc);
+          if (x.seg) {
+            ctx.lineWidth = 1.5 / sc;
+            ctx.setLineDash([5 / sc, 4 / sc]);
+            ctx.beginPath();
+            ctx.moveTo(x.seg[0][0], x.seg[0][1]);
+            ctx.lineTo(x.seg[1][0], x.seg[1][1]);
+            ctx.stroke();
+          }
+        }
         ctx.restore();
       }
       if (snap?.guide && (snap.guide.gx !== null || snap.guide.gy !== null)) {

@@ -84,10 +84,13 @@ When the graph contains a Frame node, a playbar appears at the bottom of the scr
 |---|---|
 | Space | Play / pause. |
 | Left / Right | Step one frame. |
+| Ctrl+Left / Ctrl+Right, ◆◀ / ▶◆ | Go to the previous / next keyframe. |
 | Keyboard button | Turns the Space / arrow shortcuts on or off. They only act when the focus is not in a text field and no modifier key is held. |
 | Loop button | Loop playback. |
 | Live button | Re-run while dragging the slider, not only on release. |
 | Handle | Drag the playbar itself. |
+
+Keyframes show as small diamonds over the slider: those of the selected nodes, or of every node when none is selected. Click one to go to its frame.
 
 Start, end and fps are written to the first Frame node only, so several Frame nodes can have different ranges; each computes its own `t`. An end before start is a valid reversed range.
 

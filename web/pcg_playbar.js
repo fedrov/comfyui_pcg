@@ -36,8 +36,10 @@
 
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { parseKeys } from "./pcg_chan.js";
 
 const NODE_TYPE = "PCG_Frame";
+const BIND_KEY = "pcg_bind", KEY_PREFIX = "k:";      // as in pcg_params.js (keyframed parameters)
 const LS_KEY = "pcg.playbar.v1";
 const WATCHDOG_MS = 30000;
 
@@ -157,6 +159,75 @@ api.addEventListener("status", (e) => {
   if (q === 0) done();
 });
 
+// ─────────────────────────────────────────────────────────── keyframes on the timeline
+/** The frames that carry a keyframe on any parameter of these nodes, sorted, each once (Houdini's timeline ticks). */
+export function keyFrames(nodes) {
+  const set = new Set();
+  for (const n of nodes || []) {
+    const b = n?.properties?.[BIND_KEY];
+    if (!b || typeof b !== "object") continue;
+    for (const ref of Object.values(b)) {
+      if (typeof ref !== "string" || !ref.startsWith(KEY_PREFIX)) continue;
+      try { for (const k of parseKeys(ref.slice(KEY_PREFIX.length))) set.add(k.f); } catch (_) { /* a broken channel */ }
+    }
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/** The keyframe before (dir -1) or after (dir +1) frame f; null when there is none. */
+export function nextKey(frames, f, dir) {
+  if (dir > 0) return frames.find((k) => k > f + 1e-9) ?? null;
+  for (let i = frames.length - 1; i >= 0; i--) if (frames[i] < f - 1e-9) return frames[i];
+  return null;
+}
+
+/** The nodes whose keys the timeline shows: the selected ones, or every node when none is selected. */
+function keyedNodes() {
+  const c = app.canvas;
+  const sel = new Set(Object.values(c?.selected_nodes || {}));
+  for (const it of c?.selectedItems || []) if (it && "id" in it && it.pos) sel.add(it);
+  return sel.size ? [...sel] : graphNodes();
+}
+
+function jumpKey(dir) {
+  const st = readState();
+  if (!st) return false;
+  const k = nextKey(keyFrames(keyedNodes()), st.frame, dir);
+  if (k === null) return false;
+  request(clampFrame(Math.round(k)));
+  sync();
+  return true;
+}
+
+/** Ticks over the slider, one per keyframe inside the range: left offset as a share of the track (a range input's
+ *  thumb, 14 px, keeps its centre half a thumb in from each end). */
+export function tickLeft(f, lo, hi, width, thumb = 14) {
+  const t = hi > lo ? (f - lo) / (hi - lo) : 0;
+  return thumb / 2 + t * Math.max(width - thumb, 0);
+}
+
+function drawTicks(st) {
+  const e = S.el;
+  if (!e.ticks) return;
+  const lo = Math.min(st.start, st.end), hi = Math.max(st.start, st.end);
+  const ks = keyFrames(keyedNodes()).filter((k) => k >= lo && k <= hi);
+  const w = e.slider.offsetWidth || 0;
+  const sig = ks.join(",") + `|${lo}|${hi}|${w}`;
+  if (sig === S.tickSig) return;
+  S.tickSig = sig;
+  e.ticks.textContent = "";
+  for (const k of ks) {
+    const d = document.createElement("div");
+    d.className = "pcg-key";
+    d.dataset.frame = String(k);
+    d.title = `Keyframe at frame ${k} (click to go there)`;
+    css(d, `position:absolute;top:1px;left:${tickLeft(k, lo, hi, w) - 4}px;width:7px;height:7px;
+      background:#e5c07b;transform:rotate(45deg);cursor:pointer;pointer-events:auto`);
+    d.onclick = (ev) => { ev.preventDefault(); request(clampFrame(Math.round(k))); sync(); };
+    e.ticks.appendChild(d);
+  }
+}
+
 // ─────────────────────────────────────────────────────────── UI
 function css(el, s) { el.style.cssText = s; }
 
@@ -211,7 +282,14 @@ function build() {
 
   e.slider = document.createElement("input");
   e.slider.type = "range";
-  css(e.slider, "flex:1;min-width:180px;height:24px;accent-color:#4a90d9;cursor:pointer");
+  css(e.slider, "width:100%;min-width:180px;height:24px;accent-color:#4a90d9;cursor:pointer;margin:0");
+  // the slider with the keyframe ticks over it
+  e.track = document.createElement("div");
+  css(e.track, "position:relative;flex:1;min-width:180px;padding-top:8px");
+  e.ticks = document.createElement("div");
+  css(e.ticks, "position:absolute;left:0;right:0;top:0;height:9px;pointer-events:none");
+  e.track.appendChild(e.ticks);
+  e.track.appendChild(e.slider);
   e.slider.oninput = () => {
     S.dragging = true;
     const f = Number(e.slider.value);
@@ -228,20 +306,24 @@ function build() {
   e.prev = btn("◀", "Previous frame", () => { step(-1); });
   e.play = btn("▶", "Play / pause (Space)", () => setPlaying(!S.playing));
   e.next = btn("▶|", "Next frame", () => { step(1); });
+  e.prevKey = btn("◆◀", "Previous keyframe (Ctrl+←) of the selected nodes (all nodes when none is selected)",
+                  () => jumpKey(-1));
+  e.nextKey = btn("▶◆", "Next keyframe (Ctrl+→) of the selected nodes (all nodes when none is selected)",
+                  () => jumpKey(1));
   e.last = btn("⏭", "Jump to end", () => { request(rangeHi()); sync(); });
 
   e.loop = btn("⟳", "Loop playback", () => { S.loop = !S.loop; save(); sync(); });
   e.live = btn("≈", "Recompute live while scrubbing (off: compute once on release)", () => {
     S.live = !S.live; save(); sync();
   });
-  e.keys = btn("⌨", "Shortcuts: Space play/pause, ← → step", () => {
+  e.keys = btn("⌨", "Shortcuts: Space play/pause, ← → step, Ctrl+← Ctrl+→ keyframes", () => {
     S.keys = !S.keys; save(); sync();
   });
   e.status = document.createElement("span");
   css(e.status, "color:#8b95a3;min-width:84px;text-align:right");
 
-  for (const x of [grip, e.start, e.first, e.prev, e.play, e.next, e.last,
-                   e.frame, e.slider, e.end, e.fps, e.loop, e.live, e.keys,
+  for (const x of [grip, e.start, e.first, e.prev, e.play, e.next, e.last, e.prevKey, e.nextKey,
+                   e.frame, e.track, e.end, e.fps, e.loop, e.live, e.keys,
                    e.status]) bar.appendChild(x);
   document.body.appendChild(bar);
   S.bar = bar;
@@ -362,6 +444,7 @@ function sync() {
   e.status.textContent = (S.pending ? "● " : "○ ")
     + `${st.frame - lo + 1}/${n}` + (st.count > 1 ? ` ×${st.count}` : "");
   e.status.style.color = S.pending ? "#d8a657" : "#8b95a3";
+  try { drawTicks(st); } catch (_) { /* the timeline still works without its ticks */ }
 }
 
 // ─────────────────────────────────────────────────────────── shortcuts
@@ -371,8 +454,16 @@ function typing(t) {
 
 document.addEventListener("keydown", (ev) => {
   if (!S.keys || !S.visible) return;
-  if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
   if (typing(ev.target)) return;
+  if (ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey
+      && (ev.code === "ArrowLeft" || ev.code === "ArrowRight")) {        // Ctrl+← / Ctrl+→: the previous / next keyframe
+    if (jumpKey(ev.code === "ArrowLeft" ? -1 : 1)) {      // only taken when there is a keyframe to go to
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    return;
+  }
+  if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
   if (ev.code === "Space") { setPlaying(!S.playing); }
   else if (ev.code === "ArrowLeft") { step(-1); }
   else if (ev.code === "ArrowRight") { step(1); }

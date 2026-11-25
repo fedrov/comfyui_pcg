@@ -2021,6 +2021,15 @@ class PCG_PreviewImage:
                                      snow_amount=snow_amount, wetness=wetness, emit_attrib=emit_attrib,
                                      lights=lights, light_range=light_range, weather_attrib=weather_attrib,
                                      translucency_attrib=translucency_attrib)
+            try:                                    # where the time went, in the node's info (middle button)
+                from . import cookstats as _cs
+                st_ = dict(_od.LAST_STAGES)
+                dev_ = st_.pop("device", "cpu")
+                ss_ = max(1, min(int(supersampling), 4))
+                _cs.note(f"Outdoor {int(width) * ss_} x {int(height) * ss_} on {dev_}: "
+                         + ", ".join(f"{k_} {v_:.1f} s" for k_, v_ in st_.items()))
+            except Exception:
+                pass
         elif look == "studio":
             from .geo import studio as _st
             img = _st.render_studio(geo, width, height, elevation, azimuth, color_attrib,

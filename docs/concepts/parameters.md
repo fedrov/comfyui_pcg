@@ -96,6 +96,10 @@ The same operations are available from the node's right-click menu when native w
 
 When you select a node, a faint dashed line is drawn between it and every node it has a parameter reference with, in both directions, as in Houdini's network view. Pasted references, Parameters-panel bindings, and node paths written in expressions and templates (`ch("../box1/tx")`, `npoints("../box1")`) all count. Keyframes, references to the node itself and paths computed at run time (`opinputpath()`) do not. The lines can be turned off in the PCG settings.
 
+### Which parameters use this one
+
+Hover a parameter in the panel: the nodes whose fields read it are outlined in orange on the canvas, labelled with those fields, with a dashed line from this node; the nodes and parameters this field itself reads are outlined in cyan. The label's tooltip lists them too (*Used by Box 3 (sizex), Grid (rows) · reads Controls (radius)*). Pasted references, Parameters-panel names and paths in expressions and templates count, including another parameter of the same node (`ch("tx")`); keyframes read nothing.
+
 ### How references are evaluated
 
 References, expressions, templates and keyframes are all **materialised in the browser**: when a source value changes (or just before the graph is queued), the computed value is written into the target node's real widget. Consequences:

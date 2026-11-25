@@ -167,6 +167,15 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
             parts[j_] = fix
     rep = {"used": [], "missing": []}
     dev = K.torch_device(compute)                   # rasterizing, texture lookups, depth maps and sky light on torch
+    import time as _time
+    _t = [_time.perf_counter()]
+    LAST_STAGES.clear()
+
+    def stage(name):                                         # how long each stage took (Preview Image's info)
+        now = _time.perf_counter()
+        LAST_STAGES.append((name, now - _t[0]))
+        _t[0] = now
+    LAST_STAGES.append(("device", "cpu" if dev is None else str(dev)))
     rasts, Ts = [], []
     for g_ in parts:
         ts, T = K.soup(g_)
@@ -188,6 +197,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         r_["hit"] = r_["hit"].astype(np.int32) if len(r_["src"]) < 2 ** 31 else r_["hit"]
         rasts.append(r_)
         del r_
+    stage("rasterize")
     if len(parts) > 1:                                       # the nearer of the two surfaces wins each pixel
         za = np.where(rasts[0]["hit"] >= 0, rasts[0]["z"], np.inf)
         zb = np.where(rasts[1]["hit"] >= 0, rasts[1]["z"], np.inf)
@@ -225,6 +235,25 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         N[mk] = S._smooth_normals(g_, r_, FN)[mk]
     # a face seen from behind turns its normals to the viewer; an authored normal that already faces the viewer stays
     # (grass and foliage cards carry the ground's up as N, so both sides of a blade shade like the ground)
+    # water: the faces whose material the textures' 'water' line names (wildcards) shade as a water surface
+    wat = None
+    wpat = str((tex or {}).get("water", "")).split()
+    if wpat:
+        import fnmatch as _fn
+        from .core import PRIM as _PRW
+        for g_, r_, mk in zip(parts, rasts, masks):
+            ma_ = g_.get(_PRW, material_attrib)
+            if ma_ is None:
+                continue
+            nm_, pm_ = np.unique(np.asarray(ma_).reshape(g_.nprims, -1)[:, 0].astype(str), return_inverse=True)
+            ok_ = np.array([any(_fn.fnmatchcase(n_, p_) for p_ in wpat) for n_ in nm_], bool)
+            if not ok_.any():
+                continue
+            if wat is None:
+                wat = np.zeros((H, W), bool)
+            wat[mk] = ok_[pm_[r_["src"][r_["hit"][mk]]]]
+        if wat is not None and not wat.any():
+            wat = None
     trn = None
     if translucency_attrib:
         for g_, r_, mk in zip(parts, rasts, masks):
@@ -330,6 +359,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     if report is not None:
         report.update({k_: sorted(set(v)) for k_, v in rep.items()})
 
+    stage("surfaces and textures")
     # sun shadows: the shadow map frames the geometry; the ground plane beyond it is lit
     # the shadow map frames what the camera sees (a big scene shot from inside would get coarse texels otherwise)
     # (receivers are what must be inside the map: the visible surfaces, and the visible ground around the geometry
@@ -386,6 +416,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
             so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
             sh[so] *= K.cloud_shadow(P[so], eye, L, clouds, cloud_seed, cam_h)
 
+    stage("sun and cloud shadows")
     # ── sky: an area light with shadows and one bounce, at the output resolution (every k-th sample)
     sub = (slice(None, None, k), slice(None, None, k))
     dmed = float(np.median(dist[surf])) if surf.any() else radius
@@ -414,6 +445,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     occ = np.repeat(np.repeat(occ, k, 0), k, 1)[:H, :W]
     vis_s = np.repeat(np.repeat(vis_s, k, 0), k, 1)[:H, :W]
 
+    stage("sky light")
     # light from below: the ground, lit by the sun (the share of it not in shadow) and the sky
     dd = K.dome_dirs(16)
     sky_flat = (sky_fn(dd) * dd[:, 1:2]).sum(0) * (2.0 / 16)
@@ -462,6 +494,11 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
             hh_ /= np.linalg.norm(hh_, axis=1, keepdims=True)
             sp_ = np.clip((n_ * hh_).sum(1), 0.0, 1.0) ** 16 * 0.25 * tr_ * sh[so] * np.clip(n_ @ L, 0.0, 1.0)
             lin = lin + sp_[:, None] * sun[None]
+        if wat is not None:
+            w_ = wat[so]
+            if w_.any():
+                lin[w_] = _water(lin[w_], P[so][w_], N[so][w_].astype(np.float64), Dv[w_], dist[so][w_], L, sun,
+                                 sh[so][w_], clouds, cloud_seed, px_world / max(dmed, 1e-6))
         if Ept is not None:
             lin = lin + alb[so].astype(np.float64) * Ept[so].astype(np.float64) * occ[so][:, None]
         if emit is not None:
@@ -482,8 +519,14 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         sk = (sk_all[0][s0:s0 + step], sk_all[1][s0:s0 + step])
         Dk = rays(*sk).astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
-    return _develop(lin_img, exposure, k)
+    stage("shading and sky")
+    out = _develop(lin_img, exposure, k)
+    stage("tone and downsample")
+    return out
 
+
+
+LAST_STAGES = []             # the last render's (stage, seconds), and ("device", name): shown in Preview Image's info
 
 
 def render_outdoor(*args, **kwargs):
@@ -502,6 +545,39 @@ def render_outdoor(*args, **kwargs):
 render_outdoor.__doc__ = _render_outdoor.__doc__
 
 _CLASSES = ("vertex", "prim", "detail")
+
+
+def _water(body, P, N, D, dist, L, sun, sh, clouds, cloud_seed, px_per_m):
+    """
+    A water surface on its pixels: (n, 3) linear. The sky (with its clouds) mirrored by Fresnel's law (2 % head-on,
+    all of it at a grazing angle) over ripples of 3 m and 0.8 m -- each fading out where it would be under a pixel,
+    so far water is a calm mirror, not noise --, the sun's glint off them where the sun is not shadowed, and below it
+    the surface's own shading (its colour: the water's body) for the light that is not reflected.
+    """
+    x, z = P[:, 0], P[:, 2]
+    n = N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+    fp = np.asarray(dist, np.float64) * px_per_m                # metres per pixel here
+    for sc, amp, sd in ((3.0, 0.10, 1.0), (0.8, 0.06, 2.0)):
+        fade = np.clip(1.5 - fp / (0.25 * sc), 0.0, 1.0)        # a ripple under about four pixels fades out
+        if not fade.any():
+            continue
+        e = sc * 0.25
+        h0 = _vnoise(x, z, sc, sd)
+        gx = (_vnoise(x + e, z, sc, sd) - h0) / e
+        gz = (_vnoise(x, z + e, sc, sd) - h0) / e
+        n = n + np.stack([-gx, np.zeros_like(gx), -gz], 1) * (amp * sc * fade)[:, None]
+    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
+    V = -D
+    cv = np.clip((n * V).sum(1), 0.0, 1.0)
+    R = D - 2.0 * (D * n).sum(1, keepdims=True) * n
+    R[:, 1] = np.abs(R[:, 1])                                  # a ripple tilted past the horizon still sees the sky
+    R /= np.linalg.norm(R, axis=1, keepdims=True)
+    sky = K.clouds(R, L, K.sky(R, L, sun=False), clouds, cloud_seed)
+    F = (0.02 + 0.98 * (1.0 - cv) ** 5)[:, None]
+    hh = L[None] - D
+    hh /= np.linalg.norm(hh, axis=1, keepdims=True)
+    glint = np.clip((n * hh).sum(1), 0.0, 1.0) ** 300 * 6.0 * np.asarray(sh, np.float64) * (L[1] > 0)
+    return body * (1.0 - F) * 0.6 + sky * F + glint[:, None] * np.asarray(sun)[None] * F
 
 
 def _vnoise(x, z, scale, seed=0.0):

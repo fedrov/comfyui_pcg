@@ -5,6 +5,7 @@ Run the test suites, one process per file, and print a summary.
     python tests/run_tests.py --js         + frontend suites (needs Node 22.22+ and `npm install` in the repo root)
     python tests/run_tests.py --quick      skip the heavy production-workflow suite
     python tests/run_tests.py -k cop       only files whose name contains "cop"
+    python tests/run_tests.py --logs out   also write each suite's whole output to out/<suite>.log
 
 Suites that need a real, running ComfyUI (test_*_e2e.py) are skipped unless --e2e is given.
 Each suite is its own script that prints PASS/FAIL lines and "N/M passed", and exits non-zero on failure.
@@ -30,7 +31,10 @@ def main():
     ap.add_argument("--e2e", action="store_true", help="also run the suites that need a running ComfyUI")
     ap.add_argument("-k", default="", help="only run files whose name contains this text")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds per suite (default 1800)")
+    ap.add_argument("--logs", default="", help="a folder to write each suite's whole output to (<suite>.log)")
     a = ap.parse_args()
+    if a.logs:
+        os.makedirs(a.logs, exist_ok=True)
 
     files = sorted(glob.glob(os.path.join(HERE, "test_*.py")))
     if a.js:
@@ -61,6 +65,9 @@ def main():
         score = f"{m[-1][0]}/{m[-1][1]}" if m else "-"
         ok = rc == 0
         results.append((b, ok, score))
+        if a.logs:
+            with open(os.path.join(a.logs, os.path.splitext(b)[0] + ".log"), "w", encoding="utf-8") as fh:
+                fh.write(out)
         print(f"{'ok  ' if ok else 'FAIL'}  {b:<40} {score:>9}  {time.time() - t0:6.1f}s", flush=True)
         if not ok:
             lines = [ln for ln in out.splitlines() if "FAIL" in ln or "Error" in ln or "error" in ln]

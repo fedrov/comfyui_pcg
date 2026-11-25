@@ -829,5 +829,32 @@ _i2 = np.searchsorted(_v2, _rs["cor"][_t])
 _r2 = (_T42[_i2[:, 0], :3] * _w[:, 0:1] + _T42[_i2[:, 1], :3] * _w[:, 1:2] + _T42[_i2[:, 2], :3] * _w[:, 2:3])
 check("  negative control: the visible triangles alone (no neighbours) give other frames at the edge of the view",
       np.abs(_r2 - _ref).max() > 1e-3, float(np.abs(_r2 - _ref).max()))
+# alpha to coverage: a card whose alpha ramps 0 -> 1 across it, cut at 0.5. Hard cut: every column of pixels is all
+# in or all out, a step at the middle. alpha_coverage = 0.5: the 4 x 4 dither moves the cutoff by up to +-0.25, so the
+# share of covered pixels per column follows clip((alpha - 0.5) / 0.5 + 0.5, 0, 1) -- the ramp, a soft edge
+_tdA = tempfile.mkdtemp()
+Image.fromarray(np.tile(np.linspace(0, 255, 256).astype(np.uint8)[None], (16, 1))).save(os.path.join(_tdA, "ramp.png"))
+_cA = build.grid(size_x=2.0, size_z=2.0, cols=2, rows=2)
+_PA = np.asarray(_cA.get(POINT, "P"), np.float32).copy()
+_PA[:, 1], _PA[:, 2] = -_PA[:, 2], 0.0                          # stand it up, facing +z
+_cA.set(POINT, "P", _PA)
+_cA.set(POINT, "uv", np.c_[(_PA[:, 0] + 1) / 2, (_PA[:, 1] + 1) / 2, np.zeros(len(_PA))].astype(np.float32))
+_camA = _R.camera(None, "orthographic", eye=[0, 0, 5], target=[0, 0, 0], ortho_size=2.0, xres=128, yres=128)
+_cov = {}
+for _cv in (0.0, 0.5):
+    _tst, _ = S.alpha_tester(_cA, S.parse_textures(f"alpha = {os.path.join(_tdA, 'ramp.png')}\nalpha_coverage = {_cv}"))
+    _rA = _R.rasterize(_cA, _camA, alpha=_tst)
+    # covered share per group of four columns (one period of the dither; left = alpha 0)
+    _cov[_cv] = (_rA["hit"] >= 0).mean(0).reshape(32, 4).mean(1)
+_al = ((np.arange(128) + 0.5) / 128).reshape(32, 4)
+_want = np.clip((_al - 0.5) / 0.5 + 0.5, 0, 1).mean(1)
+_mid = (_al.mean(1) > 0.3) & (_al.mean(1) < 0.7)
+check("alpha_coverage 0.5: the covered share (per four columns, the dither's period) follows the alpha ramp "
+      "(within 0.1), a soft edge",
+      np.abs(_cov[0.5][_mid] - _want[_mid]).max() < 0.1 and ((_cov[0.5] > 0.05) & (_cov[0.5] < 0.95)).sum() >= 6,
+      round(float(np.abs(_cov[0.5][_mid] - _want[_mid]).max()), 3))
+check("  negative control: without it the cut is a step (one group of columns at most part-covered, half the card)",
+      ((_cov[0.0] > 0.01) & (_cov[0.0] < 0.99)).sum() <= 1 and abs(_cov[0.0].mean() - 0.5) < 0.02,
+      sorted(set(np.round(_cov[0.0], 3).tolist()))[:4])
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

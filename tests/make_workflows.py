@@ -1916,6 +1916,11 @@ WORLD_TEXTURES = (TERRAIN_TEXTURES
                   .replace("normal = @{material}_nrm |", "normal = @{material}_nrm | @{material}_N |")
                   + "\norm = @{material}_ao {material}_roughness {material}_metallic | pcg/materials/T_{material}_ORM.png"
                   + "\nalpha = @{material}_alpha"
+                  # the cut-out edges of leaves, fronds and cards dithered over the supersampled pixels: soft, and
+                  # steady from frame to frame (the flyby), instead of stair-stepped
+                  + "\nalpha_coverage = 0.5"
+                  # the sea and the rivers and lakes: the sky mirrored over ripples, the sun's glint
+                  + "\nwater = sea water"
                   # the impostor cards: the atlas tinted per tree, the four frames round the view direction blended
                   + "\nbasecolor_tint = imp_* M_Leaf M_Needle\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw"
                   # the trees' leaf cards shade the ground and each other, whole (the impostor cards have blobs)
@@ -3820,33 +3825,48 @@ def world_tiles(quick=False):
         's@material = "M_Needle"\n@translucency = 0.5 + 0 * @primnum'))
     g.link(fnc, "geo", fnm, "geo")
     fernp = named(G, fnm, "fern")
-    # a rock: the rock assets' SDF (big flat faces, chipped arrises, a flattened bottom) on a coarse 7 cm grid,
-    # reduced to a few hundred faces and coloured by its curvature (dirt in the hollows, pale edges, moss on top)
-    rkv = G("PCG_Volume", title="Rock: sampling volume (7 cm voxels)", res_x=40, res_y=36, res_z=37, size_x=2.8,
-            size_y=2.5, size_z=2.6, value=1.0)
-    rks = G("PCG_VolumeWrangle", title="Rock: SDF (a boulder)", code=ROCK_SDF, rand_seed=0)
-    g.link(rkv, "geo", rks, "geo")
-    rkm = G("PCG_Convert", title="Rock: surface", convert_to="polygons")
-    g.link(rks, "geo", rkm, "geo")
-    rkr = G("PCG_PolyReduce", title="Rock: a few hundred faces", keep_percent=3.0)
-    g.link(rkm, "geo", rkr, "geo")
-    rkn = G("PCG_Normal", title="Rock: smooth normals", cusp_angle=60.0)
-    g.link(rkr, "geo", rkn, "geo")
-    rkk = G("PCG_Measure", title="Rock: curvature", element_type="points", measurement="curvature",
-            attribute_name="curv")
-    g.link(rkn, "geo", rkk, "geo")
-    rkc = G("PCG_Wrangle", title="Rock: colour by curvature and up-ness", code=(
-        "cav = clamp(-@curv / 6, 0, 1)\n"
-        "edge = clamp(@curv / 8, 0, 1)\n"
-        "base = set(0.44, 0.42, 0.38) * (0.85 + 0.3 * noise(@P * 2.5 + 1.7))\n"
-        "base = lerp(base, set(0.66, 0.64, 0.60), edge * 0.6)\n"
-        "base = lerp(base, set(0.17, 0.15, 0.12), cav * 0.7)\n"
-        "moss = smoothstep(0.6, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n"
-        "@Cd = lerp(base, set(0.30, 0.34, 0.16), moss)"))
-    g.link(rkk, "geo", rkc, "geo")
-    rkd = G("PCG_AttribDelete", title="Rock: P, N, Cd only", point="* ^P ^N ^Cd", vertex="*", prim="*")
-    g.link(rkc, "geo", rkd, "geo")
-    rockp = named(G, rkd, "rock")
+    # rocks: the rock assets' four kinds (seed % 4: a boulder, a bedded slab, a split shard, a weathered block) from
+    # their SDF on a coarse 7 cm grid, reduced to about 80 faces; hard edges (normals split where faces meet at more
+    # than 35 degrees: the big flat faces read as faces, not as a smooth lump), each kind its own stone (grey-brown,
+    # buff sandstone, dark, weathered grey), coloured by curvature (dirt in the hollows, pale arrises, moss on top)
+    rock_k = []
+    for rs_, stone_ in enumerate(("0.44, 0.41, 0.37", "0.58, 0.50, 0.38", "0.32, 0.31, 0.30", "0.52, 0.52, 0.50")):
+        rkv = G("PCG_Volume", title=f"Rock {rs_}: sampling volume (7 cm voxels)", res_x=40, res_y=36, res_z=37,
+                size_x=2.8, size_y=2.5, size_z=2.6, value=1.0)
+        rks = G("PCG_VolumeWrangle", title=f"Rock {rs_}: SDF", code=ROCK_SDF, rand_seed=rs_)
+        g.link(rkv, "geo", rks, "geo")
+        rkm = G("PCG_Convert", title=f"Rock {rs_}: surface", convert_to="polygons")
+        g.link(rks, "geo", rkm, "geo")
+        rkr = G("PCG_PolyReduce", title=f"Rock {rs_}: about 80 faces", keep_percent=1.6)
+        g.link(rkm, "geo", rkr, "geo")
+        rkn = G("PCG_Normal", title=f"Rock {rs_}: hard edges over 35 degrees", add_to="vertex", cusp_angle=35.0)
+        g.link(rkr, "geo", rkn, "geo")
+        rkk = G("PCG_Measure", title=f"Rock {rs_}: curvature", element_type="points", measurement="curvature",
+                attribute_name="curv")
+        g.link(rkn, "geo", rkk, "geo")
+        rkc = G("PCG_Wrangle", title=f"Rock {rs_}: colour by curvature and up-ness", code=(
+            "cav = clamp(-@curv / 6, 0, 1)\n"
+            "edge = clamp(@curv / 8, 0, 1)\n"
+            f"base = set({stone_}) * (0.85 + 0.3 * noise(@P * 2.5 + 1.7))\n"
+            "base = lerp(base, base * 1.45 + 0.06, edge * 0.6)\n"
+            "@Cd = lerp(base, base * 0.4, cav * 0.7)"))
+        g.link(rkk, "geo", rkc, "geo")
+        # each corner its own point (the preview reads point normals; vertex normals on the proxies would become
+        # every geometry's in the merged scene), the split normals and the colour moved onto them; moss by the
+        # face's up-ness
+        rkf = G("PCG_Facet", title=f"Rock {rs_}: a point per corner", unique_points=True)
+        g.link(rkc, "geo", rkf, "geo")
+        rkp = G("PCG_AttribPromote", title=f"Rock {rs_}: the split normals to the points", original_name="N",
+                original_class="vertex", new_class="point", method="first_match", delete_original=True)
+        g.link(rkf, "geo", rkp, "geo")
+        rkm2 = G("PCG_Wrangle", title=f"Rock {rs_}: moss on the tops", code=(
+            "moss = smoothstep(0.6, 0.9, @N.y) * smoothstep(0.45, 0.65, noise(@P * 1.8 + 9))\n"
+            "@Cd = lerp(@Cd, set(0.30, 0.34, 0.16), moss)"))
+        g.link(rkp, "geo", rkm2, "geo")
+        rkd = G("PCG_AttribDelete", title=f"Rock {rs_}: P, N, Cd only", point="* ^P ^N ^Cd", vertex="*", prim="*")
+        g.link(rkm2, "geo", rkd, "geo")
+        rock_k.append(named(G, rkd, f"rock{rs_}"))
+    rockp = merge_n(G, "Rocks: the four kinds", rock_k)
     # orchard tree: a short trunk and a round crown; hedge: a long low lump of green
     frc = G("PCG_TreeGenerator", title="Fruit tree (Tree Generator: a short, round broadleaf)", kind="broadleaf",
             height=3.0, trunk_radius=0.12, crown_base=0.45, crown_width=2.6, branch_levels=1, branches=4, leaves=28,
@@ -4048,7 +4068,8 @@ def world_tiles(quick=False):
         's@kind = where(f, "fern", "bush")\n'
         "@pscale = where(f, @pscale, 0.45 * @pscale)"))
     g.link(uw, "geo", ku, "geo")
-    kr = G("PCG_Wrangle", title="Rocks → rock", code='s@kind = "rock"')
+    kr = G("PCG_Wrangle", title="Rocks → one of the four rock kinds", code=(
+        's@kind = np.char.add("rock", np.floor(rand(@ptnum + 4.1) * 3.999).astype(int).astype(str))'))
     g.link(rw, "geo", kr, "geo")
     tint_code = ("# brightness 0.75..1.2, and a drift toward yellow-green or blue-green\n"
                  "b = 0.75 + 0.45 * rand(@ptnum + 11.1)\n"
@@ -4066,7 +4087,14 @@ def world_tiles(quick=False):
     g.link(kall0, "geo", kall, "geo")
     tint = G("PCG_Wrangle", title="Per-instance tint", code=tint_code)
     g.link(kall, "geo", tint, "geo")
-    ttint = G("PCG_Wrangle", title="Trees: per-instance tint", code=tint_code)
+    # trees: the per-instance tint, and stands of a few hundred metres lighter or darker, yellower or bluer (from
+    # afar a forest reads as patches of different stands, not one even carpet); higher up a little darker
+    ttint = G("PCG_Wrangle", title="Trees: per-instance tint, stands, darker higher up", code=(
+        tint_code + "\n"
+        "st = noise(@P * 0.004 + 3.1)\n"
+        "sh = noise(@P * 0.0025 + 7.7) - 0.5\n"
+        "alt = 1 - 0.25 * smoothstep(60, 260, @P.y)\n"
+        "@Cd = @Cd * (0.7 + 0.55 * st) * alt * set(1 + 0.35 * sh, 1, 1 - 0.3 * sh)"))
     g.link(kt, "geo", ttint, "geo")
     ct = G("PCG_CopyToPoints", title="Place the bushes and rocks", piece_attribute="kind",
            target_point_attributes="Cd", multiply_attributes="Cd")

@@ -392,6 +392,48 @@ check("translucency: waxy -- looking toward a low sun the translucent ground has
 gn0, gn1 = (O.render_outdoor(g_, 96, 72, **dict(kg_, sun_azim=SUNZ_ + 180)) for g_ in (flat, fl1_))
 check("  negative control: the sun behind the camera -- no sheen, nothing through: as the opaque ground",
       np.abs(gn1 - gn0).max() < 2 / 255, float(np.abs(gn1 - gn0).max()))
+# water: a dark sea seen from 6 m toward a low sun. With 'water = sea' it mirrors the sky (brighter overall), the sun
+# makes a glint path (the column under the sun brighter than the sides) and the ripples fade with distance (the near
+# rows vary more than the rows near the horizon); a material the line does not name is untouched
+from comfyui_pcg.geo.core import PRIM as _PRW  # noqa: E402
+sea_ = build.grid(size_x=2000.0, size_z=2000.0, cols=11, rows=11)
+sea_.set(POINT, "Cd", np.tile(np.array([[0.05, 0.12, 0.15]], np.float32), (sea_.npoints, 1)))
+sea_.set_string(_PRW, "material", np.full(sea_.nprims, "sea"))
+SUNW_ = 180 if O.sun_dir(12, 180)[2] < 0 else 0
+kw_w = dict(cam=R.camera(None, "perspective", eye=[0, 6, 0], target=[0, 0, -100], fov=55), ssaa=2, sky_samples=0,
+            sun_elev=12, sun_azim=SUNW_, clouds=0.5, haze=0.0, ground=False)
+w0_ = O.render_outdoor(sea_, 160, 90, **kw_w)
+w1_ = O.render_outdoor(sea_, 160, 90, textures="water = sea", **kw_w)
+sea2_ = sea_.copy()
+sea2_.set_string(_PRW, "material", np.full(sea2_.nprims, "ocean"))
+wn_ = O.render_outdoor(sea2_, 160, 90, textures="water = sea lake*", **kw_w)
+wn2_ = O.render_outdoor(sea2_, 160, 90, textures="water = lake*", **kw_w)
+wl_ = w1_.mean(-1)
+hz_ = int(np.argmax(np.abs(np.diff(w0_.mean(-1)[:, 5]))))       # the horizon row: the biggest jump down a column
+near_, far_ = wl_[-20:], wl_[hz_ + 2:hz_ + 8]
+path_ = wl_[hz_ + 3:hz_ + 25]
+check("water: the sea mirrors the sky (much brighter than its dark body alone)",
+      wl_[hz_ + 2:].mean() > w0_.mean(-1)[hz_ + 2:].mean() + 0.1,
+      (round(float(wl_[hz_ + 2:].mean()), 3), round(float(w0_.mean(-1)[hz_ + 2:].mean()), 3)))
+check("  the sun's glint path: under the sun the columns are brighter than at the sides",
+      path_[:, 72:88].mean() > path_[:, :30].mean() + 0.05,
+      (round(float(path_[:, 72:88].mean()), 3), round(float(path_[:, :30].mean()), 3)))
+check("  ripples near, a calm mirror far: the near rows vary more along a row than the rows by the horizon",
+      np.std(near_[:, :40], 1).mean() > 2 * np.std(far_[:, :40], 1).mean(),
+      (round(float(np.std(near_[:, :40], 1).mean()), 4), round(float(np.std(far_[:, :40], 1).mean()), 4)))
+check("  negative control: a sea whose material the line does not name ('ocean') renders the same whichever names "
+      "it lists", np.array_equal(wn_, wn2_) and not np.array_equal(wn_, w1_))
+import time as _tm  # noqa: E402
+_t0 = _tm.perf_counter()
+O.render_outdoor(sea_, 96, 54, **kw_w)
+_el = _tm.perf_counter() - _t0
+_st = dict(O.LAST_STAGES)
+_names = [n_ for n_, _ in O.LAST_STAGES]
+check("the stages' times (Preview Image's info): every stage in order, each >= 0, together within the render's time",
+      _names == ["device", "rasterize", "surfaces and textures", "sun and cloud shadows", "sky light",
+                 "shading and sky", "tone and downsample"] and _st["device"] == "cpu"
+      and all(v_ >= 0 for k_, v_ in _st.items() if k_ != "device")
+      and sum(v_ for k_, v_ in _st.items() if k_ != "device") <= _el, (_names, round(_el, 2)))
 bx_ = build.box(size=(4.0, 4.0, 4.0), center=(0.0, 2.0, 0.0))
 bx2 = bx_.copy()
 bx2.set(POINT, "emit", np.tile(np.array([[2.0, 1.5, 0.8]], np.float32), (bx2.npoints, 1)))

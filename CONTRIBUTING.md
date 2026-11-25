@@ -24,6 +24,11 @@ python tests/run_tests.py --js   # all suites except the ones that need a runnin
 
 The tests do not need ComfyUI: `tests/fakecomfy.py` stubs the few ComfyUI modules the nodes import.
 
+On the Windows portable ComfyUI, `tools/run_tests.bat` runs the suites with its own Python (`--full` adds the
+production workflows). `--logs <folder>` writes each suite's whole output to a file. On GitHub every push and pull
+request runs the quick suites; the production workflows run on pushes to `main`, nightly, and by hand from the Actions
+tab, and their output is kept as an artifact.
+
 ## Conventions
 
 - **Never break saved workflows.** ComfyUI stores widget values by position, so new widgets go at the *end* of

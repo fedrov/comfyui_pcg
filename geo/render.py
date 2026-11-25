@@ -439,8 +439,12 @@ class _TorchRaster:
                     cl = tid[on] >= self.nplain
                     if bool(cl.any()):
                         bb[cl] = torch.einsum("mk,mkj->mj", bb[cl], self.lam[tid[on][cl] - self.nplain])
-                kp = np.asarray(self.alpha(sub[on].cpu().numpy(), bb.cpu().numpy().astype(np.float64), self.outd),
-                                bool)
+                if getattr(self.alpha, "pixels", False):     # a screen-space test (alpha to coverage)
+                    kp = np.asarray(self.alpha(sub[on].cpu().numpy(), bb.cpu().numpy().astype(np.float64), self.outd,
+                                               px[on].cpu().numpy(), py[on].cpu().numpy()), bool)
+                else:
+                    kp = np.asarray(self.alpha(sub[on].cpu().numpy(), bb.cpu().numpy().astype(np.float64),
+                                               self.outd), bool)
                 keep = torch.ones(len(tid), dtype=torch.bool, device=self.dev)
                 keep[on] = T(kp)
                 if not bool(keep.all()):
@@ -603,7 +607,8 @@ def _raster_batch(out, cam, rast, sx, sy, z, idx, x0, y0, bw, bh, area, W, H, zm
                 cl = tid[on] >= nplain
                 if cl.any():
                     bb[cl] = np.einsum("mk,mkj->mj", bb[cl], lam[tid[on][cl] - nplain])
-            keep[on] = np.asarray(alpha(rsrc[tid[on]], bb, outd), bool)
+            keep[on] = np.asarray(alpha(rsrc[tid[on]], bb, outd, px[on], py[on]) if getattr(alpha, "pixels", False)
+                                  else alpha(rsrc[tid[on]], bb, outd), bool)
         if not keep.all():
             tid, px, py, zz = tid[keep], px[keep], py[keep], zz[keep]
             b0, b1, b2 = b0[keep], b1[keep], b2[keep]

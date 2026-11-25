@@ -60,14 +60,18 @@ TEX_SLOTS = ("basecolor", "normal", "orm", "ao", "roughness", "metallic",
              "detail1", "detail2", "detail3", "detail4",
              "detail_normal1", "detail_normal2", "detail_normal3", "detail_normal4",
              "detail_weights", "detail_tiling", "detail_triplanar",
-             # cutout: a texture whose first channel below alpha_cutoff (default 0.5) removes the surface there
-             "alpha", "alpha_cutoff",
+             # cutout: a texture whose first channel below alpha_cutoff (default 0.5) removes the surface there;
+             # alpha_coverage > 0 spreads the cutoff over a screen-space dither of that width (alpha to coverage)
+             "alpha", "alpha_cutoff", "alpha_coverage",
              # basecolor_tint = 1: the base colour texture is multiplied by the colour attribute (one atlas, a tint
              # per instance); uv_blend = 'uv uv2 ...' with uv_blend_weights = an attribute of as many weights: the
              # base colour and the alpha are the weighted sum of the texture at each uv (impostor frame blending)
              "basecolor_tint", "uv_blend", "uv_blend_weights",
              # alpha_shadow = material names (wildcards) whose cut-out faces still cast shadows, whole (leaf cards)
-             "alpha_shadow")
+             "alpha_shadow",
+             # water = material names (wildcards) shaded as a water surface by the Outdoor look (sky reflection,
+             # ripples, sun glint)
+             "water")
 _DETAIL_SLOTS = tuple(s_ for s_ in TEX_SLOTS if s_.startswith("detail"))
 _PBR_SLOTS = ("orm", "roughness", "metallic")
 # terrain layers (an engine's landscape material): layerN = a tiled colour, layerN_normal / _rough / _height its other
@@ -92,7 +96,10 @@ def parse_textures(text):
 
     Cutout: alpha = a texture (file or '@layer', {material} allowed) whose first channel below alpha_cutoff (a
     number, default 0.5) removes the surface at that point: what lies behind shows through (leaves, fences, impostor
-    cards). Cut-out faces cast no sun or sky shadow; a face with the prim attribute shadow_only = 1 casts shadows
+    cards). alpha_coverage = a width (0..1, default 0: a hard cut) makes the cut a screen-space dither: each pixel
+    compares the alpha with alpha_cutoff shifted by up to half that width (a 4 x 4 ordered pattern), so where the
+    alpha passes through the cutoff a supersampled frame averages the samples into a soft edge, the same from frame to
+    frame (alpha to coverage) instead of a stair-stepped one. Cut-out faces cast no sun or sky shadow; a face with the prim attribute shadow_only = 1 casts shadows
     but is not seen (a stand-in shadow caster for cut-out cards). alpha_shadow = material names (wildcards: 'M_Leaf*')
     lets those cut-out faces cast shadows after all, as whole faces (a tree's leaf cards shade the ground and each
     other; the shadow is not cut out).
@@ -135,7 +142,7 @@ def parse_textures(text):
         if (k.lower() not in TEX_SLOTS and not _LAYER_SLOT.fullmatch(k.lower())) or not v:
             raise ValueError(f"Textures: slot must be one of {TEX_SLOTS} or layer1.. / layer1_normal .. / "
                              f"layer_weights / layer_blend / layer_macro with a path, got {line!r}")
-        if k.lower() in ("detail_tiling", "detail_triplanar", "layer_blend", "layer_antitile", "alpha_cutoff") or re.fullmatch(r"layer\d+_(size|triplanar)",
+        if k.lower() in ("detail_tiling", "detail_triplanar", "layer_blend", "layer_antitile", "alpha_cutoff", "alpha_coverage") or re.fullmatch(r"layer\d+_(size|triplanar)",
                                                                                             k.lower()):
             try:
                 float(v)
@@ -740,17 +747,23 @@ def shadow_only_split(geo, ts, T):
     return ts, T, (hid if hid.any() else None)
 
 
+# the 4 x 4 ordered (Bayer) dither, (i + 0.5) / 16: every value once in each 4 x 4 block of pixels
+_BAYER4 = (np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]], np.float32) + 0.5) / 16.0
+
+
 def with_hidden(test, hidden):
     """rasterize's alpha test that also drops the fragments of hidden (shadow-only) prims."""
     if hidden is None:
         return test
 
-    def t(tt, bb, rast):
+    def t(tt, bb, rast, px=None, py=None):
         k = ~hidden[rast["src"][tt]]
         if test is not None and k.any():
-            k &= np.asarray(test(tt, bb, rast), bool)
+            k &= np.asarray(test(tt, bb, rast, px, py) if getattr(test, "pixels", False) else test(tt, bb, rast),
+                            bool)
         return k
     t.prims = hidden | getattr(test, "prims", False) if test is not None else hidden
+    t.pixels = bool(getattr(test, "pixels", False))
     return t
 
 
@@ -778,6 +791,7 @@ def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), re
     if not tex or "alpha" not in tex or geo is None or geo.nprims == 0:
         return None, None
     cutoff = float(tex.get("alpha_cutoff", 0.5))
+    cover = min(max(float(tex.get("alpha_coverage", 0.0) or 0.0), 0.0), 1.0)
     pattern = tex["alpha"]
     a = geo.get(PRIM, mattr)
     if "{material}" in pattern:
@@ -828,7 +842,7 @@ def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), re
         return (img[y0, x0] * (1 - fx) * (1 - fy) + img[y0, x1] * fx * (1 - fy)
                 + img[y1, x0] * (1 - fx) * fy + img[y1, x1] * fx * fy)
 
-    def test(t, bb, rast):
+    def test(t, bb, rast, px=None, py=None):
         keep = np.ones(len(t), bool)
         prim = rast["src"][t]
         on = cut[prim]
@@ -857,9 +871,15 @@ def alpha_tester(geo, tex, root=None, mattr="material", uvattr="uv", cops=(), re
                     av[s_] = vb
                 else:
                     av[s_] = sample(img, sets[0][0][s_])
-        keep[on] = av >= cutoff
+        if cover > 0 and px is not None:
+            # alpha to coverage: the cutoff moves with a 4 x 4 ordered dither in screen space
+            dz = _BAYER4[np.asarray(py)[on] % 4, np.asarray(px)[on] % 4]
+            keep[on] = av >= cutoff + cover * (dz - 0.5)
+        else:
+            keep[on] = av >= cutoff
         return keep
     test.prims = cut
+    test.pixels = cover > 0
     return test, cut
 
 
@@ -1096,9 +1116,9 @@ def _apply_textures(geo, rast, alb, N, m, tex, root, mattr, uvattr, report, cop=
         tgt = (idx[0][sel], idx[1][sel])
         n_cache = set(cache)
         for slot, pattern in tex.items():
-            if slot in _DETAIL_SLOTS or slot.startswith("layer") or slot in ("alpha", "alpha_cutoff"):
+            if slot in _DETAIL_SLOTS or slot.startswith("layer") or slot in ("alpha", "alpha_cutoff", "alpha_coverage"):
                 continue
-            if slot in ("basecolor_tint", "uv_blend", "uv_blend_weights", "alpha_shadow"):
+            if slot in ("basecolor_tint", "uv_blend", "uv_blend_weights", "alpha_shadow", "water"):
                 continue
             ch = fetch(pattern, slot, mat)
             if ch is None:
