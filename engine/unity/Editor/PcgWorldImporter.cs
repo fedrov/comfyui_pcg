@@ -9,8 +9,12 @@
 //   buildings   the towns' glb, each asset under an LODGroup built from its LOD manifest (Unity transition heights)
 //   water       the water glb (flow in the vertex colour, see World.json's water)
 //   instances   the instance tables, a child per instance under one object per tile and asset; an asset uses
-//               Assets/.../Prefabs/<asset>.prefab, else the node of the same name in the asset library glbs (or
-//               <asset>_LOD0, a LOD chain's first level), else it is skipped (counted in the log)
+//               Assets/.../Prefabs/<asset>.prefab; else, for a LOD chain in the asset library (its LOD manifest:
+//               <asset>_LOD0, _LOD1 ... and collision nodes UCX_<asset>_NN), a prefab made and saved there: an
+//               LODGroup over the levels (the manifest's transitions) and a convex MeshCollider from each UCX node;
+//               else the node of the same name in the asset library glbs; else it is skipped (counted in the log).
+//               With World.json's city key (the modular city), an instance's facade column swaps the wall material
+//               (wall_material) for that variant's (facade_materials), found by name among the project's materials
 //   roads       a LineRenderer per road polyline, its width from the road class
 //
 // Coordinates: see PcgWorldCore.cs (x = x, y = y, z = -z). glTF importers already convert glb files from glTF's
@@ -236,6 +240,7 @@ namespace Pcg.World
             GameObject g;
             if (cache.TryGetValue(asset, out g)) return g;
             g = AssetDatabase.LoadAssetAtPath<GameObject>(folder + "/Prefabs/" + asset + ".prefab");
+            if (g == null) g = LodPrefab(w, folder, asset);
             if (g == null)
                 foreach (var kv in World.Obj(w.J, "meshes"))
                 {
@@ -251,10 +256,92 @@ namespace Pcg.World
             return g;
         }
 
+        // a LOD chain of the asset library as one prefab: the levels under an LODGroup, the UCX nodes as convex
+        // colliders; saved as Prefabs/<asset>.prefab (so a second import finds it), null when there is no chain
+        static GameObject LodPrefab(World w, string folder, string asset)
+        {
+            foreach (var kv in World.Obj(w.J, "meshes"))
+            {
+                var m = (Dictionary<string, object>)kv.Value;
+                if (World.Str(m, "role") != "assets") continue;
+                foreach (var a in World.Arr(m, "assets"))
+                {
+                    var ad = (Dictionary<string, object>)a;
+                    if (World.Str(ad, "name") != asset) continue;
+                    var lods = World.Arr(ad, "lods");
+                    string ap = AssetPath(w.Path_(World.Str(m, "file")));
+                    var lib = ap != null ? AssetDatabase.LoadAssetAtPath<GameObject>(ap) : null;
+                    if (lib == null || lods.Count == 0) return null;
+                    var go = new GameObject(asset);
+                    var arr = new LOD[lods.Count];
+                    for (int k = 0; k < lods.Count; k++)
+                    {
+                        var ld = (Dictionary<string, object>)lods[k];
+                        var t = Find(lib.transform, World.Str(ld, "node"));
+                        var rs = new Renderer[0];
+                        if (t != null)
+                        {
+                            var c = Object.Instantiate(t.gameObject, go.transform, false);
+                            c.name = World.Str(ld, "node");
+                            rs = c.GetComponentsInChildren<Renderer>();
+                        }
+                        arr[k] = new LOD((float)World.Num(ld, "unity_transition"), rs);
+                    }
+                    go.AddComponent<LODGroup>().SetLODs(arr);
+                    foreach (var u in World.Arr(ad, "collision"))
+                    {
+                        var t = Find(lib.transform, u.ToString());
+                        var mfs = t != null ? t.GetComponentsInChildren<MeshFilter>() : new MeshFilter[0];
+                        if (mfs.Length == 0) continue;
+                        var mc = go.AddComponent<MeshCollider>();
+                        mc.sharedMesh = mfs[0].sharedMesh;
+                        mc.convex = true;
+                    }
+                    string dir = folder + "/Prefabs";
+                    if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder(folder, "Prefabs");
+                    var pf = PrefabUtility.SaveAsPrefabAsset(go, dir + "/" + asset + ".prefab");
+                    Object.DestroyImmediate(go);
+                    return pf;
+                }
+            }
+            return null;
+        }
+
+        // the modular city's facade variants: the variant's material in place of the wall's, on every renderer
+        static Material FacadeMaterial(World w, int facade, Dictionary<string, Material> cache)
+        {
+            string name = w.FacadeMaterial(facade);
+            if (name.Length == 0) return null;
+            Material mat;
+            if (cache.TryGetValue(name, out mat)) return mat;
+            foreach (var guid in AssetDatabase.FindAssets("t:Material " + name))
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(p) == name) { mat = AssetDatabase.LoadAssetAtPath<Material>(p); break; }
+            }
+            if (mat == null) Debug.LogWarning("PCG World: no material " + name + " in the project (facade " + facade + ")");
+            cache[name] = mat;
+            return mat;
+        }
+
+        static void SwapWall(GameObject go, string wall, Material mat)
+        {
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+            {
+                var ms = r.sharedMaterials;
+                bool hit = false;
+                for (int k = 0; k < ms.Length; k++)
+                    if (ms[k] != null && ms[k].name == wall) { ms[k] = mat; hit = true; }
+                if (hit) r.sharedMaterials = ms;
+            }
+        }
+
         static int Instances(World w, Transform root, string folder)
         {
             int skipped = 0;
             var cache = new Dictionary<string, GameObject>();
+            var mats = new Dictionary<string, Material>();
+            string wall = w.WallMaterial();
             var top = new GameObject("Instances").transform;
             top.SetParent(root, false);
             for (int i = 0; i < w.TilesX; i++)
@@ -281,6 +368,11 @@ namespace Pcg.World
                             go.transform.localPosition = V(ins.position);
                             go.transform.localRotation = Q(ins.rotation);
                             go.transform.localScale = V(ins.scale);
+                            if (ins.facade != 0 && wall.Length > 0)
+                            {
+                                var fm = FacadeMaterial(w, ins.facade, mats);
+                                if (fm != null) SwapWall(go, wall, fm);
+                            }
                         }
                 }
             return skipped;

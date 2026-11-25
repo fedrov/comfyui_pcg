@@ -10,6 +10,8 @@ namespace UnityEngine
     {
         public string name;
         public static T Instantiate<T>(T original, Transform parent) where T : Object { return original; }
+        public static T Instantiate<T>(T original, Transform parent, bool instantiateInWorldSpace) where T : Object { return original; }
+        public static void DestroyImmediate(Object obj) { }
     }
     public struct Vector2 { public float x, y; public Vector2(float x, float y) { this.x = x; this.y = y; } }
     public struct Vector3 { public float x, y, z; public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; } }
@@ -47,8 +49,14 @@ namespace UnityEngine
         public GameObject(string name) { }
         public T AddComponent<T>() where T : Component, new() { return new T(); }
         public T GetComponent<T>() { return default(T); }
+        public T[] GetComponentsInChildren<T>() { return new T[0]; }
     }
-    public class Renderer : Component { }
+    public class Renderer : Component { public Material[] sharedMaterials { get; set; } }
+    public class Material : Object { }
+    public class Mesh : Object { }
+    public class MeshFilter : Component { public Mesh sharedMesh; }
+    public class Collider : Component { }
+    public class MeshCollider : Collider { public Mesh sharedMesh; public bool convex; }
     public class Behaviour : Component { }
     public class LineRenderer : Renderer
     {
@@ -101,9 +109,12 @@ namespace UnityEditor
         public static void CreateAsset(UnityEngine.Object asset, string path) { }
         public static T LoadAssetAtPath<T>(string assetPath) where T : UnityEngine.Object { return null; }
         public static void SaveAssets() { }
+        public static string[] FindAssets(string filter) { return new string[0]; }
+        public static string GUIDToAssetPath(string guid) { return ""; }
     }
     public static class PrefabUtility
     {
         public static UnityEngine.Object InstantiatePrefab(UnityEngine.Object assetComponentOrGameObject) { return null; }
+        public static UnityEngine.GameObject SaveAsPrefabAsset(UnityEngine.GameObject instanceRoot, string assetPath) { return null; }
     }
 }

@@ -4558,7 +4558,9 @@ CITY_TEXTURES = ("basecolor = pcg/materials/T_{material}_BaseColor.png\n"
 CITY_PREVIEW_TEXTURES = (CITY_TEXTURES.replace("basecolor = pcg/materials/T_{material}_BaseColor.png",
                                                "basecolor = pcg/materials/T_{material}_BaseColor.png | @{material}_C")
                          + "\nalpha = @{material}_alpha\nalpha_coverage = 0.5\nalpha_shadow = M_Leaf"
-                         + "\nbasecolor_tint = M_Leaf M_Wall M_BrickBuff M_Stucco M_Glass M_Trim M_FacadeFar M_FacadeFarBrick")
+                         + "\nbasecolor_tint = M_Leaf M_Wall M_BrickBuff M_Stucco M_Glass M_Trim M_FacadeFar M_FacadeFarBrick"
+                         # the far trees' impostor cards: the four atlas frames round the view direction, blended
+                         + "\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw")
 
 
 # Modular city layout (pcg118): 4 m cells on a 104 m x 88 m grid, two crossing 16 m streets (|x| < 8 and |z| < 8),
@@ -4652,6 +4654,20 @@ def city_rules_code():
     return "\n".join(lines)
 
 
+def city_cell_code():
+    """Wrangle code: cell(x, z, name) -- the value of a prim attribute of the 4 m rules grid (the second input) in
+    the cell under (x, z), -1 outside the grid. The grid's prims run along x, then z."""
+    nx, nz = CITY_GRID["cols"] - 1, CITY_GRID["rows"] - 1
+    gx, gz = CITY_GRID["size_x"] / 2, CITY_GRID["size_z"] / 2
+    return (
+        "def cell(x, z, name):\n"
+        f"    i = np.floor((np.asarray(x, np.float64) + {gx:g}) / 4)\n"
+        f"    j = np.floor((np.asarray(z, np.float64) + {gz:g}) / 4)\n"
+        f"    ok = (i >= 0) & (i < {nx}) & (j >= 0) & (j < {nz})\n"
+        f"    v = np.asarray(prim(1, name, np.where(ok, j * {nx} + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n"
+        "    return np.where(ok, v, -1.0)\n")
+
+
 KIT_TEXTURES = ("basecolor = ../../materials/T_{material}_BaseColor.png\n"
                 "normal = ../../materials/T_{material}_Normal_GL.png\n"
                 "orm = ../../materials/T_{material}_ORM.png")
@@ -4667,7 +4683,7 @@ def modular_city():
         "Modular buildings: first build a kit (each piece 4 m wide, one storey 3.5 m tall), then place the kit by rules onto "
         "every building's facades - the deliverable is **the kit meshes + an instance table**, not a lump of merged buildings.\n\n"
         "Kit (the four left columns): Wall_Plain / Wall_Window / Wall_WindowPair / Wall_Door / Wall_Shopfront / "
-        "Wall_Balcony / Corner_Pillar / Roof_Cornice / Roof_Flat / Roof_Unit / Roof_Tank / Roof_Penthouse (a stair core). Convention: pivot at the midpoint of the bottom edge "
+        "Wall_Balcony / Corner_Pillar / Corner_Bay / Roof_Cornice / Roof_Flat / Roof_Unit / Roof_Tank / Roof_Penthouse (a stair core). Convention: pivot at the midpoint of the bottom edge "
         "(rooftop plant: on the roof surface), outer facade facing +Z, wall thickness towards −Z; each piece's primitives have a material "
         "attribute (M_Wall / M_Trim / M_Glass / M_Door / M_Metal / M_Roof / M_RoofFlat / M_Sign), exported as glTF material slots; "
         "the facade column of the table swaps M_Wall for M_BrickBuff or M_Stucco per building (a material override); UVs are a world-scale "
@@ -4678,19 +4694,23 @@ def modular_city():
         "① On a 4 m grid, rules mark out the footprints of 12 buildings in the four quarters of two crossing 16 m streets (L shapes, "
         "slabs, a 14-storey tower, small houses), merged into outlines, each with its own number of floors. The rules wrangle's "
         "spare parameters: Layout 1 generates the block instead (lots of 12-20 m frontage with lanes between, Density, "
-        "Min / Max Floors -- taller toward the crossing --, Seed for another block); Layout 0 is the table above.\n"
+        "Min / Max Floors -- taller toward the crossing --, Seed for another block); Layout 0 is the table above. "
+        "Buildings of 9+ floors step back: their front row along a street stops 3 floors lower (the Setbacks "
+        "wrangle's Setback Floors / Setback Min).\n"
         "② The outlines are extruded floor by floor, each side face is a 4 m × 3.5 m slot; slot centre → point (with outward normal).\n"
         "③ Rules: shopfronts on the main street's ground floors, on the side street only near the crossing (further on, "
         "entrances and windows); towers of 9+ floors stand on a two-storey podium (the first floor shopfront too); upper "
         "floors take a random piece per \"column\" (lined up vertically); one balcony style per building (none, scattered on "
         "even floors, or bands on every third floor); a cornice ring above the top floor, roofs tiled per cell, rooftop plant, "
-        "and a stair core on buildings of 8+ floors; pillars at the outer wall corners.\n"
+        "and a stair core on buildings of 8+ floors; pillars where the building turns a corner, round bays on the "
+        "corners of the crossing; no walls where a set-back row meets the rest.\n"
         "④ Instance table (CSV, with bld / floor / facade columns) + one glb per kit piece (SM_Kit_*.glb) holding LOD0, "
         "LOD1 (the small parts stripped, at 40 m) and a convex UCX collision hull, with a .lods.json beside it.\n"
         "⑤ Preview (right column): Copy to Points by name places the kit back, weathered per building (tint, grime at the "
         "foot, curtains, dark and lit windows); the streets get curbs, paving, road paint, manholes, lamps, benches, bins, "
         "bus shelters, traffic lights, lane and park trees (Tree Generator with leaf cards) and parked cars; context "
-        "blocks (whole-bay facade texture, tinted per district, rooftop clutter) fill the distance; an aerial, an "
+        "blocks (whole-bay facade texture, tinted per district, rooftop clutter) and a linear park fill the distance; "
+        "the far trees are impostor cards per camera; an aerial, an "
         "eye-level shot, and the aerial again at dusk (the windows and lamps lit).\n"
         "⑥ The block again under pcg/city as a world: the kit glbs in assets/, a 1024 m tile's instance table, and a "
         "World.json (World Manifest) that engine/unreal and engine/unity import; its city key names the facade "
@@ -4866,7 +4886,19 @@ def modular_city():
                                                           (1.4, 0.12, 0.5, 0.0, 2.3, 1.95)])
     ph_v = boxes(K4, "Core vent", "M_Metal", [(0.5, 0.6, 0.5, 0.9, 3.5, -0.9)])
     pent = piece(K4, "Roof_Penthouse", [ph_c, ph_l, ph_s, ph_v])
-    lib = A("PCG_Merge", title="Kit library (12 pieces)")
+    # Round corner bay for the corners on the crossing (pivot at the corner, at the floor; +Z out of the corner): a
+    # rendered drum through each storey with a window, a sill and the floor band round it
+    cb_d = K4("PCG_Tube", title="Bay drum", radius1=1.25, radius2=1.25, height=3.5, cols=24, rows=2, caps=True,
+              center_y=1.75)
+    cb_w = tag(K4, cut(K4, "Bay drum − window", cb_d, box(K4, "Bay window opening", 1.0, 1.9, 1.2, 0.0, 1.95, 1.2)),
+               "M_Wall")
+    cb_g = tag(K4, box(K4, "Bay glass", 1.0, 1.9, 0.02, 0.0, 1.95, 1.0), "M_Glass")
+    cb_b = K4("PCG_Tube", title="Bay floor band", radius1=1.32, radius2=1.32, height=0.22, cols=24, rows=2,
+              caps=True, center_y=3.39)
+    cb_t = tag(K4, merge_all(K4, "Bay band + sill", [cb_b, box(K4, "Bay sill", 1.1, 0.08, 0.3, 0.0, 0.97, 1.25)]),
+               "M_Trim")
+    bay = piece(K4, "Corner_Bay", [cb_w, cb_g, cb_t])
+    lib = A("PCG_Merge", title="Kit library (13 pieces)")
     for i, p in enumerate((plain, window, door, balcony, shop, pil)):
         g.link(p, "geo", lib, f"geo{i + 1}")
     lib2 = A("PCG_Merge", title="Kit library (cont.)")
@@ -4879,6 +4911,7 @@ def modular_city():
     lib3 = A("PCG_Merge", title="Kit library (cont.)")
     g.link(lib2, "geo", lib3, "geo1")
     g.link(pent, "geo", lib3, "geo2")
+    g.link(bay, "geo", lib3, "geo3")
     uvp = A("PCG_UVProject", title="World-scale box projection (1 UV = 1 m, same density as the material library)",
             mode="box", fit_to_01=False, scale_u=1.0, scale_v=1.0)
     g.link(lib3, "geo", uvp, "geo")
@@ -4942,11 +4975,35 @@ def modular_city():
     rule = B("PCG_Wrangle", title="Rules: which cells belong to which building, how many floors", run_over="prim",
              code=city_rules_code())
     g.link(grd, "geo", rule, "geo")
+    # setbacks: a tall building's street-front row of cells stops a few floors lower than the rest (the tower steps
+    # back above it); i@height keeps the building's full height for the rules that go by it
+    sbk = B("PCG_Wrangle", title="Setbacks: the street-front row of tall buildings, lower", run_over="prim", code=(
+        city_cell_code()
+        + 'sb = chi("setback_floors", 3)          # how many floors lower the front row stops (0 = no setbacks)\n'
+        + 'smin = chi("setback_min", 9)           # from how many floors a building steps back\n'
+        + "x = @P.x\n"
+        + "z = @P.z\n"
+        + "b = @bld\n"
+        + "f = @floors\n"
+        + "sx = where(x < 0, -1.0, 1.0)\n"
+        + "sz = where(z < 0, -1.0, 1.0)\n"
+        + f"# the first row of cells along a street, and the building goes on behind it (so it has a back part to rise)\n"
+        + f"rz = (abs(z) < {CITY_STREET + 4:g}) & (cell(x, z + 4 * sz, \"bld\") == b)\n"
+        + f"rx = (abs(x) < {CITY_STREET + 4:g}) & (cell(x + 4 * sx, z, \"bld\") == b)\n"
+        + "ring = (b >= 0) & (f >= smin) & (sb > 0) & (rz | rx)\n"
+        + "i@height = f\n"
+        + "i@setback = where(ring, 1, 0)\n"
+        + "i@floors = where(ring, f - sb, f)"))
+    g.link(rule, "geo", sbk, "geo")
+    g.link(rule, "geo", sbk, "geo1")
     cells = B("PCG_Blast", title="Footprint cells", group="@bld < 0", cls="prim")
-    g.link(rule, "geo", cells, "geo")
-    fp = B("PCG_Divide", title="Merge into outlines", convex_polygons=False,
-           remove_shared_edges=True)
-    g.link(cells, "geo", fp, "geo")
+    g.link(sbk, "geo", cells, "geo")
+    fp0 = B("PCG_Divide", title="Merge into outlines (the full-height part)", group="@setback == 0",
+            convex_polygons=False, remove_shared_edges=True)
+    g.link(cells, "geo", fp0, "geo")
+    fp = B("PCG_Divide", title="Merge into outlines (the set-back front rows)", group="@setback == 1",
+           convex_polygons=False, remove_shared_edges=True)
+    g.link(fp0, "geo", fp, "geo")
     # ② Extrude → slots
     ms = B("PCG_PolyExtrude", title="Extrude to the max floor count, one division per floor", divide_into="individual",
            distance=CITY_MAX_FLOORS * 3.5, divisions=CITY_MAX_FLOORS, output_front=False, side_group="slot")
@@ -4960,9 +5017,10 @@ def modular_city():
     g.link(mass, "geo", mn, "geo")
     slots = C("PCG_ExtractCentroid", title="One point per slot", run_over="primitives",
               method="average_position", output="points", use_transfer=True,
-              transfer_attributes="N floors bld facade")
+              transfer_attributes="N floors bld facade height")
     g.link(mn, "geo", slots, "geo")
     rl = C("PCG_Wrangle", title="Rules: which piece goes in each slot", code=(
+        city_cell_code() +
         "fl = floor(@P.y / 3.5)\n"
         "i@floor = fl\n"
         "@P.y = fl * 3.5                      # pivot at the midpoint of the bottom edge\n"
@@ -4982,15 +5040,22 @@ def modular_city():
         "bs = floor(rand(@bld * 5.31 + 1.7) * 3)\n"
         "bal = street & (fl >= 1) & (((bs == 1) & (h > 0.55) & (fl % 2 == 0)) | ((bs == 2) & (fl % 3 == 2)))\n"
         "# towers (9+ floors) stand on a two-storey podium: the first floor is shopfront too where the ground floor is\n"
-        "podium = (@floors >= 9) & (fl == 1) & shop\n"
+        "podium = (@height >= 9) & (fl == 1) & shop\n"
         "up_ = where(podium, \"Wall_Shopfront\", where(bal, \"Wall_Balcony\",\n"
         "            where((h < 0.12) & (bs != 2), \"Wall_Plain\", win)))\n"
         "# ground floor: shops; the rest of the side street gets entrances and windows; the backs doors and plain walls\n"
         "ground = where(shop, \"Wall_Shopfront\", where(street, where(h > 0.6, \"Wall_Door\", win),\n"
         "               where(h > 0.78, \"Wall_Door\", \"Wall_Plain\")))\n"
-        "s@name = where(fl == 0, ground, up_)\n"
+        "# a slot whose front cell is this building and still standing at this floor is inside (where the set-back\n"
+        "# front row meets the rest): no wall\n"
+        "inside = (cell(ox, oz, \"bld\") == @bld) & (fl < cell(ox, oz, \"floors\"))\n"
+        "s@name = where(inside, \"\", where(fl == 0, ground, up_))\n"
         "@up = set(0, 1, 0)"))
     g.link(slots, "geo", rl, "geo")
+    g.link(sbk, "geo", rl, "geo1")
+    rlk = C("PCG_Blast", title="Drop the inside slots", group='@name == ""', cls="point")
+    g.link(rl, "geo", rlk, "geo")
+    rl = rlk
     top = C("PCG_Blast", title="Top-floor slots", group="@floor != @floors - 1",
             cls="point")
     g.link(rl, "geo", top, "geo")
@@ -5014,15 +5079,42 @@ def modular_city():
     cp3 = D("PCG_Blast", title="Remove the top ring", group="@P.y > @floors * 3.5 - 0.1",
             cls="point")
     g.link(cp2, "geo", cp3, "geo")
-    cpn = D("PCG_Wrangle", title="→ Corner_Pillar", code=(
-        's@name = "Corner_Pillar"\n'
-        "@N = set(0, 0, 1)\n"
-        "@up = set(0, 1, 0)"))
+    cpn = D("PCG_Wrangle", title="→ Corner_Pillar where the building turns a corner; Corner_Bay at the crossing", code=(
+        city_cell_code()
+        + "# the four cells round this grid point, standing at this storey (built, and tall enough)\n"
+        + "y = @P.y + 0.1\n"
+        + "def up_(dx, dz):\n"
+        + "    return (cell(@P.x + dx, @P.z + dz, \"bld\") >= 0) & (cell(@P.x + dx, @P.z + dz, \"floors\") * 3.5 > y)\n"
+        + "a = up_(-2, -2)\nb = up_(2, -2)\nc = up_(-2, 2)\nd = up_(2, 2)\n"
+        + "n = a * 1 + b * 1 + c * 1 + d * 1\n"
+        + "# a corner: one cell (outside corner) or three (inside corner); two side by side are a flat wall\n"
+        + "turn = (n == 1) | (n == 3) | ((n == 2) & (a == d))\n"
+        + "# one pillar per point (where the set-back front rows meet the rest two masses share a corner)\n"
+        + "key = np.round(np.asarray(@P.x) * 10) * 1e7 + np.round(np.asarray(@P.y) * 10) * 1e3 + np.round(np.asarray(@P.z) * 10)\n"
+        + "first = np.zeros(len(key), bool)\n"
+        + "first[np.unique(key, return_index=True)[1]] = True\n"
+        + "i@keep = where(turn & first, 1, 0)\n"
+        + f"# the outside corners on the crossing (the corner of both streets): a round corner bay instead\n"
+        + f"cross = (abs(abs(@P.x) - {CITY_STREET:g}) < 0.1) & (abs(abs(@P.z) - {CITY_STREET:g}) < 0.1) & (n == 1)\n"
+        + 's@name = where(cross, "Corner_Bay", "Corner_Pillar")\n'
+        + "# the building it belongs to (one of the standing cells): its number and facade variant (the bay is rendered)\n"
+        + "def pick(name):\n"
+        + "    v = [cell(@P.x + dx, @P.z + dz, name) for dx, dz in ((-2, -2), (2, -2), (-2, 2), (2, 2))]\n"
+        + "    return where(a, v[0], where(b, v[1], where(c, v[2], v[3])))\n"
+        + 'i@bld = pick("bld")\n'
+        + 'i@facade = pick("facade")\n'
+        + "# the bay faces out of the corner (diagonally into the crossing)\n"
+        + "@N = where(cross, normalize(set(np.sign(@P.x), 0, np.sign(@P.z))), set(0, 0, 1))\n"
+        + "@up = set(0, 1, 0)"))
     g.link(cp3, "geo", cpn, "geo")
+    g.link(sbk, "geo", cpn, "geo1")
+    cpk_ = D("PCG_Blast", title="Keep the corners", group="@keep == 0", cls="point")
+    g.link(cpn, "geo", cpk_, "geo")
+    cpn = cpk_
     # Roofs: centres of the footprint cells, raised to the floor height
     rc = D("PCG_ExtractCentroid", title="Roof cell centres", run_over="primitives",
            method="average_position", output="points", use_transfer=True,
-           transfer_attributes="floors bld facade")
+           transfer_attributes="floors bld facade height")
     g.link(cells, "geo", rc, "geo")
     rf = D("PCG_Wrangle", title="→ Roof_Flat", code=(
         's@name = "Roof_Flat"\n'
@@ -5043,7 +5135,7 @@ def modular_city():
         "d = (px - mx[b]) ** 2 + (pz - mz[b]) ** 2 + np.asarray(rand(@ptnum * 0.73)).reshape(-1) * 1e-3\n"
         "dm = np.full(b.max() + 1, 1e9)\n"
         "np.minimum.at(dm, b, d)\n"
-        "stair = (d == dm[b]) & (np.asarray(@floors).reshape(-1) >= 8)\n"
+        "stair = (d == dm[b]) & (np.asarray(@height).reshape(-1) >= 8)\n"
         's@name = where(stair, "Roof_Penthouse", where(big & (h < 0.035), "Roof_Tank", where(h < 0.14, "Roof_Unit", "")))\n'
         "# random quarter turns, and (plant only) a little slack inside the 4 m cell\n"
         "a = floor(rand(@ptnum * 1.91) * 4) * 1.5708\n"
@@ -5179,7 +5271,7 @@ def modular_city():
     g.link(swk, "geo", swu, "geo")
     swc = E("PCG_Wrangle", title="Sidewalk and paving colours (sidewalks: a tint on their concrete texture)",
             run_over="prim", code=(
-                '@Cd = where(@slab == 1, set(0.50, 0.50, 0.48), set(0.78, 0.77, 0.74))'))
+                '@Cd = where(@slab == 1, set(0.38, 0.38, 0.37), set(0.78, 0.77, 0.74))'))
     g.link(swu, "geo", swc, "geo")
     swc = merge_all(E, "Paving + sidewalks + curbs", [swc, crbc])
     # Road paint: dashed centre lines, zebra crossings on the four arms of the crossing, stop lines
@@ -5232,8 +5324,8 @@ def modular_city():
     lfc = E("PCG_LeafCardTexture", title="Leaf card: broadleaf twig (M_Leaf)", kind="broadleaf", resolution=512,
             leaves=9, leaf_color="0.055 0.15 0.016", rand_seed=3, prefix="M_Leaf")
     tgn = E("PCG_TreeGenerator", title="Street tree (Tree Generator: a broadleaf, leaf cards)", kind="broadleaf",
-            height=7.0, trunk_radius=0.16, crown_base=0.45, crown_width=4.6, branch_levels=2, branches=5, leaves=380,
-            leaf_size=1.0, leaf_color="1 1 1", leaf_material="M_Leaf", sides=5, segments=4, rand_seed=5)
+            height=7.0, trunk_radius=0.16, crown_base=0.45, crown_width=4.6, branch_levels=2, branches=5, leaves=700,
+            leaf_size=0.7, leaf_color="1 1 1", leaf_material="M_Leaf", sides=5, segments=4, rand_seed=5)
     # the street furniture is merged with lamps and cars that have face colours only: the tree's shading goes onto
     # its faces too (a merge fills a missing point colour with black)
     tgc = E("PCG_AttribPromote", title="Tree: colour to the faces", original_name="Cd", original_class="point",
@@ -5385,8 +5477,13 @@ def modular_city():
     import random as _rnd
     rr = _rnd.Random(7)
     x0, x1 = hx + 1.0, hx + 24.0
+    # ... and north and south of it too (that strip was bare paving, a bright empty plain in the aerial): a linear
+    # park between the plot and the context blocks, from the street to the west and east belts
+    z0, z1 = hz + 1.0, hz + 13.0
     lawn = boxes(E, "Lawn (green belt)", "Lawn", [
         (x1 - x0, 0.2, hz + 14.0 - cw - 4.0, sx * (x0 + x1) / 2, -0.06, sz * (cw + 4.0 + hz + 14.0) / 2)
+        for sx in (-1, 1) for sz in (-1, 1)] + [
+        (x0 - cw - 4.0, 0.2, z1 - z0, sx * (cw + 4.0 + x0) / 2, -0.06, sz * (z0 + z1) / 2)
         for sx in (-1, 1) for sz in (-1, 1)])
     lawnc = E("PCG_Color", title="Lawn colour", attribute_class="prim", r=0.30, g=0.40, b=0.17)
     g.link(lawn, "geo", lawnc, "geo")
@@ -5395,6 +5492,12 @@ def modular_city():
         x, z = rr.uniform(x0 + 2, x1 - 2) * rr.choice((-1, 1)), rr.uniform(cw + 7, hz + 12) * rr.choice((-1, 1))
         if all((x - a) ** 2 + (z - b) ** 2 > 20 for a, _, b in ppts):
             ppts.append((x, 0.0, z))
+    # the north and south strips: two loose rows of trees
+    for sz in (-1, 1):
+        for row in (z0 + 3.5, z1 - 3.5):
+            for x in range(int(cw + 7), int(x0), 8):
+                for sx in (-1, 1):
+                    ppts.append((sx * (x + rr.uniform(-1.5, 1.5)), 0.0, sz * (row + rr.uniform(-1.2, 1.2))))
     # trees along the lanes between the nearer context blocks (the paved ground between them was a bare expanse)
     for e_ in range(-320, 321, 32):
         for t_ in range(-150, 151, 12):
@@ -5413,7 +5516,13 @@ def modular_city():
         "@up = set(0, 1, 0)\n"
         "@pscale = 0.9 + 0.8 * rand(@ptnum * 2.3 + 0.7)"))
     g.link(pk, "geo", pkw, "geo")
-    fall = merge_all(E, "Furniture + cars", [fpn, cpk, pkw])
+    fall0 = merge_all(E, "Furniture + cars + trees", [fpn, cpk, pkw])
+    # the trees are placed per camera (near: the tree, far: impostor cards), the rest here
+    fall = E("PCG_Blast", title="Furniture + cars (without the trees)", group='@name == "tree"', cls="point")
+    g.link(fall0, "geo", fall, "geo")
+    tpts = E("PCG_Blast", title="All tree points (street, park, lanes)", group='@name == "tree"', cls="point",
+             keep_selected=True)
+    g.link(fall0, "geo", tpts, "geo")
     fcp = E("PCG_CopyToPoints", title="Place the street furniture", piece_attribute="name",
             target_prim_attributes="paint")
     g.link(props, "geo", fcp, "source")
@@ -5489,6 +5598,86 @@ def modular_city():
     g.link(lawnc, "geo", mg, "geo2")
     vp = E("PCG_Viewport", size=[520, 520])
     g.link(fv, "geo", vp, "geo")
+    # The trees as each camera sees them: the tree itself within near_r, beyond it an impostor card (a quad facing
+    # the camera, its uv on the atlas frame of the direction it is seen from, the four frames round it blended)
+    # over a blob that only casts the shadow -- as the world tiles do, and an engine would. The atlas: Impostor
+    # Textures of the street tree from the upper half of the sphere (8 × 8 frames of 128²)
+    imt = E("PCG_ImpostorTextures", title="Street tree: impostor atlas (hemi-octahedral, 8 × 8 frames)",
+            impostor_type="hemi_octahedron", sprite_resolution=128, frames_x=8, frames_y=8, textures=LEAF_TEXTURES)
+    g.link(treen, "geo", imt, "geo")
+    g.link(lfc, "cop", imt, "textures_cop")
+    ilib = E("PCG_COPLayerMerge", title="Leaf card + impostor atlas (imp_tree_C / imp_tree_alpha)",
+             layers="C alpha", prefix="imp_tree_", overwrite=True)
+    g.link(lfc, "cop", ilib, "a")
+    g.link(imt, "cop", ilib, "b")
+    icu = E("PCG_AttribPromote", title="Card: uv to the points", original_name="uv", original_class="vertex",
+            new_class="point", method="first_match", delete_original=True)
+    g.link(imt, "card", icu, "geo")
+    icm = E("PCG_Wrangle", title="Card: the impostor material, white, translucent", run_over="prim", code=(
+        's@material = "imp_tree"\ns@name = "tree"\n@Cd = set(1, 1, 1) + 0 * @P\n@translucency = 0.35 + 0 * @primnum'))
+    g.link(icu, "geo", icm, "geo")
+    icn = E("PCG_Wrangle", title="Card: its normal toward the camera and up", code="@N = normalize(set(0, 0.6, 1) + 0 * @P)")
+    g.link(icm, "geo", icn, "geo")
+    ibs = E("PCG_Sphere", title="Tree shadow blob", radius=1.0, cols=6, rows=4)
+    ibt = E("PCG_Transform", title="Blob: the crown's size", sx=2.3, sy=2.0, sz=2.3, ty=5.0)
+    g.link(ibs, "geo", ibt, "geo")
+    ibk = E("PCG_Wrangle", title="Blob: shadow only", run_over="prim", code='i@shadow_only = 1\ns@name = "tree"')
+    g.link(ibt, "geo", ibk, "geo")
+
+    def far_view(cam_, near_r, tag):
+        cx, cy, cz = cam_
+        tf = E("PCG_Wrangle", title=f"{tag}: trees near or far, the card's frame", code=(
+            f"v = set({cx:.1f}, {cy:.1f}, {cz:.1f}) - @P\n"
+            f"@far = (length(v) >= {near_r:.1f}) * 1\n"
+            "# the hemi-octahedral frames round the direction to this camera (the atlas' 8 x 8 grid): the cell it\n"
+            "# falls in, and where in it (the four frames at its corners are blended by that)\n"
+            "d = normalize(set(v.x, clamp(v.y, 0, 1e9), v.z))\n"
+            "s = abs(d.x) + abs(d.y) + abs(d.z)\n"
+            "gx = ((d.x + d.z) / s + 1) * 3.5\n"
+            "gy = ((d.x - d.z) / s + 1) * 3.5\n"
+            "@fi = clamp(floor(gx), 0, 6)\n"
+            "@fj = clamp(floor(gy), 0, 6)\n"
+            "@ftx = clamp(gx - @fi, 0, 1)\n"
+            "@fty = clamp(gy - @fj, 0, 1)\n"
+            "@cn = normalize(v)"))
+        g.link(tpts, "geo", tf, "geo")
+        nb = E("PCG_Blast", title=f"{tag}: near trees", cls="point", group="@far > 0.5")
+        g.link(tf, "geo", nb, "geo")
+        nt = E("PCG_CopyToPoints", title=f"{tag}: near trees (the tree)", piece_attribute="name")
+        g.link(props, "geo", nt, "source")
+        g.link(nb, "geo", nt, "points")
+        fb = E("PCG_Blast", title=f"{tag}: far trees", cls="point", group="@far < 0.5")
+        g.link(tf, "geo", fb, "geo")
+        fo = E("PCG_Wrangle", title=f"{tag}: far trees face the camera", code="@N = @cn\n@up = set(0, 1, 0) + 0 * @cn")
+        g.link(fb, "geo", fo, "geo")
+        fc = E("PCG_CopyToPoints", title=f"{tag}: impostor cards", piece_attribute="name",
+               target_point_attributes="fi fj ftx fty")
+        g.link(icn, "geo", fc, "source")
+        g.link(fo, "geo", fc, "points")
+        fu = E("PCG_Wrangle", title=f"{tag}: cards' uv on their frame", code=(
+            "u = @uv.x\nw = @uv.y\nz = 0 * @fi\n"
+            "@uv = set((@fi + u) / 8, (@fj + w) / 8, z)\n"
+            "@uv2 = set((@fi + 1 + u) / 8, (@fj + w) / 8, z)\n"
+            "@uv3 = set((@fi + u) / 8, (@fj + 1 + w) / 8, z)\n"
+            "@uv4 = set((@fi + 1 + u) / 8, (@fj + 1 + w) / 8, z)\n"
+            "@fw = set((1 - @ftx) * (1 - @fty), @ftx * (1 - @fty), (1 - @ftx) * @fty, @ftx * @fty)"))
+        g.link(fc, "geo", fu, "geo")
+        # the street's uv is on its vertices: the cards' first uv goes there too (the blend reads it there)
+        fv_ = E("PCG_AttribPromote", title=f"{tag}: cards' uv to the vertices", original_name="uv",
+                original_class="point", new_class="vertex", method="average", delete_original=True)
+        g.link(fu, "geo", fv_, "geo")
+        fs = E("PCG_CopyToPoints", title=f"{tag}: the cards' shadow blobs", piece_attribute="name")
+        g.link(ibk, "geo", fs, "source")
+        g.link(fb, "geo", fs, "points")
+        m_ = E("PCG_Merge", title=f"{tag}: block + green belt + trees")
+        g.link(mg, "geo", m_, "geo1")
+        g.link(nt, "geo", m_, "geo2")
+        g.link(fv_, "geo", m_, "geo3")
+        g.link(fs, "geo", m_, "geo4")
+        return m_
+
+    mg_c1 = far_view((-104.0, 34.0, 66.0), 95.0, "Aerial")
+    mg_c2 = far_view((-2.2, 1.7, 56.0), 70.0, "Street")
     # Hero shots: a low aerial over the crossing toward the tower, and one from the sidewalk at eye level
     cam1 = E("PCG_Camera", title="Camera: low aerial over the crossing", projection="perspective", mode="look_at",
              resolution_x=1600, resolution_y=900, fov=38.0, eye_x=-104.0, eye_y=34.0, eye_z=66.0,
@@ -5496,9 +5685,9 @@ def modular_city():
     pr = E("PCG_PreviewImage", width=1600, height=900, elevation=32.0, azimuth=30.0, shading="color",
            look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=30.0, sun_azimuth=250.0, haze=2.5,
            ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5, emit_attrib="")
-    g.link(mg, "geo", pr, "geo")
+    g.link(mg_c1, "geo", pr, "geo")
     g.link(bpv, "geo", pr, "extra_geo")
-    g.link(lfc, "cop", pr, "textures_cop")
+    g.link(ilib, "cop", pr, "textures_cop")
     g.link(cam1, "cam", pr, "camera")
     pv = E("PreviewImage", title="Assembled block", size=[520, 400])
     g.link(pr, "image", pv, "images")
@@ -5508,9 +5697,9 @@ def modular_city():
     pr2 = E("PCG_PreviewImage", width=1600, height=900, elevation=10.0, azimuth=0.0, shading="color",
             look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=40.0, sun_azimuth=35.0, haze=2.5,
             ground_color="0.40 0.39 0.36", clouds=0.35, cloud_seed=5, emit_attrib="")
-    g.link(mg, "geo", pr2, "geo")
+    g.link(mg_c2, "geo", pr2, "geo")
     g.link(bpv, "geo", pr2, "extra_geo")
-    g.link(lfc, "cop", pr2, "textures_cop")
+    g.link(ilib, "cop", pr2, "textures_cop")
     g.link(cam2, "cam", pr2, "camera")
     pv2 = E("PreviewImage", title="Street level", size=[520, 400])
     g.link(pr2, "image", pv2, "images")
@@ -5527,19 +5716,19 @@ def modular_city():
             shading="color", look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=-4.0, sun_azimuth=250.0,
             haze=2.0, ground_color="0.40 0.39 0.36", clouds=0.3, cloud_seed=5, exposure=2.2, emit_attrib="emit",
             light_range=30.0)
-    g.link(mg, "geo", pr3, "geo")
+    g.link(mg_c1, "geo", pr3, "geo")
     g.link(bpv, "geo", pr3, "extra_geo")
-    g.link(lfc, "cop", pr3, "textures_cop")
+    g.link(ilib, "cop", pr3, "textures_cop")
     g.link(llw, "geo", pr3, "lights")
     g.link(cam1, "cam", pr3, "camera")
     pv3 = E("PreviewImage", title="At dusk", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
-    kpts = E("PCG_Add", title="12 points in three rows (5 m apart)",
-             points="\n".join(f"{5 * (i % 4)} 0 {-6 * (i // 4)}" for i in range(12)))
+    kpts = E("PCG_Add", title="13 points in four rows (5 m apart)",
+             points="\n".join(f"{5 * (i % 4)} 0 {-6 * (i // 4)}" for i in range(13)))
     kn = E("PCG_Wrangle", title="One piece per point", code=(
         'order = np.array(["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony",'
         ' "Wall_Shopfront", "Corner_Pillar", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank",'
-        ' "Roof_Penthouse"])\n'
+        ' "Roof_Penthouse", "Corner_Bay"])\n'
         "s@name = order[@ptnum]\n"
         "@N = set(0, 0, 1)\n"
         "@up = set(0, 1, 0)"))

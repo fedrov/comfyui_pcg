@@ -333,7 +333,8 @@ def build_manifest(root, folder, world_size=4096.0, tile_size=1024.0, origin="no
             ent["lods"] = file_ref(lp)
             ent["assets"] = [{"name": a["name"], "bounds": a.get("bounds"), "materials": a.get("materials"),
                               "lods": [{k: l_[k] for k in ("lod", "node", "distance", "triangles", "screen_size",
-                                                           "unity_transition") if k in l_} for l_ in a.get("lods", [])]}
+                                                           "unity_transition") if k in l_} for l_ in a.get("lods", [])],
+                              **({"collision": a["collision"]} if a.get("collision") else {})}
                              for a in lods.get("assets", [])]
         world["meshes"][_rel(p, base)] = ent
         # into the tiles: LOD assets by their bounds' centre; other nodes with bounds by theirs; instanced and

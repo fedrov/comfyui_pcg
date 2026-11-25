@@ -40,6 +40,9 @@ W.run(r"D:/ComfyUI/output/pcg/world/World.json")
   the LOD manifest.
 - **Instances:** Hierarchical Instanced Static Mesh components, one actor per tile and asset. An asset without a
   mesh of its own name uses `<asset>_LOD0` (a LOD chain, as the modular kit's glbs hold), else the exported proxies.
+  An asset whose manifest lists collision nodes (`UCX_<asset>_NN`) gets a convex collision on its LOD0, and the
+  imported UCX mesh is deleted. With World.json's `city` key, each facade variant gets its own component with the
+  variant's material in the wall slot.
 - **Roads:** one spline actor per polyline. The road class, width and material are stored in the actor's tags.
 - **If the towns land off the Landscape:** your glTF importer converts axes differently. Pass `mesh_yaw` to turn
   the placed meshes.
@@ -57,8 +60,9 @@ To run it, use the menu **Tools > PCG World > Import World.json...**.
   the alphamaps.
 - **Buildings:** each town gets an LODGroup with the Unity transition heights from the LOD manifest.
 - **Water:** the water mesh is placed in the scene. Its flow is stored in the vertex colour.
-- **Instances:** each instance uses `Prefabs/<asset>.prefab`, or else the node of the same name in the asset
-  library glbs (or `<asset>_LOD0`).
+- **Instances:** each instance uses `Prefabs/<asset>.prefab`, or else, for a LOD chain, a prefab made there (an
+  LODGroup over the levels, a convex MeshCollider from the UCX node), or else the node of the same name in the asset
+  library glbs. With World.json's `city` key, each instance swaps the wall material for its facade variant's.
 - **Roads:** one LineRenderer per polyline, as wide as its road class.
 - **Axis setting:** `GltfFlipsX` tells the script how the glTF importer converts axes. glTFast negates x, which is
   the default.

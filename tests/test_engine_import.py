@@ -178,6 +178,29 @@ check("  a LOD chain: an asset with only <asset>_LOD0 uses it (the modular kit's
       UE.asset_mesh_name("SM_Kit_Wall_Window", av | {"SM_Kit_Wall_Window_LOD0", "SM_Kit_Wall_Window_LOD1"})
       == "SM_Kit_Wall_Window_LOD0" and UE.asset_mesh_name("SM_Kit_Wall_Door", av | {"SM_Kit_Wall_Window_LOD0"}) is None)
 
+# the modular city: the facade column picks the wall's override material (World.json's city key); collision nodes
+cdir = os.path.join(tmp, "citycase")
+os.makedirs(cdir, exist_ok=True)
+with open(os.path.join(cdir, "I.csv"), "w", newline="") as f:
+    f.write("asset,px,py,pz,qx,qy,qz,qw,sx,sy,sz,facade\n")
+    for k, fa in enumerate([0, 1, 1, 2, 0]):
+        f.write(f"SM_Kit_Wall_Window,{4 * k},0,0,0,0,0,1,1,1,1,{fa}\n")
+cw_ = {"instances": {"files": ["I.csv"]}, "city": {"instances_facade_column": "facade", "wall_material": "M_Wall",
+                                                   "facade_materials": {"0": "M_Wall", "1": "M_BrickBuff", "2": "M_Stucco"}}}
+ig = {k: len(v) for k, v in UE.instance_groups(cw_, cdir).items()}
+check("city facades: one group per asset and override (facade 0 keeps the wall: no override)",
+      ig == {("SM_Kit_Wall_Window", ""): 2, ("SM_Kit_Wall_Window", "M_BrickBuff"): 2,
+             ("SM_Kit_Wall_Window", "M_Stucco"): 1}, ig)
+ig0 = {k: len(v) for k, v in UE.instance_groups({"instances": cw_["instances"]}, cdir).items()}
+check("  negative control: without the city key, no overrides (the column is just data)",
+      ig0 == {("SM_Kit_Wall_Window", ""): 5}, ig0)
+lpc = UE.lod_plan({"meshes": {"a": {"file": "a.glb", "role": "assets", "assets": [
+    {"name": "SM_Kit_X", "lods": [{"lod": 0, "node": "SM_Kit_X_LOD0"}, {"lod": 1, "node": "SM_Kit_X_LOD1"}],
+     "collision": ["UCX_SM_Kit_X_00"]}]}}})
+check("  LOD plan carries the collision nodes (built as convex collision, the UCX meshes deleted)",
+      lpc and lpc[0]["collision"] == ["UCX_SM_Kit_X_00"] and lpc[0]["nodes"] == ["SM_Kit_X_LOD0", "SM_Kit_X_LOD1"]
+      and lp[0]["collision"] == [], lpc)
+
 print("\n[4-6. Unity (C# with Mono)]")
 mcs, mono = shutil.which("mcs"), shutil.which("mono")
 if not (mcs and mono):

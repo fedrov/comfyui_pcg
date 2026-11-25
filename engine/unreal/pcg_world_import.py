@@ -16,8 +16,13 @@ What it does, all from World.json:
   meshes      every glb (buildings, water, the asset library) imported as static meshes; each building asset's LOD
               chain (LOD Create -> Export Mesh's LOD manifest) set up on its LOD0 mesh with the manifest's Unreal
               screen sizes; the towns and the water placed in the level, one folder per tile
+  collision   an asset whose LOD manifest lists collision nodes (UCX_<asset>_NN) gets a convex collision built on
+              its LOD0 mesh (one hull, as the UCX was), and the UCX meshes the glb import made are deleted
   instances   the instance tables as Hierarchical Instanced Static Mesh components, one actor per tile and asset;
-              an asset is the static mesh of that name under content_root (import or make your own), else skipped
+              an asset is the static mesh of that name under content_root (import or make your own), else skipped.
+              With World.json's city key (the modular city), an instance's facade column picks a material that
+              replaces the wall slot: one component per asset and facade, the override set on it (the material
+              found by name anywhere under content_root, e.g. imported with the material library's textures)
   roads       the road classes' polylines as spline actors (a Spline component per line) with the class's width
               and material in their tags, for a road tool to sweep
 
@@ -104,6 +109,40 @@ def landscape_height_cm(settings, v):
     return settings["location"][2] + (float(v) - 32768.0) / 128.0 * settings["scale_z"]
 
 
+def instance_groups(world, root, tile=None):
+    """-> {(asset, override material or ""): [(location cm, quaternion, scale), ...]}: as read_instances, split by
+    the material World.json's city key gives the instance's facade value (0, or no city key: no override)."""
+    city = world.get("city") or {}
+    col = city.get("instances_facade_column", "facade")
+    fm = city.get("facade_materials") or {}
+    wall = city.get("wall_material", "")
+    out = {}
+    for fn in _instance_files(world, root, tile):
+        with open(fn, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                ov = ""
+                if city and row.get(col) not in (None, ""):
+                    m = fm.get(str(int(float(row[col]))), "")
+                    ov = "" if m in ("", wall) else m
+                out.setdefault((row["asset"], ov), []).append(
+                    (location((row["px"], row["py"], row["pz"])),
+                     rotation_quat((row["qx"], row["qy"], row["qz"], row["qw"])),
+                     scale((row["sx"], row["sy"], row["sz"]))))
+    return out
+
+
+def _instance_files(world, root, tile=None):
+    ins = world.get("instances") or {}
+    files = ins.get("files", [])
+    if tile is not None:
+        t = next((x for x in world["tiles"] if list(x["tile"]) == list(tile)), None)
+        if t is None:
+            return []
+        with open(os.path.join(root, t["file"]), encoding="utf-8") as f:
+            files = json.load(f)["instances"]["files"]
+    return [os.path.join(root, fn) for fn in files if os.path.exists(os.path.join(root, fn))]
+
+
 def read_instances(world, root, tile=None):
     """-> {asset: [(location cm, quaternion, scale), ...]} from the instance tables (one tile, or all)."""
     out = {}
@@ -137,7 +176,7 @@ def lod_plan(world):
             plan.append({"asset": a["name"], "file": m["file"], "role": m.get("role"),
                          "nodes": [l_["node"] for l_ in lods],
                          "screen_sizes": [float(l_.get("screen_size", 1.0)) for l_ in lods],
-                         "bounds": a.get("bounds")})
+                         "bounds": a.get("bounds"), "collision": list(a.get("collision") or [])})
     return plan
 
 
@@ -255,6 +294,15 @@ def run(world_json, content_root="/Game/PCGWorld", meshes=True, textures=True, i
             for k, ssz in enumerate(p["screen_sizes"][:len(sm)]):
                 sm[k].set_editor_property("screen_size", unreal.PerPlatformFloat(default=ssz))
             base.set_editor_property("source_models", sm)
+            if p["collision"]:
+                # the UCX was the piece's convex hull: the same, built on the mesh (glTF imports keep UCX_ a mesh)
+                try:
+                    sub.set_convex_decomposition_collisions(base, len(p["collision"]), 32, 100000)
+                except Exception as e:                              # noqa: BLE001 -- an engine without the call
+                    unreal.log_warning(f"PCG World: no convex collision for {p['asset']}: {e}")
+                for u in p["collision"]:
+                    if unreal.EditorAssetLibrary.does_asset_exist(f"{dest}/{u}"):
+                        unreal.EditorAssetLibrary.delete_asset(f"{dest}/{u}")
             if p["role"] == "buildings":
                 a = actors.spawn_actor_from_object(base, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, mesh_yaw))
                 a.set_actor_label(p["asset"])
@@ -268,8 +316,12 @@ def run(world_json, content_root="/Game/PCGWorld", meshes=True, textures=True, i
         subd = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
         reg = unreal.AssetRegistryHelpers.get_asset_registry()
         avail = {str(d.asset_name) for d in reg.get_assets_by_path(f"{content_root}/Assets", recursive=True)}
+        mats = {str(d.asset_name): str(d.package_name) for d in reg.get_assets_by_path(content_root, recursive=True)
+                if str(d.asset_class_path.asset_name if hasattr(d, "asset_class_path") else d.asset_class)
+                in ("Material", "MaterialInstanceConstant")}
+        wall = (world.get("city") or {}).get("wall_material", "")
         for t in world.get("tiles", []):
-            for asset, xs in read_instances(world, root, t["tile"]).items():
+            for (asset, ov), xs in instance_groups(world, root, t["tile"]).items():
                 mn = asset_mesh_name(asset, avail)
                 mesh = unreal.load_asset(f"{content_root}/Assets/{mn}") if mn else None
                 if mesh is None:
@@ -277,7 +329,7 @@ def run(world_json, content_root="/Game/PCGWorld", meshes=True, textures=True, i
                 if max_instances_per_asset:
                     xs = xs[:max_instances_per_asset]
                 actor = actors.spawn_actor_from_class(unreal.Actor, unreal.Vector(0, 0, 0))
-                actor.set_actor_label(f"{asset}_x{t['tile'][0]}_y{t['tile'][1]}")
+                actor.set_actor_label(f"{asset}{'_' + ov if ov else ''}_x{t['tile'][0]}_y{t['tile'][1]}")
                 actor.set_folder_path(f"PCGWorld/Tile_x{t['tile'][0]}_y{t['tile'][1]}")
                 root_h = subd.k2_gather_subobject_data_for_instance(actor)[0]
                 params = unreal.AddNewSubobjectParams(parent_handle=root_h,
@@ -286,6 +338,13 @@ def run(world_json, content_root="/Game/PCGWorld", meshes=True, textures=True, i
                 comp = unreal.SubobjectDataBlueprintFunctionLibrary.get_object(
                     unreal.SubobjectDataBlueprintFunctionLibrary.get_data(h))
                 comp.set_static_mesh(mesh)
+                if ov:
+                    m_ = unreal.load_asset(mats[ov]) if ov in mats else None
+                    k_ = mesh.get_material_index(wall) if wall else -1
+                    if m_ is not None and k_ >= 0:
+                        comp.set_material(k_, m_)
+                    else:
+                        unreal.log_warning(f"PCG World: no material {ov} under {content_root} (or no slot {wall})")
                 for loc, q, s in xs:
                     comp.add_instance(unreal.Transform(unreal.Vector(*loc), unreal.Quat(*q).rotator(),
                                                        unreal.Vector(*s)), True)

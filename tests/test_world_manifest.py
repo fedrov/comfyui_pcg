@@ -236,6 +236,10 @@ check("LOD Manifest + File Attribute: SM_A.lods.json and SM_B.lods.json beside t
 ab = {a["name"]: a for a in mb.get("assets", [])}
 check("  the collision node is listed under its asset (collision: UCX_SM_B_00), not as an asset of its own",
       list(ab) == ["SM_B"] and ab["SM_B"].get("collision") == ["UCX_SM_B_00"] and len(ab["SM_B"]["lods"]) == 1, list(ab))
+Wk, _ = _WMod.build_manifest(OUT, "pcg/kitlods", 1024.0, 1024.0, "north_west_corner")[1:]
+mk = {a["name"]: a for m in Wk["meshes"].values() for a in m.get("assets", [])}
+check("  World.json carries it too: the asset's collision nodes in its meshes entry",
+      mk.get("SM_B", {}).get("collision") == ["UCX_SM_B_00"] and "collision" not in mk.get("SM_A", {}), sorted(mk))
 check("  negative control: no literal {name}.lods.json", not os.path.exists(os.path.join(KD, "{name}.lods.json")))
 
 print(f"\n{sum(OK)}/{len(OK)} passed")

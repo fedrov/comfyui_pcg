@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Modular city, round two**: tall buildings step back (their front row along a street a few floors lower,
+  spare parameters Setback Floors / Setback Min), with no walls where the parts meet and pillars only where the
+  building turns a corner; round corner bays (new kit piece `Corner_Bay`) on the crossing; a linear park north and
+  south of the plot where the paving was a bare plain; finer leaves; the far trees as impostor cards per camera
+  (as in the world tiles); a Layout 1 image in the docs.
+- **Engine importers, the modular city**: Unreal builds a convex collision on each LOD0 that has a UCX node and
+  deletes the imported UCX mesh, and gives each facade variant its own instanced component with the variant's
+  material in the wall slot; Unity makes a prefab per LOD chain (LODGroup over the levels, a convex MeshCollider
+  from the UCX node) and swaps the wall material per instance. World.json lists each asset's collision nodes.
+- **Production test**: the pipelines run one process per group (terrain; material library and kit; rocks), so the
+  whole suite fits a 7 GB machine; `PCG_PROD_SECTIONS=materials,city` runs only those.
 - **Modular city, overhauled**: the lane and park trees are Tree Generator broadleaves with leaf cards (translucent);
   the facades are weathered per building (a tint, grime at the foot, curtains, dark and lit windows, the texture
   shifted per building); curbs, paving, manholes, benches, bins, bus shelters and traffic lights; rounder cars;

@@ -121,6 +121,7 @@ namespace Pcg.World
         public Vec3 position;     // Unity
         public Quat rotation;     // Unity
         public Vec3 scale;        // Unity
+        public int facade;        // the modular city's facade variant (the table's facade column; 0 without one)
     }
 
     public static class Convert3
@@ -242,6 +243,7 @@ namespace Pcg.World
             if (lines.Length == 0) return o;
             var head = new List<string>(lines[0].Split(','));
             int ia = head.IndexOf("asset");
+            int ifa = head.IndexOf(FacadeColumn());
             Func<string[], string, double> g = (p, k) => double.Parse(p[head.IndexOf(k)], CultureInfo.InvariantCulture);
             for (int k = 1; k < lines.Length; k++)
             {
@@ -253,9 +255,31 @@ namespace Pcg.World
                     position = Convert3.Position(g(p, "px"), g(p, "py"), g(p, "pz")),
                     rotation = Convert3.Rotation(g(p, "qx"), g(p, "qy"), g(p, "qz"), g(p, "qw")),
                     scale = Convert3.Scale(g(p, "sx"), g(p, "sy"), g(p, "sz")),
+                    facade = ifa >= 0 && p[ifa].Length > 0 ? (int)double.Parse(p[ifa], CultureInfo.InvariantCulture) : 0,
                 });
             }
             return o;
+        }
+
+        // the modular city (World.json's city key): which column holds the facade variant, the wall slot it
+        // replaces, and the material of each variant ("" = keep the wall)
+        public string FacadeColumn()
+        {
+            var c = Obj(J, "city");
+            string s = c != null ? Str(c, "instances_facade_column") : null;
+            return string.IsNullOrEmpty(s) ? "facade" : s;
+        }
+
+        public string WallMaterial() { var c = Obj(J, "city"); return c != null ? Str(c, "wall_material") ?? "" : ""; }
+
+        public string FacadeMaterial(int facade)
+        {
+            var c = Obj(J, "city");
+            var m = c != null ? Obj(c, "facade_materials") : null;
+            if (m == null) return "";
+            object v;
+            string s = m.TryGetValue(facade.ToString(CultureInfo.InvariantCulture), out v) && v != null ? v.ToString() : "";
+            return s == WallMaterial() ? "" : s;
         }
 
         public Dictionary<string, object> Tile(int i, int j)
