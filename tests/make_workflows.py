@@ -2670,8 +2670,10 @@ def world_tiles(quick=False):
         f"(@tw_min < 0.5) | (@rw_max > 0.2) | (@bd_max > 0.05) | (@se_max > 0.01) | "
         f"((@h_max - @h_min) * 2048 > {TOWN_FALL}) | (@h_min * 2048 < 1.5) | (@yard < 0.12) | (@incity > 0.5)"))
     g.link(lyd, "geo", lkp, "geo")
-    # where plots of two roads, or of a road and a lane, cross, their lots overlap: of lots whose centres are less
-    # than 10 m apart only one is kept (a road's before a lane's)
+    # where plots of two roads, or of a road and a lane, cross (or a road bends), their lots overlap: of lots whose
+    # centres are less than 12.5 m apart only one is kept (a road's before a lane's). A lot is 14 m square, so
+    # neighbours in one plot (14 m) and along a straight road (15 m) all stay; at 10 m, lots overlapping by a third
+    # stayed and their buildings could touch
     lid = T("PCG_Wrangle", title="Lots: numbered, roads first", run_over="prim",
             code="i@lid = @primnum\n@lpri = 1 - @onlane + 0.5 * rand(@primnum + 0.7)")
     g.link(lkp, "geo", lid, "geo")
@@ -2680,7 +2682,7 @@ def world_tiles(quick=False):
     g.link(lid, "geo", lce, "geo")
     lcf = T("PCG_Wrangle", title="Lots: centres flat (the distance on the map)", code="@P.y = 0 * @P.y")
     g.link(lce, "geo", lcf, "geo")
-    lcp = T("PCG_AdaptivePrune", title="Lots: no two centres within 10 m", radius=10.0, priority="attribute",
+    lcp = T("PCG_AdaptivePrune", title="Lots: no two centres within 12.5 m", radius=12.5, priority="attribute",
             priority_attribute="lpri", mode="delete")
     g.link(lcf, "geo", lcp, "geo")
     # corner lots: a street beside the lot (12 m out to either side of its front direction) is its second street
@@ -3666,14 +3668,31 @@ def world_tiles(quick=False):
             uv_from="point", **{"class": "point"})
     g.link(iuv, "geo", idl, "geo")
     g.link(fin, "cop", idl, "cop")
+    ihf = E("PCG_AttribFromMap", title="Instances: the exported ground under them", layer="C", name="hf",
+            uv_from="point", **{"class": "point"})
+    g.link(idl, "geo", ihf, "geo")
+    g.link(fin, "cop", ihf, "cop")
     iup = E("PCG_Wrangle", title="Instances: on the fine pass's ground (pier tops kept at the deck)", code=(
-        "d = @dlt * 2048\n"
-        "pier = where(@name.astype(str) == \"SM_BridgePier\", 1.0, 0.0)\n"
-        "top = @P.y + @scale.y\n"
-        "psy = max(@scale.y - d, 0.5)\n"
-        "@P.y = where(pier > 0.5, top - psy, @P.y + d)\n"
-        "@scale = set(@scale.x, where(pier > 0.5, psy, @scale.y), @scale.z)"))
-    g.link(idl, "geo", iup, "geo")
+        "d = np.asarray(@dlt).reshape(-1) * 2048\n"
+        "nm = np.asarray(@name).reshape(-1).astype(str)\n"
+        "pier = nm == \"SM_BridgePier\"\n"
+        "brg = nm == \"SM_Bridge\"\n"
+        "y = np.asarray(@P.y).reshape(-1)\n"
+        "# a deck at least 0.3 m over the exported ground at its middle (the fine pass can raise a shallow bed's floor\n"
+        "# above the deck it measured), its piers lifted with it (each by its nearest bridge)\n"
+        "lift = np.where(brg, np.maximum(np.asarray(@hf).reshape(-1) * 2048 + 0.3 - (y + d), 0.0), 0.0)\n"
+        "px, pz = np.asarray(@P.x).reshape(-1), np.asarray(@P.z).reshape(-1)\n"
+        "bi = np.nonzero(brg)[0]\n"
+        "pi = np.nonzero(pier)[0]\n"
+        "if len(bi) and len(pi):\n"
+        "    k = np.argmin((px[pi, None] - px[bi]) ** 2 + (pz[pi, None] - pz[bi]) ** 2, 1)\n"
+        "    lift[pi] = lift[bi[k]]\n"
+        "sy = np.asarray(@scale.y).reshape(-1)\n"
+        "top = y + sy + lift\n"
+        "psy = np.maximum(top - (y + d), 0.5)\n"
+        "@P.y = np.where(pier, top - psy, y + d + lift)\n"
+        "@scale = set(@scale.x, np.where(pier, psy, sy), @scale.z)"))
+    g.link(ihf, "geo", iup, "geo")
     corner = E("PCG_Transform", title="Move origin to the north-west corner", tx=2048.0, tz=2048.0)
     g.link(iup, "geo", corner, "geo")
     # Scatter works by pixel area (each sample covers 4 m square), so the outermost ring scatters half a cell beyond the terrain border -
