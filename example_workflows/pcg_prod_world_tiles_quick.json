@@ -41785,12 +41785,12 @@
    },
    "widgets_values": [
     "point",
-    "@w = (@bd > 0.4) * 1.0\n@pw = @P * @w",
+    "# 23 probes per crossing, in order along the road: only the stretch of bed nearest the crossing counts\n# (where the line also reaches a second channel or a bend, its centre would fall between them, on dry land)\nb = np.asarray(@bd).reshape(-1, 23) > 0.4\nk = np.arange(23)\ns = np.argmin(np.where(b, np.abs(k - 11), 99), 1)\nst = b & ~np.concatenate([np.zeros((len(b), 1), bool), b[:, :-1]], 1)\nlab = np.cumsum(st, 1) * b\nrun = b & (lab == lab[np.arange(len(b)), s][:, None])\n@w = run.reshape(-1) * 1.0\n@pw = @P * @w",
     "",
     0,
     "{}"
    ],
-   "title": "Bridge probes: over the bed"
+   "title": "Bridge probes: over the bed (the stretch the road crosses)"
   },
   {
    "id": 752,

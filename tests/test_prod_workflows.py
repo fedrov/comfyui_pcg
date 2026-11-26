@@ -981,7 +981,10 @@ else:
                   f"bed), every bridge of 24 m or more on piers; the decks at the banks, {np.median(clr) if br_.any() else 0:.1f} m "
                   f"over the ground at their middle (median)",
                   br_.any() and pi_.any() and span_.min() >= 16 and span_.max() < 140 and under.mean() > 0.95
-                  and np.median(dtop) < 0.2 and (nper[span_ >= 24] >= 1).all() and (clr > -0.5).all())
+                  and np.median(dtop) < 0.2 and (nper[span_ >= 24] >= 1).all() and (clr > -0.5).all(),
+                  {"lowest deck over the ground at its middle (m)": round(float(clr.min()), 2) if br_.any() else None,
+                   "spans >= 24 m without a pier": [round(float(x_)) for x_ in span_[(span_ >= 24) & (nper == 0)]]
+                   if pi_.any() else None})
             # lanes: on their graded bed, smoother than the ground beside them
             lv_, ll_ = [], []
             for ln in open(os.path.join(WD, "roads/Lanes.obj"), encoding="utf-8"):

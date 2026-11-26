@@ -3491,8 +3491,16 @@ def world_tiles(quick=False):
         g.link(prev, "geo", n_, "geo")
         g.link(cut, "cop", n_, "cop")
         prev = n_
-    bpw = R4("PCG_Wrangle", title="Bridge probes: over the bed", code=(
-        "@w = (@bd > 0.4) * 1.0\n@pw = @P * @w"))
+    bpw = R4("PCG_Wrangle", title="Bridge probes: over the bed (the stretch the road crosses)", code=(
+        "# 23 probes per crossing, in order along the road: only the stretch of bed nearest the crossing counts\n"
+        "# (where the line also reaches a second channel or a bend, its centre would fall between them, on dry land)\n"
+        "b = np.asarray(@bd).reshape(-1, 23) > 0.4\n"
+        "k = np.arange(23)\n"
+        "s = np.argmin(np.where(b, np.abs(k - 11), 99), 1)\n"
+        "st = b & ~np.concatenate([np.zeros((len(b), 1), bool), b[:, :-1]], 1)\n"
+        "lab = np.cumsum(st, 1) * b\n"
+        "run = b & (lab == lab[np.arange(len(b)), s][:, None])\n"
+        "@w = run.reshape(-1) * 1.0\n@pw = @P * @w"))
     g.link(prev, "geo", bpw, "geo")
     prev = bpw
     for nm_, meth_ in (("w", "sum"), ("pw", "sum")):
