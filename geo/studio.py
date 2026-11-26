@@ -34,7 +34,20 @@ EXPOSURE = 1.0
 # Rasterizer batch size: the default (16 M candidate pairs) is tuned for speed on big meshes; at supersampled
 # resolutions a few screen-filling triangles already reach it and the batch arrays take over a gigabyte
 _PAIRS = 1 << 21
-_PAIRS_T = 1 << 23                # on torch: bigger batches (a GPU wants them; a few hundred MB each)
+_PAIRS_T = 1 << 23                # on a GPU: bigger batches (it wants them; a few hundred MB each)
+
+
+def raster_pairs(dev):
+    """Candidate pairs per raster batch of the Outdoor look for device dev (None: numpy). On the CPU (numpy, or torch
+    there) a million: the fragments are float64, a few dozen arrays of them alive at once (a GPU-sized batch's came
+    to about 2 GB at the peak of a supersampled 1600 x 900 frame; the image is the same either way)."""
+    if dev is None:
+        return _PAIRS // 2
+    try:
+        import torch
+        return _PAIRS // 2 if torch.device(dev).type == "cpu" else _PAIRS_T
+    except Exception:                                  # noqa: BLE001
+        return _PAIRS
 
 # ─────────────────────────────────────────────────────────────── colour
 def srgb_to_linear(c):

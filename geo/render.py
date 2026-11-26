@@ -223,7 +223,7 @@ def project(cam, P):
 _OCCLUSION = True
 
 
-def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None, device=None):
+def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, alpha=None, device=None, compact=False):
     """
     z-buffer rasterization. Returns a dict:
 
@@ -241,21 +241,31 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     fences, impostor cards).
     device: a torch device to rasterize on (the same triangle-pixel pairs and depth test as the numpy path, in float64
     on the CPU and float32 on a GPU; the alpha test still runs in numpy on the fragments of the faces it names).
+    compact: hit comes back int32, z and bary float32 (a supersampled frame's float64 buffers are a few hundred
+    MB); on a device the frame buffers are made only once the batches are done (they would be there twice).
     """
     from .spatial import tri_soup
     W, H = int(cam["xres"]), int(cam["yres"])
-    hit = np.full((H, W), -1, np.int64)
-    zb = np.zeros((H, W))
-    bary = np.zeros((H, W, 3))
-    out = {"hit": hit, "z": zb, "bary": bary,
+    compact = bool(compact)
+    fdt = np.float32 if compact else np.float64
+
+    def frame(out_):
+        """The empty frame buffers (made late on a device, see compact)."""
+        out_["hit"] = np.full((H, W), -1, np.int32 if compact else np.int64)
+        out_["z"] = np.zeros((H, W), fdt)
+        out_["bary"] = np.zeros((H, W, 3), fdt)
+        return out_
+    out = {"hit": None, "z": None, "bary": None,
            "tri": np.zeros((0, 3), np.int64),
            "cor": np.zeros((0, 3), np.int64), "src": np.zeros(0, np.int64)}
+    if not compact or device is None:
+        frame(out)
     if geo is None or geo.nprims == 0 or geo.npoints == 0:
-        return out
+        return frame(out)
     tri, src, cor = soup if soup is not None else tri_soup(geo, group)
     out["tri"], out["src"], out["cor"] = tri, src, cor
     if not len(tri):
-        return out
+        return frame(out)
 
     P = np.asarray(geo.get(POINT, "P"), np.float64)
     sx, sy, z = project(cam, P)
@@ -265,10 +275,14 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
     if cam["far"] > 0:
         live &= (zt < cam["far"]).any(1)
     ins = zt > near
-    cnt = ins.sum(1)
+    cnt = ins.sum(1, dtype=np.int8)
     plain = np.nonzero(live & (cnt == 3))[0]
-    rtri, rsrc, lam = tri[plain], plain, None
+    # (every triangle in front of the near plane: the soup itself, not a copy of it)
+    rtri, rsrc, lam = (tri if len(plain) == len(tri) else tri[plain]), plain, None
     cut = np.nonzero(live & (cnt > 0) & (cnt < 3))[0]
+    if not len(cut):
+        del zt, ins
+    del live
     if len(cut):
         NP, rt, rs, lam = _clip_near(P, tri, zt, ins, cnt, cut, near)
         nx, ny, nz = project(cam, NP)
@@ -287,25 +301,28 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
         keep &= (area > 0) if cull == "back" else (area < 0)
     idx = np.nonzero(keep)[0]
     if not len(idx):
-        return out
+        return frame(out) if out["hit"] is None else out
     rast = (rtri, rsrc, lam, len(plain), alpha, out)
 
-    x0 = np.maximum(np.floor(np.minimum.reduce(
-        [sx[A[idx]], sx[B[idx]], sx[C[idx]]])).astype(np.int64), 0)
-    x1 = np.minimum(np.ceil(np.maximum.reduce(
-        [sx[A[idx]], sx[B[idx]], sx[C[idx]]])).astype(np.int64) + 1, W)
-    y0 = np.maximum(np.floor(np.minimum.reduce(
-        [sy[A[idx]], sy[B[idx]], sy[C[idx]]])).astype(np.int64), 0)
-    y1 = np.minimum(np.ceil(np.maximum.reduce(
-        [sy[A[idx]], sy[B[idx]], sy[C[idx]]])).astype(np.int64) + 1, H)
+    # the screen boxes in int32 (clamped to the frame first: a triangle reaching far off screen has corners at
+    # millions of pixels): over millions of triangles the int64 boxes were several hundred MB
+    def box_(v, lo_, hi_, up_):
+        e_ = np.maximum.reduce if up_ else np.minimum.reduce
+        r_ = e_([v[A[idx]], v[B[idx]], v[C[idx]]])
+        r_ = np.ceil(r_) + 1 if up_ else np.floor(r_)
+        return np.clip(r_, lo_, hi_).astype(np.int32)
+    x0, x1 = box_(sx, 0, W, False), box_(sx, 0, W, True)
+    y0, y1 = box_(sy, 0, H, False), box_(sy, 0, H, True)
+    idx = idx.astype(np.int32) if len(rtri) < 2 ** 31 else idx
     bw = np.maximum(x1 - x0, 0)
     bh = np.maximum(y1 - y0, 0)
+    del x1, y1
     area = bw * bh
     live = area > 0
     idx, x0, y0, bw, bh, area = (idx[live], x0[live], y0[live], bw[live],
                                  bh[live], area[live])
     if not len(idx):
-        return out
+        return frame(out) if out["hit"] is None else out
 
     occl = _OCCLUSION and device is None and len(idx) > 2048
     if occl:
@@ -316,13 +333,13 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
         o = np.argsort(zn, kind="stable")
         idx, x0, y0, bw, bh, area, zn = idx[o], x0[o], y0[o], bw[o], bh[o], area[o], zn[o]
     # Batch by candidate pair count -- one triangle covering the screen has W x H candidate pairs by itself
-    cum = np.cumsum(area)
+    cum = np.cumsum(area, dtype=np.int64)
     total = int(cum[-1])
     nbatch = max(1, int(np.ceil(total / float(max(max_pairs, 1024)))))
     bounds = np.searchsorted(cum, np.linspace(0, total, nbatch + 1)[1:])
     start = 0
     from .progress import check as _cancel
-    tst = _TorchRaster(device, cam, rast, sx, sy, z, W, H) if device is not None else None
+    tst = _TorchRaster(device, cam, rast, sx, sy, z, W, H, compact) if device is not None else None
     # the nearest depth so far per pixel (inf where nothing): kept across the batches, so a batch touches only its own
     # pixels (it was rebuilt from the whole frame for every batch, about a sixth of a big frame's raster time)
     zmin = np.full(W * H, np.inf) if tst is None else None
@@ -345,7 +362,7 @@ def rasterize(geo, cam, group="", cull="none", max_pairs=MAX_PAIRS, soup=None, a
             break
     if tst is not None:
         tst.finish(out)
-    return out
+    return out if out["hit"] is not None else frame(out)
 
 
 class _TorchRaster:
@@ -353,7 +370,7 @@ class _TorchRaster:
 
     FLOAT32 = False          # tests: the GPU's float32 on the CPU
 
-    def __init__(self, device, cam, rast, sx, sy, z, W, H):
+    def __init__(self, device, cam, rast, sx, sy, z, W, H, compact=False):
         import torch
         self.t, self.dev = torch, device
         self.fd = torch.float64 if torch.device(device).type == "cpu" and not self.FLOAT32 else torch.float32
@@ -367,7 +384,8 @@ class _TorchRaster:
         self.W, self.H = W, H
         self.zbuf = torch.full((W * H,), float("inf"), dtype=self.fd, device=device)
         self.hit = torch.full((W * H,), -1, dtype=torch.int64, device=device)
-        self.bary = torch.zeros((W * H, 3), dtype=self.fd, device=device)
+        self.compact = compact
+        self.bary = torch.zeros((W * H, 3), dtype=torch.float32 if compact else self.fd, device=device)
         need = getattr(alpha, "prims", None) if alpha is not None else None
         self.need = T(np.asarray(need, bool)) if need is not None else None
         self.src = T(outd["src"]) if need is not None else None
@@ -409,6 +427,7 @@ class _TorchRaster:
 
     def batch(self, idx, x0, y0, bw, bh, area):
         torch, T = self.t, self.T
+        idx, x0, y0, bw, area = (np.asarray(v_, np.int64) for v_ in (idx, x0, y0, bw, area))
         at = T(area)
         tot = int(area.sum())
         starts = torch.cumsum(at, 0) - at
@@ -464,10 +483,20 @@ class _TorchRaster:
             cl = tw >= self.nplain
             if bool(cl.any()):
                 bw_[cl] = torch.einsum("mk,mkj->mj", bw_[cl], self.lam[tw[cl] - self.nplain])
-        self.bary[wpix] = bw_
+        self.bary[wpix] = bw_.to(self.bary.dtype)
 
     def finish(self, out):
         H, W = self.H, self.W
+        if self.compact:                              # straight into the caller's (smaller) dtypes, made only now
+            hit = self.hit.cpu().numpy().reshape(H, W)
+            out["hit"] = hit.astype(np.int32)
+            del self.hit
+            zb = self.zbuf.cpu().numpy().reshape(H, W)
+            out["z"] = np.where(hit >= 0, zb, 0.0).astype(np.float32)
+            del self.zbuf, zb, hit
+            out["bary"] = self.bary.cpu().numpy().reshape(H, W, 3).copy()
+            del self.bary
+            return
         hit = self.hit.cpu().numpy().reshape(H, W)
         out["hit"][:] = hit
         out["z"][:] = np.where(hit >= 0, self.zbuf.cpu().numpy().reshape(H, W), 0.0)

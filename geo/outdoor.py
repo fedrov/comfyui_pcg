@@ -186,8 +186,8 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         if acut is not None:                                 # cut-out faces cast no sun or sky shadow
             T = (T[0], T[1][~acut[T[2]]])
         Ts.append(T[:2])
-        r_ = R.rasterize(g_, cam, max_pairs=S._PAIRS if dev is None else S._PAIRS_T, soup=ts,
-                         alpha=S.with_hidden(atest, hid), device=dev)
+        r_ = R.rasterize(g_, cam, max_pairs=S.raster_pairs(dev), soup=ts,
+                         alpha=S.with_hidden(atest, hid), device=dev, compact=True)
         # the alpha test holds the geometry's uv sets (four per impostor card, per vertex: a hundred MB or more
         # over a forest): let it go now, not at the end of the render
         del ts, atest, acut, hid

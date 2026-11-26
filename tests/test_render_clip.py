@@ -297,5 +297,30 @@ if HAVE_T:
         check("  negative control: without the float64 fragments of the ill-conditioned triangles, whole bands differ",
               (bad != ref).mean() > 0.01, (bad != ref).mean())
 
+print("\n[compact frame buffers (the Outdoor look's): int32 hits, float32 depth and weights, the same frame]")
+sph = build.sphere(radius=1.0, rows=24, cols=48)
+gnd = build.grid(size_x=40.0, size_z=40.0, cols=21, rows=21)
+scn = ops.merge(sph, gnd)
+camc = R.camera(projection="perspective", eye=(0.3, 1.5, 4.0), target=(0, 0.2, 0), xres=320, yres=200, near=0.05)
+devs = [("numpy", None)]
+try:
+    import torch
+    devs.append(("torch on the CPU", torch.device("cpu")))
+except Exception:                                     # noqa: BLE001
+    pass
+for nm_, dv_ in devs:
+    a_ = R.rasterize(scn, camc, device=dv_)
+    b_ = R.rasterize(scn, camc, device=dv_, compact=True, max_pairs=4096)
+    check(f"{nm_}: compact = full (hits identical; depth and weights within float32), dtypes int32 / float32",
+          (a_["hit"] == b_["hit"]).all() and np.allclose(a_["z"], b_["z"], rtol=1e-6, atol=1e-6)
+          and np.allclose(a_["bary"], b_["bary"], atol=1e-6) and b_["hit"].dtype == np.int32
+          and b_["z"].dtype == np.float32 and b_["bary"].dtype == np.float32 and (a_["hit"] >= 0).mean() > 0.5,
+          (b_["hit"].dtype, b_["z"].dtype))
+    check(f"  {nm_}: full stays int64 / float64 (other callers)", a_["hit"].dtype == np.int64 and a_["z"].dtype == np.float64)
+camo = R.camera(projection="perspective", eye=(0.3, 1.5, 4.0), target=(0, 0.2, 40.0), xres=64, yres=40, near=0.05)
+e_ = R.rasterize(sph, camo, device=devs[-1][1], compact=True)
+check("  nothing in view: compact still gives empty int32 / float32 buffers", (e_["hit"] == -1).all()
+      and e_["hit"].dtype == np.int32 and e_["bary"].shape == (40, 64, 3))
+
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

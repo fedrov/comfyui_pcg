@@ -184,6 +184,8 @@ class _Bind:
             if v.shape[1] != c:
                 if v.shape[1] == 1:
                     v = np.repeat(v, c, axis=1)
+                elif v.shape[0] == 0:          # no elements (an empty piece): (0, 0) from a broadcast is fine
+                    v = np.zeros((0, c), v.dtype)
                 else:
                     raise ValueError(f"{name}: declared with {c} component(s) but assigned {v.shape[1]}")
             if np.dtype(dt).kind == "O":

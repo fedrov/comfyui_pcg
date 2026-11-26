@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Geometry Preview (Outdoor), memory**: on the CPU the rasterizer works in batches of a million candidate
+  pairs (torch on the CPU had GPU-sized batches, about 2 GB of float64 temporaries), makes its frame buffers in the
+  dtypes the look keeps (int32 hits, float32 depth and weights), keeps the screen boxes in int32 and uses the
+  triangle soup as it is when nothing crosses the near plane: about 300 MB less at the peak of a supersampled
+  1600 x 900 world-tiles view, the same image. World tiles: the scene the previews share drops the attributes it
+  was built from (heights, copy numbers, plant kinds).
+- **Modular city, round three**: back yards (AC units on a third of the back windows -- new kit piece
+  `Prop_ACUnit` -- and in the preview yard walls along the streets, sheds, bins); two more facades: modern (curtain
+  walls, `Wall_Curtain`) and arcades on the buff-brick buildings' main-street shops (`Wall_Arcade`); roofs: pitched
+  on buildings of up to 4 floors (`Roof_Gable`, `Roof_GableEnd`, `Roof_Dormer`), terraces (`Roof_Deck`),
+  antennas (`Roof_Antenna`); a road class per cell (`road`) and, in Layout 1, secondary streets across most
+  quarters (three levels of road); at dusk the shops nearly all lit, the signs, lamp heads and a third of the cars
+  glowing, light pools before the shops. The kit and the block assembly are reusable (`city_kit`, `modular_block` in
+  the generator).
+- **World tiles: city blocks in the towns**: the middle of each town is a modular city block (Layout 2: the map's
+  roads are its streets, each town its own seed), levelled into a pad, the town's lots kept out of it; the kit is
+  exported with the world's assets and the pieces go into the instance tables (with `facade` and `floor`
+  columns; World.json's `city` key names the facade materials); the previews show the blocks as massing.
 - **Modular city, round two**: tall buildings step back (their front row along a street a few floors lower,
   spare parameters Setback Floors / Setback Min), with no walls where the parts meet and pillars only where the
   building turns a corner; round corner bays (new kit piece `Corner_Bay`) on the crossing; a linear park north and

@@ -16,6 +16,7 @@ CSV read with the csv module; expected values come from the conventions stated i
          under every footprint, nothing deeper than the plinth), off the roads, in the town discs, taller toward the centre,
          one glb node per town; fields: every 2 x 2 window of the WFC grid is one of the sample's, the fields cleared of
          woodland; the tree proxies' LOD chains end in impostor cards, their atlases cover every frame
+         city blocks in the towns: their kit pieces in the tables, every one a glb in assets/, the ground floors on the pad
   buildings  kit pivot convention (bottom edge midpoint, facade +Z, wall thickness towards -Z); the instance table's assets are all exported glb names;
          wall count = "footprint outline edge count × floor count" recomputed with numpy by the rules; every wall at the midpoint of a 4 m edge,
          outer normal pointing outwards (the cell in front is not this building, the cell behind is) -- negative control: no wall lands on a grid point
@@ -451,7 +452,7 @@ else:
                     "Nz": _g(out[0], "N")[..., 2].astype(np.float32)}
             cap = {"Grass tufts": _grass, "Close range: material terrain": _pts, "Material: terrain": _pts,
                    "Terrain: full map + close range": lambda out: out[0].npoints,
-                   "Buildings (Building Generator)": _bld, "Towns: numbered": _towns, "Lanes": lambda out: _lanes(out), "Valley: cards' uv on their frame": _cards,
+                   "Buildings (Building Generator)": _bld, "Towns: numbered (and where their centre is)": _towns, "Lanes": lambda out: _lanes(out), "Valley: cards' uv on their frame": _cards,
                    "Valley: the towns at that LOD": _lods, "Fields: WFC over the map (128² cells, tileable)": _wfc,
                    "Ecology: seven weight layers + scatter densities": _eco,
                    "Road: the preview": _shot, "Valley: the preview": _shot, "Dusk: the preview": _shot,
@@ -650,15 +651,39 @@ else:
 
             ys = np.array([float(r["py"]) for r in rows])
             rock = np.array([r["asset"].startswith("SM_Rock_") for r in rows])
+            kitm = np.array([r["asset"].startswith("SM_Kit_") for r in rows])
             sc = np.array([float(r["sx"]) for r in rows])
             exp = hgt(xs, zs) - np.where(rock, 0.25 * sc, 0.0)
-            err_ = np.abs(ys - exp)
+            # (the city blocks' pieces stand at their storeys: checked on their own below)
+            err_ = np.abs(ys - exp)[~kitm]
             check("  instance y = terrain height decoded via Height.json (rocks buried 0.25·pscale by convention), "
                   "99% within < 0.5 m", np.percentile(err_, 99) < 0.5,
                   (round(float(np.median(err_)), 3), round(float(np.percentile(err_, 99)), 3)))
-            err2 = np.abs(ys - (hgt(xs, zs, 3.0) - np.where(rock, 0.25 * sc, 0.0)))
+            err2 = np.abs(ys - (hgt(xs, zs, 3.0) - np.where(rock, 0.25 * sc, 0.0)))[~kitm]
             check("    negative control: offset by 3 samples (12 m) and compared again, much worse", np.median(err2) > 5 * np.median(err_),
                   round(float(np.median(err2)), 3))
+            # the modular city blocks in the towns: their pieces in the tables, the kit's glbs beside the assets,
+            # the ground floors on the levelled pad
+            kr = [r for r in rows if r["asset"].startswith("SM_Kit_")]
+            kg = [r for r in kr if r["asset"].startswith("SM_Kit_Wall_") and r.get("floor", "0") in ("0", "")]
+            kitd = os.path.join(WD, "assets")
+            check("city blocks: kit pieces in the instance tables (walls, roofs, pillars), every one a glb in assets/ "
+                  "(SM_Kit_*.glb, LOD0 / LOD1 / UCX), the facade column 0..3",
+                  len(kr) > 500 and len(kg) > 50 and all(os.path.exists(os.path.join(kitd, a_ + ".glb"))
+                                                         for a_ in {r["asset"] for r in kr})
+                  and {int(float(r["facade"])) for r in kr} <= {0, 1, 2, 3}
+                  and any(r["asset"] == "SM_Kit_Roof_Flat" or r["asset"] == "SM_Kit_Roof_Gable" for r in kr),
+                  (len(kr), len(kg)))
+            if kg:
+                qn = np.array([[float(r[c]) for c in ("qx", "qy", "qz", "qw")] for r in kg])
+                nx_ = 2 * (qn[:, 0] * qn[:, 2] + qn[:, 3] * qn[:, 1])
+                nz_ = 1 - 2 * (qn[:, 0] ** 2 + qn[:, 1] ** 2)
+                gx_ = np.array([float(r["px"]) for r in kg]) - 1.5 * nx_
+                gz_ = np.array([float(r["pz"]) for r in kg]) - 1.5 * nz_
+                kd_ = np.abs(np.array([float(r["py"]) for r in kg]) - hgt(gx_, gz_))
+                check("  the ground-floor walls stand on the levelled pad: the terrain 1.5 m inside the building is at "
+                      "their foot (median, 90 %)", np.median(kd_) < 0.3 and np.percentile(kd_, 90) < 1.0,
+                      (round(float(np.median(kd_)), 3), round(float(np.percentile(kd_, 90)), 3)))
             assets = {r["asset"] for r in rows}
             check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",
                   {a for a in assets if a.startswith("SM_Rock_")} == {f"SM_Rock_{k:02d}" for k in range(4)})
@@ -736,7 +761,7 @@ else:
                       f"negative control, the same footprints 60 m away: {np.mean(spc_ < 0.5):.0%}",
                       np.mean(sp_ < 0.5) > 0.9 and np.mean(spc_ < 0.5) < 0.6,
                       (round(float(np.mean(sp_ < 0.5)), 2), round(float(np.mean(spc_ < 0.5)), 2)))
-                tp_ = cap["got"].get("Towns: numbered")
+                tp_ = cap["got"].get("Towns: numbered (and where their centre is)")
                 rkd = cKDTree(RV[:, [0, 2]] - 2048.0)
                 # the lanes, every 4 m: a building fronts a road or a lane
                 lq0 = cap["got"].get("Lanes")
@@ -872,7 +897,7 @@ else:
             # side streets, road furniture, orchards and hedgerows
             an_ = np.array([r["asset"] for r in rows])
             XZ = np.stack([xs - 2048.0, zs - 2048.0], 1)               # the instances in the centred frame
-            tpq = cap["got"].get("Towns: numbered")
+            tpq = cap["got"].get("Towns: numbered (and where their centre is)")
             rkq = cKDTree(RV[:, [0, 2]] - 2048.0)
             dtw = cKDTree(tpq).query(XZ)[0] if tpq is not None else np.full(len(XZ), np.inf)
             br_, lm_, gr_ = an_ == "SM_Bridge", an_ == "SM_StreetLamp", an_ == "SM_GuardRail"
@@ -1412,8 +1437,7 @@ else:
             check(f"runs ({len(api)} nodes, {dt:.1f} s), UI self-check clean", not pr, pr[:2])
             KD = os.path.join(OUT, "pcg/assets/kit")
             kit = {os.path.basename(p)[:-4]: p for p in glob.glob(os.path.join(KD, "SM_Kit_*.glb"))}
-            names = ["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony", "Wall_Shopfront",
-                     "Corner_Pillar", "Corner_Bay", "Roof_Cornice", "Roof_Flat", "Roof_Unit", "Roof_Tank", "Roof_Penthouse"]
+            names = list(MW.CITY_KIT)
             check(f"one glb for each of the {len(names)} kit pieces", sorted(kit) == sorted("SM_Kit_" + n for n in names))
             # LODs and collision: LOD0, LOD1 (the small parts stripped) and one convex UCX hull in every glb
             ok_n, ok_l, ok_c, ok_b, bad = True, True, True, True, {}
@@ -1425,7 +1449,7 @@ else:
                     bad[n] = sorted(nm)
                     continue
                 t0, t1 = len(nm[a + "_LOD0"][2]), len(nm[a + "_LOD1"][2])
-                ok_l &= t1 <= t0 and (t1 < t0 or n in ("Roof_Flat", "Corner_Pillar"))
+                ok_l &= t1 <= t0 and (t1 < t0 or n in ("Roof_Flat", "Corner_Pillar", "Roof_Gable", "Roof_Deck"))
                 Q, _, I, _ = nm[f"UCX_{a}_00"]
                 T = Q[I]
                 nrm = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0])
@@ -1435,7 +1459,8 @@ else:
                 P0 = nm[a + "_LOD0"][0]
                 ok_b &= np.allclose(Q.min(0), P0.min(0), atol=1e-3) and np.allclose(Q.max(0), P0.max(0), atol=1e-3)
             check("  every glb: nodes SM_Kit_<piece>_LOD0, _LOD1 and UCX_SM_Kit_<piece>_00, nothing else", ok_n, bad)
-            check("  LOD1 has fewer triangles than LOD0 (the same where nothing is small: the roof panel, the pillar)", ok_l)
+            check("  LOD1 has fewer triangles than LOD0 (the same where nothing is small: the roof panel and gable, the pillar, "
+                  "the deck)", ok_l)
             check("  UCX: convex (every point on one side of every face) and exactly the bounds of LOD0", ok_c and ok_b,
                   (ok_c, ok_b))
             lj = json.load(open(os.path.join(KD, "SM_Kit_Wall_Window.lods.json")))
@@ -1474,7 +1499,10 @@ else:
                     "Wall_Balcony": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"},
                     "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign"},
                     "Roof_Penthouse": {"M_Wall", "M_Door", "M_Trim", "M_Metal"},
-                    "Corner_Bay": {"M_Wall", "M_Glass", "M_Trim"}}
+                    "Corner_Bay": {"M_Wall", "M_Glass", "M_Trim"}, "Wall_Curtain": {"M_Metal", "M_Glass"},
+                    "Wall_Arcade": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Prop_ACUnit": {"M_Trim", "M_Metal"},
+                    "Roof_Gable": {"M_Roof"}, "Roof_GableEnd": {"M_Wall"}, "Roof_Dormer": {"M_Trim", "M_Glass", "M_Roof"},
+                    "Roof_Deck": {"M_Door", "M_Trim"}, "Roof_Antenna": {"M_Metal"}}
             got = {n: {m.get("name") for m in node_meshes(kit["SM_Kit_" + n])[0].get("materials", [])} for n in want}
             check("  kit detail: window frames / door casings / railings / shopfront frames carry their material slots",
                   all(got[n] == want[n] for n in want), {n: sorted(got[n]) for n in want if got[n] != want[n]})
@@ -1594,7 +1622,7 @@ else:
                   and all(int(r["bld"]) == occ(float(r["px"]) * 1.25, float(r["pz"]) * 1.25)
                           and int(r["facade"]) == MW.CITY_FACADE.get(int(r["bld"]), 0) for r in bays),
                   (len(bays), sorted(occd)))
-            roofs = [r for r in rows if r["asset"] == "SM_Kit_Roof_Flat"]
+            roofs = [r for r in rows if r["asset"] in ("SM_Kit_Roof_Flat", "SM_Kit_Roof_Gable")]
             check("  one roof piece per cell, elevation = floor count × 3.5",
                   len(roofs) == int((B >= 0).sum()) and all(
                       abs(float(r["py"]) - 3.5 * fl_at(float(r["px"]), float(r["pz"]))) < 1e-3 for r in roofs))
@@ -1605,6 +1633,38 @@ else:
                       abs(float(r["py"]) - 3.5 * fl_at(float(r["px"]), float(r["pz"]))) < 1e-3 and occ(float(r["px"]), float(r["pz"])) == int(r["bld"])
                       for r in plant) and all(fl_at(float(r["px"]), float(r["pz"])) >= 5 for r in plant if r["asset"] == "SM_Kit_Roof_Tank"),
                   len(plant))
+            # roof types: pitched on buildings of up to 4 floors (a ridge along the building's long axis, gable ends
+            # where a row of cells ends along it, dormers on some), a terrace on the decked 5-7 floor buildings
+            gab = [r for r in rows if r["asset"] == "SM_Kit_Roof_Gable"]
+            pitched = {b for b, f in floors.items() if f <= 4}
+            check("pitched roofs: every cell of the buildings of up to 4 floors, nothing flat on them, nowhere else",
+                  {int(r["bld"]) for r in gab} == pitched
+                  and len(gab) == sum(int((B == b).sum()) for b in pitched)
+                  and not any(int(r["bld"]) in pitched for r in roofs if r["asset"] == "SM_Kit_Roof_Flat"), len(gab))
+            ends_want = set()
+            for b in pitched:
+                ii, jj = np.nonzero(B == b)
+                axx = (cx[ii].max() - cx[ii].min()) >= (cz[jj].max() - cz[jj].min())
+                for i, j in zip(ii, jj):
+                    for sg in (1, -1):
+                        dx, dz = (4 * sg, 0) if axx else (0, 4 * sg)
+                        if occ(cx[i] + dx, cz[j] + dz) != b:
+                            ends_want.add((round(cx[i] + dx / 2, 2), round(cz[j] + dz / 2, 2)))
+            ends = [r for r in rows if r["asset"] == "SM_Kit_Roof_GableEnd"]
+            check("  gable ends exactly where a row of pitched cells ends along the ridge (recomputed from the cells' extent)",
+                  {(round(float(r["px"]), 2), round(float(r["pz"]), 2)) for r in ends} == ends_want
+                  and len(ends) == len(ends_want), (len(ends), len(ends_want)))
+            dorm = [r for r in rows if r["asset"] == "SM_Kit_Roof_Dormer"]
+            check("  dormers on some pitched cells only (about 45 %)", dorm and all(int(r["bld"]) in pitched for r in dorm)
+                  and 0.25 < len(dorm) / len(gab) < 0.65, len(dorm))
+            decks = [r for r in rows if r["asset"] == "SM_Kit_Roof_Deck"]
+            dk_b = {int(r["bld"]) for r in decks}
+            check("roof terraces: only on buildings of 5-7 floors, over every cell of such a building",
+                  all(5 <= floors[b] <= 7 for b in dk_b)
+                  and all(sum(int(r["bld"]) == b for r in decks) == int((B == b).sum()) for b in dk_b), sorted(dk_b))
+            check("  rooftop plant and antennas never on a pitched or a terraced roof",
+                  not any(int(r["bld"]) in pitched | dk_b for r in rows
+                          if r["asset"] in ("SM_Kit_Roof_Unit", "SM_Kit_Roof_Tank", "SM_Kit_Roof_Antenna")))
             check("the table's facade column is the building's variant (CITY_FACADE); render facades use paired windows",
                   all(int(r["facade"]) == MW.CITY_FACADE.get(int(r["bld"]), 0) for r in walls + roofs)
                   and all(r["asset"] != "SM_Kit_Wall_Window" for r in walls if int(r["facade"]) == 2)
@@ -1622,10 +1682,32 @@ else:
 
             g0 = [(r, *facing(r)) for r in walls if r["floor"] == "0"]
             far = [r for r, m_, s_, sh in g0 if s_ and not m_ and not sh]
+            SHOPS = ("SM_Kit_Wall_Shopfront", "SM_Kit_Wall_Arcade")
             check("shops: every ground-floor wall on the main street, and on the side street within 24 m of the crossing, "
-                  "is a shopfront; no other ground floor is",
-                  all((r["asset"] == "SM_Kit_Wall_Shopfront") == sh for r, m_, s_, sh in g0)
-                  and any(sh for *_, sh in g0), sum((r["asset"] == "SM_Kit_Wall_Shopfront") != sh for r, m_, s_, sh in g0))
+                  "is a shop (shopfront or arcade); no other ground floor is",
+                  all((r["asset"] in SHOPS) == sh for r, m_, s_, sh in g0)
+                  and any(sh for *_, sh in g0), sum((r["asset"] in SHOPS) != sh for r, m_, s_, sh in g0))
+            check("  arcades exactly on the main street's shops of the buff-brick buildings (facade 1)",
+                  all((r["asset"] == "SM_Kit_Wall_Arcade") == (sh and m_ and int(r["facade"]) == 1) for r, m_, s_, sh in g0)
+                  and any(r["asset"] == "SM_Kit_Wall_Arcade" for r, *_ in g0))
+            modw = [r for r in walls if int(r["facade"]) == 3 and int(r["floor"]) >= 1]
+            check("  the modern facade (3): its upper floors curtain walls (the podium aside), no windows, balconies or plain walls",
+                  modw and all(r["asset"] in ("SM_Kit_Wall_Curtain", "SM_Kit_Wall_Shopfront") for r in modw)
+                  and any(r["asset"] == "SM_Kit_Wall_Curtain" for r in modw), sorted({r["asset"] for r in modw}))
+            check("  negative control: no curtain wall on the other facades",
+                  not any(r["asset"] == "SM_Kit_Wall_Curtain" for r in walls if int(r["facade"]) != 3))
+            # air-conditioning units: under back windows (not facing a street), above the ground floor, on the facade
+            winp = {(r["bld"], r["floor"], round(float(r["px"]), 2), round(float(r["py"]), 2) + 0.25, round(float(r["pz"]), 2),
+                     round(float(r["ry"]), 1)): facing(r)
+                    for r in walls if r["asset"] in ("SM_Kit_Wall_Window", "SM_Kit_Wall_WindowPair")}
+            acs = [r for r in rows if r["asset"] == "SM_Kit_Prop_ACUnit"]
+            keys = [(r["bld"], r["floor"], round(float(r["px"]), 2), round(float(r["py"]), 2), round(float(r["pz"]), 2),
+                     round(float(r["ry"]), 1)) for r in acs]
+            elig = [k for k, f in winp.items() if not (f[0] or f[1]) and int(k[1]) >= 1]
+            check("AC units: each 25 cm above a back window's slot (same building, floor, facing), above the ground floor; "
+                  "about a third of those windows",
+                  acs and all(k in winp and not (winp[k][0] or winp[k][1]) and int(k[1]) >= 1 for k in keys)
+                  and 0.2 < len(acs) / max(len(elig), 1) < 0.45, (len(acs), len(elig)))
             check("  negative control: the side street away from the crossing has ground floors, none of them shops",
                   len(far) > 0 and not any(r["asset"] == "SM_Kit_Wall_Shopfront" for r in far), len(far))
             g1 = [(r, *facing(r)) for r in walls if r["floor"] == "1"]
