@@ -2,7 +2,7 @@
 
 Primitives, curves, terrain and other nodes that create geometry from nothing.
 
-27 nodes.
+28 nodes.
 
 [Back to the reference index](README.md)
 
@@ -13,6 +13,7 @@ Primitives, curves, terrain and other nodes that create geometry from nothing.
 - [Box (PCG)](#pcg-box) — Creates a box as polygons or as a lattice of points.
 - [Building Generator (PCG)](#pcg-buildinggenerator) — Turns footprint polygons into buildings with floors, facade modules, ledges and a roof.
 - [Circle (PCG)](#pcg-circle) — Creates a circle, ellipse or arc as a polygon or a curve.
+- [City Block (PCG)](#pcg-cityblock) — The modular city's block generator as one node: rules, setbacks, the kit placed by the piece rules, facade variants.
 - [Cross Section Surface (PCG)](#pcg-crosssectionsurface) — Builds a smooth Gordon surface through a net of section and guide curves.
 - [Cross Section Surface · Houdini (PCG)](#pcg-crosssectionsurfacehou) — Skins a surface through cross-section curves using their existing points, like Houdini's Cross Section Surface.
 - [Curve (PCG)](#pcg-curve) — A curve drawn in the viewport, like Houdini's Curve SOP.
@@ -431,6 +432,71 @@ The arc options turn the circle into an arc: an open arc, a closed arc (arc plus
 | Use Arc `use_arc` | toggle | off | Turns the circle into an arc. |
 | Arc Type `arc_type` | menu | Open Arc | *Open Arc* is a plain open curve; *Closed Arc* closes it with a chord; *Sliced Arc* closes it with two radii through the center. Options: Open Arc (`open_arc`), Closed Arc (`closed_arc`), Sliced Arc (`sliced_arc`). |
 | Arc Angles `arc_start` `arc_end` | float [-3600..3600] | 0, 360 | Start and end angle of the arc in degrees. |
+
+---
+
+### City Block (PCG)
+
+<a id="pcg-cityblock"></a>
+
+`PCG_CityBlock` · category `PCG/generate`
+
+The modular city's block generator as one node: rules, setbacks, the kit placed by the piece rules, facade variants.
+
+The pcg_modular_city workflow builds a city block from a few hundred nodes: a rules grid that says which cell belongs to which building and how tall it is, setbacks, the outlines cut into 4 m slots, the piece rules (shopfronts, entrances, windows, balconies, corner bays and corner shops, window boxes), roofs and rooftop plant, then Copy to Points of the kit and the facade variants. This node is that network packaged, as a Houdini digital asset packages one: its parameters are the settings that matter, and the network itself is stored with the plugin (`data/city_block.json`, written by the same functions that build the workflow, so the two never drift apart).
+
+When it runs, the node expands the network into the graph, the way the loop blocks do: the nodes inside run and cache like any others, and only those the two results need run (no exports, no previews).
+
+- **Layout**: *Table* is the example's fixed block (twelve buildings around a crossing); *Generated* lays lots along both streets, secondary streets across most quarters and lanes between the lots, from **Seed**.
+- **Density**, **Min Floors** and **Max Floors** shape a generated block: the share of lots that are built, and the floors at the edge and near the crossing (give or take two).
+- **Setback Floors** and **Setback Min**: a building of at least Setback Min floors has its street-front row of cells stop Setback Floors lower (0 turns setbacks off).
+
+With nothing on **Kit** the node builds the 23 kit pieces itself. Link a kit of your own to replace them: prims with a string `name` per piece (Wall_Window, Wall_Shopfront, Corner_Bay, Roof_Flat ...) and the piece's origin at the slot's bottom centre, facade face at z = 0.
+
+**Inputs**
+
+| Input | Type | Description |
+|---|---|---|
+| `kit` *(optional)* | GEOMETRY | Optional: the kit pieces (prim attribute name per piece). Not connected: the node builds the standard kit. |
+
+**Outputs**
+
+| Output | Type | Description |
+|---|---|---|
+| `buildings` | GEOMETRY | The kit placed on every slot, the wall material swapped per facade variant (M_Wall, M_BrickBuff, M_Stucco, the curtain wall), the painted metal, awnings, signs and window boxes coloured. |
+| `pieces` | GEOMETRY | One point per placed piece with N and up (its orientation), name, asset (SM_Kit_<name>, the glb name), bld, floor and facade: link it to Export Instances. |
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Layout `layout` | menu | Table | Table: the example's fixed block. Generated: a block laid out from Seed. Options: Table (`table`), Generated (`generated`). |
+| Seed `rand_seed` | int [0..] | 1 | Generated: the seed of the lots, the secondary streets, the floors and the pieces; the same seed gives the same block. |
+| Density `density` | float [0.0..1.0] | 0.85 | Generated: the probability that a lot gets a building. |
+
+*Floors*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Min Floors `min_floors` | int [1..40] | 3 | Generated: floors at the block's edge. |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Max Floors `max_floors` | int [1..40] | 12 | Generated: floors near the crossing (at most 12). |
+
+*Setbacks*
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Setback Floors `setback_floors` | int [0..20] | 3 | How many floors lower a tall building's street-front row stops (0: no setbacks). |
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| Setback Min `setback_min` | int [1..40] | 9 | From how many floors a building steps back. |
+
+**Compared with Houdini**
+
+An HDA wrapping a building-kit network (like SideFX's city-building examples): the parameters on the asset, the network inside. Here the network is stored with the plugin and expanded at run time.
 
 ---
 

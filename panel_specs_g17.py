@@ -224,4 +224,19 @@ SPECS = {
                        "help": "The card material's name: layers <Prefix>_C and <Prefix>_alpha"},
         },
     },
+    "PCG_CityBlock": {
+        "order": ["layout", "rand_seed", "density", "min_floors", "max_floors", "setback_floors", "setback_min"],
+        "inputs": {
+            "layout": {"label": "Layout", "menu": _m("table", "Table", "generated", "Generated"),
+                       "help": "The fixed block of the example (Table) or one generated from Seed"},
+            "rand_seed": {"label": "Seed", "help": "Generated: another seed, another block"},
+            "density": {"label": "Density", "help": "Generated: the share of lots that get a building"},
+            "min_floors": {"label": "Min Floors", "section": "Floors", "sep": True,
+                           "help": "Generated: floors at the block's edge"},
+            "max_floors": {"label": "Max Floors", "help": "Generated: floors near the crossing"},
+            "setback_floors": {"label": "Setback Floors", "section": "Setbacks", "sep": True,
+                               "help": "How many floors lower a tall building's street front stops (0: none)"},
+            "setback_min": {"label": "Setback Min", "help": "From how many floors a building steps back"},
+        },
+    },
 }

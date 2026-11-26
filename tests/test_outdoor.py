@@ -326,6 +326,27 @@ bl_ = O._blur_masked(fl_, mk_, 6)
 check("the weather's slope blur: a fluted face reads as its mean (0.75, spread < 0.05 against 0.5 unblurred); the sky "
       "beside it does not leak in", np.ptp(bl_[:, 10:40]) < 0.05 and abs(bl_[:, 10:40].mean() - 0.75) < 0.03
       and bl_[:, 40:48].min() > 0.6, (round(float(np.ptp(bl_[:, 10:40])), 3), round(float(bl_[:, 40:48].min()), 3)))
+# wetness goes by the pixel's own normal where the slope blur reads less: flat ground beside a wall (whose blurred
+# normal has the wall mixed in, ny_geo 0.5) is as wet as open ground -- no dry ring round walls, posts and figures
+Nf = np.zeros((8, 8, 3), np.float32)
+Nf[..., 1] = 1.0
+wr_ = {}
+for k_, ng_ in (("open", np.ones((8, 8), np.float32)), ("by_wall", np.full((8, 8), 0.5, np.float32))):
+    a_, pb_ = alb0.copy(), {"roughness": np.full((8, 8), 0.8, np.float32)}
+    O._weather(Pw, Nf, a_, pb_, np.ones((8, 8), bool), 100.0, 0.0, 1.0, None, ng_)
+    wr_[k_] = (float(a_.mean()), float(pb_["roughness"].mean()))
+a_, pb_ = alb0.copy(), {"roughness": np.full((8, 8), 0.8, np.float32)}
+_wn = Nf.copy()
+_wn[..., 0], _wn[..., 1] = 0.866, 0.5
+O._weather(Pw, _wn, a_, pb_, np.ones((8, 8), bool), 100.0, 0.0, 1.0, None, np.full((8, 8), 0.5, np.float32))
+check("wetness beside a wall (the blurred normal 0.5, its own 1): as wet as open ground; negative control, a wall "
+      "pixel itself (both 0.5) stays dry", np.allclose(wr_["open"], wr_["by_wall"]) and wr_["open"][1] < 0.5
+      and abs(float(pb_["roughness"].mean()) - 0.8) < 1e-6, (wr_, float(pb_["roughness"].mean())))
+a_, pb_ = alb0.copy(), {"roughness": np.full((8, 8), 0.8, np.float32)}
+O._weather(Pw, Nf, a_, pb_, np.ones((8, 8), bool), -100.0, 1.0, 1.0, None, None, np.ones((8, 8), bool))
+check("  thin translucent pixels (leaves, grass: dry) do not get wet (no glossy sky on the leaves), but take snow",
+      abs(float(pb_["roughness"].mean()) - 0.55) < 1e-4 and float(a_.mean()) > 0.6,
+      (float(pb_["roughness"].mean()), float(a_.mean())))
 flw = flat.copy()
 flw.set(POINT, "weather", np.zeros(flw.npoints, np.float32))
 dw_ = O.render_outdoor(flw, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **kf_)

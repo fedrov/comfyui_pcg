@@ -1,6 +1,6 @@
 # Node reference
 
-All 532 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
+All 533 nodes of comfyui_pcg, generated from the code by `docs/build_docs.py` (parameter names, types, defaults and menu options are always current).
 
 In the parameter tables, the first column is the label shown in the node's panel followed by the input's internal name (the name used in saved workflows, relative references and `ch()` expressions). *Hidden when* / *Disabled when* repeat the panel's own rules.
 
@@ -8,7 +8,7 @@ In the parameter tables, the first column is the label shown in the node's panel
 
 Primitives, curves, terrain and other nodes that create geometry from nothing.
 
-[Add (PCG)](generate.md#pcg-add), [Ballistic Path (PCG)](generate.md#pcg-ballisticpath), [Box (PCG)](generate.md#pcg-box), [Building Generator (PCG)](generate.md#pcg-buildinggenerator), [Circle (PCG)](generate.md#pcg-circle), [Cross Section Surface (PCG)](generate.md#pcg-crosssectionsurface), [Cross Section Surface · Houdini (PCG)](generate.md#pcg-crosssectionsurfacehou), [Curve (PCG)](generate.md#pcg-curve), [Extract Silhouette (PCG)](generate.md#pcg-extractsilhouette), [Font (PCG)](generate.md#pcg-font), [Grid (PCG)](generate.md#pcg-grid), [IsoOffset (PCG)](generate.md#pcg-isooffset), [IsoSurface (PCG)](generate.md#pcg-isosurface), [L-System (PCG)](generate.md#pcg-lsystem), [Line (PCG)](generate.md#pcg-line), [Lot Subdivision (PCG)](generate.md#pcg-lotsubdivision), [Platonic Solids (PCG)](generate.md#pcg-platonicsolids), [PolyLoft (PCG)](generate.md#pcg-polyloft), [PolyWire (PCG)](generate.md#pcg-polywire), [Revolve (PCG)](generate.md#pcg-revolve), [Skin (PCG)](generate.md#pcg-skin), [Sphere (PCG)](generate.md#pcg-sphere), [Sweep (PCG)](generate.md#pcg-sweep), [Torus (PCG)](generate.md#pcg-torus), [Tree Generator (PCG)](generate.md#pcg-treegenerator), [Tube (PCG)](generate.md#pcg-tube), [Volume (PCG)](generate.md#pcg-volume)
+[Add (PCG)](generate.md#pcg-add), [Ballistic Path (PCG)](generate.md#pcg-ballisticpath), [Box (PCG)](generate.md#pcg-box), [Building Generator (PCG)](generate.md#pcg-buildinggenerator), [Circle (PCG)](generate.md#pcg-circle), [City Block (PCG)](generate.md#pcg-cityblock), [Cross Section Surface (PCG)](generate.md#pcg-crosssectionsurface), [Cross Section Surface · Houdini (PCG)](generate.md#pcg-crosssectionsurfacehou), [Curve (PCG)](generate.md#pcg-curve), [Extract Silhouette (PCG)](generate.md#pcg-extractsilhouette), [Font (PCG)](generate.md#pcg-font), [Grid (PCG)](generate.md#pcg-grid), [IsoOffset (PCG)](generate.md#pcg-isooffset), [IsoSurface (PCG)](generate.md#pcg-isosurface), [L-System (PCG)](generate.md#pcg-lsystem), [Line (PCG)](generate.md#pcg-line), [Lot Subdivision (PCG)](generate.md#pcg-lotsubdivision), [Platonic Solids (PCG)](generate.md#pcg-platonicsolids), [PolyLoft (PCG)](generate.md#pcg-polyloft), [PolyWire (PCG)](generate.md#pcg-polywire), [Revolve (PCG)](generate.md#pcg-revolve), [Skin (PCG)](generate.md#pcg-skin), [Sphere (PCG)](generate.md#pcg-sphere), [Sweep (PCG)](generate.md#pcg-sweep), [Torus (PCG)](generate.md#pcg-torus), [Tree Generator (PCG)](generate.md#pcg-treegenerator), [Tube (PCG)](generate.md#pcg-tube), [Volume (PCG)](generate.md#pcg-volume)
 
 ## [Modify](modify.md)
 
@@ -213,6 +213,7 @@ Statistics, import / export, sequences, devices and wrangles.
 | [Circle (PCG)](generate.md#pcg-circle) | `PCG_Circle` | Generate |
 | [Circle from Edges (PCG)](modify.md#pcg-circlefromedges) | `PCG_CircleFromEdges` | Modify |
 | [Circle Spline (PCG)](modify.md#pcg-circlespline) | `PCG_CircleSpline` | Modify |
+| [City Block (PCG)](generate.md#pcg-cityblock) | `PCG_CityBlock` | Generate |
 | [Clean (PCG)](modify.md#pcg-clean) | `PCG_Clean` | Modify |
 | [Clip (PCG)](modify.md#pcg-clip) | `PCG_Clip` | Modify |
 | [Cluster Points (PCG)](attribute.md#pcg-clusterpoints) | `PCG_ClusterPoints` | Attributes |

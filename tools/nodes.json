@@ -41,6 +41,7 @@
 "PCG_Bound": "PCG/modify",
 "PCG_Box": "PCG/generate",
 "PCG_BuildingGenerator": "PCG/generate",
+"PCG_CityBlock": "PCG/generate",
 "PCG_Bulge": "PCG/deform",
 "PCG_COPAlign": "PCG/cop",
 "PCG_COPAlignPixels": "PCG/cop",

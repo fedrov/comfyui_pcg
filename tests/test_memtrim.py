@@ -7,7 +7,9 @@ Memory trim after long nodes (memtrim.py).
      the process hundreds of megabytes larger; after trim() most of it is returned (negative control: without the
      trim it stays)
   4. The test executor's release mode (fakecomfy.Executor(release=True), used for the open-world example): a node's
-     outputs are dropped after its last reader ran, nothing is computed twice (negative control: by default all stay)
+     outputs are dropped after its last reader ran, nothing is computed twice (negative control: by default all stay);
+     a loop block's End holds what its body reads from outside until the loop is over, so later iterations do not
+     compute it again (negative control: without the hold, once per iteration)
 """
 import inspect
 import os
@@ -131,6 +133,60 @@ for rel in (True, False):
     else:
         check("  negative control: by default every output stays cached", len(ex.root.cache) == 3
               and outs["1"] == (1,) and COUNT == {1: 1, 10: 1, 100: 1})
+
+# a loop block's later iterations read the nodes outside the block again (their clones keep the links out): with
+# release, End holds those until the loop is over, so they are computed once, not once per iteration
+import comfyui_pcg as _P  # noqa: E402
+_M = _P.NODE_CLASS_MAPPINGS
+CALLS = {"side": 0}
+
+
+class _Side(_M["PCG_Box"]):
+    def run(self, *a, **k):
+        CALLS["side"] += 1
+        return super().run(*a, **k)
+
+
+def _defaults(ct):
+    d = {}
+    for sec in ("required", "optional"):
+        for k, sp in (_M[ct].INPUT_TYPES().get(sec) or {}).items():
+            if isinstance(sp[0], list):
+                d[k] = sp[0][0]
+            elif len(sp) > 1 and isinstance(sp[1], dict) and "default" in sp[1]:
+                d[k] = sp[1]["default"]
+    return d
+
+
+loopp = {"src": {"class_type": "PCG_Box", "inputs": _defaults("PCG_Box")},
+         "side": {"class_type": "Side", "inputs": _defaults("PCG_Box")},
+         "fb": {"class_type": "PCG_ForEachBegin", "inputs": dict(_defaults("PCG_ForEachBegin"), geo=["src", 0],
+                                                                  method="fetch_input", iterate_over="count",
+                                                                  iterations=4)},
+         "mg": {"class_type": "PCG_Merge", "inputs": {"geo1": ["fb", 1], "geo2": ["side", 0]}},
+         "fe": {"class_type": "PCG_ForEachEnd", "inputs": {"geo": ["mg", 0], "loop": ["fb", 0], "gather": "merge"}}}
+cls_ = dict(_M)
+cls_["Side"] = _Side
+ex = fakecomfy.Executor(loopp, cls_, release=True)
+got_ = {}
+_ev = ex._eval
+ex._eval = lambda sc, nid, _ev=_ev: got_.setdefault(nid, _ev(sc, nid)) if sc is ex.root else _ev(sc, nid)
+for n in ("src", "side", "fb", "mg", "fe"):
+    ex.run(n)
+n1 = CALLS["side"]
+ref = fakecomfy.Executor(loopp, cls_, release=False).run("fe")[0]
+check("release + a loop block: what the body reads from outside is computed once for all four iterations, the "
+      "result as without release, nothing left in the cache afterwards",
+      n1 == 1 and got_["fe"][0].nprims == ref.nprims == 4 * (6 + 6) and not ex.root.cache
+      and ex.held == {}, (n1, got_["fe"][0].nprims, ref.nprims, list(ex.root.cache)))
+fe_ = fakecomfy.Executor(loopp, cls_, release=True)
+for o_ in fe_.held.pop("fe"):                                    # negative control: without End holding them
+    fe_.readers[o_] -= 1
+CALLS["side"] = 0
+for n in ("src", "side", "fb", "mg", "fe"):
+    fe_.run(n)
+check("  negative control: without the hold the outside node is computed again for each later iteration",
+      CALLS["side"] == 4, CALLS)
 
 # an array held only by a reference cycle waits for Python's full collection; trim(collect=True) runs it
 import gc as _gc  # noqa: E402

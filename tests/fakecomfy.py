@@ -144,6 +144,39 @@ class Executor:
                 for v in (node.get("inputs") or {}).values():
                     if is_link(v):
                         self.readers[str(v[0])] = self.readers.get(str(v[0]), 0) + 1
+            # A loop block's later iterations are clones that read the same nodes outside the block (the body's links
+            # out of it, and Begin's own inputs): those must outlive the first iteration's top-level readers, or each
+            # iteration would compute them (and everything above them) again. End holds them until the loop is over.
+            self.held = {}
+            P = self.root.prompt
+            for eid, node in P.items():
+                lk = (node.get("inputs") or {}).get("loop")
+                if not is_link(lk) or str(lk[0]) not in P:
+                    continue
+                bid = str(lk[0])
+                down, todo = {bid}, [bid]                    # everything downstream of Begin
+                kids = {}
+                for nid_, nd_ in P.items():
+                    for v in (nd_.get("inputs") or {}).values():
+                        if is_link(v):
+                            kids.setdefault(str(v[0]), []).append(nid_)
+                while todo:
+                    for k_ in kids.get(todo.pop(), []):
+                        if k_ not in down:
+                            down.add(k_)
+                            todo.append(k_)
+                up, todo = {eid}, [eid]                      # ... and upstream of End: the body
+                while todo:
+                    for v in (P[todo.pop()].get("inputs") or {}).values():
+                        if is_link(v) and str(v[0]) in down and str(v[0]) not in up:
+                            up.add(str(v[0]))
+                            todo.append(str(v[0]))
+                body = up | {bid}
+                outside = {str(v[0]) for b in body for v in (P[b].get("inputs") or {}).values()
+                           if is_link(v) and str(v[0]) not in body and str(v[0]) in P}
+                self.held[eid] = sorted(outside)
+                for o in outside:
+                    self.readers[o] = self.readers.get(o, 0) + 1
 
     def run(self, node_id):
         if self.release and str(node_id) in self.done:
@@ -264,6 +297,8 @@ class Executor:
             for v in inputs.values():
                 if is_link(v) and str(v[0]) in own.prompt:
                     self._consumed(str(v[0]))
+            for o in self.held.pop(nid, ()):            # a loop block is over: what its iterations read can go
+                self._consumed(o)
             if self.readers.get(nid, 0) <= 0:
                 own.cache.pop(nid, None)          # nothing reads it: only its side effects (files, previews) mattered
         return out

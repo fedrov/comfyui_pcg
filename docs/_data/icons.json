@@ -40,6 +40,7 @@
 "PCG_Bound":["bound","#8fb8e0"],
 "PCG_Box":["box","#7ec87e"],
 "PCG_BuildingGenerator":["building_gen","#7ec87e"],
+"PCG_CityBlock":["building_gen","#7ec87e"],
 "PCG_Bulge":["bulge","#c49ae0"],
 "PCG_COPAlign":["align","#e0975f"],
 "PCG_COPAlignPixels":["ux_alignpx","#e0975f"],

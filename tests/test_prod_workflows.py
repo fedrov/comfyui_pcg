@@ -453,7 +453,9 @@ else:
             cap = {"Grass tufts": _grass, "Close range: material terrain": _pts, "Material: terrain": _pts,
                    "Terrain: full map + close range": lambda out: out[0].npoints,
                    "Buildings (Building Generator)": _bld, "Towns: numbered (and where their centre is)": _towns, "Lanes": lambda out: _lanes(out), "Valley: cards' uv on their frame": _cards,
-                   "Valley: the towns at that LOD": _lods, "Fields: WFC over the map (128² cells, tileable)": _wfc,
+                   "Valley: the towns at that LOD": _lods, "Valley: city blocks: P, N, uv, Cd, the material":
+                       lambda out: {"P": np.asarray(out[0].get(POINT, "P"), np.float32)[:, [0, 2]].copy(),
+                                    "n": out[0].nprims, "lod": np.unique(np.asarray(out[0].get(PRIM, "lod"))).tolist()}, "Fields: WFC over the map (128² cells, tileable)": _wfc,
                    "Ecology: seven weight layers + scatter densities": _eco,
                    "Road: the preview": _shot, "Valley: the preview": _shot, "Dusk: the preview": _shot,
                    "Rain: the preview": _shot, "Snow: the preview": _shot, "Flyby: the frames": _shot}
@@ -684,6 +686,48 @@ else:
                 check("  the ground-floor walls stand on the levelled pad: the terrain 1.5 m inside the building is at "
                       "their foot (median, 90 %)", np.median(kd_) < 0.3 and np.percentile(kd_, 90) < 1.0,
                       (round(float(np.median(kd_)), 3), round(float(np.percentile(kd_, 90)), 3)))
+                # each block turned to its town's road: the walls' facing (mod 90°) per block = the direction of the
+                # road at the town point (mod 90°)
+                kx_ = np.array([float(r["px"]) for r in kg]) - 2048.0            # into the towns' frame
+                kz_ = np.array([float(r["pz"]) for r in kg]) - 2048.0
+                ang_ = np.degrees(np.arctan2(nz_, nx_)) % 90
+                tw_ = cap["got"].get("Towns: numbered (and where their centre is)")
+                tw_ = np.zeros((0, 2)) if tw_ is None else np.asarray(tw_)
+                rv_, rd_ = [], []
+                for fn_ in ("roads/Roads_Main.obj", "roads/Streets.obj"):
+                    vv_, ll_ = [], []
+                    for ln in open(os.path.join(WD, fn_), encoding="utf-8"):
+                        if ln.startswith("v "):
+                            vv_.append([float(t) for t in ln.split()[1:4]])
+                        elif ln.startswith("l "):
+                            ll_.append([int(t) - 1 for t in ln.split()[1:]])
+                    vv_ = np.array(vv_)
+                    for l_ in ll_:
+                        a_, b_ = vv_[l_[:-1]], vv_[l_[1:]]
+                        rv_.append((a_ + b_)[:, [0, 2]] / 2)
+                        rd_.append(np.degrees(np.arctan2(b_[:, 2] - a_[:, 2], b_[:, 0] - a_[:, 0])) % 90)
+                rv_, rd_ = np.concatenate(rv_) - 2048.0, np.concatenate(rd_)
+                errs_, errs0_, modes_, nears_ = [], [], [], []
+                for cx_, cz_ in tw_:                          # each town's block: the pieces within 75 m of its point
+                    m_ = np.hypot(kx_ - cx_, kz_ - cz_) < 75
+                    if m_.sum() < 10:
+                        continue
+                    mo_ = float(np.argmax(np.bincount(np.rint(ang_[m_]).astype(int) % 90, minlength=90)))
+                    # the town point is where its roads meet: any road segment as near as the nearest (+ 8 m)
+                    dd_ = np.hypot(rv_[:, 0] - cx_, rv_[:, 1] - cz_)
+                    near_ = rd_[dd_ < max(20.0, dd_.min() + 8)]
+                    e_ = np.abs(mo_ - near_) % 90
+                    errs_.append(float(np.minimum(e_, 90 - e_).min()))
+                    nears_.append(near_)
+                    modes_.append(mo_)
+                for k_ in range(len(modes_)):                     # each block against the next town's roads
+                    e0_ = np.abs(modes_[k_] - nears_[(k_ + 1) % len(modes_)]) % 90
+                    errs0_.append(float(np.minimum(e0_, 90 - e0_).min()))
+                check("  each block turned to its town's road: the walls face along / across a road at the town point "
+                      "(mod 90°, within 6° for 80 % of the blocks)", len(modes_) >= 3
+                      and np.mean(np.array(errs_) < 6) >= 0.8, [round(e_, 1) for e_ in errs_])
+                check("    negative control: against another town's roads, most blocks do not match",
+                      np.mean(np.array(errs0_) < 6) < 0.5, [round(e_, 1) for e_ in errs0_])
             assets = {r["asset"] for r in rows}
             check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",
                   {a for a in assets if a.startswith("SM_Rock_")} == {f"SM_Rock_{k:02d}" for k in range(4)})
@@ -1176,6 +1220,13 @@ else:
                   cq_ is not None and cq_["n"] > 5000 and cq_["uv"][0] >= 0 and cq_["uv"][1] <= 1 and cq_["frames"] >= 4
                   and cq_["fw"] is not None and abs(cq_["fw"][0] - 1) < 1e-4 and abs(cq_["fw"][1] - 1) < 1e-4
                   and cq_["fw"][2] > 0.5 and lq_ is not None and len(lq_) >= 2 and sum(lq_.values()) > 0)
+            kq_ = cap["got"].get("Valley: city blocks: P, N, uv, Cd, the material")
+            vcam_ = next(n_ for n_ in MW.world_tiles().nodes if n_.get("title") == "Valley: city pieces near the camera")
+            vxz_ = [float(t) for t in re.findall(r"@P\.x - (-?[\d.]+).*@P\.z - (-?[\d.]+)", vcam_["values"]["code"])[0]]
+            check("preview far view: the city blocks within 400 m of the camera shown as the kit (LOD1 pieces, lod 0 in "
+                  "the towns' LOD switch), none beyond", kq_ is not None and kq_["n"] > 1000 and kq_["lod"] == [0]
+                  and np.hypot(kq_["P"][:, 0] - vxz_[0], kq_["P"][:, 1] - vxz_[1]).max() < 420,
+                  kq_ and (kq_["n"], kq_["lod"]))
             # grass (preview only): tufts around the road camera, dense at the camera, on the ground, off the road
             gg_ = cap["got"].get("Grass tufts")
             if gg_ is None:
@@ -1497,12 +1548,14 @@ else:
                     "Wall_WindowPair": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Roof_Flat": {"M_RoofFlat"},
                     "Roof_Unit": {"M_Trim", "M_Metal"}, "Roof_Tank": {"M_Roof", "M_Metal"},
                     "Wall_Balcony": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"},
-                    "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign"},
+                    "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign", "Awning"},
                     "Roof_Penthouse": {"M_Wall", "M_Door", "M_Trim", "M_Metal"},
                     "Corner_Bay": {"M_Wall", "M_Glass", "M_Trim"}, "Wall_Curtain": {"M_Metal", "M_Glass"},
                     "Wall_Arcade": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Prop_ACUnit": {"M_Trim", "M_Metal"},
                     "Roof_Gable": {"M_Roof"}, "Roof_GableEnd": {"M_Wall"}, "Roof_Dormer": {"M_Trim", "M_Glass", "M_Roof"},
-                    "Roof_Deck": {"M_Door", "M_Trim"}, "Roof_Antenna": {"M_Metal"}}
+                    "Roof_Deck": {"M_Door", "M_Trim"}, "Roof_Antenna": {"M_Metal"},
+                    "Corner_BayShop": {"M_Wall", "M_Glass", "M_Sign", "M_Metal", "M_Trim"},
+                    "Prop_FlowerBox": {"M_Trim", "Planting"}}
             got = {n: {m.get("name") for m in node_meshes(kit["SM_Kit_" + n])[0].get("materials", [])} for n in want}
             check("  kit detail: window frames / door casings / railings / shopfront frames carry their material slots",
                   all(got[n] == want[n] for n in want), {n: sorted(got[n]) for n in want if got[n] != want[n]})
@@ -1612,7 +1665,11 @@ else:
             check("  negative control: the flat seams where a set-back row meets the rest exist, and carry no pillar",
                   len(flat) > 0 and not (set(map(tuple, np.round(flat, 2))) & set(map(tuple, np.round(cpos, 2)))),
                   len(flat))
-            bays = [r for r in rows if r["asset"] == "SM_Kit_Corner_Bay"]
+            bays = [r for r in rows if r["asset"] in ("SM_Kit_Corner_Bay", "SM_Kit_Corner_BayShop")]
+            check("corner shops: the round bays' ground floors (y = 0) are shops (Corner_BayShop), the storeys above plain bays",
+                  bays and all((r["asset"] == "SM_Kit_Corner_BayShop") == (float(r["py"]) < 0.5) for r in bays)
+                  and any(r["asset"] == "SM_Kit_Corner_BayShop" for r in bays),
+                  sum(r["asset"] == "SM_Kit_Corner_BayShop" for r in bays))
             occd = {(sx_ * ST_, sz_ * ST_) for ST_ in (MW.CITY_STREET,) for sx_ in (-1, 1) for sz_ in (-1, 1)
                     if occ(sx_ * (ST_ + 2), sz_ * (ST_ + 2)) >= 0}
             check("corner bays: on every built corner of the crossing, one a storey up the corner cell's height, "
@@ -1708,6 +1765,22 @@ else:
                   "about a third of those windows",
                   acs and all(k in winp and not (winp[k][0] or winp[k][1]) and int(k[1]) >= 1 for k in keys)
                   and 0.2 < len(acs) / max(len(elig), 1) < 0.45, (len(acs), len(elig)))
+            # window boxes: 92 cm above a street window's slot (same building, floor, facing), above the ground floor,
+            # not on the modern facade; about a fifth of those windows
+            fbs = [r for r in rows if r["asset"] == "SM_Kit_Prop_FlowerBox"]
+            winf = {(r["bld"], r["floor"], round(float(r["px"]), 2), round(float(r["py"]) + 0.92, 2), round(float(r["pz"]), 2),
+                     round(float(r["ry"]), 1)): r for r in walls if r["asset"] in ("SM_Kit_Wall_Window", "SM_Kit_Wall_WindowPair")}
+            fkeys = [(r["bld"], r["floor"], round(float(r["px"]), 2), round(float(r["py"]), 2), round(float(r["pz"]), 2),
+                      round(float(r["ry"]), 1)) for r in fbs]
+            fel = [k for k, w_ in winf.items() if (lambda f: f[0] or f[1])(facing(w_)) and int(k[1]) >= 1
+                   and int(w_["facade"]) != 3]
+            check("window boxes: each 92 cm above a street window's slot (same building, floor, facing), above the ground "
+                  "floor, never on the modern facade; about a fifth of those windows",
+                  fbs and all(k in winf and (lambda f: f[0] or f[1])(facing(winf[k])) and int(k[1]) >= 1
+                              and int(winf[k]["facade"]) != 3 for k in fkeys)
+                  and 0.12 < len(fbs) / max(len(fel), 1) < 0.32, (len(fbs), len(fel)))
+            check("  negative control: no window box on a back window",
+                  not any(k in winf and not (lambda f: f[0] or f[1])(facing(winf[k])) for k in fkeys))
             check("  negative control: the side street away from the crossing has ground floors, none of them shops",
                   len(far) > 0 and not any(r["asset"] == "SM_Kit_Wall_Shopfront" for r in far), len(far))
             g1 = [(r, *facing(r)) for r in walls if r["floor"] == "1"]

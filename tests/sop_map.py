@@ -546,6 +546,7 @@ EXTRA = {
  "PCG_ExportInstances": "Points -> instance table CSV / JSON (for an engine's instancing system; transforms are read the same way as Copy to Points)",
  "PCG_GeoToJSON": "Geometry -> JSON (for an LLM to read the layout)",
  "PCG_TreeGenerator": "Procedural tree asset (SideFX Labs' tree tools / SpeedTree): branches as tubes, leaves as cards",
+ "PCG_CityBlock": "A city block generator packaged as one node (a digital asset holding a network, expanded when it runs)",
  "PCG_WorldManifest": "World.json + per-tile streaming manifests read back from the exported files (an engine import reads one file)",
  "PCG_GeoSpreadsheet": "Geometry table (corresponds to Houdini's Geometry Spreadsheet pane)",
  "PCG_Viewport": "In-node three.js viewport",

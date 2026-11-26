@@ -390,5 +390,26 @@
    "prefix": "The card material's name; the layers are <Prefix>_C and <Prefix>_alpha."
   },
   "houdini_notes": "Houdini has no node for this (SpeedTree and the Labs tree tools ship leaf atlases as images); it stands in for a painted leaf atlas."
+ },
+ "PCG_CityBlock": {
+  "summary": "The modular city's block generator as one node: rules, setbacks, the kit placed by the piece rules, facade variants.",
+  "description": "The pcg_modular_city workflow builds a city block from a few hundred nodes: a rules grid that says which cell belongs to which building and how tall it is, setbacks, the outlines cut into 4 m slots, the piece rules (shopfronts, entrances, windows, balconies, corner bays and corner shops, window boxes), roofs and rooftop plant, then Copy to Points of the kit and the facade variants. This node is that network packaged, as a Houdini digital asset packages one: its parameters are the settings that matter, and the network itself is stored with the plugin (`data/city_block.json`, written by the same functions that build the workflow, so the two never drift apart).\n\nWhen it runs, the node expands the network into the graph, the way the loop blocks do: the nodes inside run and cache like any others, and only those the two results need run (no exports, no previews).\n\n- **Layout**: *Table* is the example's fixed block (twelve buildings around a crossing); *Generated* lays lots along both streets, secondary streets across most quarters and lanes between the lots, from **Seed**.\n- **Density**, **Min Floors** and **Max Floors** shape a generated block: the share of lots that are built, and the floors at the edge and near the crossing (give or take two).\n- **Setback Floors** and **Setback Min**: a building of at least Setback Min floors has its street-front row of cells stop Setback Floors lower (0 turns setbacks off).\n\nWith nothing on **Kit** the node builds the 23 kit pieces itself. Link a kit of your own to replace them: prims with a string `name` per piece (Wall_Window, Wall_Shopfront, Corner_Bay, Roof_Flat ...) and the piece's origin at the slot's bottom centre, facade face at z = 0.",
+  "inputs": {
+   "kit": "Optional: the kit pieces (prim attribute name per piece). Not connected: the node builds the standard kit."
+  },
+  "outputs": {
+   "buildings": "The kit placed on every slot, the wall material swapped per facade variant (M_Wall, M_BrickBuff, M_Stucco, the curtain wall), the painted metal, awnings, signs and window boxes coloured.",
+   "pieces": "One point per placed piece with N and up (its orientation), name, asset (SM_Kit_<name>, the glb name), bld, floor and facade: link it to Export Instances."
+  },
+  "params": {
+   "layout": "Table: the example's fixed block. Generated: a block laid out from Seed.",
+   "rand_seed": "Generated: the seed of the lots, the secondary streets, the floors and the pieces; the same seed gives the same block.",
+   "density": "Generated: the probability that a lot gets a building.",
+   "min_floors": "Generated: floors at the block's edge.",
+   "max_floors": "Generated: floors near the crossing (at most 12).",
+   "setback_floors": "How many floors lower a tall building's street-front row stops (0: no setbacks).",
+   "setback_min": "From how many floors a building steps back."
+  },
+  "houdini_notes": "An HDA wrapping a building-kit network (like SideFX's city-building examples): the parameters on the asset, the network inside. Here the network is stored with the plugin and expanded at run time."
  }
 }

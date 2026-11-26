@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Modular city, round four**: corner shops in the crossing's round bays (new kit piece `Corner_BayShop`), window
+  boxes on a fifth of the upper street windows (`Prop_FlowerBox`, not on the modern facades); per-instance colours
+  (frames and railings per building, each awning, sign and window box its own); cars driving on the carriageways and
+  pedestrians on the sidewalks; rain and snow previews. The workflow ends with a City Block node.
+- **Geometry Preview (Outdoor), wetness**: the ground goes wet right up to walls, posts and figures (the slope-blurred normal mixed theirs in and left a dry ring round them), and thin translucent surfaces (leaves, grass) stay dry (they took a glossy sky reflection); snow still settles on them.
+- **Production test, memory and time**: the test executor's release mode keeps what a loop block's body reads from outside until the loop is over (each later iteration recomputed it, and everything above it: the whole terrain chain once per lake); world tiles: the preview grass crop reads the 4096² surface next to the texture set, so the 40-channel surface (2.5 GB) is gone before the splat weights.
+- **World tiles, city blocks**: each block is turned to its town's road (the nearest road tangent, folded to within
+  45°); the previews show the blocks within 400 m of the camera as the kit (LOD1 of each piece) instead of massing.
 - **Geometry Preview (Outdoor), memory**: on the CPU the rasterizer works in batches of a million candidate
   pairs (torch on the CPU had GPU-sized batches, about 2 GB of float64 temporaries), makes its frame buffers in the
   dtypes the look keeps (int32 hits, float32 depth and weights), keeps the screen boxes in int32 and uses the
@@ -103,6 +111,10 @@ All notable changes to this project are documented here. The format follows
   18 minutes on two CPU cores, its 4096² surface Wrangle from 170 to 62 seconds.
 
 ### Added
+- **City Block (PCG)**: the modular city's generator as one node, a digital asset holding the network from the
+  rules grid to the facade variants (Layout, Seed, Density, Min / Max Floors, Setback Floors / Min; an optional kit
+  input, else it builds the kit). The network is stored in `data/city_block.json`, written by the same generator
+  functions as the workflow, and expanded into the graph when the node runs; outputs `buildings` and `pieces`.
 - **Network boxes**: right-click a group, *PCG: Collapse Box* -- its nodes collapse and stack at its top left, the box
   shrinks round them (wires stay connected); *PCG: Expand Box* puts every node back as it was. Kept in the group, so it
   survives saving and loading.

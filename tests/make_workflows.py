@@ -1974,11 +1974,13 @@ WORLD_EXTRA = {
 def world_city(g, towns, cut, quick=False):
     """
     The modular city in the open world: the kit exported with the world's assets (pcg/world/assets/SM_Kit_*.glb),
-    and in the middle of each town a block (CITY_GRID round the town point) laid out by the city's rules in Layout 2:
+    and in the middle of each town a block (CITY_GRID round the town point, turned to the road nearest it: towns
+    carry tang, the turn in radians) laid out by the city's rules in Layout 2:
     the map's road mask (cut's rdw) is its streets, nothing built outside the town or on water, each town its own
     seed (the for-each iteration). Returns {"inst": the kit's instance points (name = the glb name, on the block's
     pad), "pads": the blocks' built cells at their pad height (for the levelling), "mass": the blocks as massing
-    for the previews (lod 0, 1 and 2)}.
+    for the previews (levels 1 and 2: within 400 m of a camera the previews place the kit itself), "kit": the kit's
+    LOD chains and hulls as exported}.
     """
     x0 = 6260
     KW = [Col(g, x0 + 380 * i, width=340) for i in range(5)]
@@ -1995,7 +1997,10 @@ def world_city(g, towns, cut, quick=False):
     g.link(towns, "geo", cfb, "geo")
     cgr = CB("PCG_Grid", title="City block: the 4 m grid (local)", **CITY_GRID)
     cuv = CB("PCG_Wrangle", title="City block: its cells' place on the map (uv), round the town", code=(
-        'c = point(1, "P", 0)\n@uv = set((@P.x + c.x) / 4100 + 0.5, 0.5 - (@P.z + c.z) / 4100, 0 * @P.x)'))
+        'c = point(1, "P", 0)\nth = point(1, "tang", 0)\nct = cos(th)\nsn = sin(th)\n'
+        "# the block turned to the town's road: world = centre + R(local)\n"
+        "wx = @P.x * ct - @P.z * sn + c.x\nwz = @P.x * sn + @P.z * ct + c.z\n"
+        "@uv = set(wx / 4100 + 0.5, 0.5 - wz / 4100, 0 * @P.x)"))
     g.link(cgr, "geo", cuv, "geo")
     g.link(cfb, "geo", cuv, "geo1")
     prev = cuv
@@ -2046,13 +2051,16 @@ def world_city(g, towns, cut, quick=False):
     cpk = CE("PCG_Blast", title="City block: its built cells", cls="prim", group="@built == 0")
     g.link(cpd, "geo", cpk, "geo")
     cpw = CE("PCG_Wrangle", title="City block: pad cells in the world, at the pad height (tag 1)", code=(
-        'c = point(1, "P", 0)\n@P = set(@P.x + c.x, 0 * @P.x, @P.z + c.z) + set(0, 1, 0) * prim(2, "pad_h", 0)\n'
+        'c = point(1, "P", 0)\nth = point(1, "tang", 0)\nct = cos(th)\nsn = sin(th)\n'
+        "@P = set(@P.x * ct - @P.z * sn + c.x, 0 * @P.x + prim(2, \"pad_h\", 0), @P.x * sn + @P.z * ct + c.z)\n"
         "i@ctag = 1 + 0 * @ptnum"))
     g.link(cpk, "geo", cpw, "geo")
     g.link(cfb, "geo", cpw, "geo1")
     g.link(cpd, "geo", cpw, "geo2")
     ciw = CE("PCG_Wrangle", title="City block: the pieces in the world, on the pad (tag 0)", code=(
-        'c = point(1, "P", 0)\n@P = @P + set(c.x, 0, c.z) + set(0, 1, 0) * prim(2, "pad_h", 0)\n'
+        'c = point(1, "P", 0)\nth = point(1, "tang", 0)\nct = cos(th)\nsn = sin(th)\n'
+        "@P = set(@P.x * ct - @P.z * sn + c.x, @P.y + prim(2, \"pad_h\", 0), @P.x * sn + @P.z * ct + c.z)\n"
+        "@N = set(@N.x * ct - @N.z * sn, @N.y, @N.x * sn + @N.z * ct)\n"
         "s@name = @asset\n@scale = set(1, 1, 1) + 0 * @P\n@pscale = 1 + 0 * @P.x\ni@ctag = 0 + 0 * @ptnum"))
     g.link(cb_["an"], "geo", ciw, "geo")
     g.link(cfb, "geo", ciw, "geo1")
@@ -2072,7 +2080,8 @@ def world_city(g, towns, cut, quick=False):
              fit_to_01=False, scale_u=0.25, scale_v=1 / 3.5)
     g.link(cmx, "geo", cmu, "geo")
     cmw = CE("PCG_Wrangle", title="City block: massing in the world (tag 2)", code=(
-        'c = point(1, "P", 0)\n@P = @P + set(c.x, 0, c.z) + set(0, 1, 0) * prim(2, "pad_h", 0)\n'
+        'c = point(1, "P", 0)\nth = point(1, "tang", 0)\nct = cos(th)\nsn = sin(th)\n'
+        "@P = set(@P.x * ct - @P.z * sn + c.x, @P.y + prim(2, \"pad_h\", 0), @P.x * sn + @P.z * ct + c.z)\n"
         "i@ctag = 2 + 0 * @ptnum"))
     g.link(cmu, "geo", cmw, "geo")
     g.link(cfb, "geo", cmw, "geo1")
@@ -2098,7 +2107,7 @@ def world_city(g, towns, cut, quick=False):
     g.link(om, "geo", omc, "geo")
     om = omc
     oml = []
-    for lv_ in (0, 1, 2):
+    for lv_ in (1, 2):                                  # (near the camera the kit itself, see far_view)
         n_ = CE("PCG_Wrangle", title=f"City blocks: massing at level {lv_}", run_over="prim",
                 code=f'i@lod = {lv_}\ns@name = "City_Massing_LOD{lv_}"\n@lcx = @P.x\n@lcz = @P.z')
         g.link(om, "geo", n_, "geo")
@@ -2537,6 +2546,15 @@ def world_tiles(quick=False):
     rsm = T("PCG_Resample", title="Roads: a point every 16 m (with the tangent)", method="max_segment_length",
             length=16.0, create_only_points=True, use_out_attribs=True)
     g.link(rn, "geo", rsm, "geo")
+    # each town's city block is turned to the road nearest its centre (within a quarter turn: the block's main
+    # street then runs along that road)
+    tat = T("PCG_AttribTransfer", title="Towns: the direction of the nearest road", point_attributes="tangentu",
+            prim_attributes="", detail_attributes="", max_sample_count=1, distance_threshold=100000.0)
+    g.link(tid, "geo", tat, "dest")
+    g.link(rsm, "geo", tat, "source")
+    tang = T("PCG_Wrangle", title="Towns: the city block's turn (the road's direction, within ± 45°)", code=(
+        "a = atan2(@tangentu.z, @tangentu.x)\n@tang = a - floor(a / 1.5707963 + 0.5) * 1.5707963"))
+    g.link(tat, "geo", tang, "geo")
     rsu = T("PCG_Wrangle", title="Road points: their place on the map (uv)",
             code="@uv = set(@P.x / 4100 + 0.5, 0.5 - @P.z / 4100, 0)")
     g.link(rsm, "geo", rsu, "geo")
@@ -2615,15 +2633,15 @@ def world_tiles(quick=False):
         g.link(prev, "geo", n_, "geo")
         g.link(cut, "cop", n_, "cop")
         prev = n_
-    ltt = T("PCG_AttribTransfer", title="Lots: which town (the nearest town point)", point_attributes="tid tcx tcz",
+    ltt = T("PCG_AttribTransfer", title="Lots: which town (the nearest town point)", point_attributes="tid tcx tcz tang",
             prim_attributes="", detail_attributes="", max_sample_count=1, distance_threshold=100000.0)
     g.link(prev, "geo", ltt, "dest")
-    g.link(tid, "geo", ltt, "source")
+    g.link(tang, "geo", ltt, "source")
     prev = ltt
     for nm_, meth_, new_ in (("tw", "minimum", "tw_min"), ("rw", "maximum", "rw_max"), ("bd", "maximum", "bd_max"),
                              ("se", "maximum", "se_max"), ("hgt", "minimum", "h_min"), ("hgt", "maximum", "h_max"),
                              ("tc", "average", "tc_avg"), ("tid", "maximum", "ti_max"), ("tcx", "average", "tcx_a"),
-                             ("tcz", "average", "tcz_a")):
+                             ("tcz", "average", "tcz_a"), ("tang", "average", "tang_a")):
         n_ = T("PCG_AttribPromote", title=f"Lots: {new_}", original_name=nm_, original_class="point",
                new_class="prim", method=meth_, delete_original=False, change_new_name=True, new_name=new_)
         g.link(prev, "geo", n_, "geo")
@@ -2644,7 +2662,9 @@ def world_tiles(quick=False):
         "# the lot's centre: the buildings' LOD is picked by its distance to the camera\n"
         "@lcx = @P.x\n@lcz = @P.z\n"
         "# the town's middle is a modular city block (CITY_GRID round the town point): no lots there\n"
-        f"@incity = (abs(@P.x - @tcx_a) < {CITY_GRID['size_x'] / 2 + 2:g}) * (abs(@P.z - @tcz_a) < {CITY_GRID['size_z'] / 2 + 2:g}) * 1.0"))
+        "dx = @P.x - @tcx_a\ndz = @P.z - @tcz_a\n"
+        "lx = dx * cos(@tang_a) + dz * sin(@tang_a)\nlz = dz * cos(@tang_a) - dx * sin(@tang_a)\n"
+        f"@incity = (abs(lx) < {CITY_GRID['size_x'] / 2 + 2:g}) * (abs(lz) < {CITY_GRID['size_z'] / 2 + 2:g}) * 1.0"))
     g.link(prev, "geo", lyd, "geo")
     lkp = T("PCG_Blast", title="Lots to build on: in town, off the road, dry, above the sea, gentle", cls="prim", group=(
         f"(@tw_min < 0.5) | (@rw_max > 0.2) | (@bd_max > 0.05) | (@se_max > 0.01) | "
@@ -2713,7 +2733,7 @@ def world_tiles(quick=False):
     g.link(lfc_, "geo", lpp, "geo")
     lph = T("PCG_Wrangle", title="Lots at their pad height", code="@P.y = @pad_h")
     g.link(lpp, "geo", lph, "geo")
-    city_ = world_city(g, tid, cut, quick)
+    city_ = world_city(g, tang, cut, quick)
     lph = merge_n(T, "Lots + the city blocks' pads", [lph, city_["pads"]])
     prj = T("PCG_COPHFProject", title="Level the pads into the ground (HeightField Project)", mode="blend",
             strength=2048.0, world_size=4100.0, hitmask_layer="pad")
@@ -3223,6 +3243,26 @@ def world_tiles(quick=False):
     surf = S("PCG_COPLayerEdit", title="The texture set", op="keep",
              spec="terrain_albedo terrain_nrm terrain_rough")
     g.link(sn, "cop", surf, "cop")
+    # (made here, next to the surface it crops: the 40-channel 4096² surface can go once the texture set, this
+    # crop and the splat's colour have read it, before the splat weights)
+    # preview grass for the road camera (an engine draws grass itself, from the grass weight): a 280 m window of the
+    # 1 m surface around the camera, one tuft per sample of a density that is the grass weight (and a little on the
+    # forest floor), 40 per m² at the camera falling as 1 / distance² to 2 per m² (far tufts are under a pixel; the
+    # textures carry the grass there) and to none at 140 m
+    gt = 4100.0 / SR
+    gcj = round((CAM3[0] + 2050.0) / gt - 0.5)
+    gci = round((2050.0 - CAM3[2]) / gt - 0.5)
+    GN = 280 * SR // 4096
+    gcr = S("PCG_COPCrop", title="Grass: the 280 m around the road camera", x=gcj - GN // 2, y=gci - GN // 2,
+            resolution_x=GN, resolution_y=GN, border="clamp", mode="discard_reframe")
+    g.link(sn, "cop", gcr, "cop")
+    gcd = S("PCG_COPWrangle", title="Grass density (tufts / 40 per m²)", code=(
+        f"r = length(set(@u - 0.5, @v - 0.5)) * {GN * gt:.1f}\n"
+        "g = clamp((@Grass + 0.35 * @ForestFloor) * (1 - clamp(@rd, 0, 1)) * (1 - @Water), 0, 1)\n"
+        "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))\n"
+        "# on the close-range ground: the meshes' 4 m height with the detail relief\n"
+        "@Cdh = @C4 + @dh / 2048"))
+    g.link(gcr, "cop", gcd, "cop")
     # close-range terrain for the previews: a 2 m mesh over the road view (the valley, the town, the main peak),
     # displaced by the 1 m surface's detail height -- crags, ribs, ledges and rills as real relief that casts
     # shadows and breaks the silhouettes, where the 4 m full-map mesh is a smooth, soft surface. Its border lies on
@@ -3288,24 +3328,6 @@ def world_tiles(quick=False):
     splat = S("PCG_COPLayerEdit", title="The splat set", op="keep",
               spec="terrain_w0 terrain_w1 terrain_w2 terrain_w3 terrain_macro")
     g.link(spm, "cop", splat, "cop")
-    # preview grass for the road camera (an engine draws grass itself, from the grass weight): a 280 m window of the
-    # 1 m surface around the camera, one tuft per sample of a density that is the grass weight (and a little on the
-    # forest floor), 40 per m² at the camera falling as 1 / distance² to 2 per m² (far tufts are under a pixel; the
-    # textures carry the grass there) and to none at 140 m
-    gt = 4100.0 / SR
-    gcj = round((CAM3[0] + 2050.0) / gt - 0.5)
-    gci = round((2050.0 - CAM3[2]) / gt - 0.5)
-    GN = 280 * SR // 4096
-    gcr = S("PCG_COPCrop", title="Grass: the 280 m around the road camera", x=gcj - GN // 2, y=gci - GN // 2,
-            resolution_x=GN, resolution_y=GN, border="clamp", mode="discard_reframe")
-    g.link(sn, "cop", gcr, "cop")
-    gcd = S("PCG_COPWrangle", title="Grass density (tufts / 40 per m²)", code=(
-        f"r = length(set(@u - 0.5, @v - 0.5)) * {GN * gt:.1f}\n"
-        "g = clamp((@Grass + 0.35 * @ForestFloor) * (1 - clamp(@rd, 0, 1)) * (1 - @Water), 0, 1)\n"
-        "@gd = g * max(min(1, pow(12 / max(r, 0.5), 2)), 0.05) * (1 - smoothstep(110, 140, r))\n"
-        "# on the close-range ground: the meshes' 4 m height with the detail relief\n"
-        "@Cdh = @C4 + @dh / 2048"))
-    g.link(gcr, "cop", gcd, "cop")
     tb = S("PCG_COPWriteFile", title="BaseColor: 4×4 tiles of 1024² (sRGB)",
            filename="pcg/world/texture/T_Terrain_BaseColor_x{tx}_y{ty}", channels="terrain_albedo",
            format="png", bit_depth="8", encode="srgb", tiles_x=4, tiles_y=4)
@@ -4427,6 +4449,15 @@ def world_tiles(quick=False):
     g.link(leafcop, "cop", lfm, "b")
     pdset = lfm
 
+    # the city blocks' kit for the previews: each piece's LOD1 (the stripped piece), keyed by its glb name
+    ck1 = H("PCG_Wrangle", title="City kit: LOD1 of each piece (for the previews)", run_over="prim", code=(
+        "nm = np.asarray(@name).reshape(-1).astype(str)\n"
+        "i@k1 = np.char.endswith(nm, \"_LOD1\").astype(int)\n"
+        "s@name = @asset"))
+    g.link(city_["kit"], "geo", ck1, "geo")
+    ck2 = H("PCG_Blast", title="City kit: LOD1 only", cls="prim", group="@k1 == 0")
+    g.link(ck1, "geo", ck2, "geo")
+
     def far_view(cam_, near_r, tag, mute=False):
         """The trees and the towns as seen from cam_ (x, y, z): proxies within near_r, cards beyond (mute: its nodes
         muted, for a muted group)."""
@@ -4482,6 +4513,27 @@ def world_tiles(quick=False):
         g.link(blodp, "geo", bw_, "geo")
         bb_ = HH("PCG_Blast", title=f"{tag}: the towns at that LOD", cls="prim", group="@lod != @want")
         g.link(bw_, "geo", bb_, "geo")
+        # the city blocks within 400 m (the towns' first switch): the kit itself (LOD1) on their pieces, the
+        # wall slot swapped per facade variant; beyond it their massing (levels 1 and 2)
+        kp_ = HH("PCG_Wrangle", title=f"{tag}: city pieces near the camera", code=(
+            f"i@far = where(length(set(@P.x - {cx:.1f}, 0 * @P.x, @P.z - {cz:.1f})) >= 400.0, 1, 0)"))
+        g.link(city_["inst"], "geo", kp_, "geo")
+        kb_ = HH("PCG_Blast", title=f"{tag}: city pieces within 400 m", cls="point", group="@far == 1")
+        g.link(kp_, "geo", kb_, "geo")
+        kc_ = HH("PCG_CopyToPoints", title=f"{tag}: city blocks: the kit (LOD1)", piece_attribute="name",
+                 target_prim_attributes="facade")
+        g.link(ck2, "geo", kc_, "source")
+        g.link(kb_, "geo", kc_, "points")
+        kf_ = HH("PCG_Wrangle", title=f"{tag}: city blocks: facade materials, only what the towns carry", run_over="prim",
+                 code=("w = @material == \"M_Wall\"\n"
+                       f"s@material = where(w & (@facade == 1), \"{CITY_FACADE_MAT[1]}\", where(w & (@facade == 2),"
+                       f" \"{CITY_FACADE_MAT[2]}\", where(w & (@facade == 3), \"{CITY_FACADE_MAT[3]}\", @material)))\n"
+                       "i@lod = 0 + 0 * @primnum\ns@name = \"City_Kit\""))
+        g.link(kc_, "geo", kf_, "geo")
+        kd_ = HH("PCG_AttribDelete", title=f"{tag}: city blocks: P, N, uv, Cd, the material", point="* ^P",
+                 vertex="* ^uv ^N", prim="* ^material ^Cd ^lod ^name")
+        g.link(kf_, "geo", kd_, "geo")
+        bb_ = merge_n(HH, f"{tag}: towns + the city blocks' kit", [bb_, kd_])
         # lit windows (more than half of them, warm, each its own brightness): shown where the preview reads emit
         be_ = HH("PCG_Wrangle", title=f"{tag}: towns: lit windows (emit)", run_over="prim", code=(
             'gl = @material.astype(str) == "M_Glass"\n'
@@ -4706,7 +4758,7 @@ def world_tiles(quick=False):
 CITY_KIT = ["Wall_Plain", "Wall_Window", "Wall_WindowPair", "Wall_Door", "Wall_Balcony", "Wall_Shopfront",
             "Wall_Curtain", "Wall_Arcade", "Corner_Pillar", "Corner_Bay", "Roof_Cornice", "Roof_Flat", "Roof_Unit",
             "Roof_Tank", "Roof_Penthouse", "Roof_Gable", "Roof_GableEnd", "Roof_Dormer", "Roof_Deck", "Roof_Antenna",
-            "Prop_ACUnit"]
+            "Prop_ACUnit", "Corner_BayShop", "Prop_FlowerBox"]
 # Studio preview of the kit / block with the material library's textures (run that workflow first; a material whose files
 # are missing keeps its Cd)
 CITY_TEXTURES = ("basecolor = pcg/materials/T_{material}_BaseColor.png\n"
@@ -4718,7 +4770,7 @@ CITY_TEXTURES = ("basecolor = pcg/materials/T_{material}_BaseColor.png\n"
 CITY_PREVIEW_TEXTURES = (CITY_TEXTURES.replace("basecolor = pcg/materials/T_{material}_BaseColor.png",
                                                "basecolor = pcg/materials/T_{material}_BaseColor.png | @{material}_C")
                          + "\nalpha = @{material}_alpha\nalpha_coverage = 0.5\nalpha_shadow = M_Leaf"
-                         + "\nbasecolor_tint = M_Leaf M_Wall M_BrickBuff M_Stucco M_Glass M_Trim M_FacadeFar M_FacadeFarBrick"
+                         + "\nbasecolor_tint = M_Leaf M_Wall M_BrickBuff M_Stucco M_Glass M_Trim M_FacadeFar M_FacadeFarBrick M_Metal M_Sign"
                          # the far trees' impostor cards: the four atlas frames round the view direction, blended
                          + "\nuv_blend = uv uv2 uv3 uv4\nuv_blend_weights = fw")
 
@@ -4999,7 +5051,8 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
         (3.4, 0.08, 0.1, 0.0, 2.86, -0.2), (3.4, 0.06, 0.1, 0.0, 0.63, -0.2),
         (0.06, 2.2, 0.08, -0.567, 1.73, -0.2), (0.06, 2.2, 0.08, 0.567, 1.73, -0.2),
         (3.24, 0.06, 0.08, 0.0, 2.3, -0.2)])
-    awn = tag(K4, box(K4, "Awning (20° slope)", 3.4, 0.03, 0.9, 0.0, 2.72, 0.42, 20.0), "M_Metal")
+    # the awning in its own slot (no texture: a canvas colour per shop in the preview, a material in the engine)
+    awn = tag(K4, box(K4, "Awning (20° slope)", 3.4, 0.03, 0.9, 0.0, 2.72, 0.42, 20.0), "Awning")
     sign = tag(K4, box(K4, "Sign", 3.2, 0.35, 0.12, 0.0, 3.1, 0.06), "M_Sign")
     shop = piece(K4, "Wall_Shopfront", [w3, band, sgl, riser, sfr, awn, sign])
     # Pillar with a plinth and a capital; cornice as fascia + bed moulding + dentils + bevelled crown; roof
@@ -5065,6 +5118,22 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
     cb_t = tag(K4, merge_all(K4, "Bay band + sill", [cb_b, box(K4, "Bay sill", 1.1, 0.08, 0.3, 0.0, 0.97, 1.25)]),
                "M_Trim")
     bay = piece(K4, "Corner_Bay", [cb_w, cb_g, cb_t])
+    # The bay's ground floor as a corner shop: the drum opened by a glazed door on the diagonal, a sign band round it
+    cs_w = tag(K4, cut(K4, "Bay drum − shop door", cb_d, box(K4, "Corner shop door opening", 1.3, 2.5, 1.2, 0.0, 1.25,
+                                                              1.2)), "M_Wall")
+    cs_g = tag(K4, box(K4, "Corner shop door glass", 1.3, 2.5, 0.02, 0.0, 1.25, 1.0), "M_Glass")
+    cs_s = K4("PCG_Tube", title="Corner shop sign band", radius1=1.3, radius2=1.3, height=0.4, cols=24, rows=2,
+              caps=True, center_y=2.9)
+    cs_t = tag(K4, cs_s, "M_Sign")
+    cs_f = boxes(K4, "Corner shop door frame", "M_Metal", [(1.4, 0.08, 0.1, 0.0, 2.52, 1.06),
+                                                           (0.08, 2.5, 0.1, -0.68, 1.25, 1.06),
+                                                           (0.08, 2.5, 0.1, 0.68, 1.25, 1.06)])
+    bayshop = piece(K4, "Corner_BayShop", [cs_w, cs_g, cs_t, cs_f, tag(K4, cb_b, "M_Trim")])
+    # Window box for the street windows (pivot on the facade at the sill; it hangs out in +Z): a painted trough
+    # with planting (its own slot, no texture: a green per box in the preview)
+    fbx = piece(K3, "Prop_FlowerBox", [
+        boxes(K3, "Window box trough", "M_Trim", [(1.5, 0.26, 0.3, 0.0, 0.13, 0.17)]),
+        boxes(K3, "Window box planting", "Planting", [(1.4, 0.22, 0.24, 0.0, 0.37, 0.17)])])
     # Curtain wall (the modern facade variant): a storey of glazing over a metal spandrel, four bays of mullions
     # standing proud, a transom at the top; the 30 cm wall depth is the spandrel's
     cw_s = boxes(K1, "Curtain spandrel + head", "M_Metal", [(4.0, 0.6, 0.3, 0.0, 0.3, -0.15),
@@ -5118,7 +5187,7 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
     ant = piece(K3, "Roof_Antenna", [boxes(K3, "Mast, crossbars, dish", "M_Metal", [
         (0.08, 3.2, 0.08, 0.0, 1.6, 0.0), (1.2, 0.04, 0.04, 0.0, 2.6, 0.0), (0.8, 0.04, 0.04, 0.0, 3.0, 0.0),
         (0.6, 0.6, 0.06, 0.0, 1.8, 0.25), (0.5, 0.3, 0.5, 0.0, 0.15, 0.0)])])
-    lib = A("PCG_Merge", title="Kit library (21 pieces)")
+    lib = A("PCG_Merge", title="Kit library (23 pieces)")
     for i, p in enumerate((plain, window, door, balcony, shop, pil)):
         g.link(p, "geo", lib, f"geo{i + 1}")
     lib2 = A("PCG_Merge", title="Kit library (cont.)")
@@ -5139,7 +5208,11 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
     g.link(lib3, "geo", lib4, "geo1")
     for i, p in enumerate((gable, gable_end, dormer, deck, ant)):
         g.link(p, "geo", lib4, f"geo{i + 2}")
-    lib3 = lib4
+    lib5 = A("PCG_Merge", title="Kit library (cont.)")
+    g.link(lib4, "geo", lib5, "geo1")
+    g.link(bayshop, "geo", lib5, "geo2")
+    g.link(fbx, "geo", lib5, "geo3")
+    lib3 = lib5
     uvp = A("PCG_UVProject", title="World-scale box projection (1 UV = 1 m, same density as the material library)",
             mode="box", fit_to_01=False, scale_u=1.0, scale_v=1.0)
     g.link(lib3, "geo", uvp, "geo")
@@ -5151,7 +5224,8 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
         ' where(m == "M_Metal", set(0.22, 0.23, 0.25),'
         ' where(m == "M_Roof", set(0.32, 0.32, 0.34),'
         ' where(m == "M_RoofFlat", set(0.36, 0.36, 0.35),'
-        ' where(m == "M_Sign", set(0.80, 0.55, 0.20), set(0.86, 0.84, 0.79))))))))'))
+        ' where(m == "M_Sign", set(0.80, 0.55, 0.20), where(m == "Awning", set(0.55, 0.12, 0.10),'
+        ' where(m == "Planting", set(0.20, 0.42, 0.14), set(0.86, 0.84, 0.79))))))))))'))
     g.link(uvp, "geo", kc, "geo")
     # pcg: LODs and collision. Every glb holds SM_Kit_<piece>_LOD0 (the piece), _LOD1 (the same without the small
     # parts -- frames, mullions, rails, dentils: faces under 0.1 m²; the outline, openings and glass stay, so the
@@ -5193,7 +5267,7 @@ def city_kit(g, K1, K2, K3, K4, A, folder="pcg/assets/kit"):
     kx = A("PCG_ExportMesh", title="Export: one glb per kit piece (LOD0, LOD1, UCX; textures point to the material library)",
            filename=folder + "/{name}", format="glb",
            split_attribute="name", file_attribute="asset", textures=KIT_TEXTURES,
-           texture_materials="*", lod_manifest=True)
+           texture_materials="M_*", lod_manifest=True)
     g.link(kall, "geo", kx, "geo")
     return kc, kall
 
@@ -5342,7 +5416,7 @@ def modular_block(g, B, C, D, rule):
         + "    r_ = cell(@P.x + dx, @P.z + dz, \"road\")\n"
         + "    return (r_ >= 1) & (r_ <= 3)\n"
         + "cross = (n == 1) & street(-sx_, sz_) & street(sx_, -sz_) & street(-sx_, -sz_)\n"
-        + 's@name = where(cross, "Corner_Bay", "Corner_Pillar")\n'
+        + 's@name = where(cross & (@P.y < 0.5), "Corner_BayShop", where(cross, "Corner_Bay", "Corner_Pillar"))\n'
         + "# the building it belongs to (one of the standing cells): its number and facade variant (the bay is rendered)\n"
         + "def pick(name):\n"
         + "    v = [cell(@P.x + dx, @P.z + dz, name) for dx, dz in ((-2, -2), (2, -2), (-2, 2), (2, 2))]\n"
@@ -5417,6 +5491,16 @@ def modular_block(g, B, C, D, rule):
     g.link(rl, "geo", acw, "geo")
     ack = D("PCG_Blast", title="Keep those", group="@keep == 0", cls="point")
     g.link(acw, "geo", ack, "geo")
+    # window boxes under a fifth of the street windows above the ground floor (not on the modern facade)
+    fbw = D("PCG_Wrangle", title="→ Prop_FlowerBox under some street windows", code=(
+        'nm = np.asarray(@name).reshape(-1)\n'
+        'w_ = (nm == "Wall_Window") | (nm == "Wall_WindowPair")\n'
+        "i@keep = where(w_ & (@back == 0) & (@floor >= 1) & (@facade != 3) & (rand(@ptnum * 2.17 + 0.83) < 0.22), 1, 0)\n"
+        's@name = "Prop_FlowerBox"\n'
+        "@P.y += 0.92"))
+    g.link(rl, "geo", fbw, "geo")
+    fbk = D("PCG_Blast", title="Keep those", group="@keep == 0", cls="point")
+    g.link(fbw, "geo", fbk, "geo")
     # gable ends where a pitched roof's row ends, along its ridge (both ways); dormers on the slope toward the street
     gends = []
     for sgn_ in (1, -1):
@@ -5444,12 +5528,75 @@ def modular_block(g, B, C, D, rule):
     g.link(rf, "geo", dmw, "geo")
     dmk = D("PCG_Blast", title="Keep the dormers", group="@keep == 0", cls="point")
     g.link(dmw, "geo", dmk, "geo")
-    inst = merge_all(D, "All instance points", [rl, cn, cpn, rf, rpk, ack] + gends + [dmk])
+    inst = merge_all(D, "All instance points", [rl, cn, cpn, rf, rpk, ack, fbk] + gends + [dmk])
     an = D("PCG_Wrangle", title="Asset name = glb file name", code=(
         "# the table's asset column is exactly the kit's exported file name (SM_Kit_Wall_Window.glb without the extension)\n"
         's@asset = sprintf("SM_Kit_%s", @name)'))
     g.link(inst, "geo", an, "geo")
     return {"sbk": sbk, "rl": rl, "inst": inst, "an": an}
+
+
+def city_facade_code():
+    """Wrangle (over prims) after Copy to Points of the kit: the facade variant swaps the wall material, the painted
+    metal gets a colour per building, the awnings, signs and window boxes one each (needs prim facade, bld)."""
+    return (
+        "w = @material == \"M_Wall\"\n"
+        f"m = where(w & (@facade == 1), \"{CITY_FACADE_MAT[1]}\",\n"
+        f"          where(w & (@facade == 2), \"{CITY_FACADE_MAT[2]}\",\n"
+        f"          where(w & (@facade == 3), \"{CITY_FACADE_MAT[3]}\", @material)))\n"
+        "s@material = m\n"
+        "@Cd = where(m == \"M_BrickBuff\", set(0.70, 0.62, 0.46), where(m == \"M_Stucco\", set(0.84, 0.77, 0.63), @Cd))\n"
+        "# details that vary: the painted metal (window frames, railings, shop frames) one colour per building; the\n"
+        "# awnings, signs and window boxes one each\n"
+        "def pick(r, cols):\n"
+        "    k = np.minimum((np.asarray(r).reshape(-1) * len(cols)).astype(int), len(cols) - 1)\n"
+        "    return np.asarray(cols, np.float32)[k]\n"
+        "rb = rand(@bld * 4.13 + 0.27)\n"
+        "rc = rand(@copynum * 1.71 + 0.13)\n"
+        "metal = pick(rb, [(0.30, 0.55, 0.38), (0.35, 0.35, 0.36), (2.2, 2.1, 1.9), (0.95, 0.30, 0.25), (0.35, 0.45, 0.85)])\n"
+        "awn = pick(rc, [(0.62, 0.12, 0.09), (0.12, 0.38, 0.18), (0.13, 0.22, 0.48), (0.78, 0.64, 0.36), (0.16, 0.16, 0.17),"
+        " (0.70, 0.40, 0.12)])\n"
+        "sign = pick(rand(@copynum * 3.37 + 0.61), [(1.2, 1.0, 0.6), (0.9, 0.3, 0.25), (0.35, 0.7, 1.0), (1.3, 1.3, 1.3),"
+        " (0.5, 0.9, 0.5)])\n"
+        "plant = pick(rand(@copynum * 5.11 + 0.37), [(0.18, 0.40, 0.12), (0.25, 0.48, 0.16), (0.55, 0.20, 0.35),"
+        " (0.75, 0.62, 0.20), (0.62, 0.15, 0.12)])\n"
+        "mm = np.asarray(m).reshape(-1)\n"
+        "@Cd = np.where((mm == \"M_Metal\")[:, None], metal, np.where((mm == \"Awning\")[:, None], awn,"
+        " np.where((mm == \"M_Sign\")[:, None], sign, np.where((mm == \"Planting\")[:, None], plant, @Cd))))")
+
+
+def city_block_prompt():
+    """
+    The modular city's generator as one API prompt for the City Block node (nodes_sop3.PCG_CityBlock), which expands
+    it into the graph when it runs: the kit (or the node's kit input), the rules grid, modular_block, Copy to Points
+    and the facade variants -- only what the two results need (no exports, no previews). Returns the dict written to
+    data/city_block.json: {"prompt": api, "refs": {kit, rules, setbacks, buildings, pieces}}.
+    """
+    g = Graph()
+    K1, K2, K3, K4, A, B, C, D, E = (Col(g, 400 * i, width=340) for i in range(9))
+    kc, _ = city_kit(g, K1, K2, K3, K4, A, "pcg/assets/kit")
+    grd = B("PCG_Grid", title="4 m grid", **CITY_GRID)
+    rule = B("PCG_Wrangle", title="Rules", run_over="prim", code=city_rules_code())
+    g.link(grd, "geo", rule, "geo")
+    cb_ = modular_block(g, B, C, D, rule)
+    cp = E("PCG_CopyToPoints", title="Copy to Points (pick piece by name)", piece_attribute="name",
+           target_prim_attributes="facade bld")
+    g.link(kc, "geo", cp, "source")
+    g.link(cb_["inst"], "geo", cp, "points")
+    fv = E("PCG_Wrangle", title="Facade variants", run_over="prim", code=city_facade_code())
+    g.link(cp, "geo", fv, "geo")
+    api = ui_to_api(g.to_ui())
+    refs = {"kit": str(kc["id"]), "rules": str(rule["id"]), "setbacks": str(cb_["sbk"]["id"]),
+            "buildings": str(fv["id"]), "pieces": str(cb_["an"]["id"])}
+    # only what the results need (an output node in an expansion would run too)
+    keep, todo = set(), [refs["buildings"], refs["pieces"]]
+    while todo:
+        n = todo.pop()
+        if n in keep:
+            continue
+        keep.add(n)
+        todo += [v[0] for v in api[n]["inputs"].values() if isinstance(v, list) and len(v) == 2]
+    return {"prompt": {k: v for k, v in api.items() if k in keep}, "refs": refs}
 
 
 def modular_city():
@@ -5528,7 +5675,7 @@ def modular_city():
     g.link(cmv, "geo", cei, "points")
     ckx = D("PCG_ExportMesh", title="City: the kit glbs (LOD0, LOD1, UCX) as the asset library", filename="pcg/city/assets/{name}",
             format="glb", split_attribute="name", file_attribute="asset", textures=KIT_TEXTURES,
-            texture_materials="*", lod_manifest=True)
+            texture_materials="M_*", lod_manifest=True)
     g.link(kall, "geo", ckx, "geo")
     cman = D("PCG_WorldManifest", title="City: World Manifest (World.json for the engine importers)", folder="pcg/city",
              world_size=1024.0, tile_size=1024.0, origin="north_west_corner",
@@ -5544,16 +5691,10 @@ def modular_city():
     # Preview: place the kit back by name; the facade variant swaps the wall material per building (an engine does
     # the same with a material override from the table's facade column)
     cp = E("PCG_CopyToPoints", title="Copy to Points (pick piece by name)",
-           piece_attribute="name", target_prim_attributes="facade")
+           piece_attribute="name", target_prim_attributes="facade bld")
     g.link(kc, "geo", cp, "source")
     g.link(inst, "geo", cp, "points")
-    fv = E("PCG_Wrangle", title="Facade variant → wall material", run_over="prim", code=(
-        "w = @material == \"M_Wall\"\n"
-        f"m = where(w & (@facade == 1), \"{CITY_FACADE_MAT[1]}\",\n"
-        f"          where(w & (@facade == 2), \"{CITY_FACADE_MAT[2]}\",\n"
-        f"          where(w & (@facade == 3), \"{CITY_FACADE_MAT[3]}\", @material)))\n"
-        "s@material = m\n"
-        "@Cd = where(m == \"M_BrickBuff\", set(0.70, 0.62, 0.46), where(m == \"M_Stucco\", set(0.84, 0.77, 0.63), @Cd))"))
+    fv = E("PCG_Wrangle", title="Facade variant → wall material", run_over="prim", code=city_facade_code())
     g.link(cp, "geo", fv, "geo")
     # Weathering, per building and per window, on the corners (vertex colour: a wall piece's faces are 3.5 m tall,
     # a face colour would step floor by floor). The preview multiplies the wall and glass textures by it
@@ -5743,6 +5884,15 @@ def modular_city():
     car = merge_all(E, "Car", [cbm, ccm, clt, wm])
     carn = E("PCG_Wrangle", title="Car: name", run_over="prim", code='s@name = "car"')
     g.link(car, "geo", carn, "geo")
+    # a pedestrian: a figure of boxes (legs, coat, arms, head), its clothes coloured per person
+    ped = merge_all(E, "Pedestrian", [
+        boxes(E, "Pedestrian legs", "Clothes", [(0.13, 0.82, 0.16, -0.08, 0.41, 0.0), (0.13, 0.82, 0.16, 0.08, 0.41, 0.0)]),
+        boxes(E, "Pedestrian coat + arms", "Clothes", [(0.42, 0.66, 0.24, 0.0, 1.15, 0.0), (0.1, 0.6, 0.12, -0.27, 1.12, 0.0),
+                                                       (0.1, 0.6, 0.12, 0.27, 1.12, 0.0)]),
+        boxes(E, "Pedestrian head", "Skin", [(0.2, 0.24, 0.22, 0.0, 1.62, 0.0)])])
+    pedn = E("PCG_Wrangle", title="Pedestrian: name, skin", run_over="prim",
+             code='s@name = "person"\n@Cd = where(@material == "Skin", set(0.78, 0.60, 0.48), set(0.4, 0.4, 0.4))')
+    g.link(ped, "geo", pedn, "geo")
     # benches, litter bins, a bus shelter and traffic lights (the sidewalk's own life between the lamps and trees)
     bench = merge_all(E, "Bench", [
         boxes(E, "Bench seat + back", "Wood", [(1.8, 0.06, 0.42, 0.0, 0.45, 0.0), (1.8, 0.4, 0.05, 0.0, 0.72, -0.2)]),
@@ -5778,7 +5928,7 @@ def modular_city():
                                  boxes(E, "Shed roof", "M_Roof", [(2.7, 0.12, 2.3, 0.0, 2.2, 0.0, 8.0)])])
     shedn = E("PCG_Wrangle", title="Shed: name", run_over="prim", code='s@name = "shed"\n@Cd = set(0.8, 0.8, 0.8) + 0 * @P')
     g.link(shed, "geo", shedn, "geo")
-    props = merge_all(E, "Street furniture library", [lampn, treen, carn, benchn, binn, sheln, tln, ywall, shedn])
+    props = merge_all(E, "Street furniture library", [lampn, treen, carn, benchn, binn, sheln, tln, ywall, shedn, pedn])
     off = cw + 1.2
     fpts = ([(sx * off, 0.0, sz * z) for sx in (-1, 1) for sz in (-1, 1) for z in range(10, int(reach * 0.5), 6)]
             + [(sx * x, 0.0, sz * off) for sx in (-1, 1) for sz in (-1, 1) for x in range(10, int(reach * 0.5), 6)])
@@ -5923,7 +6073,57 @@ def modular_city():
     ysk = E("PCG_Blast", title="Keep those", group="@keep == 0", cls="point")
     g.link(ysh, "geo", ysk, "geo")
     yall = merge_all(E, "Yard walls, sheds, bins", yparts + [ysk])
-    fall0 = merge_all(E, "Furniture + cars + trees + yards", [fpn, cpk, pkw, yall])
+    # traffic: cars driving in both lanes of both streets (on the right, every 20-40 m, their lights on at dusk),
+    # and people on the sidewalks, walking along them (a few standing about)
+    import random as _rnd2
+    rt = _rnd2.Random(11)
+    traffic, people = [], []
+    for ax_ in ("x", "z"):
+        for d_ in (1, -1):
+            t_ = -reach * 0.6 + rt.uniform(0, 20)
+            while t_ < reach * 0.6:
+                lane_ = -1.6 * d_ if ax_ == "z" else 1.6 * d_     # drive on the right
+                # (none in the street camera's own lane ahead of it: a car a few metres in front would fill the shot)
+                if abs(t_) > 12 and not (ax_ == "z" and lane_ < 0 and 16 < t_ < 64):
+                    traffic.append((lane_, t_, 0.0, d_) if ax_ == "z" else (t_, lane_, d_, 0.0))
+                t_ += rt.uniform(20, 40)
+    for ax_ in ("x", "z"):
+        for sd_ in (1, -1):
+            t_ = -120 + rt.uniform(0, 6)
+            while t_ < 120:
+                off_ = sd_ * (cw + rt.uniform(0.6, 2.6))
+                if abs(t_) > 7:
+                    dirn = rt.choice((1, -1))
+                    people.append((off_, t_, 0.0, dirn) if ax_ == "z" else (t_, off_, dirn, 0.0))
+                t_ += rt.uniform(3, 11) * (1 if abs(t_) < 50 else 2.2)
+    trp = E("PCG_Add", title="Driving cars: positions", points="\n".join(f"{x:.2f} 0 {z:.2f}" for x, z, _, _ in traffic))
+    trw = E("PCG_Wrangle", title="Driving cars: heading, paint, lights on", code=(
+        "fx = np.array([" + ", ".join(f"{a:g}" for _, _, a, _ in traffic) + "])\n"
+        "fz = np.array([" + ", ".join(f"{b:g}" for _, _, _, b in traffic) + "])\n"
+        "d = set(fx[@ptnum], 0 * @P.x, fz[@ptnum])\n"
+        "@N = set(d.z, 0, -d.x)        # the car model is long in x\n"
+        "@up = set(0, 1, 0) + 0 * @P\n@pscale = 1 + 0 * @P.x\n"
+        's@name = "car"\ni@moving = 1 + 0 * @ptnum\n'
+        "c = rand(@ptnum * 4.77 + 0.2)\n"
+        "v@paint = where(c < 0.3, set(0.80, 0.80, 0.78), where(c < 0.5, set(0.06, 0.06, 0.07), where(c < 0.65,"
+        " set(0.42, 0.44, 0.46), where(c < 0.8, set(0.55, 0.08, 0.06), set(0.10, 0.18, 0.38)))))"))
+    g.link(trp, "geo", trw, "geo")
+    pep = E("PCG_Add", title="People on the sidewalks: positions", points="\n".join(f"{x:.2f} 0 {z:.2f}" for x, z, _, _ in people))
+    pew = E("PCG_Wrangle", title="People: walking along the street, clothes, a little height", code=(
+        "fx = np.array([" + ", ".join(f"{a:g}" for _, _, a, _ in people) + "])\n"
+        "fz = np.array([" + ", ".join(f"{b:g}" for _, _, _, b in people) + "])\n"
+        "st = rand(@ptnum * 6.1 + 0.4) < 0.15           # standing about: any way round\n"
+        "a = rand(@ptnum * 2.9) * 6.2832\n"
+        "@N = where(st, set(sin(a), 0, cos(a)), set(fx[@ptnum], 0 * @P.x, fz[@ptnum]))\n"
+        "@up = set(0, 1, 0) + 0 * @P\n"
+        "@pscale = 0.9 + 0.2 * rand(@ptnum * 1.3 + 0.7)\n"
+        's@name = "person"\n'
+        "c = rand(@ptnum * 3.3 + 0.1)\n"
+        "v@paint = where(c < 0.25, set(0.10, 0.10, 0.12), where(c < 0.45, set(0.25, 0.28, 0.40), where(c < 0.6,"
+        " set(0.50, 0.38, 0.25), where(c < 0.72, set(0.60, 0.12, 0.10), where(c < 0.85, set(0.75, 0.72, 0.65),"
+        " set(0.20, 0.35, 0.22))))))"))
+    g.link(pep, "geo", pew, "geo")
+    fall0 = merge_all(E, "Furniture + cars + trees + yards + traffic + people", [fpn, cpk, pkw, yall, trw, pew])
     # the trees are placed per camera (near: the tree, far: impostor cards), the rest here
     fall = E("PCG_Blast", title="Furniture + cars (without the trees)", group='@name == "tree"', cls="point")
     g.link(fall0, "geo", fall, "geo")
@@ -5931,16 +6131,16 @@ def modular_city():
              keep_selected=True)
     g.link(fall0, "geo", tpts, "geo")
     fcp = E("PCG_CopyToPoints", title="Place the street furniture", piece_attribute="name",
-            target_prim_attributes="paint")
+            target_prim_attributes="paint moving")
     g.link(props, "geo", fcp, "source")
     g.link(fall, "geo", fcp, "points")
     fcc = E("PCG_Wrangle", title="Car paint → body colour", run_over="prim",
             code=(
-                '@Cd = where(@material == "Car_Paint", @paint, @Cd)\n'
+                '@Cd = where((@material == "Car_Paint") | (@material == "Clothes"), @paint, @Cd)\n'
                 "# at dusk: the lamp heads glow; a third of the cars have their lights on (white ahead, red behind)\n"
                 'm = np.asarray(@material).reshape(-1)\n'
                 'nm = np.asarray(@name).reshape(-1)\n'
-                "on = rand(@copynum * 7.13 + 0.4) < 0.33\n"
+                "on = (rand(@copynum * 7.13 + 0.4) < 0.33) | (@moving > 0)      # the driving cars all\n"
                 'light = (m == "Car_Light") & on\n'
                 "head = (nm == \"lamp\") & (@P.y > 4.75) & (@P.y < 4.9)\n"
                 "@emit = where(light, @Cd * 3.0, set(0, 0, 0)) + set(2.2, 1.7, 1.1) * where(head, 1.0, 0.0)"))
@@ -6162,6 +6362,29 @@ def modular_city():
     g.link(cam1, "cam", pr3, "camera")
     pv3 = E("PreviewImage", title="At dusk", size=[520, 400])
     g.link(pr3, "image", pv3, "images")
+    # Weather: the street in the rain (overcast, the ground and roofs wet, puddles mirroring the sky, the shops lit), and the
+    # block from the air under snow
+    pr4 = E("PCG_PreviewImage", title="Rain: the preview", width=1600, height=900, elevation=10.0, azimuth=0.0,
+            shading="color", look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=22.0, sun_azimuth=35.0,
+            haze=7.0, ground_color="0.30 0.30 0.29", clouds=1.0, cloud_seed=7, exposure=1.3, emit_attrib="emit",
+            light_range=30.0, wetness=1.0)
+    g.link(mg_c2, "geo", pr4, "geo")
+    g.link(bpv, "geo", pr4, "extra_geo")
+    g.link(ilib, "cop", pr4, "textures_cop")
+    g.link(llw, "geo", pr4, "lights")
+    g.link(cam2, "cam", pr4, "camera")
+    pv4 = E("PreviewImage", title="In the rain", size=[520, 400])
+    g.link(pr4, "image", pv4, "images")
+    pr5 = E("PCG_PreviewImage", title="Snow: the preview", width=1600, height=900, elevation=10.0, azimuth=0.0,
+            shading="color", look="outdoor", textures=CITY_PREVIEW_TEXTURES, sun_elevation=18.0, sun_azimuth=220.0,
+            haze=3.0, ground_color="0.80 0.80 0.82", clouds=0.6, cloud_seed=4, exposure=1.0, emit_attrib="",
+            snow_line=-60.0, snow_amount=1.0)
+    g.link(mg_c1, "geo", pr5, "geo")
+    g.link(bpv, "geo", pr5, "extra_geo")
+    g.link(ilib, "cop", pr5, "textures_cop")
+    g.link(cam1, "cam", pr5, "camera")
+    pv5 = E("PreviewImage", title="Under snow", size=[520, 400])
+    g.link(pr5, "image", pv5, "images")
     kpts = E("PCG_Add", title=f"{len(CITY_KIT)} points in rows (5 m apart)",
              points="\n".join(f"{5 * (i % 6)} 0 {-6 * (i // 6)}" for i in range(len(CITY_KIT))))
     kn = E("PCG_Wrangle", title="One piece per point", code=(
@@ -6178,6 +6401,24 @@ def modular_city():
     g.link(kcp, "geo", kpr, "geo")
     kpv = E("PreviewImage", title="kit", size=[520, 360])
     g.link(kpr, "image", kpv, "images")
+    # ⑦ The same generator as one node: City Block holds this network (rules, setbacks, piece rules, roofs, Copy to
+    # Points, facade variants) and expands it when it runs -- a generated block from its settings, with this kit
+    F = Col(g, 3700, width=W)
+    F.note((
+        "⑦ **City Block (PCG)**: everything above from the rules grid to the facade variants as one node -- Layout "
+        "(the table or a generated block), Seed, Density, Min / Max Floors, Setback Floors / Min. It holds the network "
+        "and expands it into the graph when it runs (as the loop blocks do), so each node inside caches as usual. With "
+        "nothing on Kit it builds the kit itself; here the kit above is linked in. buildings: the kit placed and "
+        "coloured; pieces: the instance points (name, asset, bld, floor, facade) for Export Instances."),
+        h=300, title="City Block: the generator as one node")
+    cbn = F("PCG_CityBlock", title="City Block (a generated block, seed 7)", layout="generated", rand_seed=7,
+            max_floors=10)
+    g.link(kc, "geo", cbn, "kit")
+    cbr = F("PCG_PreviewImage", title="City Block: the preview", width=1200, height=800, elevation=38.0,
+            azimuth=-30.0, shading="color", look="studio", textures=CITY_TEXTURES)
+    g.link(cbn, "buildings", cbr, "geo")
+    cbv = F("PreviewImage", title="City Block", size=[W, 300])
+    g.link(cbr, "image", cbv, "images")
     return g
 
 
@@ -7198,6 +7439,13 @@ def main(outdir=None):
         p = os.path.join(outdir, name + ".json")
         with open(p, "w", encoding="utf-8") as f:
             json.dump(fn().to_ui(), f, ensure_ascii=False, indent=1)
+        paths.append(p)
+    # the City Block node's generator (it expands this prompt into the graph)
+    if outdir == os.path.join(_PKG, "example_workflows"):
+        p = os.path.join(_PKG, "data", "city_block.json")
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(city_block_prompt(), f, ensure_ascii=False, indent=0, sort_keys=True)
         paths.append(p)
     return paths
 

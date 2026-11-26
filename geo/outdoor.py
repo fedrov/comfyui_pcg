@@ -105,10 +105,11 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     distances and square-rooted) and 'normal' (camera space: R right, G up, B toward the camera; the sky flat,
     facing the camera).
     Weather and lights (all off by default): snow_amount > 0 lays snow on the upward faces above snow_line (metres,
-    a ragged line); wetness 0..1 darkens and smooths the upward faces, with puddles on the flattest; emit_attrib names
-    a colour attribute added as emitted light (lit windows, lamp heads); lights: points (P, Cd colour, intensity) lit
-    as unshadowed point lights within light_range metres (street lamps at dusk). weather_attrib names a float
-    attribute 0..1 that scales the snow and the wetness per surface (grass blades kept dry: 0); where it is absent, 1.
+    a ragged line); wetness 0..1 darkens and smooths the upward faces (not the translucent ones), with puddles on
+    the flattest; emit_attrib names a colour attribute added as emitted light (lit windows, lamp heads); lights:
+    points (P, Cd colour, intensity) lit as unshadowed point lights within light_range metres (street lamps at
+    dusk). weather_attrib names a float attribute 0..1 that scales the snow and the wetness per surface (grass
+    blades kept dry: 0); where it is absent, 1.
     translucency_attrib names a float attribute 0..1 for thin surfaces (grass blades, leaf cards): they are lit from
     either side (no terminator on the face turned from the sun) and let that much sunlight through, tinted by their
     colour, when the sun is behind them; where it is absent, 0 (opaque, as before).
@@ -350,7 +351,8 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
                     wm = np.ones((H, W), np.float32)
                 wm[mk] = np.clip(e_[..., 0][mk], 0.0, 1.0)
                 del e_
-        _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm, ny_geo)
+        _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm, ny_geo,
+                 None if trn is None else trn > 0)
         ny_geo = None
         # wet ground needs the reflections
         use_pbr = use_pbr or (float(wetness) > 0 and (wm is None or float(wm[surf].max(initial=0.0)) > 0))
@@ -610,17 +612,20 @@ def _blur_masked(v, mask, r):
     return np.where(den > 1e-6, num / np.maximum(den, 1e-6), v).astype(np.float32)
 
 
-def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_geo=None):
+def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_geo=None, dry=None):
     """Snow and wet ground on the surface pixels, in place (albedo, roughness); wm: (H, W) 0..1 scales both;
     ny_geo: (H, W) the mesh normal's y before the normal maps, blurred to the scale of a slope, weighted 3:1 over
-    the mapped normal's."""
+    the mapped normal's; dry: (H, W) bool, pixels that do not get wet (thin translucent surfaces: leaves, grass --
+    snow still settles on them)."""
     vi = np.nonzero(surf)
     step = 1 << 20
     for s0 in range(0, len(vi[0]), step):
         so = (vi[0][s0:s0 + step], vi[1][s0:s0 + step])
         p_, ny = P[so], N[so][:, 1]
-        if ny_geo is not None:
+        ny_w = ny                                 # wetness: the pixel's own normal (the blurred one would mix the
+        if ny_geo is not None:                    # walls' and figures' into the ground beside them: a dry ring)
             ny = 0.75 * ny_geo[so] + 0.25 * ny
+            ny_w = np.maximum(ny, ny_w)
         a_ = alb[so]
         r_ = pbr["roughness"][so]
         k_ = np.float32(1.0) if wm is None else wm[so]
@@ -634,11 +639,15 @@ def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_
             a_ = a_ * (1 - sw[:, None]) + snow * sw[:, None]
             r_ = r_ * (1 - sw) + np.float32(0.55) * sw
         if wetness > 0:
-            w_ = np.float32(min(wetness, 1.0)) * np.clip((ny - 0.6) / 0.3, 0, 1) * k_
+            w_ = np.float32(min(wetness, 1.0)) * np.clip((ny_w - 0.6) / 0.3, 0, 1) * k_
+            if dry is not None:
+                w_ = w_ * (~dry[so])
             a_ = a_ * (1 - 0.45 * w_[:, None])
             r_ = r_ * (1 - 0.7 * w_)
-            pud = np.clip((_vnoise(p_[:, 0], p_[:, 2], 3.0, 4.0) - 0.62) / 0.06, 0, 1) * np.clip((ny - 0.985) / 0.01, 0, 1)
+            pud = np.clip((_vnoise(p_[:, 0], p_[:, 2], 3.0, 4.0) - 0.62) / 0.06, 0, 1) * np.clip((ny_w - 0.985) / 0.01, 0, 1)
             pud = pud * np.float32(min(wetness, 1.0)) * k_
+            if dry is not None:
+                pud = pud * (~dry[so])
             a_ = a_ * (1 - 0.5 * pud[:, None])
             r_ = r_ * (1 - pud) + np.float32(0.02) * pud
         alb[so] = a_

@@ -619,6 +619,78 @@ class PCG_WorldManifest:
         return (path, _rep(r))
 
 
+@_node("generate", ((GEO, "buildings"), (GEO, "pieces")))
+class PCG_CityBlock:
+    """
+    The modular city as one node (a digital asset in Houdini's sense): the 104 m x 88 m block of the
+    pcg_modular_city workflow -- rules grid, setbacks, the piece rules, roofs, Copy to Points of the kit, the facade
+    variants -- built from the settings here. The network is stored in data/city_block.json (tests/make_workflows.py
+    writes it from the same functions as the workflow) and expanded into the graph when the node runs, as the loop
+    blocks do; only the network's nodes that the two results need run. With nothing on Kit the node builds the kit
+    pieces itself; a kit linked in (prims named like the pieces, Wall_Window, Roof_Flat ...) replaces it.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "layout": (["table", "generated"],),
+            "rand_seed": _i(1, 0, 1 << 30),
+            "density": _f(0.85, 0.0, 1.0, 0.01),
+            "min_floors": _i(3, 1, 40),
+            "max_floors": _i(12, 1, 40),
+            "setback_floors": _i(3, 0, 20),
+            "setback_min": _i(9, 1, 40),
+        }, "optional": {
+            "kit": (GEO,),
+        }, "hidden": {"dynprompt": "DYNPROMPT", "unique_id": "UNIQUE_ID"}}
+
+    def run(self, layout, rand_seed, density, min_floors, max_floors, setback_floors, setback_min, kit=None,
+            dynprompt=None, unique_id=None):
+        import json
+        import os
+        try:
+            from comfy_execution.graph_utils import GraphBuilder, is_link
+        except ImportError as e:             # old ComfyUI versions have no expansion mechanism
+            raise RuntimeError("City Block needs node expansion (comfy_execution.graph_utils), a newer ComfyUI.") from e
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "city_block.json")
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        api, refs = d["prompt"], d["refs"]
+        rules = {"layout": 1 if layout == "generated" else 0, "seed": int(rand_seed), "density": float(density),
+                 "min_floors": int(min_floors), "max_floors": int(max_floors)}
+        backs = {"setback_floors": int(setback_floors), "setback_min": int(setback_min)}
+        # the kit: the linked one (its link, so it is not copied; a literal without a prompt) or the built one
+        kit_in = None
+        if kit is not None:
+            kit_in = kit
+            if dynprompt is not None and unique_id is not None:
+                lk = (dynprompt.get_node(str(unique_id)).get("inputs") or {}).get("kit")
+                if is_link(lk):
+                    kit_in = lk
+        keep, todo = set(), [refs["buildings"], refs["pieces"]]
+        while todo:
+            n = todo.pop()
+            if n in keep or (kit_in is not None and n == refs["kit"]):
+                continue
+            keep.add(n)
+            todo += [v[0] for v in api[n]["inputs"].values() if is_link(v)]
+        graph = GraphBuilder()
+        for nid in keep:
+            graph.node(api[nid]["class_type"], "cb" + nid).set_override_display_id(str(unique_id))
+        for nid in keep:
+            node = graph.lookup_node("cb" + nid)
+            for k, v in api[nid]["inputs"].items():
+                if is_link(v):
+                    node.set_input(k, kit_in if v[0] == refs["kit"] and kit_in is not None
+                                   else graph.lookup_node("cb" + v[0]).out(v[1]))
+                else:
+                    node.set_input(k, v)
+        graph.lookup_node("cb" + refs["rules"]).set_input("ch_params", json.dumps(rules))
+        graph.lookup_node("cb" + refs["setbacks"]).set_input("ch_params", json.dumps(backs))
+        return {"result": (graph.lookup_node("cb" + refs["buildings"]).out(0),
+                           graph.lookup_node("cb" + refs["pieces"]).out(0)),
+                "expand": graph.finalize()}
+
+
 _NAMES = {
     "PCG_DistanceFromGeometry": "Distance from Geometry (PCG)",
     "PCG_DistanceAlongGeometry": "Distance along Geometry (PCG)",
@@ -636,6 +708,7 @@ _NAMES = {
     "PCG_WorldManifest": "World Manifest (PCG)",
     "PCG_TreeGenerator": "Tree Generator (PCG)",
     "PCG_LeafCardTexture": "Leaf Card Texture (PCG)",
+    "PCG_CityBlock": "City Block (PCG)",
 }
 
 NODE_CLASS_MAPPINGS = {k: globals()[k] for k in _NAMES}
