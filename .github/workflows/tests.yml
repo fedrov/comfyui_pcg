@@ -77,6 +77,9 @@ jobs:
 
       - name: Run the production workflows
         working-directory: comfyui_pcg
+        # the three pipeline groups at once (the runner has the memory for them: about 11 GB together)
+        env:
+          PCG_PROD_PARALLEL: "1"
         run: python tests/run_tests.py -k test_prod_workflows --timeout 6600 --logs test-logs
 
       - name: Keep the suite's output

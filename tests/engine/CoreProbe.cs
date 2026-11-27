@@ -12,6 +12,15 @@ public static class CoreProbe
     public static int Main(string[] args)
     {
         var w = World.Load(args[0]);
+        if (args.Length > 2 && args[1] == "facade")          // a facade material's textures: {"slot": "file", ...}
+        {
+            var ft = w.FacadeTextures(args[2]);
+            var fb = new StringBuilder("{");
+            foreach (var kv in ft)
+                fb.Append((fb.Length > 1 ? "," : "") + "\"" + kv.Key + "\":\"" + kv.Value.Replace("\\", "/") + "\"");
+            Console.WriteLine(fb.Append("}").ToString());
+            return 0;
+        }
         var sb = new StringBuilder("{");
         var hr = w.HeightRange;
         sb.Append("\"range\":[" + F(hr[0]) + "," + F(hr[1]) + "],");

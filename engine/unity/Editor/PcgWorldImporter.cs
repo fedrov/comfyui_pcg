@@ -15,6 +15,7 @@
 //               else the node of the same name in the asset library glbs; else it is skipped (counted in the log).
 //               With World.json's city key (the modular city), an instance's facade column swaps the wall material
 //               (wall_material) for that variant's (facade_materials), found by name among the project's materials
+//               or, when there is none, made from the material library's textures (facade_textures)
 //   roads       a LineRenderer per road polyline, its width from the road class
 //
 // Coordinates: see PcgWorldCore.cs (x = x, y = y, z = -z). glTF importers already convert glb files from glTF's
@@ -319,8 +320,56 @@ namespace Pcg.World
                 string p = AssetDatabase.GUIDToAssetPath(guid);
                 if (Path.GetFileNameWithoutExtension(p) == name) { mat = AssetDatabase.LoadAssetAtPath<Material>(p); break; }
             }
+            if (mat == null) mat = MakeFacadeMaterial(w, name);
             if (mat == null) Debug.LogWarning("PCG World: no material " + name + " in the project (facade " + facade + ")");
             cache[name] = mat;
+            return mat;
+        }
+
+        // a facade material the project lacks, made from the material library's textures (World.json's
+        // facade_textures): copied under Assets/PCGWorld/Facades, the normal map imported as one (the files are
+        // OpenGL, Unity's convention), the ORM's occlusion in green is not URP's packing, so only base colour and
+        // normal are set, with a matt smoothness
+        static Material MakeFacadeMaterial(World w, string name)
+        {
+            var tex = w.FacadeTextures(name);
+            string bc;
+            if (!tex.TryGetValue("basecolor", out bc)) return null;
+            if (!AssetDatabase.IsValidFolder("Assets/PCGWorld")) AssetDatabase.CreateFolder("Assets", "PCGWorld");
+            if (!AssetDatabase.IsValidFolder("Assets/PCGWorld/Facades")) AssetDatabase.CreateFolder("Assets/PCGWorld", "Facades");
+            var loaded = new Dictionary<string, Texture2D>();
+            foreach (var kv in tex)
+            {
+                if (kv.Key == "orm") continue;
+                string dst = "Assets/PCGWorld/Facades/" + Path.GetFileName(kv.Value);
+                string full = Path.Combine(Path.GetDirectoryName(Application.dataPath), dst);
+                if (!File.Exists(full)) File.Copy(kv.Value, full);
+                AssetDatabase.ImportAsset(dst);
+                if (kv.Key == "normal")
+                {
+                    var ti = AssetImporter.GetAtPath(dst) as TextureImporter;
+                    if (ti != null) { ti.textureType = TextureImporterType.NormalMap; ti.SaveAndReimport(); }
+                }
+                loaded[kv.Key] = AssetDatabase.LoadAssetAtPath<Texture2D>(dst);
+            }
+            var sh = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (sh == null) return null;
+            var mat = new Material(sh);
+            Texture2D t;
+            if (loaded.TryGetValue("basecolor", out t) && t != null)
+            {
+                if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", t);
+                if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", t);
+            }
+            if (loaded.TryGetValue("normal", out t) && t != null && mat.HasProperty("_BumpMap"))
+            {
+                mat.SetTexture("_BumpMap", t);
+                mat.EnableKeyword("_NORMALMAP");
+            }
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.15f);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.15f);
+            AssetDatabase.CreateAsset(mat, "Assets/PCGWorld/Facades/" + name + ".mat");
+            Debug.Log("PCG World: facade material " + name + " made from its textures");
             return mat;
         }
 

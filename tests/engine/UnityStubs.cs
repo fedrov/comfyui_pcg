@@ -52,7 +52,15 @@ namespace UnityEngine
         public T[] GetComponentsInChildren<T>() { return new T[0]; }
     }
     public class Renderer : Component { public Material[] sharedMaterials { get; set; } }
-    public class Material : Object { }
+    public class Shader : Object { public static Shader Find(string name) { return null; } }
+    public class Material : Object
+    {
+        public Material(Shader shader) { }
+        public bool HasProperty(string name) { return false; }
+        public void SetTexture(string name, Texture value) { }
+        public void SetFloat(string name, float value) { }
+        public void EnableKeyword(string keyword) { }
+    }
     public class Mesh : Object { }
     public class MeshFilter : Component { public Mesh sharedMesh; }
     public class Collider : Component { }
@@ -111,7 +119,15 @@ namespace UnityEditor
         public static void SaveAssets() { }
         public static string[] FindAssets(string filter) { return new string[0]; }
         public static string GUIDToAssetPath(string guid) { return ""; }
+        public static void ImportAsset(string path) { }
     }
+    public enum TextureImporterType { Default = 0, NormalMap = 1 }
+    public class AssetImporter : UnityEngine.Object
+    {
+        public static AssetImporter GetAtPath(string path) { return null; }
+        public void SaveAndReimport() { }
+    }
+    public class TextureImporter : AssetImporter { public TextureImporterType textureType { get; set; } }
     public static class PrefabUtility
     {
         public static UnityEngine.Object InstantiatePrefab(UnityEngine.Object assetComponentOrGameObject) { return null; }

@@ -227,8 +227,9 @@ SPECS = {
     "PCG_CityBlock": {
         "order": ["layout", "rand_seed", "density", "min_floors", "max_floors", "setback_floors", "setback_min"],
         "inputs": {
-            "layout": {"label": "Layout", "menu": _m("table", "Table", "generated", "Generated"),
-                       "help": "The fixed block of the example (Table) or one generated from Seed"},
+            "layout": {"label": "Layout", "menu": _m("table", "Table", "generated", "Generated", "town", "Town"),
+                       "help": "The fixed block of the example (Table), one generated from Seed, or one laid out on "
+                               "the grid input (Town: its ext_road / ext_off cells)"},
             "rand_seed": {"label": "Seed", "help": "Generated: another seed, another block"},
             "density": {"label": "Density", "help": "Generated: the share of lots that get a building"},
             "min_floors": {"label": "Min Floors", "section": "Floors", "sep": True,

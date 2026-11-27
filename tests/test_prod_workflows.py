@@ -328,12 +328,25 @@ else:
     CWD = os.environ.get("PCG_PROD_CWD") or tempfile.mkdtemp(prefix="pcg_prod_")
     OUT = os.path.join(CWD, "output")
     if not SECTIONS:
-        for grp in ("terrain", "materials,city", "rocks"):
+        # PCG_PROD_PARALLEL=1 starts the three groups at once (a machine with the memory for all three, about 11 GB:
+        # the CI runner) and prints each one's lines when it is done, in the same order
+        par_ = os.environ.get("PCG_PROD_PARALLEL") == "1"
+        import threading as _th
+
+        def _start(grp):
             env = dict(os.environ, PCG_PROD_SECTIONS=grp, PCG_PROD_CWD=CWD, PCG_PROD_CHILD="1")
             pr_ = subprocess.Popen([sys.executable, os.path.abspath(__file__)], env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+            lines_ = []
+            t_ = _th.Thread(target=lambda: lines_.extend(pr_.stdout), daemon=True)
+            t_.start()
+            return grp, pr_, lines_, t_
+
+        def _report(grp, pr_, lines_, t_):
+            rc_ = pr_.wait()
+            t_.join()
             on_, done_, tail_ = False, False, []
-            for ln in pr_.stdout:
+            for ln in lines_:
                 if ln.startswith("=== production sections"):
                     on_ = True
                     continue
@@ -346,10 +359,17 @@ else:
                 print(ln, end="", flush=True)
                 if ln.startswith("  PASS") or ln.startswith("  FAIL"):
                     OK.append(ln.startswith("  PASS"))
-            rc_ = pr_.wait()
             if not done_:
                 check(f"the {grp} process ran to the end", False,
                       f"exit code {rc_} (out of memory?): " + "".join(tail_)[-600:])
+
+        groups_ = ("terrain", "materials,city", "rocks")
+        if par_:
+            for job_ in [_start(g_) for g_ in groups_]:
+                _report(*job_)
+        else:
+            for g_ in groups_:
+                _report(*_start(g_))
     else:
         print("=== production sections: " + ",".join(SECTIONS), flush=True)
         if "terrain" in SECTIONS:
@@ -728,6 +748,24 @@ else:
                       and np.mean(np.array(errs_) < 6) >= 0.8, [round(e_, 1) for e_ in errs_])
                 check("    negative control: against another town's roads, most blocks do not match",
                       np.mean(np.array(errs0_) < 6) < 0.5, [round(e_, 1) for e_ in errs0_])
+            # the city blocks' street furniture: crossings, lamps, parked cars (and street trees) on the town's roads
+            # through the blocks, on the ground, every one a node of the props glb
+            sfn = ("SM_Crosswalk", "SM_CityLamp", "SM_Car")
+            sfr = [r for r in rows if r["asset"] in sfn]
+            tw2_ = cap["got"].get("Towns: numbered (and where their centre is)")
+            if sfr and tw2_ is not None:
+                sxz = np.array([[float(r["px"]) - 2048.0, float(r["pz"]) - 2048.0] for r in sfr])
+                dtn = cKDTree(np.asarray(tw2_)).query(sxz)[0]
+                sdy = np.abs(np.array([float(r["py"]) for r in sfr]) - hgt(sxz[:, 0] + 2048.0, sxz[:, 1] + 2048.0))
+                cnt_ = {a_: sum(r["asset"] == a_ for r in sfr) for a_ in sfn}
+                props_ = node_meshes(os.path.join(WD, "assets", "SM_Props.glb"))[0]
+                pn_ = {n_.get("name") for n_ in props_.get("nodes", [])}
+                check(f"city blocks' street furniture: {cnt_}, all within 75 m of their town's point (max "
+                      f"{dtn.max():.0f} m), on the ground (median {np.median(sdy):.2f} m off), each a node of SM_Props.glb",
+                      all(v_ > 10 for v_ in cnt_.values()) and dtn.max() < 75 and np.median(sdy) < 0.3
+                      and set(sfn) <= pn_, sorted(set(sfn) - pn_))
+            else:
+                check("city blocks' street furniture in the instance tables", False, len(sfr))
             assets = {r["asset"] for r in rows}
             check("  rock asset names match the glb exported by the rock pipeline (SM_Rock_00..03)",
                   {a for a in assets if a.startswith("SM_Rock_")} == {f"SM_Rock_{k:02d}" for k in range(4)})
@@ -1179,9 +1217,11 @@ else:
             check(f"  Towns.lods.json: the LOD chain of every town for an engine (distances, screen sizes, transitions, "
                   f"triangles falling)", sorted(la_) == towns_ and lok, lj["assets"][0]["lods"])
             _, pn_ = node_meshes(os.path.join(WD, "assets/SM_Props.glb"))
-            check("  SM_Props.glb: the orchard tree, hedge, bridge, pier, the three lamps and guard rail proxies, named as in "
-                  "the tables", sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_BridgePier",
-                                                       "SM_StreetLamp", "SM_GuardRail", "SM_RoadLamp", "SM_LaneLamp"]))
+            check("  SM_Props.glb: the orchard tree, hedge, bridge, pier, the three lamps and guard rail proxies, and the city "
+                  "blocks' car, zebra crossing and lamp, named as in the tables",
+                  sorted(pn_) == sorted(["SM_Proxy_Fruit", "SM_Proxy_Hedge", "SM_Bridge", "SM_BridgePier",
+                                         "SM_StreetLamp", "SM_GuardRail", "SM_RoadLamp", "SM_LaneLamp", "SM_Car",
+                                         "SM_Crosswalk", "SM_CityLamp"]), sorted(pn_))
             # the far view: the tree proxies as LOD chains ending in impostor cards, and their impostor atlases
             ad_ = os.path.join(WD, "assets")
             for a_ in ("Pine", "Broadleaf"):
@@ -1551,14 +1591,16 @@ else:
                     "Wall_WindowPair": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Roof_Flat": {"M_RoofFlat"},
                     "Roof_Unit": {"M_Trim", "M_Metal"}, "Roof_Tank": {"M_Roof", "M_Metal"},
                     "Wall_Balcony": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"},
-                    "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign", "Awning"},
+                    "Wall_Shopfront": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "M_Sign", "Awning", "Lettering"},
                     "Roof_Penthouse": {"M_Wall", "M_Door", "M_Trim", "M_Metal"},
                     "Corner_Bay": {"M_Wall", "M_Glass", "M_Trim"}, "Wall_Curtain": {"M_Metal", "M_Glass"},
                     "Wall_Arcade": {"M_Wall", "M_Trim", "M_Glass", "M_Metal"}, "Prop_ACUnit": {"M_Trim", "M_Metal"},
                     "Roof_Gable": {"M_Roof"}, "Roof_GableEnd": {"M_Wall"}, "Roof_Dormer": {"M_Trim", "M_Glass", "M_Roof"},
                     "Roof_Deck": {"M_Door", "M_Trim"}, "Roof_Antenna": {"M_Metal"},
                     "Corner_BayShop": {"M_Wall", "M_Glass", "M_Sign", "M_Metal", "M_Trim"},
-                    "Prop_FlowerBox": {"M_Trim", "Planting"}}
+                    "Prop_FlowerBox": {"M_Trim", "Planting"},
+                    "Wall_BalconyGlass": {"M_Wall", "M_Trim", "M_Glass", "M_Metal", "Glass_Frosted"},
+                    "Roof_Garden": {"M_Trim", "Planting", "M_Door"}, "Prop_FireEscape": {"M_Metal"}}
             got = {n: {m.get("name") for m in node_meshes(kit["SM_Kit_" + n])[0].get("materials", [])} for n in want}
             check("  kit detail: window frames / door casings / railings / shopfront frames carry their material slots",
                   all(got[n] == want[n] for n in want), {n: sorted(got[n]) for n in want if got[n] != want[n]})
@@ -1768,6 +1810,26 @@ else:
                   "about a third of those windows",
                   acs and all(k in winp and not (winp[k][0] or winp[k][1]) and int(k[1]) >= 1 for k in keys)
                   and 0.2 < len(acs) / max(len(elig), 1) < 0.45, (len(acs), len(elig)))
+            # fire escapes: each a column up the back of a building of 4+ floors, one landing per floor from the first
+            # to the top (the same x, z every floor), never on a street facade
+            fes_ = [r for r in rows if r["asset"] == "SM_Kit_Prop_FireEscape"]
+            colk = {}
+            for r in fes_:
+                colk.setdefault((r["bld"], round(float(r["px"]), 1), round(float(r["pz"]), 1)), set()).add(int(r["floor"]))
+            okc = all(fl_ == set(range(1, max(fl_) + 1)) and 3 <= max(fl_) + 1 <= floors[int(b_)]
+                      for (b_, *_), fl_ in colk.items())
+            check(f"fire escapes: {len(colk)} columns, each up the back of a building of 4+ floors from the first floor up "
+                  "(one landing per floor, no gaps, within the building's height), never facing a street",
+                  len(colk) > 0 and okc and all(floors[int(b_)] >= 4 for b_, *_ in colk)
+                  and not any((lambda f: f[0] or f[1])(facing(r)) for r in fes_),
+                  {k_: sorted(v_) for k_, v_ in list(colk.items())[:3]})
+            balk_ = {}
+            for r in rows:
+                if r["asset"] in ("SM_Kit_Wall_Balcony", "SM_Kit_Wall_BalconyGlass"):
+                    balk_.setdefault(r["bld"], set()).add(r["asset"])
+            check("  balconies: one railing per building (iron balusters or a glass balustrade), both kinds in the block",
+                  all(len(v_) == 1 for v_ in balk_.values()) and len(set().union(*balk_.values())) == 2 if balk_ else False,
+                  {k_: sorted(v_) for k_, v_ in balk_.items()})
             # window boxes: 92 cm above a street window's slot (same building, floor, facing), above the ground floor,
             # not on the modern facade; about a fifth of those windows
             fbs = [r for r in rows if r["asset"] == "SM_Kit_Prop_FlowerBox"]
@@ -1807,6 +1869,38 @@ else:
                           and occ(float(r["px"]), float(r["pz"])) == int(r["bld"]) for r in pent)
                   and not any(abs(float(o["px"]) - float(r["px"])) < 2 and abs(float(o["pz"]) - float(r["pz"])) < 2
                               for r in pent for o in plant), [(r["bld"], r["px"], r["pz"]) for r in pent])
+            # the traffic's tracks: 240 frames; every mover a steady step along its heading (cars 8-11 m/s on their
+            # lane, people about 1.35 m/s), wrapping round only at the ends of its run; cars on the right
+            tp_ = os.path.join(OUT, "pcg/city/traffic/Traffic.csv")
+            if os.path.exists(tp_):
+                tr_ = list(csv.DictReader(open(tp_, encoding="utf-8")))
+                byact = {}
+                for r in tr_:
+                    byact.setdefault(int(r["actor"]), []).append(
+                        (int(r["frame"]), r["asset"], float(r["px"]), float(r["pz"])))
+                fr_ok = all(sorted(f_ for f_, *_ in v_) == list(range(240)) for v_ in byact.values())
+                spd_ok = True
+                for v_ in byact.values():
+                    v_.sort()
+                    st_ = np.hypot(np.diff([x_ for *_, x_, _ in v_]), np.diff([z_ for *_, z_ in v_])) * 24
+                    st_ = st_[st_ < 50]                       # (the wrap round at the end of the run; the table's positions have 6 digits)
+                    lim_ = (7.9, 11.1) if v_[0][1] == "car" else (1.0, 1.8)
+                    spd_ok &= len(st_) >= 230 and np.ptp(st_) < 0.01 and lim_[0] <= st_.mean() <= lim_[1]
+                # right-hand traffic: a car's lane offset, seen along its heading, is to its right
+                rh_ = []
+                for v_ in byact.values():
+                    if v_[0][1] != "car":
+                        continue
+                    (f0, _, x0, z0), (f1, _, x1, z1) = v_[0], v_[1]
+                    hx, hz = x1 - x0, z1 - z0
+                    rx, rz = -hz, hx                       # the right of the heading (x east, z south, y up)
+                    lat = (0.0, z0) if abs(hx) > abs(hz) else (x0, 0.0)
+                    rh_.append((lat[0] * rx + lat[1] * rz) > 0)
+                check(f"traffic tracks: {len(byact)} movers x 240 frames, each a steady step (cars 8-11 m/s, people "
+                      f"1.0-1.8 m/s) wrapping round only at the ends of its run; the cars on the right ({np.mean(rh_):.0%})",
+                      len(byact) > 50 and fr_ok and spd_ok and rh_ and all(rh_), (len(byact), fr_ok, spd_ok))
+            else:
+                check("traffic tracks written (pcg/city/traffic/Traffic.csv)", False)
             # the same block for the engine importers: World.json under pcg/city
             wj = os.path.join(OUT, "pcg/city/World.json")
             W = json.load(open(wj)) if os.path.exists(wj) else {}

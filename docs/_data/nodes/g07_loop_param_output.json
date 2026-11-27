@@ -431,7 +431,8 @@
    "emit_attrib": "Outdoor: a colour attribute added as emitted light (linear, before exposure): lit windows, lamp heads. Empty reads none.",
    "light_range": "Outdoor: how far the point lights on the lights input reach, in metres.",
    "weather_attrib": "Outdoor: a float attribute 0..1 that scales the snow and the wetness per surface, so grass blades (whose normals point up like the ground's) can stay dry: 0 keeps a surface as it is. Where the attribute is absent the weather applies in full.",
-   "translucency_attrib": "Outdoor: a float attribute 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side (the face turned away from the sun is not put in shadow; the shading normal decides), when the sun is behind them that share of its light shines through, tinted by their colour, and they get a faint waxy sheen toward the sun. Where the attribute is absent a surface is opaque, as before."
+   "translucency_attrib": "Outdoor: a float attribute 0..1 for thin surfaces such as grass blades and leaf cards. They are lit from either side (the face turned away from the sun is not put in shadow; the shading normal decides), when the sun is behind them that share of its light shines through, tinted by their colour, and they get a faint waxy sheen toward the sun. Where the attribute is absent a surface is opaque, as before.",
+   "rain": "Outdoor: falling rain, 0 to 1 -- thin slanted streaks, each at its own distance (1-40 m) and hidden behind whatever is nearer; with Wetness the bright lights (lit windows, lamps, car lights) are also drawn out as vertical streaks of reflection down the wet ground below them. 0 is off."
   }
  },
  "PCG_Retime": {

@@ -619,20 +619,23 @@ class PCG_WorldManifest:
         return (path, _rep(r))
 
 
-@_node("generate", ((GEO, "buildings"), (GEO, "pieces")))
+@_node("generate", ((GEO, "buildings"), (GEO, "pieces"), (GEO, "cells")))
 class PCG_CityBlock:
     """
     The modular city as one node (a digital asset in Houdini's sense): the 104 m x 88 m block of the
-    pcg_modular_city workflow -- rules grid, setbacks, the piece rules, roofs, Copy to Points of the kit, the facade
-    variants -- built from the settings here. The network is stored in data/city_block.json (tests/make_workflows.py
-    writes it from the same functions as the workflow) and expanded into the graph when the node runs, as the loop
-    blocks do; only the network's nodes that the two results need run. With nothing on Kit the node builds the kit
-    pieces itself; a kit linked in (prims named like the pieces, Wall_Window, Roof_Flat ...) replaces it.
+    pcg_prod_modular_city workflow -- rules grid, setbacks, the piece rules, roofs, Copy to Points of the kit, the
+    facade variants -- built from the settings here. The network is stored in data/city_block.json
+    (tests/make_workflows.py writes it from the same functions as the workflow) and expanded into the graph when the
+    node runs, as the loop blocks do; only the network's nodes that the results need run. With nothing on Kit the
+    node builds the kit pieces itself; a kit linked in (prims named like the pieces, Wall_Window, Roof_Flat ...)
+    replaces it. Layout Town lays the block out on a grid of your own (the 4 m grid with prim attributes ext_road:
+    1 on the cells that are road, ext_off: 1 where nothing is built), e.g. a town's roads sampled from a map; its
+    Seed counts as a for-each iteration (link one, and every town gets its own block).
     """
     @classmethod
     def INPUT_TYPES(cls):
         return {"required": {
-            "layout": (["table", "generated"],),
+            "layout": (["table", "generated", "town"],),
             "rand_seed": _i(1, 0, 1 << 30),
             "density": _f(0.85, 0.0, 1.0, 0.01),
             "min_floors": _i(3, 1, 40),
@@ -641,35 +644,47 @@ class PCG_CityBlock:
             "setback_min": _i(9, 1, 40),
         }, "optional": {
             "kit": (GEO,),
+            "grid": (GEO,),
         }, "hidden": {"dynprompt": "DYNPROMPT", "unique_id": "UNIQUE_ID"}}
 
     def run(self, layout, rand_seed, density, min_floors, max_floors, setback_floors, setback_min, kit=None,
-            dynprompt=None, unique_id=None):
+            grid=None, dynprompt=None, unique_id=None):
         import json
         import os
         try:
             from comfy_execution.graph_utils import GraphBuilder, is_link
         except ImportError as e:             # old ComfyUI versions have no expansion mechanism
             raise RuntimeError("City Block needs node expansion (comfy_execution.graph_utils), a newer ComfyUI.") from e
+        if layout == "town" and grid is None:
+            raise ValueError("City Block: Layout Town lays the block out on the grid input (the 4 m grid with "
+                             "ext_road / ext_off prim attributes); nothing is connected there.")
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "city_block.json")
         with open(path, encoding="utf-8") as f:
             d = json.load(f)
         api, refs = d["prompt"], d["refs"]
-        rules = {"layout": 1 if layout == "generated" else 0, "seed": int(rand_seed), "density": float(density),
+        town = layout == "town"
+        rules = {"layout": 2 if town else (1 if layout == "generated" else 0),
+                 "seed": 1 if town else int(rand_seed), "density": float(density),
                  "min_floors": int(min_floors), "max_floors": int(max_floors)}
         backs = {"setback_floors": int(setback_floors), "setback_min": int(setback_min)}
-        # the kit: the linked one (its link, so it is not copied; a literal without a prompt) or the built one
-        kit_in = None
+        me = (dynprompt.get_node(str(unique_id)).get("inputs") or {}) if (dynprompt is not None
+                                                                           and unique_id is not None) else {}
+
+        def outside(name, value):
+            """A linked input: its link (so it is not copied), or the value itself without a prompt."""
+            if value is None:
+                return None
+            return me.get(name) if is_link(me.get(name)) else value
+
+        swap = {}                           # stored node -> what replaces it
         if kit is not None:
-            kit_in = kit
-            if dynprompt is not None and unique_id is not None:
-                lk = (dynprompt.get_node(str(unique_id)).get("inputs") or {}).get("kit")
-                if is_link(lk):
-                    kit_in = lk
-        keep, todo = set(), [refs["buildings"], refs["pieces"]]
+            swap[refs["kit"]] = outside("kit", kit)
+        if town:
+            swap[refs["grid"]] = outside("grid", grid)
+        keep, todo = set(), [refs["buildings"], refs["pieces"], refs["setbacks"]]
         while todo:
             n = todo.pop()
-            if n in keep or (kit_in is not None and n == refs["kit"]):
+            if n in keep or n in swap:
                 continue
             keep.add(n)
             todo += [v[0] for v in api[n]["inputs"].values() if is_link(v)]
@@ -680,14 +695,16 @@ class PCG_CityBlock:
             node = graph.lookup_node("cb" + nid)
             for k, v in api[nid]["inputs"].items():
                 if is_link(v):
-                    node.set_input(k, kit_in if v[0] == refs["kit"] and kit_in is not None
-                                   else graph.lookup_node("cb" + v[0]).out(v[1]))
+                    node.set_input(k, swap[v[0]] if v[0] in swap else graph.lookup_node("cb" + v[0]).out(v[1]))
                 else:
                     node.set_input(k, v)
-        graph.lookup_node("cb" + refs["rules"]).set_input("ch_params", json.dumps(rules))
+        rl = graph.lookup_node("cb" + refs["rules"])
+        rl.set_input("ch_params", json.dumps(rules))
+        rl.set_input("rand_seed", int(rand_seed) if town else 0)
         graph.lookup_node("cb" + refs["setbacks"]).set_input("ch_params", json.dumps(backs))
         return {"result": (graph.lookup_node("cb" + refs["buildings"]).out(0),
-                           graph.lookup_node("cb" + refs["pieces"]).out(0)),
+                           graph.lookup_node("cb" + refs["pieces"]).out(0),
+                           graph.lookup_node("cb" + refs["setbacks"]).out(0)),
                 "expand": graph.finalize()}
 
 

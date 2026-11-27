@@ -2372,7 +2372,8 @@
     "emit",
     40.0,
     "weather",
-    "translucency"
+    "translucency",
+    0.0
    ],
    "title": "LOD0 + baked textures (studio)"
   },
@@ -2662,7 +2663,8 @@
     "emit",
     40.0,
     "weather",
-    "translucency"
+    "translucency",
+    0.0
    ],
    "title": "High-poly (with bake colour)"
   },
@@ -2966,7 +2968,8 @@
     "emit",
     40.0,
     "weather",
-    "translucency"
+    "translucency",
+    0.0
    ],
    "title": "LOD0 / 1 / 2 with the baked textures"
   },

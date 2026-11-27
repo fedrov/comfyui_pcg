@@ -11,6 +11,10 @@ data/city_block.json into the graph when it runs (run through fakecomfy's Execut
           with setbacks (negative control)
   kit     a kit linked in replaces the built one: a 1 m box named as each piece -> every placed piece is that box (6
           faces each, its material); the link is reused, not copied (the expansion points at the kit's node)
+  town    Layout Town on a grid of one's own (ext_road / ext_off, as a town's map gives them): the cells (third
+          output) carry exactly the rules wrangle's buildings for that grid and seed (as the world's towns ran it
+          before); every piece off the road cells; another seed (a for-each iteration) another block; no grid: a
+          clear error
 """
 import json
 import os
@@ -64,7 +68,7 @@ outs = [v["class_type"] for v in stored["prompt"].values() if getattr(MAP[v["cla
 check("  no output node in it (exports, previews)", not outs, outs)
 
 print("── Layout Table")
-(b0, p0), _ = block()
+(b0, p0, _c), _ = block()
 bld = pts(p0, "bld").astype(int)
 want = {b for b, *_ in MW.CITY_LOTS}
 check("the buildings are exactly CITY_LOTS'", set(bld.tolist()) == want, sorted(set(bld.tolist())))
@@ -81,19 +85,19 @@ check("  buildings: the kit placed, facade variants swapped in", b0.nprims > 100
       {MW.CITY_FACADE_MAT[1], MW.CITY_FACADE_MAT[2]} <= mats, sorted(mats))
 
 print("── Generated")
-(_, pa), _ = block(layout="generated", rand_seed=5)
-(_, pb), _ = block(layout="generated", rand_seed=5)
-(_, pc), _ = block(layout="generated", rand_seed=6)
+(_, pa, _c), _ = block(layout="generated", rand_seed=5)
+(_, pb, _c), _ = block(layout="generated", rand_seed=5)
+(_, pc, _c), _ = block(layout="generated", rand_seed=6)
 sig = lambda p: np.asarray(p.get(POINT, "P")).round(3).tobytes()        # noqa: E731
 check("a seed gives the same block", sig(pa) == sig(pb), pa.npoints)
 check("  another seed another one", sig(pa) != sig(pc))
-(_, p5), _ = block(layout="generated", rand_seed=5, min_floors=5, max_floors=5, setback_floors=0)
+(_, p5, _c), _ = block(layout="generated", rand_seed=5, min_floors=5, max_floors=5, setback_floors=0)
 nm5, fl5 = pts(p5, "name").astype(str), pts(p5, "floor").astype(int)
 w5 = np.char.startswith(nm5, "Wall_") | np.char.startswith(nm5, "Corner_")
 check("Min = Max Floors = 5: every wall at floors 0..4, the top floor 4 everywhere",
       fl5[w5].max() == 4 and all(fl5[w5 & (pts(p5, "bld") == b)].max() == 4 for b in np.unique(pts(p5, "bld"))))
-(_, s3), _ = block(setback_floors=3)
-(_, s0), _ = block(setback_floors=0)
+(_, s3, _c), _ = block(setback_floors=3)
+(_, s0, _c), _ = block(setback_floors=0)
 tall = [b for b, *_, f_ in MW.CITY_LOTS if f_ >= 9]
 n3 = sum(int(((pts(s3, "bld") == b)).sum()) for b in tall)
 n0 = sum(int(((pts(s0, "bld") == b)).sum()) for b in tall)
@@ -139,12 +143,68 @@ api_in = dict(DEF)
 api_in["kit"] = ["cp", 0]
 api = {"cb": {"class_type": "PCG_CityBlock", "inputs": api_in}, **kit_nodes}
 ex = fakecomfy.Executor(api, MAP, release=True)
-bk, pk = ex.run("cb")
+bk, pk, _c = ex.run("cb")
 mk = set(np.asarray(bk.get(PRIM, "material")).reshape(-1).astype(str).tolist())
 check("every placed piece is the linked box: 6 faces each, its material", bk.nprims == 6 * pk.npoints
       and mk == {"X"} and pk.npoints == p0.npoints, (bk.nprims, pk.npoints, sorted(mk)))
 kit_calls = [c for c in ex.calls if c[0] == "PCG_Boolean"]
 check("  the built kit does not run (its nodes are left out of the expansion)", not kit_calls, len(kit_calls))
+
+print("── Layout Town (a grid of one's own)")
+NX, NZ = MW.CITY_GRID["cols"] - 1, MW.CITY_GRID["rows"] - 1
+CX = -MW.CITY_GRID["size_x"] / 2 + 2 + 4 * np.arange(NX)
+CZ = -MW.CITY_GRID["size_z"] / 2 + 2 + 4 * np.arange(NZ)
+Xc, Zc = np.meshgrid(CX, CZ, indexing="xy")
+road_m = (np.abs(Xc - 0.6 * Zc - 6) < 5) | (np.abs(Zc + 20) < 4) & (Xc > 0)
+off_m = Xc ** 2 + Zc ** 2 > 50 ** 2
+
+
+class _Grid:
+    """A source node: the 4 m grid with ext_road / ext_off."""
+    FUNCTION = "run"
+    RETURN_TYPES = ("GEO",)
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {}}
+
+    def run(self):
+        g_ = build.grid(**MW.CITY_GRID)
+        g_.set(PRIM, "ext_road", road_m.reshape(-1, 1).astype(np.float32))
+        g_.set(PRIM, "ext_off", off_m.reshape(-1, 1).astype(np.float32))
+        return (g_,)
+
+
+MAPT = dict(MAP, TownGrid=_Grid)
+
+
+def town(seed):
+    api_ = {"tg": {"class_type": "TownGrid", "inputs": {}},
+            "cb": {"class_type": "PCG_CityBlock", "inputs": dict(DEF, layout="town", rand_seed=seed, min_floors=2,
+                                                                 max_floors=7, grid=["tg", 0])}}
+    return fakecomfy.Executor(api_, MAPT, release=True).run("cb")
+
+
+tb_, tp_, tc_ = town(4)
+ref_ = MAP["PCG_Wrangle"]().run(_Grid().run()[0], "prim", MW.city_rules_code(), "", 4,
+                               ch_params=json.dumps({"layout": 2, "max_floors": 7, "min_floors": 2}))
+ref_ = (ref_["result"] if isinstance(ref_, dict) else ref_)[0]
+cb_bld = np.asarray(tc_.get(PRIM, "bld")).reshape(-1)
+check("the cells: exactly the rules wrangle's buildings for this grid and seed (Layout 2, the seed as rand_seed)",
+      (cb_bld == np.asarray(ref_.get(PRIM, "bld")).reshape(-1)).all() and (cb_bld >= 0).sum() > 20,
+      int((cb_bld >= 0).sum()))
+rd_ = np.asarray(tc_.get(PRIM, "road")).reshape(-1)
+check("  the road cells are the grid's ext_road, none built on", (rd_[road_m.reshape(-1)] == 1).all()
+      and not (cb_bld[road_m.reshape(-1)] >= 0).any())
+check("  the pieces placed and the kit on them (buildings)", tp_.npoints > 200 and tb_.nprims > 1000, tp_.npoints)
+_, _, tc2_ = town(5)
+check("  another seed (iteration) another block", (np.asarray(tc2_.get(PRIM, "bld")).reshape(-1) != cb_bld).any())
+try:
+    fakecomfy.Executor({"cb": {"class_type": "PCG_CityBlock", "inputs": dict(DEF, layout="town")}}, MAP).run("cb")
+    err_ = ""
+except Exception as e:                                          # noqa: BLE001
+    err_ = str(e)
+check("  Layout Town without a grid: a clear error", "grid input" in err_, err_[:80])
 
 print(f"\n{sum(OK)}/{len(OK)} passed")
 sys.exit(0 if all(OK) else 1)

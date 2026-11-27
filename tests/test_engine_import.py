@@ -201,6 +201,24 @@ check("  LOD plan carries the collision nodes (built as convex collision, the UC
       lpc and lpc[0]["collision"] == ["UCX_SM_Kit_X_00"] and lpc[0]["nodes"] == ["SM_Kit_X_LOD0", "SM_Kit_X_LOD1"]
       and lp[0]["collision"] == [], lpc)
 
+# a facade material the project lacks is made from the material library's textures (city key: facade_textures)
+os.makedirs(os.path.join(cdir, "pcg", "materials"), exist_ok=True)
+for f_ in ("T_M_BrickBuff_BaseColor.png", "T_M_BrickBuff_Normal_GL.png", "T_M_Stucco_Normal_GL.png"):
+    open(os.path.join(cdir, "pcg", "materials", f_), "wb").close()
+ft_ = {m: {"basecolor": f"pcg/materials/T_{m}_BaseColor.png", "normal": f"pcg/materials/T_{m}_Normal_GL.png",
+           "orm": f"pcg/materials/T_{m}_ORM.png"} for m in ("M_BrickBuff", "M_Stucco")}
+cwf_ = dict(cw_, city=dict(cw_["city"], facade_textures=ft_))
+fp_ = UE.facade_material_plan(cwf_, cdir)
+check("facade materials to make: those whose textures are exported (base colour + normal; the missing ORM left "
+      "out; M_Stucco without a base colour: not made)", sorted(fp_) == ["M_BrickBuff"]
+      and sorted(fp_["M_BrickBuff"]) == ["basecolor", "normal"]
+      and fp_["M_BrickBuff"]["normal"] == os.path.join(cdir, "pcg/materials/T_M_BrickBuff_Normal_GL.png"), fp_)
+check("  negative control: without facade_textures, nothing to make", UE.facade_material_plan(cw_, cdir) == {})
+cwj_ = os.path.join(cdir, "pcg", "city", "World.json")
+os.makedirs(os.path.dirname(cwj_), exist_ok=True)
+with open(cwj_, "w") as f_:
+    json.dump(dict(cwf_, format="pcg-world", folder="pcg/city", tiles=[]), f_)
+
 print("\n[4-6. Unity (C# with Mono)]")
 mcs, mono = shutil.which("mcs"), shutil.which("mono")
 if not (mcs and mono):
@@ -242,6 +260,14 @@ else:
           okp and okr)
     ln = pr.get("lines", [])
     check("road polylines: one of 19 points starting at (100, 3, -100)", ln == [[19, 100.0, 3.0, -100.0]], ln)
+    of_ = subprocess.run([mono, exe, cwj_, "facade", "M_BrickBuff"], capture_output=True, text=True)
+    pf_ = json.loads(of_.stdout) if of_.returncode == 0 else {}
+    of2_ = subprocess.run([mono, exe, cwj_, "facade", "M_Stucco"], capture_output=True, text=True)
+    pf2_ = json.loads(of2_.stdout) if of2_.returncode == 0 else {}
+    check("Unity: a facade material's textures from World.json (the files that exist, under the output folder); "
+          "M_Stucco: only its normal", sorted(pf_) == ["basecolor", "normal"]
+          and pf_["basecolor"].endswith("pcg/materials/T_M_BrickBuff_BaseColor.png") and sorted(pf2_) == ["normal"],
+          (pf_, pf2_, of_.stderr[-300:]))
     r2 = subprocess.run([mcs, "-target:library", "-define:UNITY_EDITOR", "-out:" + os.path.join(tmp, "imp.dll"),
                          os.path.join(_R, "engine", "UnityStubs.cs"), os.path.join(U, "PcgWorldCore.cs"),
                          os.path.join(U, "PcgWorldImporter.cs")], capture_output=True, text=True)

@@ -448,30 +448,33 @@ The pcg_modular_city workflow builds a city block from a few hundred nodes: a ru
 When it runs, the node expands the network into the graph, the way the loop blocks do: the nodes inside run and cache like any others, and only those the two results need run (no exports, no previews).
 
 - **Layout**: *Table* is the example's fixed block (twelve buildings around a crossing); *Generated* lays lots along both streets, secondary streets across most quarters and lanes between the lots, from **Seed**.
+- *Town* lays the block out on the **grid** input: the 4 m grid (104 m x 88 m, as Grid with the city's settings) with two prim attributes, `ext_road` (1 on the cells that are road: the block's streets follow them) and `ext_off` (1 where nothing is built: outside the town, water, steep ground). Seed then counts as a for-each iteration: link a loop's iteration and every town gets its own block. The open-world example lays a block into each town this way, its roads sampled from the map.
 - **Density**, **Min Floors** and **Max Floors** shape a generated block: the share of lots that are built, and the floors at the edge and near the crossing (give or take two).
 - **Setback Floors** and **Setback Min**: a building of at least Setback Min floors has its street-front row of cells stop Setback Floors lower (0 turns setbacks off).
 
-With nothing on **Kit** the node builds the 23 kit pieces itself. Link a kit of your own to replace them: prims with a string `name` per piece (Wall_Window, Wall_Shopfront, Corner_Bay, Roof_Flat ...) and the piece's origin at the slot's bottom centre, facade face at z = 0.
+With nothing on **Kit** the node builds the 26 kit pieces itself. Link a kit of your own to replace them: prims with a string `name` per piece (Wall_Window, Wall_Shopfront, Corner_Bay, Roof_Flat ...) and the piece's origin at the slot's bottom centre, facade face at z = 0.
 
 **Inputs**
 
 | Input | Type | Description |
 |---|---|---|
 | `kit` *(optional)* | GEOMETRY | Optional: the kit pieces (prim attribute name per piece). Not connected: the node builds the standard kit. |
+| `grid` *(optional)* | GEOMETRY | Optional, needed by Layout Town: the 4 m grid with prim attributes ext_road (1: a road cell) and ext_off (1: not built). |
 
 **Outputs**
 
 | Output | Type | Description |
 |---|---|---|
-| `buildings` | GEOMETRY | The kit placed on every slot, the wall material swapped per facade variant (M_Wall, M_BrickBuff, M_Stucco, the curtain wall), the painted metal, awnings, signs and window boxes coloured. |
+| `buildings` | GEOMETRY | The kit placed on every slot, the wall material swapped per facade variant (M_Wall, M_BrickBuff, M_Stucco, the curtain wall), the painted metal, awnings, signs, their lettering and window boxes coloured. |
 | `pieces` | GEOMETRY | One point per placed piece with N and up (its orientation), name, asset (SM_Kit_<name>, the glb name), bld, floor and facade: link it to Export Instances. |
+| `cells` | GEOMETRY | The rules grid after the setbacks: per 4 m cell bld (the building, -1 none), floors, height, road (1 main, 2 side, 3 secondary, 4 lane), facade -- for pads, massing or your own rules. |
 
 **Parameters**
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| Layout `layout` | menu | Table | Table: the example's fixed block. Generated: a block laid out from Seed. Options: Table (`table`), Generated (`generated`). |
-| Seed `rand_seed` | int [0..] | 1 | Generated: the seed of the lots, the secondary streets, the floors and the pieces; the same seed gives the same block. |
+| Layout `layout` | menu | Table | Table: the example's fixed block. Generated: a block laid out from Seed. Town: laid out on the grid input's roads and cells. Options: Table (`table`), Generated (`generated`), Town (`town`). |
+| Seed `rand_seed` | int [0..] | 1 | Generated: the seed of the lots, the secondary streets, the floors and the pieces; the same seed gives the same block. Town: the iteration (each value its own block). |
 | Density `density` | float [0.0..1.0] | 0.85 | Generated: the probability that a lot gets a building. |
 
 *Floors*

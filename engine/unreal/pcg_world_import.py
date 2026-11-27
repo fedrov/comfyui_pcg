@@ -21,8 +21,9 @@ What it does, all from World.json:
   instances   the instance tables as Hierarchical Instanced Static Mesh components, one actor per tile and asset;
               an asset is the static mesh of that name under content_root (import or make your own), else skipped.
               With World.json's city key (the modular city), an instance's facade column picks a material that
-              replaces the wall slot: one component per asset and facade, the override set on it (the material
-              found by name anywhere under content_root, e.g. imported with the material library's textures)
+              replaces the wall slot: one component per asset and facade, the override set on it (made from the
+              material library's textures, facade_textures, when no material of that name is found under
+              content_root)
   roads       the road classes' polylines as spline actors (a Spline component per line) with the class's width
               and material in their tags, for a road tool to sweep
 
@@ -227,6 +228,19 @@ def asset_mesh_name(asset, available, fallback=ASSET_FALLBACK):
     return None
 
 
+def facade_material_plan(world, root):
+    """-> {material: {"basecolor" / "normal" / "orm": file}} for the city's facade materials whose textures are in
+    the export (World.json's city key, facade_textures): what run() makes a material from when the project has
+    none of that name. Only files that exist; a material with no base colour is left out."""
+    out = {}
+    for mat, slots in ((world.get("city") or {}).get("facade_textures") or {}).items():
+        got = {k: os.path.join(root, v) for k, v in (slots or {}).items()
+               if k in ("basecolor", "normal", "orm") and os.path.exists(os.path.join(root, v))}
+        if "basecolor" in got:
+            out[mat] = got
+    return out
+
+
 def texture_plan(world, root):
     """-> [(file, srgb)] of the terrain's image sets worth importing: colour (sRGB), normal, splat, layers."""
     out = []
@@ -320,6 +334,40 @@ def run(world_json, content_root="/Game/PCGWorld", meshes=True, textures=True, i
                 if str(d.asset_class_path.asset_name if hasattr(d, "asset_class_path") else d.asset_class)
                 in ("Material", "MaterialInstanceConstant")}
         wall = (world.get("city") or {}).get("wall_material", "")
+        # a facade material the project lacks: made from the material library's textures (base colour, normal --
+        # the files are OpenGL, so its green is flipped --, ORM: occlusion, roughness, metallic)
+        fdest = f"{content_root}/Materials/Facades"
+        mel = unreal.MaterialEditingLibrary
+        for mat, slots in facade_material_plan(world, root).items():
+            if mat in mats:
+                continue
+            tex = dict(zip(slots, import_files(list(slots.values()), fdest)))
+            m_ = tools.create_asset(mat, fdest, unreal.Material, unreal.MaterialFactoryNew())
+            for k_, (slot, path) in enumerate(tex.items()):
+                t_ = unreal.load_asset(path)
+                if t_ is None:
+                    continue
+                if slot != "basecolor":
+                    t_.set_editor_property("srgb", False)
+                if slot == "normal":
+                    t_.set_editor_property("flip_green_channel", True)
+                    t_.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+                e_ = mel.create_material_expression(m_, unreal.MaterialExpressionTextureSample, -400, 260 * k_)
+                e_.set_editor_property("texture", t_)
+                if slot == "basecolor":
+                    mel.connect_material_property(e_, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
+                elif slot == "normal":
+                    e_.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+                    mel.connect_material_property(e_, "RGB", unreal.MaterialProperty.MP_NORMAL)
+                else:
+                    e_.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+                    mel.connect_material_property(e_, "R", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
+                    mel.connect_material_property(e_, "G", unreal.MaterialProperty.MP_ROUGHNESS)
+                    mel.connect_material_property(e_, "B", unreal.MaterialProperty.MP_METALLIC)
+            mel.recompile_material(m_)
+            unreal.EditorAssetLibrary.save_loaded_asset(m_)
+            mats[mat] = f"{fdest}/{mat}"
+            log(f"PCG World: facade material {mat} made from its textures")
         for t in world.get("tiles", []):
             for (asset, ov), xs in instance_groups(world, root, t["tile"]).items():
                 mn = asset_mesh_name(asset, avail)

@@ -1052,7 +1052,7 @@ SPECS = {
                   "color_attrib", "supersampling", "textures", "material_attrib", "uv_attrib",
                   "sun_elevation", "sun_azimuth", "haze", "clouds", "cloud_seed", "sky_samples",
                   "ground_plane", "ground_color", "exposure", "compute", "snow_line", "snow_amount",
-                  "wetness", "emit_attrib", "light_range", "weather_attrib", "translucency_attrib"],
+                  "wetness", "rain", "emit_attrib", "light_range", "weather_attrib", "translucency_attrib"],
         "inputs": {
             "width": {"row": {"kind": "vector", "members": ["width", "height"],
                               "label": "Resolution"}},
@@ -1102,6 +1102,9 @@ SPECS = {
             "snow_amount": {"label": "Snow", "section": "Weather", "hide": "{ look != outdoor }"},
             "wetness": {"label": "Wetness", "section": "Weather", "hide": "{ look != outdoor }",
                         "help": "Wet ground: darker, glossier, puddles on the flattest"},
+            "rain": {"label": "Rain", "section": "Weather", "hide": "{ look != outdoor }",
+                     "help": "Falling rain (streaks hidden behind nearer things) and, with Wetness, the lights' "
+                             "reflections streaked down the wet ground"},
             "emit_attrib": {"label": "Emit Attribute", "section": "Lights", "hide": "{ look != outdoor }",
                             "help": "A colour attribute added as emitted light (lit windows); empty = none"},
             "light_range": {"label": "Light Range", "section": "Lights", "hide": "{ look != outdoor }",

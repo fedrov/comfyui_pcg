@@ -161,6 +161,104 @@
 }
 },
 "107": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.0,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.055,
+"size_y": 0.055,
+"size_z": 0.015,
+"uniform_scale": 1.0
+}
+},
+"108": {
+"class_type": "PCG_Add",
+"inputs": {
+"attribute": "class",
+"attribute_closed": false,
+"group": "",
+"group_closed": false,
+"group_mode": "all_points",
+"group_n": 2,
+"keep_points": false,
+"pattern": "0-3",
+"pattern_closed": true,
+"points": "-0.385 3.210 0.127\n-0.330 3.210 0.127\n-0.275 3.210 0.127\n-0.385 3.155 0.127\n-0.385 3.100 0.127\n-0.330 3.100 0.127\n-0.275 3.100 0.127\n-0.275 3.045 0.127\n-0.385 2.990 0.127\n-0.330 2.990 0.127\n-0.275 2.990 0.127\n-0.165 3.210 0.127\n-0.055 3.210 0.127\n-0.165 3.155 0.127\n-0.055 3.155 0.127\n-0.165 3.100 0.127\n-0.110 3.100 0.127\n-0.055 3.100 0.127\n-0.165 3.045 0.127\n-0.055 3.045 0.127\n-0.165 2.990 0.127\n-0.055 2.990 0.127\n0.055 3.210 0.127\n0.110 3.210 0.127\n0.165 3.210 0.127\n0.055 3.155 0.127\n0.165 3.155 0.127\n0.055 3.100 0.127\n0.165 3.100 0.127\n0.055 3.045 0.127\n0.165 3.045 0.127\n0.055 2.990 0.127\n0.110 2.990 0.127\n0.165 2.990 0.127\n0.275 3.210 0.127\n0.330 3.210 0.127\n0.385 3.210 0.127\n0.275 3.155 0.127\n0.385 3.155 0.127\n0.275 3.100 0.127\n0.330 3.100 0.127\n0.385 3.100 0.127\n0.275 3.045 0.127\n0.275 2.990 0.127",
+"remove_repeated": true,
+"remove_unused": false,
+"use_attribute": false,
+"use_group": false,
+"use_pattern": false,
+"use_remove": false
+}
+},
+"109": {
+"class_type": "PCG_CopyToPoints",
+"inputs": {
+"multiply_attributes": "",
+"pack_and_instance": false,
+"piece_attribute": "",
+"points": [
+"108",
+0
+],
+"rotate_attributes": "N v up",
+"source": [
+"107",
+0
+],
+"source_group": "",
+"target_group": "",
+"target_point_attributes": "*",
+"target_prim_attributes": "",
+"transform_using_orientations": true,
+"up_x": 0.0,
+"up_y": 1.0,
+"up_z": 0.0
+}
+},
+"11": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.95,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.6,
+"size_y": 1.9,
+"size_z": 1.0,
+"uniform_scale": 1.0
+}
+},
+"110": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"Lettering\"",
+"geo": [
+"109",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"111": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
@@ -189,26 +287,30 @@
 ]
 }
 },
-"108": {
+"112": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"107",
+"111",
 0
 ],
 "geo2": [
 "106",
 0
+],
+"geo3": [
+"110",
+0
 ]
 }
 },
-"109": {
+"113": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@name = \"Wall_Shopfront\"",
 "geo": [
-"108",
+"112",
 0
 ],
 "group": "",
@@ -216,26 +318,7 @@
 "run_over": "prim"
 }
 },
-"11": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.95,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.6,
-"size_y": 1.9,
-"size_z": 1.0,
-"uniform_scale": 1.0
-}
-},
-"110": {
+"114": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -254,7 +337,7 @@
 "uniform_scale": 1.0
 }
 },
-"111": {
+"115": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -273,7 +356,7 @@
 "uniform_scale": 1.0
 }
 },
-"112": {
+"116": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -292,30 +375,30 @@
 "uniform_scale": 1.0
 }
 },
-"113": {
+"117": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"110",
+"114",
 0
 ],
 "geo2": [
-"111",
+"115",
 0
 ],
 "geo3": [
-"112",
+"116",
 0
 ]
 }
 },
-"114": {
+"118": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"113",
+"117",
 0
 ],
 "group": "",
@@ -323,100 +406,18 @@
 "run_over": "prim"
 }
 },
-"115": {
+"119": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@name = \"Corner_Pillar\"",
 "geo": [
-"114",
+"118",
 0
 ],
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
-}
-},
-"116": {
-"class_type": "PCG_PolyBevel",
-"inputs": {
-"convexity": 1.0,
-"distance": 0.03,
-"distance_scaling": "none",
-"divisions": 1,
-"edge_fillet_group": "edgefilletpolys",
-"geo": [
-"117",
-0
-],
-"group": "",
-"group_type": "guess",
-"ignore_flat": false,
-"limit_distance": true,
-"max_normal_angle": 2.0,
-"offset_group": "",
-"point_fillet_group": "pointfilletpolys",
-"scale_attribute": "pscale",
-"shape": "round",
-"use_fillet": true,
-"use_out_groups": true
-}
-},
-"117": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.44,
-"cz": 0.03,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.12,
-"size_z": 0.5,
-"uniform_scale": 1.0
-}
-},
-"118": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.15,
-"cz": -0.05,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.3,
-"size_z": 0.3,
-"uniform_scale": 1.0
-}
-},
-"119": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.34,
-"cz": -0.01,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.08,
-"size_z": 0.38,
-"uniform_scale": 1.0
 }
 },
 "12": {
@@ -448,25 +449,107 @@
 }
 },
 "120": {
+"class_type": "PCG_PolyBevel",
+"inputs": {
+"convexity": 1.0,
+"distance": 0.03,
+"distance_scaling": "none",
+"divisions": 1,
+"edge_fillet_group": "edgefilletpolys",
+"geo": [
+"121",
+0
+],
+"group": "",
+"group_type": "guess",
+"ignore_flat": false,
+"limit_distance": true,
+"max_normal_angle": 2.0,
+"offset_group": "",
+"point_fillet_group": "pointfilletpolys",
+"scale_attribute": "pscale",
+"shape": "round",
+"use_fillet": true,
+"use_out_groups": true
+}
+},
+"121": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.44,
+"cz": 0.03,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.12,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"122": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.15,
+"cz": -0.05,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.3,
+"size_z": 0.3,
+"uniform_scale": 1.0
+}
+},
+"123": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.34,
+"cz": -0.01,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.08,
+"size_z": 0.38,
+"uniform_scale": 1.0
+}
+},
+"124": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"118",
+"122",
 0
 ],
 "geo2": [
-"119",
+"123",
 0
 ]
 }
 },
-"121": {
+"125": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"120",
+"124",
 0
 ],
 "group": "",
@@ -474,7 +557,7 @@
 "run_over": "prim"
 }
 },
-"122": {
+"126": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -493,7 +576,7 @@
 "uniform_scale": 1.0
 }
 },
-"123": {
+"127": {
 "class_type": "PCG_Add",
 "inputs": {
 "attribute": "class",
@@ -514,19 +597,19 @@
 "use_remove": false
 }
 },
-"124": {
+"128": {
 "class_type": "PCG_CopyToPoints",
 "inputs": {
 "multiply_attributes": "",
 "pack_and_instance": false,
 "piece_attribute": "",
 "points": [
-"123",
+"127",
 0
 ],
 "rotate_attributes": "N v up",
 "source": [
-"122",
+"126",
 0
 ],
 "source_group": "",
@@ -539,82 +622,18 @@
 "up_z": 0.0
 }
 },
-"125": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"124",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"126": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"116",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"127": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"126",
-0
-],
-"geo2": [
-"121",
-0
-],
-"geo3": [
-"125",
-0
-]
-}
-},
-"128": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Cornice\"",
-"geo": [
-"127",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
 "129": {
-"class_type": "PCG_Box",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"cx": 0.0,
-"cy": -0.15,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.3,
-"size_z": 4.0,
-"uniform_scale": 1.0
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"128",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "13": {
@@ -635,9 +654,9 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_RoofFlat\"",
+"code": "s@material = \"M_Trim\"",
 "geo": [
-"129",
+"120",
 0
 ],
 "group": "",
@@ -646,12 +665,29 @@
 }
 },
 "131": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"130",
+0
+],
+"geo2": [
+"125",
+0
+],
+"geo3": [
+"129",
+0
+]
+}
+},
+"132": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Roof_Flat\"",
+"code": "s@name = \"Roof_Cornice\"",
 "geo": [
-"130",
+"131",
 0
 ],
 "group": "",
@@ -659,7 +695,54 @@
 "run_over": "prim"
 }
 },
-"132": {
+"133": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": -0.15,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.3,
+"size_z": 4.0,
+"uniform_scale": 1.0
+}
+},
+"134": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_RoofFlat\"",
+"geo": [
+"133",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"135": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_Flat\"",
+"geo": [
+"134",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"136": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.95,
@@ -678,7 +761,7 @@
 "uniform_scale": 1.0
 }
 },
-"133": {
+"137": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.95,
@@ -697,20 +780,20 @@
 "uniform_scale": 1.0
 }
 },
-"134": {
+"138": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"132",
+"136",
 0
 ],
 "geo2": [
-"133",
+"137",
 0
 ]
 }
 },
-"135": {
+"139": {
 "class_type": "PCG_Boolean",
 "inputs": {
 "a": [
@@ -720,7 +803,7 @@
 "a_inside_b": "ainsideb",
 "a_outside_b": "aoutsideb",
 "b": [
-"134",
+"138",
 0
 ],
 "b_inside_a": "binsidea",
@@ -736,71 +819,6 @@
 "treat_b": "solid",
 "use_out_groups": false,
 "use_surface_opts": false
-}
-},
-"136": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Wall\"",
-"geo": [
-"135",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"137": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": -0.95,
-"cy": 1.95,
-"cz": -0.2,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.9,
-"size_y": 1.9,
-"size_z": 0.02,
-"uniform_scale": 1.0
-}
-},
-"138": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.95,
-"cy": 1.95,
-"cz": -0.2,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.9,
-"size_y": 1.9,
-"size_z": 0.02,
-"uniform_scale": 1.0
-}
-},
-"139": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"137",
-0
-],
-"geo2": [
-"138",
-0
-]
 }
 },
 "14": {
@@ -826,7 +844,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Glass\"",
+"code": "s@material = \"M_Wall\"",
 "geo": [
 "139",
 0
@@ -837,6 +855,71 @@
 }
 },
 "141": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.95,
+"cy": 1.95,
+"cz": -0.2,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.9,
+"size_y": 1.9,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"142": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.95,
+"cy": 1.95,
+"cz": -0.2,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.9,
+"size_y": 1.9,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"143": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"141",
+0
+],
+"geo2": [
+"142",
+0
+]
+}
+},
+"144": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Glass\"",
+"geo": [
+"143",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"145": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -855,7 +938,7 @@
 "uniform_scale": 1.0
 }
 },
-"142": {
+"146": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -874,7 +957,7 @@
 "uniform_scale": 1.0
 }
 },
-"143": {
+"147": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -1.445,
@@ -893,7 +976,7 @@
 "uniform_scale": 1.0
 }
 },
-"144": {
+"148": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 1.445,
@@ -912,7 +995,7 @@
 "uniform_scale": 1.0
 }
 },
-"145": {
+"149": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -926,83 +1009,6 @@
 "ry": 0,
 "rz": 0,
 "size_x": 0.14,
-"size_y": 1.9,
-"size_z": 0.06,
-"uniform_scale": 1.0
-}
-},
-"146": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"141",
-0
-],
-"geo2": [
-"142",
-0
-],
-"geo3": [
-"143",
-0
-],
-"geo4": [
-"144",
-0
-],
-"geo5": [
-"145",
-0
-]
-}
-},
-"147": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"146",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"148": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": -0.95,
-"cy": 1.95,
-"cz": -0.19,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.05,
-"size_y": 1.9,
-"size_z": 0.06,
-"uniform_scale": 1.0
-}
-},
-"149": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.95,
-"cy": 1.95,
-"cz": -0.19,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.05,
 "size_y": 1.9,
 "size_z": 0.06,
 "uniform_scale": 1.0
@@ -1023,6 +1029,83 @@
 }
 },
 "150": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"145",
+0
+],
+"geo2": [
+"146",
+0
+],
+"geo3": [
+"147",
+0
+],
+"geo4": [
+"148",
+0
+],
+"geo5": [
+"149",
+0
+]
+}
+},
+"151": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"150",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"152": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.95,
+"cy": 1.95,
+"cz": -0.19,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 1.9,
+"size_z": 0.06,
+"uniform_scale": 1.0
+}
+},
+"153": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.95,
+"cy": 1.95,
+"cz": -0.19,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 1.9,
+"size_z": 0.06,
+"uniform_scale": 1.0
+}
+},
+"154": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.95,
@@ -1041,7 +1124,7 @@
 "uniform_scale": 1.0
 }
 },
-"151": {
+"155": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.95,
@@ -1060,34 +1143,34 @@
 "uniform_scale": 1.0
 }
 },
-"152": {
+"156": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"148",
+"152",
 0
 ],
 "geo2": [
-"149",
+"153",
 0
 ],
 "geo3": [
-"150",
+"154",
 0
 ],
 "geo4": [
-"151",
+"155",
 0
 ]
 }
 },
-"153": {
+"157": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Metal\"",
 "geo": [
-"152",
+"156",
 0
 ],
 "group": "",
@@ -1095,11 +1178,11 @@
 "run_over": "prim"
 }
 },
-"154": {
+"158": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"136",
+"140",
 0
 ],
 "geo2": [
@@ -1107,79 +1190,14 @@
 0
 ],
 "geo3": [
-"140",
+"144",
 0
 ],
 "geo4": [
-"147",
+"151",
 0
 ],
 "geo5": [
-"153",
-0
-]
-}
-},
-"155": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Wall_WindowPair\"",
-"geo": [
-"154",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"156": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.52,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.7,
-"size_y": 0.8,
-"size_z": 1.0,
-"uniform_scale": 1.0
-}
-},
-"157": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.06,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.9,
-"size_y": 0.12,
-"size_z": 1.15,
-"uniform_scale": 1.0
-}
-},
-"158": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"156",
-0
-],
-"geo2": [
 "157",
 0
 ]
@@ -1189,7 +1207,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
+"code": "s@name = \"Wall_WindowPair\"",
 "geo": [
 "158",
 0
@@ -1221,6 +1239,71 @@
 "160": {
 "class_type": "PCG_Box",
 "inputs": {
+"cx": 0.0,
+"cy": 0.52,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.7,
+"size_y": 0.8,
+"size_z": 1.0,
+"uniform_scale": 1.0
+}
+},
+"161": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.06,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.9,
+"size_y": 0.12,
+"size_z": 1.15,
+"uniform_scale": 1.0
+}
+},
+"162": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"160",
+0
+],
+"geo2": [
+"161",
+0
+]
+}
+},
+"163": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"162",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"164": {
+"class_type": "PCG_Box",
+"inputs": {
 "cx": -0.42,
 "cy": 0.95,
 "cz": 0.0,
@@ -1237,7 +1320,7 @@
 "uniform_scale": 1.0
 }
 },
-"161": {
+"165": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.42,
@@ -1256,7 +1339,7 @@
 "uniform_scale": 1.0
 }
 },
-"162": {
+"166": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.7,
@@ -1275,107 +1358,42 @@
 "uniform_scale": 1.0
 }
 },
-"163": {
+"167": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"160",
+"164",
 0
 ],
 "geo2": [
-"161",
+"165",
 0
 ],
 "geo3": [
-"162",
+"166",
 0
 ]
 }
 },
-"164": {
+"168": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Metal\"",
 "geo": [
-"163",
+"167",
 0
 ],
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
-}
-},
-"165": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"159",
-0
-],
-"geo2": [
-"164",
-0
-]
-}
-},
-"166": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Unit\"",
-"geo": [
-"165",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"167": {
-"class_type": "PCG_Tube",
-"inputs": {
-"caps": true,
-"center_x": 0.0,
-"center_y": 1.6,
-"center_z": 0.0,
-"cols": 20,
-"height": 1.8,
-"orientation": "y",
-"radius1": 0.8,
-"radius2": 0.8,
-"radius_scale": 1.0,
-"rows": 2,
-"rx": 0,
-"ry": 0,
-"rz": 0
-}
-},
-"168": {
-"class_type": "PCG_Tube",
-"inputs": {
-"caps": true,
-"center_x": 0.0,
-"center_y": 2.72,
-"center_z": 0.0,
-"cols": 20,
-"height": 0.45,
-"orientation": "y",
-"radius1": 0.85,
-"radius2": 0.08,
-"radius_scale": 1.0,
-"rows": 2,
-"rx": 0,
-"ry": 0,
-"rz": 0
 }
 },
 "169": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"167",
+"163",
 0
 ],
 "geo2": [
@@ -1402,7 +1420,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Roof\"",
+"code": "s@name = \"Roof_Unit\"",
 "geo": [
 "169",
 0
@@ -1413,25 +1431,90 @@
 }
 },
 "171": {
-"class_type": "PCG_Box",
+"class_type": "PCG_Tube",
 "inputs": {
-"cx": 0.5,
-"cy": 0.375,
-"cz": 0.5,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
+"caps": true,
+"center_x": 0.0,
+"center_y": 1.6,
+"center_z": 0.0,
+"cols": 20,
+"height": 1.8,
+"orientation": "y",
+"radius1": 0.8,
+"radius2": 0.8,
+"radius_scale": 1.0,
+"rows": 2,
+"rx": 0,
 "ry": 0,
-"rz": 0,
-"size_x": 0.1,
-"size_y": 0.75,
-"size_z": 0.1,
-"uniform_scale": 1.0
+"rz": 0
 }
 },
 "172": {
+"class_type": "PCG_Tube",
+"inputs": {
+"caps": true,
+"center_x": 0.0,
+"center_y": 2.72,
+"center_z": 0.0,
+"cols": 20,
+"height": 0.45,
+"orientation": "y",
+"radius1": 0.85,
+"radius2": 0.08,
+"radius_scale": 1.0,
+"rows": 2,
+"rx": 0,
+"ry": 0,
+"rz": 0
+}
+},
+"173": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"171",
+0
+],
+"geo2": [
+"172",
+0
+]
+}
+},
+"174": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Roof\"",
+"geo": [
+"173",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"175": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.5,
+"cy": 0.375,
+"cz": 0.5,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.1,
+"size_y": 0.75,
+"size_z": 0.1,
+"uniform_scale": 1.0
+}
+},
+"176": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.5,
@@ -1450,7 +1533,7 @@
 "uniform_scale": 1.0
 }
 },
-"173": {
+"177": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.5,
@@ -1469,7 +1552,7 @@
 "uniform_scale": 1.0
 }
 },
-"174": {
+"178": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.5,
@@ -1488,7 +1571,7 @@
 "uniform_scale": 1.0
 }
 },
-"175": {
+"179": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -1505,72 +1588,6 @@
 "size_y": 0.08,
 "size_z": 1.2,
 "uniform_scale": 1.0
-}
-},
-"176": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"171",
-0
-],
-"geo2": [
-"172",
-0
-],
-"geo3": [
-"173",
-0
-],
-"geo4": [
-"174",
-0
-],
-"geo5": [
-"175",
-0
-]
-}
-},
-"177": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
-"geo": [
-"176",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"178": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"170",
-0
-],
-"geo2": [
-"177",
-0
-]
-}
-},
-"179": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Tank\"",
-"geo": [
-"178",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
 }
 },
 "18": {
@@ -1593,6 +1610,72 @@
 }
 },
 "180": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"175",
+0
+],
+"geo2": [
+"176",
+0
+],
+"geo3": [
+"177",
+0
+],
+"geo4": [
+"178",
+0
+],
+"geo5": [
+"179",
+0
+]
+}
+},
+"181": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
+"180",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"182": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"174",
+0
+],
+"geo2": [
+"181",
+0
+]
+}
+},
+"183": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_Tank\"",
+"geo": [
+"182",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"184": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -1611,7 +1694,7 @@
 "uniform_scale": 1.0
 }
 },
-"181": {
+"185": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -1630,17 +1713,17 @@
 "uniform_scale": 1.0
 }
 },
-"182": {
+"186": {
 "class_type": "PCG_Boolean",
 "inputs": {
 "a": [
-"180",
+"184",
 0
 ],
 "a_inside_b": "ainsideb",
 "a_outside_b": "aoutsideb",
 "b": [
-"181",
+"185",
 0
 ],
 "b_inside_a": "binsidea",
@@ -1658,13 +1741,13 @@
 "use_surface_opts": false
 }
 },
-"183": {
+"187": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Wall\"",
 "geo": [
-"182",
+"186",
 0
 ],
 "group": "",
@@ -1672,7 +1755,7 @@
 "run_over": "prim"
 }
 },
-"184": {
+"188": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -1691,76 +1774,11 @@
 "uniform_scale": 1.0
 }
 },
-"185": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Door\"",
-"geo": [
-"184",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"186": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 3.1,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 3.9,
-"size_y": 0.2,
-"size_z": 3.9,
-"uniform_scale": 1.0
-}
-},
-"187": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 2.3,
-"cz": 1.95,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.4,
-"size_y": 0.12,
-"size_z": 0.5,
-"uniform_scale": 1.0
-}
-},
-"188": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"186",
-0
-],
-"geo2": [
-"187",
-0
-]
-}
-},
 "189": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
+"code": "s@material = \"M_Door\"",
 "geo": [
 "188",
 0
@@ -1792,6 +1810,71 @@
 "190": {
 "class_type": "PCG_Box",
 "inputs": {
+"cx": 0.0,
+"cy": 3.1,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.9,
+"size_y": 0.2,
+"size_z": 3.9,
+"uniform_scale": 1.0
+}
+},
+"191": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 2.3,
+"cz": 1.95,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.4,
+"size_y": 0.12,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"192": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"190",
+0
+],
+"geo2": [
+"191",
+0
+]
+}
+},
+"193": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"192",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"194": {
+"class_type": "PCG_Box",
+"inputs": {
 "cx": 0.9,
 "cy": 3.5,
 "cz": -0.9,
@@ -1808,13 +1891,13 @@
 "uniform_scale": 1.0
 }
 },
-"191": {
+"195": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Metal\"",
 "geo": [
-"190",
+"194",
 0
 ],
 "group": "",
@@ -1822,34 +1905,34 @@
 "run_over": "prim"
 }
 },
-"192": {
+"196": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"183",
+"187",
 0
 ],
 "geo2": [
-"185",
-0
-],
-"geo3": [
 "189",
 0
 ],
+"geo3": [
+"193",
+0
+],
 "geo4": [
-"191",
+"195",
 0
 ]
 }
 },
-"193": {
+"197": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@name = \"Roof_Penthouse\"",
 "geo": [
-"192",
+"196",
 0
 ],
 "group": "",
@@ -1857,7 +1940,7 @@
 "run_over": "prim"
 }
 },
-"194": {
+"198": {
 "class_type": "PCG_Tube",
 "inputs": {
 "caps": true,
@@ -1876,7 +1959,7 @@
 "rz": 0
 }
 },
-"195": {
+"199": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -1893,81 +1976,6 @@
 "size_y": 1.9,
 "size_z": 1.2,
 "uniform_scale": 1.0
-}
-},
-"196": {
-"class_type": "PCG_Boolean",
-"inputs": {
-"a": [
-"194",
-0
-],
-"a_inside_b": "ainsideb",
-"a_outside_b": "aoutsideb",
-"b": [
-"195",
-0
-],
-"b_inside_a": "binsidea",
-"b_outside_a": "boutsidea",
-"b_polys": "bpolys",
-"coplanar_tolerance": 0.5,
-"detriangulate": true,
-"direction": "a-b",
-"operation": "subtract",
-"seam_group": "abseams",
-"shell_thickness": 0.01,
-"treat_a": "solid",
-"treat_b": "solid",
-"use_out_groups": false,
-"use_surface_opts": false
-}
-},
-"197": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Wall\"",
-"geo": [
-"196",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"198": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.95,
-"cz": 1.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.0,
-"size_y": 1.9,
-"size_z": 0.02,
-"uniform_scale": 1.0
-}
-},
-"199": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Glass\"",
-"geo": [
-"198",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
 }
 },
 "2": {
@@ -2003,6 +2011,81 @@
 }
 },
 "200": {
+"class_type": "PCG_Boolean",
+"inputs": {
+"a": [
+"198",
+0
+],
+"a_inside_b": "ainsideb",
+"a_outside_b": "aoutsideb",
+"b": [
+"199",
+0
+],
+"b_inside_a": "binsidea",
+"b_outside_a": "boutsidea",
+"b_polys": "bpolys",
+"coplanar_tolerance": 0.5,
+"detriangulate": true,
+"direction": "a-b",
+"operation": "subtract",
+"seam_group": "abseams",
+"shell_thickness": 0.01,
+"treat_a": "solid",
+"treat_b": "solid",
+"use_out_groups": false,
+"use_surface_opts": false
+}
+},
+"201": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Wall\"",
+"geo": [
+"200",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"202": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.95,
+"cz": 1.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.0,
+"size_y": 1.9,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"203": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Glass\"",
+"geo": [
+"202",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"204": {
 "class_type": "PCG_Tube",
 "inputs": {
 "caps": true,
@@ -2021,7 +2104,7 @@
 "rz": 0
 }
 },
-"201": {
+"205": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2040,26 +2123,26 @@
 "uniform_scale": 1.0
 }
 },
-"202": {
+"206": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"200",
+"204",
 0
 ],
 "geo2": [
-"201",
+"205",
 0
 ]
 }
 },
-"203": {
+"207": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"202",
+"206",
 0
 ],
 "group": "",
@@ -2067,30 +2150,30 @@
 "run_over": "prim"
 }
 },
-"204": {
+"208": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"197",
+"201",
 0
 ],
 "geo2": [
-"199",
+"203",
 0
 ],
 "geo3": [
-"203",
+"207",
 0
 ]
 }
 },
-"205": {
+"209": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@name = \"Corner_Bay\"",
 "geo": [
-"204",
+"208",
 0
 ],
 "group": "",
@@ -2098,7 +2181,21 @@
 "run_over": "prim"
 }
 },
-"206": {
+"21": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"20",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"210": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2117,17 +2214,17 @@
 "uniform_scale": 1.0
 }
 },
-"207": {
+"211": {
 "class_type": "PCG_Boolean",
 "inputs": {
 "a": [
-"194",
+"198",
 0
 ],
 "a_inside_b": "ainsideb",
 "a_outside_b": "aoutsideb",
 "b": [
-"206",
+"210",
 0
 ],
 "b_inside_a": "binsidea",
@@ -2145,13 +2242,13 @@
 "use_surface_opts": false
 }
 },
-"208": {
+"212": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Wall\"",
 "geo": [
-"207",
+"211",
 0
 ],
 "group": "",
@@ -2159,7 +2256,7 @@
 "run_over": "prim"
 }
 },
-"209": {
+"213": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2178,27 +2275,13 @@
 "uniform_scale": 1.0
 }
 },
-"21": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"20",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"210": {
+"214": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Glass\"",
 "geo": [
-"209",
+"213",
 0
 ],
 "group": "",
@@ -2206,7 +2289,7 @@
 "run_over": "prim"
 }
 },
-"211": {
+"215": {
 "class_type": "PCG_Tube",
 "inputs": {
 "caps": true,
@@ -2225,13 +2308,13 @@
 "rz": 0
 }
 },
-"212": {
+"216": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Sign\"",
 "geo": [
-"211",
+"215",
 0
 ],
 "group": "",
@@ -2239,7 +2322,7 @@
 "run_over": "prim"
 }
 },
-"213": {
+"217": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2258,7 +2341,7 @@
 "uniform_scale": 1.0
 }
 },
-"214": {
+"218": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.68,
@@ -2277,7 +2360,7 @@
 "uniform_scale": 1.0
 }
 },
-"215": {
+"219": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.68,
@@ -2294,76 +2377,6 @@
 "size_y": 2.5,
 "size_z": 0.1,
 "uniform_scale": 1.0
-}
-},
-"216": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"213",
-0
-],
-"geo2": [
-"214",
-0
-],
-"geo3": [
-"215",
-0
-]
-}
-},
-"217": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
-"geo": [
-"216",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"218": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"200",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"219": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"208",
-0
-],
-"geo2": [
-"210",
-0
-],
-"geo3": [
-"212",
-0
-],
-"geo4": [
-"217",
-0
-],
-"geo5": [
-"218",
-0
-]
 }
 },
 "22": {
@@ -2386,12 +2399,29 @@
 }
 },
 "220": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"217",
+0
+],
+"geo2": [
+"218",
+0
+],
+"geo3": [
+"219",
+0
+]
+}
+},
+"221": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Corner_BayShop\"",
+"code": "s@material = \"M_Metal\"",
 "geo": [
-"219",
+"220",
 0
 ],
 "group": "",
@@ -2399,7 +2429,60 @@
 "run_over": "prim"
 }
 },
-"221": {
+"222": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"204",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"223": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"212",
+0
+],
+"geo2": [
+"214",
+0
+],
+"geo3": [
+"216",
+0
+],
+"geo4": [
+"221",
+0
+],
+"geo5": [
+"222",
+0
+]
+}
+},
+"224": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Corner_BayShop\"",
+"geo": [
+"223",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"225": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2418,13 +2501,13 @@
 "uniform_scale": 1.0
 }
 },
-"222": {
+"226": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"221",
+"225",
 0
 ],
 "group": "",
@@ -2432,7 +2515,7 @@
 "run_over": "prim"
 }
 },
-"223": {
+"227": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2451,90 +2534,25 @@
 "uniform_scale": 1.0
 }
 },
-"224": {
+"228": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"Planting\"",
 "geo": [
-"223",
+"227",
 0
 ],
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
-}
-},
-"225": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"222",
-0
-],
-"geo2": [
-"224",
-0
-]
-}
-},
-"226": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Prop_FlowerBox\"",
-"geo": [
-"225",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"227": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.3,
-"cz": -0.15,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.6,
-"size_z": 0.3,
-"uniform_scale": 1.0
-}
-},
-"228": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 3.45,
-"cz": -0.15,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.1,
-"size_z": 0.3,
-"uniform_scale": 1.0
 }
 },
 "229": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"227",
+"226",
 0
 ],
 "geo2": [
@@ -2566,7 +2584,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
+"code": "s@name = \"Prop_FlowerBox\"",
 "geo": [
 "229",
 0
@@ -2577,6 +2595,71 @@
 }
 },
 "231": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.3,
+"cz": -0.15,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.6,
+"size_z": 0.3,
+"uniform_scale": 1.0
+}
+},
+"232": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 3.45,
+"cz": -0.15,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.1,
+"size_z": 0.3,
+"uniform_scale": 1.0
+}
+},
+"233": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"231",
+0
+],
+"geo2": [
+"232",
+0
+]
+}
+},
+"234": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
+"233",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"235": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2595,13 +2678,13 @@
 "uniform_scale": 1.0
 }
 },
-"232": {
+"236": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Glass\"",
 "geo": [
-"231",
+"235",
 0
 ],
 "group": "",
@@ -2609,7 +2692,7 @@
 "run_over": "prim"
 }
 },
-"233": {
+"237": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -1.96,
@@ -2628,7 +2711,7 @@
 "uniform_scale": 1.0
 }
 },
-"234": {
+"238": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -0.65,
@@ -2647,7 +2730,7 @@
 "uniform_scale": 1.0
 }
 },
-"235": {
+"239": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.65,
@@ -2664,83 +2747,6 @@
 "size_y": 3.5,
 "size_z": 0.14,
 "uniform_scale": 1.0
-}
-},
-"236": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 1.96,
-"cy": 1.75,
-"cz": 0.03,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.08,
-"size_y": 3.5,
-"size_z": 0.14,
-"uniform_scale": 1.0
-}
-},
-"237": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 2.45,
-"cz": 0.02,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 0.08,
-"size_z": 0.12,
-"uniform_scale": 1.0
-}
-},
-"238": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"233",
-0
-],
-"geo2": [
-"234",
-0
-],
-"geo3": [
-"235",
-0
-],
-"geo4": [
-"236",
-0
-],
-"geo5": [
-"237",
-0
-]
-}
-},
-"239": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
-"geo": [
-"238",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
 }
 },
 "24": {
@@ -2763,29 +2769,75 @@
 }
 },
 "240": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.96,
+"cy": 1.75,
+"cz": 0.03,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.08,
+"size_y": 3.5,
+"size_z": 0.14,
+"uniform_scale": 1.0
+}
+},
+"241": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 2.45,
+"cz": 0.02,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 0.08,
+"size_z": 0.12,
+"uniform_scale": 1.0
+}
+},
+"242": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"230",
+"237",
 0
 ],
 "geo2": [
-"232",
+"238",
 0
 ],
 "geo3": [
 "239",
 0
+],
+"geo4": [
+"240",
+0
+],
+"geo5": [
+"241",
+0
 ]
 }
 },
-"241": {
+"243": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Wall_Curtain\"",
+"code": "s@material = \"M_Metal\"",
 "geo": [
-"240",
+"242",
 0
 ],
 "group": "",
@@ -2793,7 +2845,38 @@
 "run_over": "prim"
 }
 },
-"242": {
+"244": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"234",
+0
+],
+"geo2": [
+"236",
+0
+],
+"geo3": [
+"243",
+0
+]
+}
+},
+"245": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Wall_Curtain\"",
+"geo": [
+"244",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"246": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2812,7 +2895,7 @@
 "uniform_scale": 1.0
 }
 },
-"243": {
+"247": {
 "class_type": "PCG_Tube",
 "inputs": {
 "caps": true,
@@ -2831,7 +2914,7 @@
 "rz": 0
 }
 },
-"244": {
+"248": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -2850,106 +2933,17 @@
 "uniform_scale": 1.0
 }
 },
-"245": {
+"249": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"243",
+"247",
 0
 ],
 "geo2": [
-"244",
-0
-]
-}
-},
-"246": {
-"class_type": "PCG_Boolean",
-"inputs": {
-"a": [
-"242",
-0
-],
-"a_inside_b": "ainsideb",
-"a_outside_b": "aoutsideb",
-"b": [
-"245",
-0
-],
-"b_inside_a": "binsidea",
-"b_outside_a": "boutsidea",
-"b_polys": "bpolys",
-"coplanar_tolerance": 0.5,
-"detriangulate": true,
-"direction": "a-b",
-"operation": "subtract",
-"seam_group": "abseams",
-"shell_thickness": 0.01,
-"treat_a": "solid",
-"treat_b": "solid",
-"use_out_groups": false,
-"use_surface_opts": false
-}
-},
-"247": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Wall\"",
-"geo": [
-"246",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"248": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.45,
-"cz": -0.15,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 3.0,
-"size_y": 2.5,
-"size_z": 1.0,
-"uniform_scale": 1.0
-}
-},
-"249": {
-"class_type": "PCG_Boolean",
-"inputs": {
-"a": [
-"1",
-0
-],
-"a_inside_b": "ainsideb",
-"a_outside_b": "aoutsideb",
-"b": [
 "248",
 0
-],
-"b_inside_a": "binsidea",
-"b_outside_a": "boutsidea",
-"b_polys": "bpolys",
-"coplanar_tolerance": 0.5,
-"detriangulate": true,
-"direction": "a-b",
-"operation": "subtract",
-"seam_group": "abseams",
-"shell_thickness": 0.01,
-"treat_a": "solid",
-"treat_b": "solid",
-"use_out_groups": false,
-"use_surface_opts": false
+]
 }
 },
 "25": {
@@ -2972,12 +2966,40 @@
 }
 },
 "250": {
+"class_type": "PCG_Boolean",
+"inputs": {
+"a": [
+"246",
+0
+],
+"a_inside_b": "ainsideb",
+"a_outside_b": "aoutsideb",
+"b": [
+"249",
+0
+],
+"b_inside_a": "binsidea",
+"b_outside_a": "boutsidea",
+"b_polys": "bpolys",
+"coplanar_tolerance": 0.5,
+"detriangulate": true,
+"direction": "a-b",
+"operation": "subtract",
+"seam_group": "abseams",
+"shell_thickness": 0.01,
+"treat_a": "solid",
+"treat_b": "solid",
+"use_out_groups": false,
+"use_surface_opts": false
+}
+},
+"251": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Wall\"",
 "geo": [
-"249",
+"250",
 0
 ],
 "group": "",
@@ -2985,7 +3007,68 @@
 "run_over": "prim"
 }
 },
-"251": {
+"252": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.45,
+"cz": -0.15,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.0,
+"size_y": 2.5,
+"size_z": 1.0,
+"uniform_scale": 1.0
+}
+},
+"253": {
+"class_type": "PCG_Boolean",
+"inputs": {
+"a": [
+"1",
+0
+],
+"a_inside_b": "ainsideb",
+"a_outside_b": "aoutsideb",
+"b": [
+"252",
+0
+],
+"b_inside_a": "binsidea",
+"b_outside_a": "boutsidea",
+"b_polys": "bpolys",
+"coplanar_tolerance": 0.5,
+"detriangulate": true,
+"direction": "a-b",
+"operation": "subtract",
+"seam_group": "abseams",
+"shell_thickness": 0.01,
+"treat_a": "solid",
+"treat_b": "solid",
+"use_out_groups": false,
+"use_surface_opts": false
+}
+},
+"254": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Wall\"",
+"geo": [
+"253",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"255": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3004,13 +3087,13 @@
 "uniform_scale": 1.0
 }
 },
-"252": {
+"256": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Glass\"",
 "geo": [
-"251",
+"255",
 0
 ],
 "group": "",
@@ -3018,7 +3101,7 @@
 "run_over": "prim"
 }
 },
-"253": {
+"257": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3037,7 +3120,7 @@
 "uniform_scale": 1.0
 }
 },
-"254": {
+"258": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -1.7,
@@ -3056,7 +3139,7 @@
 "uniform_scale": 1.0
 }
 },
-"255": {
+"259": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 1.7,
@@ -3072,75 +3155,6 @@
 "size_x": 0.6,
 "size_y": 0.15,
 "size_z": 0.45,
-"uniform_scale": 1.0
-}
-},
-"256": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"253",
-0
-],
-"geo2": [
-"254",
-0
-],
-"geo3": [
-"255",
-0
-]
-}
-},
-"257": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"256",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"258": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 2.67,
-"cz": -0.19,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 3.0,
-"size_y": 0.06,
-"size_z": 0.08,
-"uniform_scale": 1.0
-}
-},
-"259": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.45,
-"cz": -0.19,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.06,
-"size_y": 2.5,
-"size_z": 0.08,
 "uniform_scale": 1.0
 }
 },
@@ -3167,10 +3181,14 @@
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"258",
+"257",
 0
 ],
 "geo2": [
+"258",
+0
+],
+"geo3": [
 "259",
 0
 ]
@@ -3180,7 +3198,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
+"code": "s@material = \"M_Trim\"",
 "geo": [
 "260",
 0
@@ -3191,37 +3209,63 @@
 }
 },
 "262": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 2.67,
+"cz": -0.19,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.0,
+"size_y": 0.06,
+"size_z": 0.08,
+"uniform_scale": 1.0
+}
+},
+"263": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.45,
+"cz": -0.19,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.06,
+"size_y": 2.5,
+"size_z": 0.08,
+"uniform_scale": 1.0
+}
+},
+"264": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"247",
+"262",
 0
 ],
 "geo2": [
-"250",
-0
-],
-"geo3": [
-"252",
-0
-],
-"geo4": [
-"257",
-0
-],
-"geo5": [
-"261",
+"263",
 0
 ]
 }
 },
-"263": {
+"265": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Wall_Arcade\"",
+"code": "s@material = \"M_Metal\"",
 "geo": [
-"262",
+"264",
 0
 ],
 "group": "",
@@ -3229,7 +3273,46 @@
 "run_over": "prim"
 }
 },
-"264": {
+"266": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"251",
+0
+],
+"geo2": [
+"254",
+0
+],
+"geo3": [
+"256",
+0
+],
+"geo4": [
+"261",
+0
+],
+"geo5": [
+"265",
+0
+]
+}
+},
+"267": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Wall_Arcade\"",
+"geo": [
+"266",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"268": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3248,92 +3331,18 @@
 "uniform_scale": 1.0
 }
 },
-"265": {
+"269": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"264",
+"268",
 0
 ],
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
-}
-},
-"266": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": -0.12,
-"cy": 0.36,
-"cz": 0.385,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.5,
-"size_y": 0.44,
-"size_z": 0.02,
-"uniform_scale": 1.0
-}
-},
-"267": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": -0.35,
-"cy": 0.025,
-"cz": 0.2,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.05,
-"size_y": 0.05,
-"size_z": 0.4,
-"uniform_scale": 1.0
-}
-},
-"268": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.35,
-"cy": 0.025,
-"cz": 0.2,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.05,
-"size_y": 0.05,
-"size_z": 0.4,
-"uniform_scale": 1.0
-}
-},
-"269": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"266",
-0
-],
-"geo2": [
-"267",
-0
-],
-"geo3": [
-"268",
-0
-]
 }
 },
 "27": {
@@ -3356,12 +3365,86 @@
 }
 },
 "270": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.12,
+"cy": 0.36,
+"cz": 0.385,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.5,
+"size_y": 0.44,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"271": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.35,
+"cy": 0.025,
+"cz": 0.2,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 0.05,
+"size_z": 0.4,
+"uniform_scale": 1.0
+}
+},
+"272": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.35,
+"cy": 0.025,
+"cz": 0.2,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 0.05,
+"size_z": 0.4,
+"uniform_scale": 1.0
+}
+},
+"273": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"270",
+0
+],
+"geo2": [
+"271",
+0
+],
+"geo3": [
+"272",
+0
+]
+}
+},
+"274": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Metal\"",
 "geo": [
-"269",
+"273",
 0
 ],
 "group": "",
@@ -3369,26 +3452,26 @@
 "run_over": "prim"
 }
 },
-"271": {
+"275": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"265",
+"269",
 0
 ],
 "geo2": [
-"270",
+"274",
 0
 ]
 }
 },
-"272": {
+"276": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@name = \"Prop_ACUnit\"",
 "geo": [
-"271",
+"275",
 0
 ],
 "group": "",
@@ -3396,7 +3479,7 @@
 "run_over": "prim"
 }
 },
-"273": {
+"277": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3415,72 +3498,11 @@
 "uniform_scale": 1.0
 }
 },
-"274": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "@P.z = where(@P.y > 0.8, @P.z * 0.02, @P.z)",
-"geo": [
-"273",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
-}
-},
-"275": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Roof\"",
-"geo": [
-"274",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"276": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Gable\"",
-"geo": [
-"275",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"277": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 0.8,
-"cz": -0.12,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 4.0,
-"size_y": 1.6,
-"size_z": 0.3,
-"uniform_scale": 1.0
-}
-},
 "278": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "@P.x = where(@P.y > 0.8, @P.x * 0.02, @P.x)",
+"code": "@P.z = where(@P.y > 0.8, @P.z * 0.02, @P.z)",
 "geo": [
 "277",
 0
@@ -3494,7 +3516,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@material = \"M_Wall\"",
+"code": "s@material = \"M_Roof\"",
 "geo": [
 "278",
 0
@@ -3537,7 +3559,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Roof_GableEnd\"",
+"code": "s@name = \"Roof_Gable\"",
 "geo": [
 "279",
 0
@@ -3548,6 +3570,67 @@
 }
 },
 "281": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.8,
+"cz": -0.12,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 4.0,
+"size_y": 1.6,
+"size_z": 0.3,
+"uniform_scale": 1.0
+}
+},
+"282": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "@P.x = where(@P.y > 0.8, @P.x * 0.02, @P.x)",
+"geo": [
+"281",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"283": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Wall\"",
+"geo": [
+"282",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"284": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_GableEnd\"",
+"geo": [
+"283",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"285": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3566,7 +3649,7 @@
 "uniform_scale": 1.0
 }
 },
-"282": {
+"286": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3585,17 +3668,17 @@
 "uniform_scale": 1.0
 }
 },
-"283": {
+"287": {
 "class_type": "PCG_Boolean",
 "inputs": {
 "a": [
-"281",
+"285",
 0
 ],
 "a_inside_b": "ainsideb",
 "a_outside_b": "aoutsideb",
 "b": [
-"282",
+"286",
 0
 ],
 "b_inside_a": "binsidea",
@@ -3613,13 +3696,13 @@
 "use_surface_opts": false
 }
 },
-"284": {
+"288": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Trim\"",
 "geo": [
-"283",
+"287",
 0
 ],
 "group": "",
@@ -3627,7 +3710,7 @@
 "run_over": "prim"
 }
 },
-"285": {
+"289": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3644,70 +3727,6 @@
 "size_y": 0.8,
 "size_z": 0.02,
 "uniform_scale": 1.0
-}
-},
-"286": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Glass\"",
-"geo": [
-"285",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"287": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.26,
-"cz": 0.05,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 1.5,
-"size_y": 0.12,
-"size_z": 1.6,
-"uniform_scale": 1.0
-}
-},
-"288": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Roof\"",
-"geo": [
-"287",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"289": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"284",
-0
-],
-"geo2": [
-"286",
-0
-],
-"geo3": [
-"288",
-0
-]
 }
 },
 "29": {
@@ -3728,7 +3747,7 @@
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Roof_Dormer\"",
+"code": "s@material = \"M_Glass\"",
 "geo": [
 "289",
 0
@@ -3739,6 +3758,70 @@
 }
 },
 "291": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.26,
+"cz": 0.05,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.5,
+"size_y": 0.12,
+"size_z": 1.6,
+"uniform_scale": 1.0
+}
+},
+"292": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Roof\"",
+"geo": [
+"291",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"293": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"288",
+0
+],
+"geo2": [
+"290",
+0
+],
+"geo3": [
+"292",
+0
+]
+}
+},
+"294": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_Dormer\"",
+"geo": [
+"293",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"295": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3757,13 +3840,13 @@
 "uniform_scale": 1.0
 }
 },
-"292": {
+"296": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
 "code": "s@material = \"M_Door\"",
 "geo": [
-"291",
+"295",
 0
 ],
 "group": "",
@@ -3771,7 +3854,7 @@
 "run_over": "prim"
 }
 },
-"293": {
+"297": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3790,7 +3873,7 @@
 "uniform_scale": 1.0
 }
 },
-"294": {
+"298": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": -1.65,
@@ -3809,77 +3892,17 @@
 "uniform_scale": 1.0
 }
 },
-"295": {
+"299": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"293",
-0
-],
-"geo2": [
-"294",
-0
-]
-}
-},
-"296": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Trim\"",
-"geo": [
-"295",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"297": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"292",
-0
-],
-"geo2": [
-"296",
-0
-]
-}
-},
-"298": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Deck\"",
-"geo": [
 "297",
 0
 ],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"299": {
-"class_type": "PCG_Box",
-"inputs": {
-"cx": 0.0,
-"cy": 1.6,
-"cz": 0.0,
-"div_x": 2,
-"div_y": 2,
-"div_z": 2,
-"prim_type": "polygon",
-"rx": 0.0,
-"ry": 0,
-"rz": 0,
-"size_x": 0.08,
-"size_y": 3.2,
-"size_z": 0.08,
-"uniform_scale": 1.0
+"geo2": [
+"298",
+0
+]
 }
 },
 "3": {
@@ -3926,6 +3949,66 @@
 }
 },
 "300": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
+"geo": [
+"299",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"301": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"296",
+0
+],
+"geo2": [
+"300",
+0
+]
+}
+},
+"302": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_Deck\"",
+"geo": [
+"301",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"303": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.6,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.08,
+"size_y": 3.2,
+"size_z": 0.08,
+"uniform_scale": 1.0
+}
+},
+"304": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3944,7 +4027,7 @@
 "uniform_scale": 1.0
 }
 },
-"301": {
+"305": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3963,7 +4046,7 @@
 "uniform_scale": 1.0
 }
 },
-"302": {
+"306": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -3982,7 +4065,7 @@
 "uniform_scale": 1.0
 }
 },
-"303": {
+"307": {
 "class_type": "PCG_Box",
 "inputs": {
 "cx": 0.0,
@@ -4001,144 +4084,43 @@
 "uniform_scale": 1.0
 }
 },
-"304": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"299",
-0
-],
-"geo2": [
-"300",
-0
-],
-"geo3": [
-"301",
-0
-],
-"geo4": [
-"302",
-0
-],
-"geo5": [
-"303",
-0
-]
-}
-},
-"305": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@material = \"M_Metal\"",
-"geo": [
-"304",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"306": {
-"class_type": "PCG_Wrangle",
-"inputs": {
-"ch_params": "{}",
-"code": "s@name = \"Roof_Antenna\"",
-"geo": [
-"305",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
-}
-},
-"307": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"6",
-0
-],
-"geo2": [
-"32",
-0
-],
-"geo3": [
-"56",
-0
-],
-"geo4": [
-"85",
-0
-],
-"geo5": [
-"109",
-0
-],
-"geo6": [
-"115",
-0
-]
-}
-},
 "308": {
 "class_type": "PCG_Merge",
 "inputs": {
 "geo1": [
-"307",
+"303",
 0
 ],
 "geo2": [
-"128",
+"304",
 0
 ],
 "geo3": [
-"131",
+"305",
 0
 ],
 "geo4": [
-"155",
+"306",
 0
 ],
 "geo5": [
-"166",
-0
-],
-"geo6": [
-"179",
+"307",
 0
 ]
 }
 },
 "309": {
-"class_type": "PCG_Merge",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"geo1": [
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
 "308",
 0
 ],
-"geo2": [
-"193",
-0
-],
-"geo3": [
-"205",
-0
-],
-"geo4": [
-"241",
-0
-],
-"geo5": [
-"263",
-0
-],
-"geo6": [
-"272",
-0
-]
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "31": {
@@ -4155,105 +4137,179 @@
 }
 },
 "310": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"309",
-0
-],
-"geo2": [
-"276",
-0
-],
-"geo3": [
-"280",
-0
-],
-"geo4": [
-"290",
-0
-],
-"geo5": [
-"298",
-0
-],
-"geo6": [
-"306",
-0
-]
-}
-},
-"311": {
-"class_type": "PCG_Merge",
-"inputs": {
-"geo1": [
-"310",
-0
-],
-"geo2": [
-"220",
-0
-],
-"geo3": [
-"226",
-0
-]
-}
-},
-"312": {
-"class_type": "PCG_UVProject",
-"inputs": {
-"attribute_class": "vertex",
-"attribute_name": "uv",
-"axis": "y",
-"fit_to_01": false,
-"fix_seams": true,
-"geo": [
-"311",
-0
-],
-"group": "",
-"inner_radius": 0.25,
-"keep_aspect": true,
-"mode": "box",
-"proj_pivot_x": 0.0,
-"proj_pivot_y": 0.0,
-"proj_pivot_z": 0.0,
-"proj_rotate_x": 0.0,
-"proj_rotate_y": 0.0,
-"proj_rotate_z": 0.0,
-"proj_scale_x": 1.0,
-"proj_scale_y": 1.0,
-"proj_scale_z": 1.0,
-"proj_translate_x": 0.0,
-"proj_translate_y": 0.0,
-"proj_translate_z": 0.0,
-"rotate": 0.0,
-"rotate_order": "xyz",
-"scale_u": 1.0,
-"scale_v": 1.0,
-"translate_u": 0.0,
-"translate_v": 0.0,
-"u_range_max": 1.0,
-"u_range_min": 0.0,
-"use_projector": false,
-"v_range_max": 1.0,
-"v_range_min": 0.0,
-"xform_order": "srt"
-}
-},
-"313": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "m = @material\n@Cd = where(m == \"M_Wall\", set(0.66, 0.46, 0.36), where(m == \"M_Glass\", set(0.16, 0.24, 0.32), where(m == \"M_Door\", set(0.30, 0.20, 0.14), where(m == \"M_Metal\", set(0.22, 0.23, 0.25), where(m == \"M_Roof\", set(0.32, 0.32, 0.34), where(m == \"M_RoofFlat\", set(0.36, 0.36, 0.35), where(m == \"M_Sign\", set(0.80, 0.55, 0.20), where(m == \"Awning\", set(0.55, 0.12, 0.10), where(m == \"Planting\", set(0.20, 0.42, 0.14), set(0.86, 0.84, 0.79))))))))))",
+"code": "s@name = \"Roof_Antenna\"",
 "geo": [
-"312",
+"309",
 0
 ],
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
+}
+},
+"311": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.66,
+"cz": 1.17,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.0,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"312": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -1.49,
+"cy": 0.66,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 1.1,
+"uniform_scale": 1.0
+}
+},
+"313": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.49,
+"cy": 0.66,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 1.1,
+"uniform_scale": 1.0
+}
+},
+"314": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"311",
+0
+],
+"geo2": [
+"312",
+0
+],
+"geo3": [
+"313",
+0
+]
+}
+},
+"315": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"Glass_Frosted\"",
+"geo": [
+"314",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"316": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 1.18,
+"cz": 1.17,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.04,
+"size_y": 0.04,
+"size_z": 0.06,
+"uniform_scale": 1.0
+}
+},
+"317": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -1.49,
+"cy": 1.18,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.06,
+"size_y": 0.04,
+"size_z": 1.12,
+"uniform_scale": 1.0
+}
+},
+"318": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.49,
+"cy": 1.18,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.06,
+"size_y": 0.04,
+"size_z": 1.12,
+"uniform_scale": 1.0
+}
+},
+"319": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"316",
+0
+],
+"geo2": [
+"317",
+0
+],
+"geo3": [
+"318",
+0
+]
 }
 },
 "32": {
@@ -4270,95 +4326,181 @@
 "run_over": "prim"
 }
 },
-"325": {
-"class_type": "PCG_Grid",
+"320": {
+"class_type": "PCG_Wrangle",
 "inputs": {
-"center_x": 0.0,
-"center_y": 0.0,
-"center_z": 0.0,
-"cols": 27,
-"connectivity": "quadrilaterals",
-"plane": "zx",
-"rows": 23,
-"rx": 0,
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
+"319",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"321": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"35",
+0
+],
+"geo2": [
+"3",
+0
+],
+"geo3": [
+"58",
+0
+],
+"geo4": [
+"65",
+0
+],
+"geo5": [
+"67",
+0
+],
+"geo6": [
+"315",
+0
+]
+}
+},
+"322": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"321",
+0
+],
+"geo2": [
+"320",
+0
+]
+}
+},
+"323": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Wall_BalconyGlass\"",
+"geo": [
+"322",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"324": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.175,
+"cz": -1.7,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
 "ry": 0,
 "rz": 0,
-"size_x": 104.0,
-"size_z": 88.0
+"size_x": 3.6,
+"size_y": 0.35,
+"size_z": 0.2,
+"uniform_scale": 1.0
+}
+},
+"325": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.0,
+"cy": 0.175,
+"cz": 1.7,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.6,
+"size_y": 0.35,
+"size_z": 0.2,
+"uniform_scale": 1.0
 }
 },
 "326": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "x = @P.x\nz = @P.z\nb = 0 * x - 1\nf = 0 * x\nb = where((x >= -46) & (x <= -34) & (z >= -38) & (z <= -10), 0, b)\nf = where((x >= -46) & (x <= -34) & (z >= -38) & (z <= -10), 5, f)\nb = where((x >= -34) & (x <= -30) & (z >= -18) & (z <= -10), 0, b)\nf = where((x >= -34) & (x <= -30) & (z >= -18) & (z <= -10), 5, f)\nb = where((x >= -22) & (x <= -10) & (z >= -22) & (z <= -10), 1, b)\nf = where((x >= -22) & (x <= -10) & (z >= -22) & (z <= -10), 8, f)\nb = where((x >= -22) & (x <= -10) & (z >= -38) & (z <= -30), 2, b)\nf = where((x >= -22) & (x <= -10) & (z >= -38) & (z <= -30), 4, f)\nb = where((x >= 10) & (x <= 18) & (z >= -38) & (z <= -10), 3, b)\nf = where((x >= 10) & (x <= 18) & (z >= -38) & (z <= -10), 14, f)\nb = where((x >= 26) & (x <= 46) & (z >= -18) & (z <= -10), 4, b)\nf = where((x >= 26) & (x <= 46) & (z >= -18) & (z <= -10), 6, f)\nb = where((x >= 30) & (x <= 46) & (z >= -38) & (z <= -30), 5, b)\nf = where((x >= 30) & (x <= 46) & (z >= -38) & (z <= -30), 3, f)\nb = where((x >= -46) & (x <= -30) & (z >= 10) & (z <= 22), 6, b)\nf = where((x >= -46) & (x <= -30) & (z >= 10) & (z <= 22), 7, f)\nb = where((x >= -22) & (x <= -10) & (z >= 10) & (z <= 18), 7, b)\nf = where((x >= -22) & (x <= -10) & (z >= 10) & (z <= 18), 3, f)\nb = where((x >= -46) & (x <= -38) & (z >= 30) & (z <= 38), 8, b)\nf = where((x >= -46) & (x <= -38) & (z >= 30) & (z <= 38), 4, f)\nb = where((x >= -22) & (x <= -10) & (z >= 26) & (z <= 38), 9, b)\nf = where((x >= -22) & (x <= -10) & (z >= 26) & (z <= 38), 10, f)\nb = where((x >= 10) & (x <= 30) & (z >= 10) & (z <= 18), 10, b)\nf = where((x >= 10) & (x <= 30) & (z >= 10) & (z <= 18), 5, f)\nb = where((x >= 10) & (x <= 18) & (z >= 22) & (z <= 30), 10, b)\nf = where((x >= 10) & (x <= 18) & (z >= 22) & (z <= 30), 5, f)\nb = where((x >= 38) & (x <= 46) & (z >= 10) & (z <= 38), 11, b)\nf = where((x >= 38) & (x <= 46) & (z >= 10) & (z <= 38), 9, f)\nfa = 0 * x\nfa = where(b == 0, 1, fa)\nfa = where(b == 2, 2, fa)\nfa = where(b == 3, 1, fa)\nfa = where(b == 4, 2, fa)\nfa = where(b == 7, 2, fa)\nfa = where(b == 8, 1, fa)\nfa = where(b == 9, 3, fa)\nfa = where(b == 10, 1, fa)\n# ── a generated block (Layout 1)\nlayout = chi(\"layout\", 0)\nsd = chi(\"seed\", 1) + seed * 17          # (seed: the node's rand_seed, e.g. a for-each iteration)\ndens = ch(\"density\", 0.85)\nfmin = max(1, chi(\"min_floors\", 3))\nfmax = min(14, max(fmin, chi(\"max_floors\", 12)))\ndef hh(a):\n    v = np.sin(np.asarray(a, np.float64) * 12.9898 + sd * 78.233 + 0.5) * 43758.5453\n    return v - np.floor(v)\nax = np.abs(np.asarray(x))\naz = np.abs(np.asarray(z))\nq = (np.asarray(x) > 0) * 1 + (np.asarray(z) > 0) * 2\n# Layout 2 (a block in a town of the open world): no streets of its own -- the roads are the cells the map's\n# road mask covers (ext_road), and nothing is built where ext_off says (outside the town, water)\nL2 = layout == 2\ner = np.asarray(prim(0, \"ext_road\", @primnum), np.float64) + 0 * ax\neo = np.asarray(prim(0, \"ext_off\", @primnum), np.float64) + 0 * ax\nso = 0 if L2 else 8\nu = np.floor((ax - so) / 4)              # cells out from the street along x\nv = np.floor((az - so) / 4)              # and along z\nlot = np.full(ax.shape, -1.0)\ndl = np.zeros(ax.shape)\nlane = np.zeros(ax.shape, bool)\nsroad = np.zeros(ax.shape, bool)\nfor qq in range(4):\n    m = q == qq\n    # a secondary street across the quarter (three quarters of them): two cells wide, k cells out from the\n    # main street; the lots beyond it front it\n    has = (hh(qq * 37 + 5) < 0.75) and not L2\n    k = 4 + int(hh(qq * 53 + 1) * 3)\n    vv = v[m]\n    sr = has & (vv >= k) & (vv < k + 2)\n    beyond = has & (vv >= k + 2)\n    v2 = np.where(beyond, vv - (k + 2), vv)\n    off = np.where(beyond, k + 2, 0)\n    wu = [3 + int(hh(qq * 101 + k_ * 7.3) * 3) for k_ in range(12)]      # frontages: 3-5 cells\n    cu = np.cumsum(wu)\n    iu = np.searchsorted(cu, u[m], side='right')\n    iv = np.zeros(vv.shape, np.int64)\n    lv = np.zeros(vv.shape, bool)\n    sv = np.zeros(vv.shape)\n    for r_ in (0, 1):\n        wv = [3 + int(hh(qq * 211 + r_ * 97 + k_ * 5.1) * 2) for k_ in range(12)]   # depths: 3-4 cells\n        cv = np.cumsum(wv)\n        mr = beyond == (r_ == 1)\n        ivr = np.searchsorted(cv, v2[mr], side='right')\n        iv[mr] = ivr + r_ * 100\n        lv[mr] = v2[mr] == cv[ivr] - 1\n        sv[mr] = np.concatenate([[0], cv])[ivr]\n    lot[m] = qq * 1000 + iu * 200 + iv\n    lane[m] = ((u[m] == cu[iu] - 1) | lv) & ~sr       # the last cell of a lot: a lane\n    sroad[m] = sr\n    su = np.concatenate([[0], cu])[iu]\n    dl[m] = np.sqrt((8 + 4 * su + 8) ** 2 + (8 + 4 * (sv + off) + 8) ** 2)\n# Layout 2 has no crossing between the quarters: a lane along the positive side of each axis keeps them apart\nlane = lane | (L2 & (((np.asarray(x) > 0) & (ax < 4)) | ((np.asarray(z) > 0) & (az < 4))))\non = ((ax > so) & (az > so) | L2) & ~lane & ~sroad & (er < 0.5) & (eo < 0.5) & (hh(lot * 0.37 + 0.11) < dens)\n# a town block with nowhere to build (all of it road, steep or wet) keeps one small building at its\n# middle, so what follows always has a building to work on\nif L2 and not on.any():\n    on = np.zeros(ax.shape, bool)\n    on[int(np.argmin(dl + 1e6 * (er >= 0.5) + 1e3 * (eo >= 0.5)))] = True\nnear = 1 - np.clip((dl - 14) / 46, 0, 1)\ngf = np.clip(np.round(fmin + (fmax - fmin) * near * near * (3 - 2 * near) + (hh(lot * 1.7) - 0.5) * 4), fmin, fmax)\ngfa = np.floor(hh(lot * 2.3 + 0.9) * 4)\nids = np.unique(lot[on])\ngb = np.where(on, np.searchsorted(ids, lot), -1)\nb = where(layout >= 1, gb, b)\nf = where(layout >= 1, np.where(on, gf, 0), f)\nfa = where(layout >= 1, np.where(on, gfa, 0), fa)\n# the road each cell is (0 none; 1 the main street, 2 the side street; Layout 1: 3 a secondary street, 4 a lane)\nrd = np.where(np.asarray(az) < 8, 1, np.where(np.asarray(ax) < 8, 2, 0))\nrd = np.where((layout == 1) & (rd == 0) & sroad, 3, np.where((layout == 1) & (rd == 0) & lane, 4, rd))\nrd = np.where(L2, np.where(er >= 0.5, 1, np.where(lane & (eo < 0.5), 4, 0)), rd)\ni@road = rd\ni@bld = where(b < 0, -1, b)\ni@floors = where(b < 0, 0, f)\ni@facade = fa",
-"geo": [
-"325",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
+"cx": -1.7,
+"cy": 0.175,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.2,
+"size_y": 0.35,
+"size_z": 3.2,
+"uniform_scale": 1.0
 }
 },
 "327": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Merge",
 "inputs": {
-"ch_params": "{}",
-"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nsb = chi(\"setback_floors\", 3)          # how many floors lower the front row stops (0 = no setbacks)\nsmin = chi(\"setback_min\", 9)           # from how many floors a building steps back\nx = @P.x\nz = @P.z\nb = @bld\nf = @floors\n# the first row of cells along a street (a street cell beside it), the building going on behind it (so it\n# has a back part to rise)\nfr = 0 * x > 1\nfor dx, dz in ((4, 0), (-4, 0), (0, 4), (0, -4)):\n    r_ = cell(x + dx, z + dz, \"road\")\n    fr = fr | (((r_ >= 1) & (r_ <= 3)) & (cell(x - dx, z - dz, \"bld\") == b))\nring = (b >= 0) & (f >= smin) & (sb > 0) & fr\ni@height = f\ni@setback = where(ring, 1, 0)\ni@floors = where(ring, f - sb, f)",
-"geo": [
-"326",
-0
-],
 "geo1": [
-"326",
+"324",
 0
 ],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
+"geo2": [
+"325",
+0
+],
+"geo3": [
+"326",
+0
+]
 }
 },
 "328": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"cls": "prim",
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
 "geo": [
 "327",
 0
 ],
-"group": "@bld < 0",
-"keep_selected": false
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "329": {
-"class_type": "PCG_Divide",
+"class_type": "PCG_Box",
 "inputs": {
-"attributes_to_swap": "* ^P",
-"avoid_slivers": false,
-"avoid_small_angles": false,
-"brick_angle_x": 0.0,
-"brick_angle_y": 0.0,
-"brick_angle_z": 0.0,
-"brick_offset_x": 0.0,
-"brick_offset_y": 0.0,
-"brick_offset_z": 0.0,
-"brick_polygons": false,
-"brick_shared_edges": true,
-"brick_size_x": 1.0,
-"brick_size_y": 1.0,
-"brick_size_z": 1.0,
-"compute_dual": false,
-"convex_polygons": false,
-"geo": [
-"328",
-0
-],
-"group": "@setback == 0",
-"max_edges": 3,
-"planar_tolerance": 0.0001,
-"remove_shared_edges": true,
-"triangulate_nonplanar": true
+"cx": -0.1,
+"cy": 0.15,
+"cz": -0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.2,
+"size_y": 0.3,
+"size_z": 1.4,
+"uniform_scale": 1.0
 }
 },
 "33": {
@@ -4381,91 +4523,67 @@
 }
 },
 "330": {
-"class_type": "PCG_Divide",
+"class_type": "PCG_Box",
 "inputs": {
-"attributes_to_swap": "* ^P",
-"avoid_slivers": false,
-"avoid_small_angles": false,
-"brick_angle_x": 0.0,
-"brick_angle_y": 0.0,
-"brick_angle_z": 0.0,
-"brick_offset_x": 0.0,
-"brick_offset_y": 0.0,
-"brick_offset_z": 0.0,
-"brick_polygons": false,
-"brick_shared_edges": true,
-"brick_size_x": 1.0,
-"brick_size_y": 1.0,
-"brick_size_z": 1.0,
-"compute_dual": false,
-"convex_polygons": false,
-"geo": [
-"329",
-0
-],
-"group": "@setback == 1",
-"max_edges": 3,
-"planar_tolerance": 0.0001,
-"remove_shared_edges": true,
-"triangulate_nonplanar": true
+"cx": -1.1,
+"cy": 0.5,
+"cz": 1.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.9,
+"size_y": 0.7,
+"size_z": 0.9,
+"uniform_scale": 1.0
 }
 },
 "331": {
-"class_type": "PCG_PolyExtrude",
+"class_type": "PCG_Box",
 "inputs": {
-"add_vertex_normals": false,
-"back_group": "extrudeBack",
-"back_seam_group": "",
-"cusp_angle": 60.0,
-"dir_x": 0.0,
-"dir_y": 1.0,
-"dir_z": 0.0,
-"distance": 49.0,
-"distance_attrib": "",
-"divide_into": "individual",
-"divisions": 14,
-"extrusion_mode": "prim_edge_normal",
-"front_group": "extrudeFront",
-"front_rotate": 0.0,
-"front_scale": 1.0,
-"front_seam_group": "",
-"front_tx": 0.0,
-"front_ty": 0.0,
-"front_tz": 0.0,
-"geo": [
-"330",
-0
-],
-"group": "",
-"inset": 0.0,
-"inset_attrib": "",
-"limit_insetting": false,
-"output_back": false,
-"output_front": false,
-"output_side": true,
-"preserve_groups": true,
-"side_group": "slot",
-"side_uv": false,
-"transform_front": false,
-"twist": 0.0,
-"up_x": 0.0,
-"up_y": 1.0,
-"up_z": 0.0,
-"use_common_limit": true,
-"use_direction": false,
-"use_local": false,
-"use_output": true,
-"use_spine": false,
-"uv_style": "proportional"
+"cx": 0.4,
+"cy": 0.45,
+"cz": 1.1,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.7,
+"size_y": 0.6,
+"size_z": 0.7,
+"uniform_scale": 1.0
 }
 },
 "332": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"329",
+0
+],
+"geo2": [
+"330",
+0
+],
+"geo3": [
+"331",
+0
+]
+}
+},
+"333": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "i@above = @P.y > @floors * 3.5",
+"code": "s@material = \"Planting\"",
 "geo": [
-"331",
+"332",
 0
 ],
 "group": "",
@@ -4473,111 +4591,102 @@
 "run_over": "prim"
 }
 },
-"333": {
-"class_type": "PCG_Blast",
-"inputs": {
-"cls": "prim",
-"geo": [
-"332",
-0
-],
-"group": "@above == 1",
-"keep_selected": false
-}
-},
 "334": {
-"class_type": "PCG_Normal",
+"class_type": "PCG_Box",
 "inputs": {
-"add_to": "prim",
-"compute_normals": true,
-"cusp_angle": 60.0,
-"geo": [
-"333",
-0
-],
-"group": "",
-"group_type": "guess",
-"keep_zero": false,
-"make_unit": false,
-"normal_name": "N",
-"reverse": false,
-"weighting": "by_face_area"
+"cx": 1.2,
+"cy": 0.03,
+"cz": 0.0,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.2,
+"size_y": 0.06,
+"size_z": 3.2,
+"uniform_scale": 1.0
 }
 },
 "335": {
-"class_type": "PCG_ExtractCentroid",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"attribute_name": "centroid",
+"ch_params": "{}",
+"code": "s@material = \"M_Trim\"",
 "geo": [
 "334",
 0
 ],
 "group": "",
-"method": "average_position",
-"output": "points",
-"piece_attribute": "name",
-"piece_elements": "primitives",
-"run_over": "primitives",
-"transfer_attributes": "N floors bld facade height",
-"transfer_groups": "",
-"use_attrib_out": true,
-"use_transfer": true
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "336": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nfl = floor(@P.y / 3.5)\ni@floor = fl\n@P.y = fl * 3.5                      # pivot at the midpoint of the bottom edge\nt = normalize(cross(set(0, 1, 0), @N))\ncol = floor(dot(@P, t) / 4 + 0.5)    # which column on the facade (aligned vertically)\nface = floor(dot(@N, set(1.3, 0, 2.9)) * 10 + 0.5)\nh = rand(col * 7.31 + @bld * 13.7 + face * 0.37)\nox = @P.x + 2 * @N.x                 # 2 m in front of the facade\noz = @P.z + 2 * @N.z\n# the street a facade faces: the road class of the cell in front (1 the main street -- or, in a town of the\n# open world, any road --, 2 the side street, 3 a secondary street)\nrf_ = cell(ox, oz, \"road\")\nmain = rf_ == 1\nside = rf_ == 2\nsec = rf_ == 3\nstreet = main | side | sec\n# shops: all along the main street; on the side street only near the crossing (within 24 m of it)\nshop = main | (side & (abs(@P.z) < 24))\nmodern = @facade == 3\n# render facades: paired windows; modern ones: curtain walls\nwin = where(@facade == 2, \"Wall_WindowPair\", where(modern, \"Wall_Curtain\", \"Wall_Window\"))\n# one balcony style per building: 0 none, 1 scattered on even floors, 2 bands (every street column, every third floor)\nbs = floor(rand(@bld * 5.31 + 1.7) * 3)\nbal = street & ~modern & (fl >= 1) & (((bs == 1) & (h > 0.55) & (fl % 2 == 0)) | ((bs == 2) & (fl % 3 == 2)))\n# towers (9+ floors) stand on a two-storey podium: the first floor is shopfront too where the ground floor is\npodium = (@height >= 9) & (fl == 1) & shop\nup_ = where(podium, \"Wall_Shopfront\", where(bal, \"Wall_Balcony\",\n            where((h < 0.12) & (bs != 2) & ~modern, \"Wall_Plain\", win)))\n# ground floor: shops (behind an arcade on the main street, for the buff-brick buildings); the rest of the\n# streets get entrances and windows; the backs doors and plain walls\nshopk = where(main & (@facade == 1), \"Wall_Arcade\", \"Wall_Shopfront\")\nground = where(shop, shopk, where(street, where(h > 0.6, \"Wall_Door\", win),\n               where(h > 0.78, \"Wall_Door\", \"Wall_Plain\")))\n# a slot whose front cell is this building and still standing at this floor is inside (where the set-back\n# front row meets the rest): no wall\ninside = (cell(ox, oz, \"bld\") == @bld) & (fl < cell(ox, oz, \"floors\"))\ns@name = where(inside, \"\", where(fl == 0, ground, up_))\ni@back = where(street, 0, 1)\n@up = set(0, 1, 0)",
-"geo": [
-"335",
-0
-],
-"geo1": [
-"327",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": 1.2,
+"cy": 0.45,
+"cz": 1.2,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.2,
+"size_y": 0.06,
+"size_z": 0.45,
+"uniform_scale": 1.0
 }
 },
 "337": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"336",
-0
-],
-"group": "@name == \"\"",
-"keep_selected": false
+"cx": 1.2,
+"cy": 0.7,
+"cz": 1.42,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 1.2,
+"size_y": 0.45,
+"size_z": 0.06,
+"uniform_scale": 1.0
 }
 },
 "338": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Merge",
 "inputs": {
-"cls": "point",
-"geo": [
-"337",
+"geo1": [
+"336",
 0
 ],
-"group": "@floor != @floors - 1",
-"keep_selected": false
+"geo2": [
+"337",
+0
+]
 }
 },
 "339": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "s@name = \"Roof_Cornice\"\n@P.y += 3.5",
+"code": "s@material = \"M_Door\"",
 "geo": [
 "338",
 0
 ],
 "group": "",
 "rand_seed": 0,
-"run_over": "point"
+"run_over": "prim"
 }
 },
 "34": {
@@ -4609,184 +4718,182 @@
 }
 },
 "340": {
-"class_type": "PCG_GroupCreate",
+"class_type": "PCG_Merge",
 "inputs": {
-"base": "",
-"bbox_partial": false,
-"both_dirs": false,
-"cls": "point",
-"cx": 0.0,
-"cy": 0.0,
-"cz": 0.0,
-"dir_x": 0.0,
-"dir_y": 0.0,
-"dir_z": 1.0,
-"edge_combine": "include",
-"geo": [
+"geo1": [
+"328",
+0
+],
+"geo2": [
 "333",
 0
 ],
-"max_angle": 180.0,
-"merge": "replace",
-"min_angle": 30.0,
-"name": "corner",
-"percent": 50.0,
-"rand_seed": 0,
-"spread": 180.0,
-"sx": 1.0,
-"sy": 1.0,
-"sz": 1.0,
-"unshared": false,
-"use_angle": true,
-"use_bbox": false,
-"use_edges": true,
-"use_normal": false,
-"use_random": false
+"geo3": [
+"335",
+0
+],
+"geo4": [
+"339",
+0
+]
 }
 },
 "341": {
-"class_type": "PCG_AttribPromote",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"change_new_name": false,
-"delete_original": false,
+"ch_params": "{}",
+"code": "s@name = \"Roof_Garden\"",
 "geo": [
 "340",
 0
 ],
-"method": "maximum",
-"new_class": "point",
-"new_name": "",
-"original_class": "prim",
-"original_name": "floors",
-"piece_attribute": "name",
-"use_piece": false
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "342": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"341",
-0
-],
-"group": "corner",
-"keep_selected": true
+"cx": 0.0,
+"cy": 0.03,
+"cz": 0.62,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.6,
+"size_y": 0.06,
+"size_z": 1.1,
+"uniform_scale": 1.0
 }
 },
 "343": {
-"class_type": "PCG_Add",
+"class_type": "PCG_Wrangle",
 "inputs": {
-"attribute": "class",
-"attribute_closed": false,
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
 "geo": [
 "342",
 0
 ],
 "group": "",
-"group_closed": false,
-"group_mode": "all_points",
-"group_n": 2,
-"keep_points": true,
-"pattern": "0-3",
-"pattern_closed": true,
-"points": "",
-"remove_repeated": true,
-"remove_unused": false,
-"use_attribute": false,
-"use_group": false,
-"use_pattern": false,
-"use_remove": false
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "344": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"343",
-0
-],
-"group": "@P.y > @floors * 3.5 - 0.1",
-"keep_selected": false
+"cx": -1.7,
+"cy": 0.8,
+"cz": 0.05,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 1.6,
+"size_z": 0.05,
+"uniform_scale": 1.0
 }
 },
 "345": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\n# the four cells round this grid point, standing at this storey (built, and tall enough)\ny = @P.y + 0.1\ndef up_(dx, dz):\n    return (cell(@P.x + dx, @P.z + dz, \"bld\") >= 0) & (cell(@P.x + dx, @P.z + dz, \"floors\") * 3.5 > y)\na = up_(-2, -2)\nb = up_(2, -2)\nc = up_(-2, 2)\nd = up_(2, 2)\nn = a * 1 + b * 1 + c * 1 + d * 1\n# a corner: one cell (outside corner) or three (inside corner); two side by side are a flat wall\nturn = (n == 1) | (n == 3) | ((n == 2) & (a == d))\n# one pillar per point (where the set-back front rows meet the rest two masses share a corner)\nkey = np.round(np.asarray(@P.x) * 10) * 1e7 + np.round(np.asarray(@P.y) * 10) * 1e3 + np.round(np.asarray(@P.z) * 10)\nfirst = np.zeros(len(key), bool)\nfirst[np.unique(key, return_index=True)[1]] = True\ni@keep = where(turn & first, 1, 0)\n# an outside corner with a street on both its outer sides (the corners on the crossing): a round corner bay\nsx_ = where(a | c, -2.0, 2.0)          # the standing cell's side of the point\nsz_ = where(a | b, -2.0, 2.0)\ndef street(dx, dz):\n    r_ = cell(@P.x + dx, @P.z + dz, \"road\")\n    return (r_ >= 1) & (r_ <= 3)\ncross = (n == 1) & street(-sx_, sz_) & street(sx_, -sz_) & street(-sx_, -sz_)\ns@name = where(cross & (@P.y < 0.5), \"Corner_BayShop\", where(cross, \"Corner_Bay\", \"Corner_Pillar\"))\n# the building it belongs to (one of the standing cells): its number and facade variant (the bay is rendered)\ndef pick(name):\n    v = [cell(@P.x + dx, @P.z + dz, name) for dx, dz in ((-2, -2), (2, -2), (-2, 2), (2, 2))]\n    return where(a, v[0], where(b, v[1], where(c, v[2], v[3])))\ni@bld = pick(\"bld\")\ni@facade = pick(\"facade\")\n# the bay faces out of the corner (diagonally into the crossing)\n@N = where(cross, normalize(set(-sx_, 0, -sz_)), set(0, 0, 1))\n@up = set(0, 1, 0)",
-"geo": [
-"344",
-0
-],
-"geo1": [
-"327",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": 1.7,
+"cy": 0.8,
+"cz": 0.05,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 1.6,
+"size_z": 0.05,
+"uniform_scale": 1.0
 }
 },
 "346": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"345",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": -1.7,
+"cy": 1.58,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 0.05,
+"size_z": 1.1,
+"uniform_scale": 1.0
 }
 },
 "347": {
-"class_type": "PCG_ExtractCentroid",
+"class_type": "PCG_Box",
 "inputs": {
-"attribute_name": "centroid",
-"geo": [
-"328",
-0
-],
-"group": "",
-"method": "average_position",
-"output": "points",
-"piece_attribute": "name",
-"piece_elements": "primitives",
-"run_over": "primitives",
-"transfer_attributes": "floors bld facade height",
-"transfer_groups": "",
-"use_attrib_out": true,
-"use_transfer": true
+"cx": 1.7,
+"cy": 1.58,
+"cz": 0.6,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.05,
+"size_y": 0.05,
+"size_z": 1.1,
+"uniform_scale": 1.0
 }
 },
 "348": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Merge",
 "inputs": {
-"ch_params": "{}",
-"code": "# the building's long axis (from its cells' extent): the ridge runs along it\nb = np.asarray(@bld).reshape(-1).astype(int) + 1\npx = np.asarray(@P.x).reshape(-1)\npz = np.asarray(@P.z).reshape(-1)\nn_ = b.max() + 1\nx0 = np.full(n_, 1e9)\nx1 = np.full(n_, -1e9)\nz0 = np.full(n_, 1e9)\nz1 = np.full(n_, -1e9)\nnp.minimum.at(x0, b, px)\nnp.maximum.at(x1, b, px)\nnp.minimum.at(z0, b, pz)\nnp.maximum.at(z1, b, pz)\ni@axx = where((x1 - x0)[b] >= (z1 - z0)[b], 1, 0)\npitched = @height <= 4\ns@name = where(pitched, \"Roof_Gable\", \"Roof_Flat\")\n@P.y = @floors * 3.5\n# the gable piece's ridge is its local X: across the building's axis the piece faces along the other one\n@N = where(pitched & (@axx == 0), set(1, 0, 0), set(0, 0, 1))\n@up = set(0, 1, 0)",
-"geo": [
-"347",
+"geo1": [
+"344",
 0
 ],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"geo2": [
+"345",
+0
+],
+"geo3": [
+"346",
+0
+],
+"geo4": [
+"347",
+0
+]
 }
 },
 "349": {
 "class_type": "PCG_Wrangle",
 "inputs": {
 "ch_params": "{}",
-"code": "h = rand(@ptnum * 3.17 + 0.5)\nbig = @floors >= 5\n# the stair / lift core: on buildings of 8+ floors, the roof cell nearest the building's middle\nb = np.asarray(@bld).reshape(-1).astype(int) + 1\npx = np.asarray(@P.x).reshape(-1)\npz = np.asarray(@P.z).reshape(-1)\nn_ = np.bincount(b, minlength=b.max() + 1).astype(float)\nmx = np.bincount(b, px, b.max() + 1) / np.maximum(n_, 1)\nmz = np.bincount(b, pz, b.max() + 1) / np.maximum(n_, 1)\nd = (px - mx[b]) ** 2 + (pz - mz[b]) ** 2 + np.asarray(rand(@ptnum * 0.73)).reshape(-1) * 1e-3\ndm = np.full(b.max() + 1, 1e9)\nnp.minimum.at(dm, b, d)\nstair = (d == dm[b]) & (np.asarray(@height).reshape(-1) >= 8)\nflat = np.asarray(@name).reshape(-1) == \"Roof_Flat\"\n# a roof terrace (decking, planters) over every cell of about half the 5-7 floor buildings; a few antennas\ndeck = flat & (@height >= 5) & (@height <= 7) & (rand(b * 2.93 + 0.4) < 0.5)\nant = (h >= 0.14) & (h < 0.20)\ns@name = where(~flat, \"\", where(stair, \"Roof_Penthouse\", where(deck, \"Roof_Deck\", where(big & (h < 0.035), \"Roof_Tank\", where(h < 0.14, \"Roof_Unit\", where(ant, \"Roof_Antenna\", \"\"))))))\n# random quarter turns, and (plant only) a little slack inside the 4 m cell\na = floor(rand(@ptnum * 1.91) * 4) * 1.5708\n@N = set(sin(a), 0, cos(a))\nk = where(stair | deck | ant, 0.0, 1.2)\n@P.x += (rand(@ptnum * 2.3) - 0.5) * k\n@P.z += (rand(@ptnum * 4.1) - 0.5) * k",
+"code": "s@material = \"M_Metal\"",
 "geo": [
 "348",
 0
 ],
 "group": "",
 "rand_seed": 0,
-"run_over": "point"
+"run_over": "prim"
 }
 },
 "35": {
@@ -4804,141 +4911,193 @@
 }
 },
 "350": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"349",
-0
-],
-"group": "@name == \"\"",
-"keep_selected": false
+"cx": 0.0,
+"cy": 1.0,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 3.6,
+"size_y": 0.04,
+"size_z": 0.04,
+"uniform_scale": 1.0
 }
 },
 "351": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "nm = np.asarray(@name).reshape(-1)\nw_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\")\ni@keep = where(w_ & (@back == 1) & (@floor >= 1) & (rand(@ptnum * 5.77 + 0.21) < 0.33), 1, 0)\ns@name = \"Prop_ACUnit\"\n@P.y += 0.25",
-"geo": [
-"337",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": -1.78,
+"cy": 1.0,
+"cz": 0.62,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.04,
+"size_y": 0.04,
+"size_z": 1.1,
+"uniform_scale": 1.0
 }
 },
 "352": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"351",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": 1.78,
+"cy": 1.0,
+"cz": 0.62,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.04,
+"size_y": 0.04,
+"size_z": 1.1,
+"uniform_scale": 1.0
 }
 },
 "353": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "nm = np.asarray(@name).reshape(-1)\nw_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\")\ni@keep = where(w_ & (@back == 0) & (@floor >= 1) & (@facade != 3) & (rand(@ptnum * 2.17 + 0.83) < 0.22), 1, 0)\ns@name = \"Prop_FlowerBox\"\n@P.y += 0.92",
-"geo": [
-"337",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": -1.7,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "354": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"353",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": -1.5,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "355": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nd = set(@axx, 0, 1 - @axx) * 1\nnb = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"bld\")\nnf = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"floors\")\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & ((nb != @bld) | (nf != @floors)), 1, 0)\ns@name = \"Roof_GableEnd\"\n@P = @P + d * 2\n@N = d",
-"geo": [
-"348",
-0
-],
-"geo1": [
-"327",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": -1.2999999999999998,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "356": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"355",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": -1.0999999999999999,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "357": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nd = set(@axx, 0, 1 - @axx) * -1\nnb = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"bld\")\nnf = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"floors\")\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & ((nb != @bld) | (nf != @floors)), 1, 0)\ns@name = \"Roof_GableEnd\"\n@P = @P + d * 2\n@N = d",
-"geo": [
-"348",
-0
-],
-"geo1": [
-"327",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": -0.8999999999999999,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "358": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"357",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": -0.7,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "359": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "# across the ridge, toward the nearer street axis\nd = where(@axx == 1, set(0, 0, -np.sign(@P.z)), set(-np.sign(@P.x), 0, 0))\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & (rand(@ptnum * 3.91 + 0.6) < 0.45), 1, 0)\ns@name = \"Roof_Dormer\"\n@P = @P + d * 1.0 + set(0, 0.35, 0)\n@N = d",
-"geo": [
-"348",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": -0.4999999999999998,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "36": {
@@ -4961,122 +5120,193 @@
 }
 },
 "360": {
-"class_type": "PCG_Blast",
+"class_type": "PCG_Box",
 "inputs": {
-"cls": "point",
-"geo": [
-"359",
-0
-],
-"group": "@keep == 0",
-"keep_selected": false
+"cx": -0.2999999999999998,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "361": {
-"class_type": "PCG_Merge",
+"class_type": "PCG_Box",
 "inputs": {
-"geo1": [
-"337",
-0
-],
-"geo2": [
-"339",
-0
-],
-"geo3": [
-"346",
-0
-],
-"geo4": [
-"348",
-0
-],
-"geo5": [
-"350",
-0
-],
-"geo6": [
-"352",
-0
-]
+"cx": -0.09999999999999987,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "362": {
-"class_type": "PCG_Merge",
+"class_type": "PCG_Box",
 "inputs": {
-"geo1": [
-"361",
-0
-],
-"geo2": [
-"354",
-0
-],
-"geo3": [
-"356",
-0
-],
-"geo4": [
-"358",
-0
-],
-"geo5": [
-"360",
-0
-]
+"cx": 0.10000000000000009,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "363": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "# the table's asset column is exactly the kit's exported file name (SM_Kit_Wall_Window.glb without the extension)\ns@asset = sprintf(\"SM_Kit_%s\", @name)",
-"geo": [
-"362",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "point"
+"cx": 0.30000000000000004,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "364": {
-"class_type": "PCG_CopyToPoints",
+"class_type": "PCG_Box",
 "inputs": {
-"multiply_attributes": "",
-"pack_and_instance": false,
-"piece_attribute": "name",
-"points": [
-"362",
-0
-],
-"rotate_attributes": "N v up",
-"source": [
-"313",
-0
-],
-"source_group": "",
-"target_group": "",
-"target_point_attributes": "*",
-"target_prim_attributes": "facade bld",
-"transform_using_orientations": true,
-"up_x": 0.0,
-"up_y": 1.0,
-"up_z": 0.0
+"cx": 0.5000000000000002,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "365": {
-"class_type": "PCG_Wrangle",
+"class_type": "PCG_Box",
 "inputs": {
-"ch_params": "{}",
-"code": "w = @material == \"M_Wall\"\nm = where(w & (@facade == 1), \"M_BrickBuff\",\n          where(w & (@facade == 2), \"M_Stucco\",\n          where(w & (@facade == 3), \"M_Trim\", @material)))\ns@material = m\n@Cd = where(m == \"M_BrickBuff\", set(0.70, 0.62, 0.46), where(m == \"M_Stucco\", set(0.84, 0.77, 0.63), @Cd))\n# details that vary: the painted metal (window frames, railings, shop frames) one colour per building; the\n# awnings, signs and window boxes one each\ndef pick(r, cols):\n    k = np.minimum((np.asarray(r).reshape(-1) * len(cols)).astype(int), len(cols) - 1)\n    return np.asarray(cols, np.float32)[k]\nrb = rand(@bld * 4.13 + 0.27)\nrc = rand(@copynum * 1.71 + 0.13)\nmetal = pick(rb, [(0.30, 0.55, 0.38), (0.35, 0.35, 0.36), (2.2, 2.1, 1.9), (0.95, 0.30, 0.25), (0.35, 0.45, 0.85)])\nawn = pick(rc, [(0.62, 0.12, 0.09), (0.12, 0.38, 0.18), (0.13, 0.22, 0.48), (0.78, 0.64, 0.36), (0.16, 0.16, 0.17), (0.70, 0.40, 0.12)])\nsign = pick(rand(@copynum * 3.37 + 0.61), [(1.2, 1.0, 0.6), (0.9, 0.3, 0.25), (0.35, 0.7, 1.0), (1.3, 1.3, 1.3), (0.5, 0.9, 0.5)])\nplant = pick(rand(@copynum * 5.11 + 0.37), [(0.18, 0.40, 0.12), (0.25, 0.48, 0.16), (0.55, 0.20, 0.35), (0.75, 0.62, 0.20), (0.62, 0.15, 0.12)])\nmm = np.asarray(m).reshape(-1)\n@Cd = np.where((mm == \"M_Metal\")[:, None], metal, np.where((mm == \"Awning\")[:, None], awn, np.where((mm == \"M_Sign\")[:, None], sign, np.where((mm == \"Planting\")[:, None], plant, @Cd))))",
-"geo": [
-"364",
-0
-],
-"group": "",
-"rand_seed": 0,
-"run_over": "prim"
+"cx": 0.7000000000000004,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"366": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.9000000000000001,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"367": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.1000000000000003,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"368": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.3,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"369": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.5000000000000002,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
 }
 },
 "37": {
@@ -5091,6 +5321,231 @@
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
+}
+},
+"370": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.7000000000000004,
+"cy": 0.5,
+"cz": 1.16,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.02,
+"size_y": 1.0,
+"size_z": 0.02,
+"uniform_scale": 1.0
+}
+},
+"371": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"350",
+0
+],
+"geo2": [
+"351",
+0
+],
+"geo3": [
+"352",
+0
+],
+"geo4": [
+"353",
+0
+],
+"geo5": [
+"354",
+0
+],
+"geo6": [
+"355",
+0
+]
+}
+},
+"372": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"371",
+0
+],
+"geo2": [
+"356",
+0
+],
+"geo3": [
+"357",
+0
+],
+"geo4": [
+"358",
+0
+],
+"geo5": [
+"359",
+0
+],
+"geo6": [
+"360",
+0
+]
+}
+},
+"373": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"372",
+0
+],
+"geo2": [
+"361",
+0
+],
+"geo3": [
+"362",
+0
+],
+"geo4": [
+"363",
+0
+],
+"geo5": [
+"364",
+0
+],
+"geo6": [
+"365",
+0
+]
+}
+},
+"374": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"373",
+0
+],
+"geo2": [
+"366",
+0
+],
+"geo3": [
+"367",
+0
+],
+"geo4": [
+"368",
+0
+],
+"geo5": [
+"369",
+0
+],
+"geo6": [
+"370",
+0
+]
+}
+},
+"375": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
+"374",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"376": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -1.4,
+"cy": 0.32,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"377": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -1.1199999999999999,
+"cy": 0.64,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"378": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.8399999999999999,
+"cy": 0.96,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"379": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.5599999999999998,
+"cy": 1.28,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
 }
 },
 "38": {
@@ -5112,6 +5567,206 @@
 "uniform_scale": 1.0
 }
 },
+"380": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -0.2799999999999998,
+"cy": 1.6,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"381": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 2.220446049250313e-16,
+"cy": 1.92,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"382": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.28000000000000025,
+"cy": 2.24,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"383": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.5600000000000003,
+"cy": 2.56,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"384": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 0.8400000000000003,
+"cy": 2.88,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"385": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.1200000000000006,
+"cy": 3.2,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"386": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.4000000000000004,
+"cy": 3.52,
+"cz": 0.85,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.24,
+"size_y": 0.03,
+"size_z": 0.5,
+"uniform_scale": 1.0
+}
+},
+"387": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": -1.6,
+"cy": 1.75,
+"cz": 1.12,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.04,
+"size_y": 3.5,
+"size_z": 0.04,
+"uniform_scale": 1.0
+}
+},
+"388": {
+"class_type": "PCG_Box",
+"inputs": {
+"cx": 1.6,
+"cy": 1.75,
+"cz": 1.12,
+"div_x": 2,
+"div_y": 2,
+"div_z": 2,
+"prim_type": "polygon",
+"rx": 0.0,
+"ry": 0,
+"rz": 0,
+"size_x": 0.04,
+"size_y": 3.5,
+"size_z": 0.04,
+"uniform_scale": 1.0
+}
+},
+"389": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"376",
+0
+],
+"geo2": [
+"377",
+0
+],
+"geo3": [
+"378",
+0
+],
+"geo4": [
+"379",
+0
+],
+"geo5": [
+"380",
+0
+],
+"geo6": [
+"381",
+0
+]
+}
+},
 "39": {
 "class_type": "PCG_Box",
 "inputs": {
@@ -5129,6 +5784,246 @@
 "size_y": 0.9,
 "size_z": 0.03,
 "uniform_scale": 1.0
+}
+},
+"390": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"389",
+0
+],
+"geo2": [
+"382",
+0
+],
+"geo3": [
+"383",
+0
+],
+"geo4": [
+"384",
+0
+],
+"geo5": [
+"385",
+0
+],
+"geo6": [
+"386",
+0
+]
+}
+},
+"391": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"390",
+0
+],
+"geo2": [
+"387",
+0
+],
+"geo3": [
+"388",
+0
+]
+}
+},
+"392": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@material = \"M_Metal\"",
+"geo": [
+"391",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"393": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"343",
+0
+],
+"geo2": [
+"349",
+0
+],
+"geo3": [
+"375",
+0
+],
+"geo4": [
+"392",
+0
+]
+}
+},
+"394": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Prop_FireEscape\"",
+"geo": [
+"393",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"395": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"6",
+0
+],
+"geo2": [
+"32",
+0
+],
+"geo3": [
+"56",
+0
+],
+"geo4": [
+"85",
+0
+],
+"geo5": [
+"113",
+0
+],
+"geo6": [
+"119",
+0
+]
+}
+},
+"396": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"395",
+0
+],
+"geo2": [
+"132",
+0
+],
+"geo3": [
+"135",
+0
+],
+"geo4": [
+"159",
+0
+],
+"geo5": [
+"170",
+0
+],
+"geo6": [
+"183",
+0
+]
+}
+},
+"397": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"396",
+0
+],
+"geo2": [
+"197",
+0
+],
+"geo3": [
+"209",
+0
+],
+"geo4": [
+"245",
+0
+],
+"geo5": [
+"267",
+0
+],
+"geo6": [
+"276",
+0
+]
+}
+},
+"398": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"397",
+0
+],
+"geo2": [
+"280",
+0
+],
+"geo3": [
+"284",
+0
+],
+"geo4": [
+"294",
+0
+],
+"geo5": [
+"302",
+0
+],
+"geo6": [
+"310",
+0
+]
+}
+},
+"399": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"398",
+0
+],
+"geo2": [
+"224",
+0
+],
+"geo3": [
+"230",
+0
+],
+"geo4": [
+"323",
+0
+],
+"geo5": [
+"341",
+0
+],
+"geo6": [
+"394",
+0
+]
 }
 },
 "4": {
@@ -5164,6 +6059,62 @@
 "uniform_scale": 1.0
 }
 },
+"400": {
+"class_type": "PCG_UVProject",
+"inputs": {
+"attribute_class": "vertex",
+"attribute_name": "uv",
+"axis": "y",
+"fit_to_01": false,
+"fix_seams": true,
+"geo": [
+"399",
+0
+],
+"group": "",
+"inner_radius": 0.25,
+"keep_aspect": true,
+"mode": "box",
+"proj_pivot_x": 0.0,
+"proj_pivot_y": 0.0,
+"proj_pivot_z": 0.0,
+"proj_rotate_x": 0.0,
+"proj_rotate_y": 0.0,
+"proj_rotate_z": 0.0,
+"proj_scale_x": 1.0,
+"proj_scale_y": 1.0,
+"proj_scale_z": 1.0,
+"proj_translate_x": 0.0,
+"proj_translate_y": 0.0,
+"proj_translate_z": 0.0,
+"rotate": 0.0,
+"rotate_order": "xyz",
+"scale_u": 1.0,
+"scale_v": 1.0,
+"translate_u": 0.0,
+"translate_v": 0.0,
+"u_range_max": 1.0,
+"u_range_min": 0.0,
+"use_projector": false,
+"v_range_max": 1.0,
+"v_range_min": 0.0,
+"xform_order": "srt"
+}
+},
+"401": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "m = @material\n@Cd = where(m == \"M_Wall\", set(0.66, 0.46, 0.36), where(m == \"M_Glass\", set(0.16, 0.24, 0.32), where(m == \"M_Door\", set(0.30, 0.20, 0.14), where(m == \"M_Metal\", set(0.22, 0.23, 0.25), where(m == \"M_Roof\", set(0.32, 0.32, 0.34), where(m == \"M_RoofFlat\", set(0.36, 0.36, 0.35), where(m == \"M_Sign\", set(0.80, 0.55, 0.20), where(m == \"Awning\", set(0.55, 0.12, 0.10), where(m == \"Planting\", set(0.20, 0.42, 0.14), where(m == \"Lettering\", set(0.95, 0.92, 0.82), where(m == \"Glass_Frosted\", set(0.62, 0.70, 0.72), set(0.86, 0.84, 0.79))))))))))))",
+"geo": [
+"400",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
 "41": {
 "class_type": "PCG_Box",
 "inputs": {
@@ -5181,6 +6132,176 @@
 "size_y": 1.1,
 "size_z": 0.03,
 "uniform_scale": 1.0
+}
+},
+"413": {
+"class_type": "PCG_Grid",
+"inputs": {
+"center_x": 0.0,
+"center_y": 0.0,
+"center_z": 0.0,
+"cols": 27,
+"connectivity": "quadrilaterals",
+"plane": "zx",
+"rows": 23,
+"rx": 0,
+"ry": 0,
+"rz": 0,
+"size_x": 104.0,
+"size_z": 88.0
+}
+},
+"414": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "x = @P.x\nz = @P.z\nb = 0 * x - 1\nf = 0 * x\nb = where((x >= -46) & (x <= -34) & (z >= -38) & (z <= -10), 0, b)\nf = where((x >= -46) & (x <= -34) & (z >= -38) & (z <= -10), 5, f)\nb = where((x >= -34) & (x <= -30) & (z >= -18) & (z <= -10), 0, b)\nf = where((x >= -34) & (x <= -30) & (z >= -18) & (z <= -10), 5, f)\nb = where((x >= -22) & (x <= -10) & (z >= -22) & (z <= -10), 1, b)\nf = where((x >= -22) & (x <= -10) & (z >= -22) & (z <= -10), 8, f)\nb = where((x >= -22) & (x <= -10) & (z >= -38) & (z <= -30), 2, b)\nf = where((x >= -22) & (x <= -10) & (z >= -38) & (z <= -30), 4, f)\nb = where((x >= 10) & (x <= 18) & (z >= -38) & (z <= -10), 3, b)\nf = where((x >= 10) & (x <= 18) & (z >= -38) & (z <= -10), 14, f)\nb = where((x >= 26) & (x <= 46) & (z >= -18) & (z <= -10), 4, b)\nf = where((x >= 26) & (x <= 46) & (z >= -18) & (z <= -10), 6, f)\nb = where((x >= 30) & (x <= 46) & (z >= -38) & (z <= -30), 5, b)\nf = where((x >= 30) & (x <= 46) & (z >= -38) & (z <= -30), 3, f)\nb = where((x >= -46) & (x <= -30) & (z >= 10) & (z <= 22), 6, b)\nf = where((x >= -46) & (x <= -30) & (z >= 10) & (z <= 22), 7, f)\nb = where((x >= -22) & (x <= -10) & (z >= 10) & (z <= 18), 7, b)\nf = where((x >= -22) & (x <= -10) & (z >= 10) & (z <= 18), 3, f)\nb = where((x >= -46) & (x <= -38) & (z >= 30) & (z <= 38), 8, b)\nf = where((x >= -46) & (x <= -38) & (z >= 30) & (z <= 38), 4, f)\nb = where((x >= -22) & (x <= -10) & (z >= 26) & (z <= 38), 9, b)\nf = where((x >= -22) & (x <= -10) & (z >= 26) & (z <= 38), 10, f)\nb = where((x >= 10) & (x <= 30) & (z >= 10) & (z <= 18), 10, b)\nf = where((x >= 10) & (x <= 30) & (z >= 10) & (z <= 18), 5, f)\nb = where((x >= 10) & (x <= 18) & (z >= 22) & (z <= 30), 10, b)\nf = where((x >= 10) & (x <= 18) & (z >= 22) & (z <= 30), 5, f)\nb = where((x >= 38) & (x <= 46) & (z >= 10) & (z <= 38), 11, b)\nf = where((x >= 38) & (x <= 46) & (z >= 10) & (z <= 38), 9, f)\nfa = 0 * x\nfa = where(b == 0, 1, fa)\nfa = where(b == 2, 2, fa)\nfa = where(b == 3, 1, fa)\nfa = where(b == 4, 2, fa)\nfa = where(b == 7, 2, fa)\nfa = where(b == 8, 1, fa)\nfa = where(b == 9, 3, fa)\nfa = where(b == 10, 1, fa)\n# ── a generated block (Layout 1)\nlayout = chi(\"layout\", 0)\nsd = chi(\"seed\", 1) + seed * 17          # (seed: the node's rand_seed, e.g. a for-each iteration)\ndens = ch(\"density\", 0.85)\nfmin = max(1, chi(\"min_floors\", 3))\nfmax = min(14, max(fmin, chi(\"max_floors\", 12)))\ndef hh(a):\n    v = np.sin(np.asarray(a, np.float64) * 12.9898 + sd * 78.233 + 0.5) * 43758.5453\n    return v - np.floor(v)\nax = np.abs(np.asarray(x))\naz = np.abs(np.asarray(z))\nq = (np.asarray(x) > 0) * 1 + (np.asarray(z) > 0) * 2\n# Layout 2 (a block in a town of the open world): no streets of its own -- the roads are the cells the map's\n# road mask covers (ext_road), and nothing is built where ext_off says (outside the town, water)\nL2 = layout == 2\ner = np.asarray(prim(0, \"ext_road\", @primnum), np.float64) + 0 * ax\neo = np.asarray(prim(0, \"ext_off\", @primnum), np.float64) + 0 * ax\nso = 0 if L2 else 8\nu = np.floor((ax - so) / 4)              # cells out from the street along x\nv = np.floor((az - so) / 4)              # and along z\nlot = np.full(ax.shape, -1.0)\ndl = np.zeros(ax.shape)\nlane = np.zeros(ax.shape, bool)\nsroad = np.zeros(ax.shape, bool)\nfor qq in range(4):\n    m = q == qq\n    # a secondary street across the quarter (three quarters of them): two cells wide, k cells out from the\n    # main street; the lots beyond it front it\n    has = (hh(qq * 37 + 5) < 0.75) and not L2\n    k = 4 + int(hh(qq * 53 + 1) * 3)\n    vv = v[m]\n    sr = has & (vv >= k) & (vv < k + 2)\n    beyond = has & (vv >= k + 2)\n    v2 = np.where(beyond, vv - (k + 2), vv)\n    off = np.where(beyond, k + 2, 0)\n    wu = [3 + int(hh(qq * 101 + k_ * 7.3) * 3) for k_ in range(12)]      # frontages: 3-5 cells\n    cu = np.cumsum(wu)\n    iu = np.searchsorted(cu, u[m], side='right')\n    iv = np.zeros(vv.shape, np.int64)\n    lv = np.zeros(vv.shape, bool)\n    sv = np.zeros(vv.shape)\n    for r_ in (0, 1):\n        wv = [3 + int(hh(qq * 211 + r_ * 97 + k_ * 5.1) * 2) for k_ in range(12)]   # depths: 3-4 cells\n        cv = np.cumsum(wv)\n        mr = beyond == (r_ == 1)\n        ivr = np.searchsorted(cv, v2[mr], side='right')\n        iv[mr] = ivr + r_ * 100\n        lv[mr] = v2[mr] == cv[ivr] - 1\n        sv[mr] = np.concatenate([[0], cv])[ivr]\n    lot[m] = qq * 1000 + iu * 200 + iv\n    lane[m] = ((u[m] == cu[iu] - 1) | lv) & ~sr       # the last cell of a lot: a lane\n    sroad[m] = sr\n    su = np.concatenate([[0], cu])[iu]\n    dl[m] = np.sqrt((8 + 4 * su + 8) ** 2 + (8 + 4 * (sv + off) + 8) ** 2)\n# Layout 2 has no crossing between the quarters: a lane along the positive side of each axis keeps them apart\nlane = lane | (L2 & (((np.asarray(x) > 0) & (ax < 4)) | ((np.asarray(z) > 0) & (az < 4))))\non = ((ax > so) & (az > so) | L2) & ~lane & ~sroad & (er < 0.5) & (eo < 0.5) & (hh(lot * 0.37 + 0.11) < dens)\n# a town block with nowhere to build (all of it road, steep or wet) keeps one small building at its\n# middle, so what follows always has a building to work on\nif L2 and not on.any():\n    on = np.zeros(ax.shape, bool)\n    on[int(np.argmin(dl + 1e6 * (er >= 0.5) + 1e3 * (eo >= 0.5)))] = True\nnear = 1 - np.clip((dl - 14) / 46, 0, 1)\ngf = np.clip(np.round(fmin + (fmax - fmin) * near * near * (3 - 2 * near) + (hh(lot * 1.7) - 0.5) * 4), fmin, fmax)\ngfa = np.floor(hh(lot * 2.3 + 0.9) * 4)\nids = np.unique(lot[on])\ngb = np.where(on, np.searchsorted(ids, lot), -1)\nb = where(layout >= 1, gb, b)\nf = where(layout >= 1, np.where(on, gf, 0), f)\nfa = where(layout >= 1, np.where(on, gfa, 0), fa)\n# the road each cell is (0 none; 1 the main street, 2 the side street; Layout 1: 3 a secondary street, 4 a lane)\nrd = np.where(np.asarray(az) < 8, 1, np.where(np.asarray(ax) < 8, 2, 0))\nrd = np.where((layout == 1) & (rd == 0) & sroad, 3, np.where((layout == 1) & (rd == 0) & lane, 4, rd))\nrd = np.where(L2, np.where(er >= 0.5, 1, np.where(lane & (eo < 0.5), 4, 0)), rd)\ni@road = rd\ni@bld = where(b < 0, -1, b)\ni@floors = where(b < 0, 0, f)\ni@facade = fa",
+"geo": [
+"413",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"415": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nsb = chi(\"setback_floors\", 3)          # how many floors lower the front row stops (0 = no setbacks)\nsmin = chi(\"setback_min\", 9)           # from how many floors a building steps back\nx = @P.x\nz = @P.z\nb = @bld\nf = @floors\n# the first row of cells along a street (a street cell beside it), the building going on behind it (so it\n# has a back part to rise)\nfr = 0 * x > 1\nfor dx, dz in ((4, 0), (-4, 0), (0, 4), (0, -4)):\n    r_ = cell(x + dx, z + dz, \"road\")\n    fr = fr | (((r_ >= 1) & (r_ <= 3)) & (cell(x - dx, z - dz, \"bld\") == b))\nring = (b >= 0) & (f >= smin) & (sb > 0) & fr\ni@height = f\ni@setback = where(ring, 1, 0)\ni@floors = where(ring, f - sb, f)",
+"geo": [
+"414",
+0
+],
+"geo1": [
+"414",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"416": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "prim",
+"geo": [
+"415",
+0
+],
+"group": "@bld < 0",
+"keep_selected": false
+}
+},
+"417": {
+"class_type": "PCG_Divide",
+"inputs": {
+"attributes_to_swap": "* ^P",
+"avoid_slivers": false,
+"avoid_small_angles": false,
+"brick_angle_x": 0.0,
+"brick_angle_y": 0.0,
+"brick_angle_z": 0.0,
+"brick_offset_x": 0.0,
+"brick_offset_y": 0.0,
+"brick_offset_z": 0.0,
+"brick_polygons": false,
+"brick_shared_edges": true,
+"brick_size_x": 1.0,
+"brick_size_y": 1.0,
+"brick_size_z": 1.0,
+"compute_dual": false,
+"convex_polygons": false,
+"geo": [
+"416",
+0
+],
+"group": "@setback == 0",
+"max_edges": 3,
+"planar_tolerance": 0.0001,
+"remove_shared_edges": true,
+"triangulate_nonplanar": true
+}
+},
+"418": {
+"class_type": "PCG_Divide",
+"inputs": {
+"attributes_to_swap": "* ^P",
+"avoid_slivers": false,
+"avoid_small_angles": false,
+"brick_angle_x": 0.0,
+"brick_angle_y": 0.0,
+"brick_angle_z": 0.0,
+"brick_offset_x": 0.0,
+"brick_offset_y": 0.0,
+"brick_offset_z": 0.0,
+"brick_polygons": false,
+"brick_shared_edges": true,
+"brick_size_x": 1.0,
+"brick_size_y": 1.0,
+"brick_size_z": 1.0,
+"compute_dual": false,
+"convex_polygons": false,
+"geo": [
+"417",
+0
+],
+"group": "@setback == 1",
+"max_edges": 3,
+"planar_tolerance": 0.0001,
+"remove_shared_edges": true,
+"triangulate_nonplanar": true
+}
+},
+"419": {
+"class_type": "PCG_PolyExtrude",
+"inputs": {
+"add_vertex_normals": false,
+"back_group": "extrudeBack",
+"back_seam_group": "",
+"cusp_angle": 60.0,
+"dir_x": 0.0,
+"dir_y": 1.0,
+"dir_z": 0.0,
+"distance": 49.0,
+"distance_attrib": "",
+"divide_into": "individual",
+"divisions": 14,
+"extrusion_mode": "prim_edge_normal",
+"front_group": "extrudeFront",
+"front_rotate": 0.0,
+"front_scale": 1.0,
+"front_seam_group": "",
+"front_tx": 0.0,
+"front_ty": 0.0,
+"front_tz": 0.0,
+"geo": [
+"418",
+0
+],
+"group": "",
+"inset": 0.0,
+"inset_attrib": "",
+"limit_insetting": false,
+"output_back": false,
+"output_front": false,
+"output_side": true,
+"preserve_groups": true,
+"side_group": "slot",
+"side_uv": false,
+"transform_front": false,
+"twist": 0.0,
+"up_x": 0.0,
+"up_y": 1.0,
+"up_z": 0.0,
+"use_common_limit": true,
+"use_direction": false,
+"use_local": false,
+"use_output": true,
+"use_spine": false,
+"uv_style": "proportional"
 }
 },
 "42": {
@@ -5204,6 +6325,181 @@
 ]
 }
 },
+"420": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "i@above = @P.y > @floors * 3.5",
+"geo": [
+"419",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
+}
+},
+"421": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "prim",
+"geo": [
+"420",
+0
+],
+"group": "@above == 1",
+"keep_selected": false
+}
+},
+"422": {
+"class_type": "PCG_Normal",
+"inputs": {
+"add_to": "prim",
+"compute_normals": true,
+"cusp_angle": 60.0,
+"geo": [
+"421",
+0
+],
+"group": "",
+"group_type": "guess",
+"keep_zero": false,
+"make_unit": false,
+"normal_name": "N",
+"reverse": false,
+"weighting": "by_face_area"
+}
+},
+"423": {
+"class_type": "PCG_ExtractCentroid",
+"inputs": {
+"attribute_name": "centroid",
+"geo": [
+"422",
+0
+],
+"group": "",
+"method": "average_position",
+"output": "points",
+"piece_attribute": "name",
+"piece_elements": "primitives",
+"run_over": "primitives",
+"transfer_attributes": "N floors bld facade height",
+"transfer_groups": "",
+"use_attrib_out": true,
+"use_transfer": true
+}
+},
+"424": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nfl = floor(@P.y / 3.5)\ni@floor = fl\n@P.y = fl * 3.5                      # pivot at the midpoint of the bottom edge\nt = normalize(cross(set(0, 1, 0), @N))\ncol = floor(dot(@P, t) / 4 + 0.5)    # which column on the facade (aligned vertically)\nface = floor(dot(@N, set(1.3, 0, 2.9)) * 10 + 0.5)\nh = rand(col * 7.31 + @bld * 13.7 + face * 0.37)\nox = @P.x + 2 * @N.x                 # 2 m in front of the facade\noz = @P.z + 2 * @N.z\n# the street a facade faces: the road class of the cell in front (1 the main street -- or, in a town of the\n# open world, any road --, 2 the side street, 3 a secondary street)\nrf_ = cell(ox, oz, \"road\")\nmain = rf_ == 1\nside = rf_ == 2\nsec = rf_ == 3\nstreet = main | side | sec\n# shops: all along the main street; on the side street only near the crossing (within 24 m of it)\nshop = main | (side & (abs(@P.z) < 24))\nmodern = @facade == 3\n# render facades: paired windows; modern ones: curtain walls\nwin = where(@facade == 2, \"Wall_WindowPair\", where(modern, \"Wall_Curtain\", \"Wall_Window\"))\n# one balcony style per building: 0 none, 1 scattered on even floors, 2 bands (every street column, every third floor)\nbs = floor(rand(@bld * 5.31 + 1.7) * 3)\nbal = street & ~modern & (fl >= 1) & (((bs == 1) & (h > 0.55) & (fl % 2 == 0)) | ((bs == 2) & (fl % 3 == 2)))\n# towers (9+ floors) stand on a two-storey podium: the first floor is shopfront too where the ground floor is\npodium = (@height >= 9) & (fl == 1) & shop\n# the balconies' railing: iron balusters, or on two buildings in five a glass balustrade\nbalk = where(rand(@bld * 2.71 + 0.3) < 0.4, \"Wall_BalconyGlass\", \"Wall_Balcony\")\nup_ = where(podium, \"Wall_Shopfront\", where(bal, balk,\n            where((h < 0.12) & (bs != 2) & ~modern, \"Wall_Plain\", win)))\n# ground floor: shops (behind an arcade on the main street, for the buff-brick buildings); the rest of the\n# streets get entrances and windows; the backs doors and plain walls\nshopk = where(main & (@facade == 1), \"Wall_Arcade\", \"Wall_Shopfront\")\nground = where(shop, shopk, where(street, where(h > 0.6, \"Wall_Door\", win),\n               where(h > 0.78, \"Wall_Door\", \"Wall_Plain\")))\n# a slot whose front cell is this building and still standing at this floor is inside (where the set-back\n# front row meets the rest): no wall\ninside = (cell(ox, oz, \"bld\") == @bld) & (fl < cell(ox, oz, \"floors\"))\ns@name = where(inside, \"\", where(fl == 0, ground, up_))\ni@back = where(street, 0, 1)\n@up = set(0, 1, 0)",
+"geo": [
+"423",
+0
+],
+"geo1": [
+"415",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"425": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"424",
+0
+],
+"group": "@name == \"\"",
+"keep_selected": false
+}
+},
+"426": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"425",
+0
+],
+"group": "@floor != @floors - 1",
+"keep_selected": false
+}
+},
+"427": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "s@name = \"Roof_Cornice\"\n@P.y += 3.5",
+"geo": [
+"426",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"428": {
+"class_type": "PCG_GroupCreate",
+"inputs": {
+"base": "",
+"bbox_partial": false,
+"both_dirs": false,
+"cls": "point",
+"cx": 0.0,
+"cy": 0.0,
+"cz": 0.0,
+"dir_x": 0.0,
+"dir_y": 0.0,
+"dir_z": 1.0,
+"edge_combine": "include",
+"geo": [
+"421",
+0
+],
+"max_angle": 180.0,
+"merge": "replace",
+"min_angle": 30.0,
+"name": "corner",
+"percent": 50.0,
+"rand_seed": 0,
+"spread": 180.0,
+"sx": 1.0,
+"sy": 1.0,
+"sz": 1.0,
+"unshared": false,
+"use_angle": true,
+"use_bbox": false,
+"use_edges": true,
+"use_normal": false,
+"use_random": false
+}
+},
+"429": {
+"class_type": "PCG_AttribPromote",
+"inputs": {
+"change_new_name": false,
+"delete_original": false,
+"geo": [
+"428",
+0
+],
+"method": "maximum",
+"new_class": "point",
+"new_name": "",
+"original_class": "prim",
+"original_name": "floors",
+"piece_attribute": "name",
+"use_piece": false
+}
+},
 "43": {
 "class_type": "PCG_Wrangle",
 "inputs": {
@@ -5216,6 +6512,159 @@
 "group": "",
 "rand_seed": 0,
 "run_over": "prim"
+}
+},
+"430": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"429",
+0
+],
+"group": "corner",
+"keep_selected": true
+}
+},
+"431": {
+"class_type": "PCG_Add",
+"inputs": {
+"attribute": "class",
+"attribute_closed": false,
+"geo": [
+"430",
+0
+],
+"group": "",
+"group_closed": false,
+"group_mode": "all_points",
+"group_n": 2,
+"keep_points": true,
+"pattern": "0-3",
+"pattern_closed": true,
+"points": "",
+"remove_repeated": true,
+"remove_unused": false,
+"use_attribute": false,
+"use_group": false,
+"use_pattern": false,
+"use_remove": false
+}
+},
+"432": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"431",
+0
+],
+"group": "@P.y > @floors * 3.5 - 0.1",
+"keep_selected": false
+}
+},
+"433": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\n# the four cells round this grid point, standing at this storey (built, and tall enough)\ny = @P.y + 0.1\ndef up_(dx, dz):\n    return (cell(@P.x + dx, @P.z + dz, \"bld\") >= 0) & (cell(@P.x + dx, @P.z + dz, \"floors\") * 3.5 > y)\na = up_(-2, -2)\nb = up_(2, -2)\nc = up_(-2, 2)\nd = up_(2, 2)\nn = a * 1 + b * 1 + c * 1 + d * 1\n# a corner: one cell (outside corner) or three (inside corner); two side by side are a flat wall\nturn = (n == 1) | (n == 3) | ((n == 2) & (a == d))\n# one pillar per point (where the set-back front rows meet the rest two masses share a corner)\nkey = np.round(np.asarray(@P.x) * 10) * 1e7 + np.round(np.asarray(@P.y) * 10) * 1e3 + np.round(np.asarray(@P.z) * 10)\nfirst = np.zeros(len(key), bool)\nfirst[np.unique(key, return_index=True)[1]] = True\ni@keep = where(turn & first, 1, 0)\n# an outside corner with a street on both its outer sides (the corners on the crossing): a round corner bay\nsx_ = where(a | c, -2.0, 2.0)          # the standing cell's side of the point\nsz_ = where(a | b, -2.0, 2.0)\ndef street(dx, dz):\n    r_ = cell(@P.x + dx, @P.z + dz, \"road\")\n    return (r_ >= 1) & (r_ <= 3)\ncross = (n == 1) & street(-sx_, sz_) & street(sx_, -sz_) & street(-sx_, -sz_)\ns@name = where(cross & (@P.y < 0.5), \"Corner_BayShop\", where(cross, \"Corner_Bay\", \"Corner_Pillar\"))\n# the building it belongs to (one of the standing cells): its number and facade variant (the bay is rendered)\ndef pick(name):\n    v = [cell(@P.x + dx, @P.z + dz, name) for dx, dz in ((-2, -2), (2, -2), (-2, 2), (2, 2))]\n    return where(a, v[0], where(b, v[1], where(c, v[2], v[3])))\ni@bld = pick(\"bld\")\ni@facade = pick(\"facade\")\n# the bay faces out of the corner (diagonally into the crossing)\n@N = where(cross, normalize(set(-sx_, 0, -sz_)), set(0, 0, 1))\n@up = set(0, 1, 0)",
+"geo": [
+"432",
+0
+],
+"geo1": [
+"415",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"434": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"433",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"435": {
+"class_type": "PCG_ExtractCentroid",
+"inputs": {
+"attribute_name": "centroid",
+"geo": [
+"416",
+0
+],
+"group": "",
+"method": "average_position",
+"output": "points",
+"piece_attribute": "name",
+"piece_elements": "primitives",
+"run_over": "primitives",
+"transfer_attributes": "floors bld facade height",
+"transfer_groups": "",
+"use_attrib_out": true,
+"use_transfer": true
+}
+},
+"436": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "# the building's long axis (from its cells' extent): the ridge runs along it\nb = np.asarray(@bld).reshape(-1).astype(int) + 1\npx = np.asarray(@P.x).reshape(-1)\npz = np.asarray(@P.z).reshape(-1)\nn_ = b.max() + 1\nx0 = np.full(n_, 1e9)\nx1 = np.full(n_, -1e9)\nz0 = np.full(n_, 1e9)\nz1 = np.full(n_, -1e9)\nnp.minimum.at(x0, b, px)\nnp.maximum.at(x1, b, px)\nnp.minimum.at(z0, b, pz)\nnp.maximum.at(z1, b, pz)\ni@axx = where((x1 - x0)[b] >= (z1 - z0)[b], 1, 0)\npitched = @height <= 4\ns@name = where(pitched, \"Roof_Gable\", \"Roof_Flat\")\n@P.y = @floors * 3.5\n# the gable piece's ridge is its local X: across the building's axis the piece faces along the other one\n@N = where(pitched & (@axx == 0), set(1, 0, 0), set(0, 0, 1))\n@up = set(0, 1, 0)",
+"geo": [
+"435",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"437": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "h = rand(@ptnum * 3.17 + 0.5)\nbig = @floors >= 5\n# the stair / lift core: on buildings of 8+ floors, the roof cell nearest the building's middle\nb = np.asarray(@bld).reshape(-1).astype(int) + 1\npx = np.asarray(@P.x).reshape(-1)\npz = np.asarray(@P.z).reshape(-1)\nn_ = np.bincount(b, minlength=b.max() + 1).astype(float)\nmx = np.bincount(b, px, b.max() + 1) / np.maximum(n_, 1)\nmz = np.bincount(b, pz, b.max() + 1) / np.maximum(n_, 1)\nd = (px - mx[b]) ** 2 + (pz - mz[b]) ** 2 + np.asarray(rand(@ptnum * 0.73)).reshape(-1) * 1e-3\ndm = np.full(b.max() + 1, 1e9)\nnp.minimum.at(dm, b, d)\nstair = (d == dm[b]) & (np.asarray(@height).reshape(-1) >= 8)\nflat = np.asarray(@name).reshape(-1) == \"Roof_Flat\"\n# a roof terrace (decking, planters) over every cell of about half the 5-7 floor buildings; a few antennas\ndeck = flat & (@height >= 5) & (@height <= 7) & (rand(b * 2.93 + 0.4) < 0.5)\n# a roof garden (beds, shrubs, a bench) over every cell of a quarter of the other 3-6 floor flat roofs\ngarden = flat & ~deck & (@height >= 3) & (@height <= 6) & (rand(b * 7.13 + 0.2) < 0.25)\nant = (h >= 0.14) & (h < 0.20)\ns@name = where(~flat, \"\", where(stair, \"Roof_Penthouse\", where(deck, \"Roof_Deck\", where(garden, \"Roof_Garden\", where(big & (h < 0.035), \"Roof_Tank\", where(h < 0.14, \"Roof_Unit\", where(ant, \"Roof_Antenna\", \"\")))))))\n# random quarter turns, and (plant only) a little slack inside the 4 m cell\na = floor(rand(@ptnum * 1.91) * 4) * 1.5708\n@N = set(sin(a), 0, cos(a))\nk = where(stair | deck | garden | ant, 0.0, 1.2)\n@P.x += (rand(@ptnum * 2.3) - 0.5) * k\n@P.z += (rand(@ptnum * 4.1) - 0.5) * k",
+"geo": [
+"436",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"438": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"437",
+0
+],
+"group": "@name == \"\"",
+"keep_selected": false
+}
+},
+"439": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "nm = np.asarray(@name).reshape(-1)\nwb_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\") | (nm == \"Wall_Plain\")\ncol = rand(floor(@P.x * 4 + 0.5) * 0.731 + floor(@P.z * 4 + 0.5) * 1.917 + @bld * 3.3)\nfire = wb_ & (@back == 1) & (@floor >= 1) & (@height >= 4) & (col < 0.035)\nw_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\")\ni@keep = where(w_ & ~fire & (@back == 1) & (@floor >= 1) & (rand(@ptnum * 5.77 + 0.21) < 0.33), 1, 0)\ns@name = \"Prop_ACUnit\"\n@P.y += 0.25",
+"geo": [
+"425",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
 }
 },
 "44": {
@@ -5237,6 +6686,144 @@
 "uniform_scale": 1.0
 }
 },
+"440": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"439",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"441": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "nm = np.asarray(@name).reshape(-1)\nw_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\")\ni@keep = where(w_ & (@back == 0) & (@floor >= 1) & (@facade != 3) & (rand(@ptnum * 2.17 + 0.83) < 0.22), 1, 0)\ns@name = \"Prop_FlowerBox\"\n@P.y += 0.92",
+"geo": [
+"425",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"442": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"441",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"443": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "nm = np.asarray(@name).reshape(-1)\nwb_ = (nm == \"Wall_Window\") | (nm == \"Wall_WindowPair\") | (nm == \"Wall_Plain\")\ncol = rand(floor(@P.x * 4 + 0.5) * 0.731 + floor(@P.z * 4 + 0.5) * 1.917 + @bld * 3.3)\nfire = wb_ & (@back == 1) & (@floor >= 1) & (@height >= 4) & (col < 0.035)\ni@keep = where(fire, 1, 0)\ns@name = \"Prop_FireEscape\"",
+"geo": [
+"425",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"444": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"443",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"445": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nd = set(@axx, 0, 1 - @axx) * 1\nnb = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"bld\")\nnf = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"floors\")\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & ((nb != @bld) | (nf != @floors)), 1, 0)\ns@name = \"Roof_GableEnd\"\n@P = @P + d * 2\n@N = d",
+"geo": [
+"436",
+0
+],
+"geo1": [
+"415",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"446": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"445",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"447": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "def cell(x, z, name):\n    i = np.floor((np.asarray(x, np.float64) + 52) / 4)\n    j = np.floor((np.asarray(z, np.float64) + 44) / 4)\n    ok = (i >= 0) & (i < 26) & (j >= 0) & (j < 22)\n    v = np.asarray(prim(1, name, np.where(ok, j * 26 + i, 0).astype(np.int64)), np.float64).reshape(ok.shape)\n    return np.where(ok, v, -1.0)\nd = set(@axx, 0, 1 - @axx) * -1\nnb = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"bld\")\nnf = cell(@P.x + 4 * d.x, @P.z + 4 * d.z, \"floors\")\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & ((nb != @bld) | (nf != @floors)), 1, 0)\ns@name = \"Roof_GableEnd\"\n@P = @P + d * 2\n@N = d",
+"geo": [
+"436",
+0
+],
+"geo1": [
+"415",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"448": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"447",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"449": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "# across the ridge, toward the nearer street axis\nd = where(@axx == 1, set(0, 0, -np.sign(@P.z)), set(-np.sign(@P.x), 0, 0))\ni@keep = where((np.asarray(@name).reshape(-1) == \"Roof_Gable\") & (rand(@ptnum * 3.91 + 0.6) < 0.45), 1, 0)\ns@name = \"Roof_Dormer\"\n@P = @P + d * 1.0 + set(0, 0.35, 0)\n@N = d",
+"geo": [
+"436",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
 "45": {
 "class_type": "PCG_Box",
 "inputs": {
@@ -5254,6 +6841,129 @@
 "size_y": 2.67,
 "size_z": 0.08,
 "uniform_scale": 1.0
+}
+},
+"450": {
+"class_type": "PCG_Blast",
+"inputs": {
+"cls": "point",
+"geo": [
+"449",
+0
+],
+"group": "@keep == 0",
+"keep_selected": false
+}
+},
+"451": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"425",
+0
+],
+"geo2": [
+"427",
+0
+],
+"geo3": [
+"434",
+0
+],
+"geo4": [
+"436",
+0
+],
+"geo5": [
+"438",
+0
+],
+"geo6": [
+"440",
+0
+]
+}
+},
+"452": {
+"class_type": "PCG_Merge",
+"inputs": {
+"geo1": [
+"451",
+0
+],
+"geo2": [
+"442",
+0
+],
+"geo3": [
+"444",
+0
+],
+"geo4": [
+"446",
+0
+],
+"geo5": [
+"448",
+0
+],
+"geo6": [
+"450",
+0
+]
+}
+},
+"453": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "# the table's asset column is exactly the kit's exported file name (SM_Kit_Wall_Window.glb without the extension)\ns@asset = sprintf(\"SM_Kit_%s\", @name)",
+"geo": [
+"452",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "point"
+}
+},
+"454": {
+"class_type": "PCG_CopyToPoints",
+"inputs": {
+"multiply_attributes": "",
+"pack_and_instance": false,
+"piece_attribute": "name",
+"points": [
+"452",
+0
+],
+"rotate_attributes": "N v up",
+"source": [
+"401",
+0
+],
+"source_group": "",
+"target_group": "",
+"target_point_attributes": "*",
+"target_prim_attributes": "facade bld",
+"transform_using_orientations": true,
+"up_x": 0.0,
+"up_y": 1.0,
+"up_z": 0.0
+}
+},
+"455": {
+"class_type": "PCG_Wrangle",
+"inputs": {
+"ch_params": "{}",
+"code": "w = @material == \"M_Wall\"\nm = where(w & (@facade == 1), \"M_BrickBuff\",\n          where(w & (@facade == 2), \"M_Stucco\",\n          where(w & (@facade == 3), \"M_Trim\", @material)))\ns@material = m\n@Cd = where(m == \"M_BrickBuff\", set(0.70, 0.62, 0.46), where(m == \"M_Stucco\", set(0.84, 0.77, 0.63), @Cd))\n# details that vary: the painted metal (window frames, railings, shop frames) one colour per building; the\n# awnings, signs and window boxes one each\ndef pick(r, cols):\n    k = np.minimum((np.asarray(r).reshape(-1) * len(cols)).astype(int), len(cols) - 1)\n    return np.asarray(cols, np.float32)[k]\nrb = rand(@bld * 4.13 + 0.27)\nrc = rand(@copynum * 1.71 + 0.13)\nmetal = pick(rb, [(0.30, 0.55, 0.38), (0.35, 0.35, 0.36), (2.2, 2.1, 1.9), (0.95, 0.30, 0.25), (0.35, 0.45, 0.85)])\nawn = pick(rc, [(0.62, 0.12, 0.09), (0.12, 0.38, 0.18), (0.13, 0.22, 0.48), (0.78, 0.64, 0.36), (0.16, 0.16, 0.17), (0.70, 0.40, 0.12)])\nsign = pick(rand(@copynum * 3.37 + 0.61), [(1.2, 1.0, 0.6), (0.9, 0.3, 0.25), (0.35, 0.7, 1.0), (1.3, 1.3, 1.3), (0.5, 0.9, 0.5)])\nplant = pick(rand(@copynum * 5.11 + 0.37), [(0.18, 0.40, 0.12), (0.25, 0.48, 0.16), (0.55, 0.20, 0.35), (0.75, 0.62, 0.20), (0.62, 0.15, 0.12)])\n# the signs' lettering: cream, white, gold or black, one per shop\nlett = pick(rand(@copynum * 7.03 + 0.11), [(0.95, 0.91, 0.78), (1.0, 1.0, 1.0), (0.85, 0.65, 0.22), (0.05, 0.05, 0.05)])\nmm = np.asarray(m).reshape(-1)\n@Cd = np.where((mm == \"M_Metal\")[:, None], metal, np.where((mm == \"Awning\")[:, None], awn, np.where((mm == \"M_Sign\")[:, None], sign, np.where((mm == \"Planting\")[:, None], plant, np.where((mm == \"Lettering\")[:, None], lett, @Cd)))))",
+"geo": [
+"454",
+0
+],
+"group": "",
+"rand_seed": 0,
+"run_over": "prim"
 }
 },
 "46": {
@@ -6357,10 +8067,11 @@
 }
 },
 "refs": {
-"buildings": "365",
-"kit": "313",
-"pieces": "363",
-"rules": "326",
-"setbacks": "327"
+"buildings": "455",
+"grid": "413",
+"kit": "401",
+"pieces": "453",
+"rules": "414",
+"setbacks": "415"
 }
 }

@@ -347,6 +347,30 @@ O._weather(Pw, Nf, a_, pb_, np.ones((8, 8), bool), -100.0, 1.0, 1.0, None, None,
 check("  thin translucent pixels (leaves, grass: dry) do not get wet (no glossy sky on the leaves), but take snow",
       abs(float(pb_["roughness"].mean()) - 0.55) < 1e-4 and float(a_.mean()) > 0.6,
       (float(pb_["roughness"].mean()), float(a_.mean())))
+# rain (on the linear frame): streaks only where the scene is further than they are; a light's streak of reflection
+# runs down the wet ground below it
+Hr, Wr = 120, 160
+img_ = np.full((Hr, Wr, 3), 0.2, np.float32)
+far_ = np.full((Hr, Wr), 500.0, np.float32)
+near_ = np.full((Hr, Wr), 0.5, np.float32)                 # a wall half a metre away: every streak is behind it
+val_ = np.ones((Hr, Wr), bool)
+a1 = img_.copy()
+O._rain(a1, far_, val_, None, 1.0, 1, np.array([0.3, 0.35, 0.4]))
+a2 = img_.copy()
+O._rain(a2, near_, val_, None, 1.0, 1, np.array([0.3, 0.35, 0.4]))
+check("rain: streaks over a distant scene (a share of the pixels brighter), none in front of a wall 0.5 m away "
+      "(each streak at its own depth, hidden behind what is nearer)", (a1.mean(-1) > 0.21).mean() > 0.02
+      and np.allclose(a2, img_), (round(float((a1.mean(-1) > 0.21).mean()), 3), float(np.abs(a2 - img_).max())))
+a3 = img_.copy()
+a3[20, 80] = 6.0                                           # a lamp
+wtr_ = np.zeros((Hr, Wr), np.float32)
+wtr_[60:, :] = 1.0                                         # wet ground in the lower half
+a4 = a3.copy()
+O._rain(a4, near_, val_, wtr_, 1.0, 1, np.array([0.3, 0.35, 0.4]))
+gain_ = a4 - a3
+check("  a light's reflection: a vertical streak down the wet ground below it (column of the lamp brighter than the "
+      "columns 20 px aside), nothing on the dry part", gain_[70:90, 80].mean() > 0.3 and gain_[70:90, 60].max() < 1e-6
+      and np.abs(gain_[21:60]).max() < 1e-6, (round(float(gain_[70:90, 80].mean()), 3),))
 flw = flat.copy()
 flw.set(POINT, "weather", np.zeros(flw.npoints, np.float32))
 dw_ = O.render_outdoor(flw, 96, 72, sun_elev=35, sun_azim=180, wetness=1.0, **kf_)

@@ -94,7 +94,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
                    report=None, tex_cop=None, clouds=0.0, cloud_seed=0, sky_samples=32, compute="auto",
                    detail_cop=None, splat_cop=None, extra=None, aux=None, snow_line=0.0, snow_amount=0.0,
                    wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, weather_attrib="weather",
-                   translucency_attrib="translucency"):
+                   translucency_attrib="translucency", rain=0.0):
     """
     (H, W, 3) float32 sRGB 0..1, row 0 = top. cam: a Camera node dict (its projection is forced to perspective).
     extra: a second geometry drawn with geo without merging the two (each is rasterized on its own and the nearer
@@ -109,7 +109,9 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     the flattest; emit_attrib names a colour attribute added as emitted light (lit windows, lamp heads); lights:
     points (P, Cd colour, intensity) lit as unshadowed point lights within light_range metres (street lamps at
     dusk). weather_attrib names a float attribute 0..1 that scales the snow and the wetness per surface (grass
-    blades kept dry: 0); where it is absent, 1.
+    blades kept dry: 0); where it is absent, 1. rain 0..1: falling rain -- streaks between the camera and the
+    scene (hidden behind what is nearer), and the bright lights (lit windows, lamps, car lights) drawn out as
+    vertical streaks of reflection down the wet ground below them (with wetness).
     translucency_attrib names a float attribute 0..1 for thin surfaces (grass blades, leaf cards): they are lit from
     either side (no terminator on the face turned from the sun) and let that much sunlight through, tinted by their
     colour, when the sun is behind them; where it is absent, 0 (opaque, as before).
@@ -323,6 +325,7 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
     _trim()
     use_pbr = any(sl in tex for sl in S._PBR_SLOTS)
     emit = None
+    wet_img = None
     if emit_attrib:
         for g_, r_, mk in zip(parts, rasts, masks):
             if not (g_.has(POINT, emit_attrib) or any(g_.has(c_, emit_attrib) for c_ in _CLASSES)):
@@ -351,8 +354,9 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
                     wm = np.ones((H, W), np.float32)
                 wm[mk] = np.clip(e_[..., 0][mk], 0.0, 1.0)
                 del e_
+        wet_img = np.zeros((H, W), np.float32) if float(rain) > 0 and float(wetness) > 0 else None
         _weather(P, N, alb, pbr, surf, float(snow_line), float(snow_amount), float(wetness), wm, ny_geo,
-                 None if trn is None else trn > 0)
+                 None if trn is None else trn > 0, wet_img)
         ny_geo = None
         # wet ground needs the reflections
         use_pbr = use_pbr or (float(wetness) > 0 and (wm is None or float(wm[surf].max(initial=0.0)) > 0))
@@ -522,10 +526,65 @@ def _render_outdoor(geo, width=512, height=512, cam=None, elev=25.0, azim=35.0, 
         Dk = rays(*sk).astype(np.float64)
         lin_img[sk] = K.clouds(Dk, L, sky_radiance(Dk, L), clouds, cloud_seed)
     stage("shading and sky")
+    if float(rain) > 0:
+        _rain(lin_img, dist, valid, wet_img, float(rain), k, sky_flat)
+        stage("rain")
     out = _develop(lin_img, exposure, k)
     stage("tone and downsample")
     return out
 
+
+
+def _rain(lin_img, dist, valid, wet, amount, k, sky):
+    """
+    Rain on the frame, in place (linear, the supersampled size). Reflections first: the bright pixels (lit windows,
+    lamps, car lights: above 1.2) are carried down the frame row by row, fading over a few dozen pixels, and added
+    where the ground is wet (wet: its wetness; a vertical streak below each light, the look of a wet street at night).
+    Then the falling rain: thin slanted streaks, each at its own distance (1-40 m) and drawn only where the scene is
+    further away, as bright as a share of the sky light; their number grows with amount.
+    """
+    H, W = lin_img.shape[:2]
+    if wet is not None and wet.any():
+        # row by row (no full-frame temporaries: this runs at the end of a render, when it is largest)
+        decay = np.float32(np.exp(-1.0 / (40.0 * k)))
+        acc = np.zeros((W, 3), np.float32)
+        gain = np.float32(0.55 * min(amount * 2.0, 1.0))
+        for y in range(H):
+            row = lin_img[y]
+            lum = row.mean(-1)
+            hot = lum > 1.2
+            if hot.any():
+                b_ = np.zeros((W, 3), np.float32)
+                b_[hot] = np.maximum(row[hot] * (1.0 - 1.2 / lum[hot])[:, None], 0.0)
+                acc = np.maximum(acc * decay, b_)
+            else:
+                acc *= decay
+            w_ = wet[y]
+            if w_.any():
+                row += acc * (w_ * gain)[:, None]
+    rng = np.random.default_rng(1234)
+    n = int(amount * W * H / (220.0 * k * k))
+    if n <= 0:
+        return
+    x0 = rng.uniform(0, W, n)
+    y0 = rng.uniform(-0.1 * H, H, n)
+    depth = rng.uniform(1.0, 40.0, n)
+    ln = (10.0 + 30.0 * rng.random(n)) * k * np.clip(8.0 / depth, 0.4, 2.5)
+    a_ = (0.07 + 0.12 * rng.random(n)) * np.clip(6.0 / depth, 0.25, 1.0)
+    m = 24
+    t = np.linspace(0.0, 1.0, m)[None]
+    ys = (y0[:, None] + ln[:, None] * t).ravel()
+    xs = (x0[:, None] + 0.18 * ln[:, None] * t).ravel()
+    ok = (ys >= 0) & (ys < H) & (xs >= 0) & (xs < W)
+    yi, xi = ys[ok].astype(np.int64), xs[ok].astype(np.int64)
+    dd = np.repeat(depth, m)[ok]
+    aa = np.repeat(a_, m)[ok]
+    scene = np.where(valid[yi, xi], dist[yi, xi], np.inf)
+    vis = dd < scene
+    layer = np.zeros(H * W, np.float32)
+    np.add.at(layer, (yi * W + xi)[vis], aa[vis].astype(np.float32))
+    col = np.asarray(sky, np.float64).reshape(-1)[:3] * 1.6 + 0.08
+    lin_img += np.minimum(layer.reshape(H, W), 0.6)[..., None] * col.astype(np.float32)[None, None]
 
 
 LAST_STAGES = []             # the last render's (stage, seconds), and ("device", name): shown in Preview Image's info
@@ -612,11 +671,11 @@ def _blur_masked(v, mask, r):
     return np.where(den > 1e-6, num / np.maximum(den, 1e-6), v).astype(np.float32)
 
 
-def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_geo=None, dry=None):
+def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_geo=None, dry=None, wet_out=None):
     """Snow and wet ground on the surface pixels, in place (albedo, roughness); wm: (H, W) 0..1 scales both;
     ny_geo: (H, W) the mesh normal's y before the normal maps, blurred to the scale of a slope, weighted 3:1 over
     the mapped normal's; dry: (H, W) bool, pixels that do not get wet (thin translucent surfaces: leaves, grass --
-    snow still settles on them)."""
+    snow still settles on them); wet_out: (H, W) float32 that gets each flat pixel's wetness (puddles 1)."""
     vi = np.nonzero(surf)
     step = 1 << 20
     for s0 in range(0, len(vi[0]), step):
@@ -650,6 +709,8 @@ def _weather(P, N, alb, pbr, surf, snow_line, snow_amount, wetness, wm=None, ny_
                 pud = pud * (~dry[so])
             a_ = a_ * (1 - 0.5 * pud[:, None])
             r_ = r_ * (1 - pud) + np.float32(0.02) * pud
+            if wet_out is not None:                  # (the flat wet surfaces mirror: a sloping one smears)
+                wet_out[so] = np.maximum(w_ * (ny_w > 0.95), pud)
         alb[so] = a_
         pbr["roughness"][so] = r_
 

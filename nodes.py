@@ -1958,6 +1958,8 @@ class PCG_PreviewImage:
             "weather_attrib": ("STRING", {"default": "weather"}),
             # appended: thin surfaces (grass, leaf cards) lit from both sides and letting sunlight through (Outdoor)
             "translucency_attrib": ("STRING", {"default": "translucency"}),
+            # appended: falling rain and the lights' streaks on wet ground (Outdoor)
+            "rain": _f(0.0, 0.0, 1.0, 0.05),
         }}
     # appended outputs: the outdoor look's guide passes (for ControlNet: depth, normal); other looks give flat ones
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE"); RETURN_NAMES = ("image", "depth", "normal")
@@ -1970,14 +1972,14 @@ class PCG_PreviewImage:
             ground_color="0.32 0.31 0.27", exposure=1.0, clouds=0.0, cloud_seed=0, sky_samples=32,
             compute="auto", detail_cop=None, splat_cop=None, extra_geo=None, snow_line=150.0, snow_amount=0.0,
             wetness=0.0, emit_attrib="emit", lights=None, light_range=40.0, cameras=None, weather_attrib="weather",
-            translucency_attrib="translucency"):
+            translucency_attrib="translucency", rain=0.0):
         if cameras is not None and len(cameras) and look == "outdoor":
             import torch as _torch
             outs = [self.run(geo, width, height, elevation, azimuth, shading, color_attrib, look, supersampling,
                              textures, material_attrib, uv_attrib, textures_cop, c_, sun_elevation, sun_azimuth, haze,
                              ground_plane, ground_color, exposure, clouds, cloud_seed, sky_samples, compute,
                              detail_cop, splat_cop, extra_geo, snow_line, snow_amount, wetness, emit_attrib, lights,
-                             light_range, None, weather_attrib, translucency_attrib) for c_ in cameras]
+                             light_range, None, weather_attrib, translucency_attrib, rain) for c_ in cameras]
             outs = [o_["result"] if isinstance(o_, dict) else o_ for o_ in outs]
             return tuple(_torch.cat([o_[i] for o_ in outs], 0) for i in range(3))
         extra_od = None
@@ -2020,7 +2022,7 @@ class PCG_PreviewImage:
                                      splat_cop=splat_cop, extra=extra_od, aux=aux, snow_line=snow_line,
                                      snow_amount=snow_amount, wetness=wetness, emit_attrib=emit_attrib,
                                      lights=lights, light_range=light_range, weather_attrib=weather_attrib,
-                                     translucency_attrib=translucency_attrib)
+                                     translucency_attrib=translucency_attrib, rain=rain)
             try:                                    # where the time went, in the node's info (middle button)
                 from . import cookstats as _cs
                 st_ = dict(_od.LAST_STAGES)

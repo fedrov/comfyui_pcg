@@ -282,6 +282,24 @@ namespace Pcg.World
             return s == WallMaterial() ? "" : s;
         }
 
+        // a facade material's textures in the export (the city key's facade_textures: basecolor, normal, orm),
+        // as full paths, only the files that exist; empty without them
+        public Dictionary<string, string> FacadeTextures(string material)
+        {
+            var o = new Dictionary<string, string>();
+            var c = Obj(J, "city");
+            var ft = c != null ? Obj(c, "facade_textures") : null;
+            object v;
+            if (ft == null || !ft.TryGetValue(material, out v) || !(v is Dictionary<string, object>)) return o;
+            foreach (var kv in (Dictionary<string, object>)v)
+            {
+                if (kv.Value == null) continue;
+                string f = Path_(kv.Value.ToString());
+                if (File.Exists(f)) o[kv.Key] = f;
+            }
+            return o;
+        }
+
         public Dictionary<string, object> Tile(int i, int j)
         {
             foreach (var t in Arr(J, "tiles"))
